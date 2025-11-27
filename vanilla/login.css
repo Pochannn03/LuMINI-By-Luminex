@@ -1,0 +1,28 @@
+.sign-in-form-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  bottom: 0px;
+
+  height: 70%;
+  width: 100%;
+
+  border-radius: 60px 60px 0px 0px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.349);
+  background-color: var(--white);
+}
+
+.sign-in-form-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: start;
+
+  height: 100%;
+  width: 50%;
+  min-width: 440px;
+
+  background-color: var(--blue);
+}
