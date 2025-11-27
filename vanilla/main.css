@@ -1,0 +1,99 @@
+/* Defaults */
+
+:root {
+  --blue: #39a8ed;
+  --blue-active: #297aac;
+  --white: rgb(255, 255, 255);
+  --color-accent: #f43f5e;
+  --color-background: #f9fafb;
+  --color-text: #111827;
+}
+
+body {
+  font-family: Poppins;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow-x: hidden;
+
+  height: 100vh;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+
+  background-image: url("/LuMINI-Fork/vanilla/assets/background-lumini.png");
+}
+
+/* Login Page */
+
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+
+  height: 100vh;
+  width: 100vw;
+
+  background-color: rgba(255, 255, 255, 0.631);
+  backdrop-filter: blur(3px);
+}
+
+.logo-image {
+  height: 300px;
+}
+
+.image-wrapper {
+  display: flex;
+
+  height: auto;
+  width: auto;
+}
+
+.button-holder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  margin: 180px 0px 0px 0px;
+  height: auto;
+  width: 50%;
+}
+
+.button {
+  height: 65px;
+  width: 330px;
+
+  margin: 0px 0px 13px 0px;
+
+  border: none;
+  border-radius: 10px;
+
+  background-color: var(--blue);
+  color: var(--white);
+
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-style: normal;
+  letter-spacing: 0.5px;
+
+  cursor: pointer;
+}
+
+.button:active {
+  background-color: var(--blue-active);
+  color: var(--white);
+}
+
+.register-button {
+  background-color: rgba(0, 0, 0, 0);
+
+  border: 2px solid var(--blue);
+  color: var(--blue);
+}
+
+.register-button:active {
+  border-color: var(--blue-active);
+}
