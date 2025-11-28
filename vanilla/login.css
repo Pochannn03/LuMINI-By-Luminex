@@ -17,12 +17,58 @@
 
 .sign-in-form-wrapper {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: start;
   align-items: start;
 
-  height: 100%;
-  width: 50%;
-  min-width: 440px;
+  height: 85%;
+  width: 360px;
+  min-width: 360px;
 
-  background-color: var(--blue);
+  /*background-color: var(--blue);*/
+}
+
+.header-text {
+  display: flex;
+  flex-direction: row;
+
+  height: auto;
+  width: 100%;
+
+  color: #424242;
+  font-size: 38px;
+}
+
+.sign-in-form {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+
+  margin: 25px 0px 0px 0px;
+  height: 200px;
+  width: 100%;
+}
+
+.input-field {
+  height: 50px;
+  width: 100%;
+
+  padding: 0px 8px 0px 8px;
+  margin: 0px 0px 15px 0px;
+  border: none;
+  border-radius: 10px;
+
+  font-family: "Poppins", sans-serif;
+  font-weight: normal;
+  font-style: normal;
+
+  font-size: 16px;
+
+  color: #e6e5e5;
+  background-color: #e8ecf4;
+}
+
+.confirm-button {
+  width: 100%;
 }
