@@ -34,6 +34,13 @@ p {
   padding: 0;
 }
 
+.horizontal-container {
+  display: flex;
+  flex-direction: row;
+  height: auto;
+  width: auto;
+}
+
 /* Login Page */
 
 .main-container {

@@ -24,8 +24,6 @@
   height: 85%;
   width: 360px;
   min-width: 360px;
-
-  /*background-color: var(--blue);*/
 }
 
 .header-text {
@@ -46,15 +44,15 @@
   align-items: center;
 
   margin: 25px 0px 0px 0px;
-  height: 200px;
+  height: auto;
   width: 100%;
 }
 
 .input-field {
-  height: 50px;
+  height: 56px;
   width: 100%;
 
-  padding: 0px 8px 0px 8px;
+  padding: 0px 16px 0px 16px;
   margin: 0px 0px 15px 0px;
   border: none;
   border-radius: 10px;
@@ -65,10 +63,90 @@
 
   font-size: 16px;
 
-  color: #e6e5e5;
+  color: var(--text) opacity(calc(03));
   background-color: #e8ecf4;
 }
 
+.input-field::placeholder {
+  color: var(--text);
+  opacity: 0.3; /* 30% visible */
+}
+
+.input-field:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--blue);
+}
+
 .confirm-button {
+  width: 100%;
+}
+
+/*FORGOT PASS*/
+
+.forgotpass-container {
+  justify-content: space-between;
+
+  width: 100%;
+  margin: 10px 0px 20px 0px;
+
+  color: var(--text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.forgot-password-link {
+  color: var(--text);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/*CHECKBOX*/
+.remember-me-checkbox:not(:checked) {
+  border-color: var(--text);
+  accent-color: var(--white);
+}
+
+/* When CHECKED */
+.remember-me-checkbox:checked {
+  accent-color: var(--blue);
+}
+
+/*LINE*/
+.line {
+  display: flex;
+
+  height: 2px;
+  width: 100%;
+
+  background-color: var(--text);
+  opacity: calc(0.4);
+}
+
+.rawr {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/*UNCONVENTIONALS*/
+
+.just-or {
+  margin: 0px 8px 0px 8px;
+
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dont-have-an-account {
+  justify-content: center;
+
+  margin: 15px 0px 0px 0px;
+  width: 100%;
+
+  color: var(--text);
+}
+
+.register-button-login-page {
+  margin: 15px 0px 0px 0px;
   width: 100%;
 }
