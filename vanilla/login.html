@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Index</title>
+    <title>Login</title>
     <link rel="stylesheet" href="/LuMINI-Fork/vanilla/main.css" />
     <link rel="stylesheet" href="/LuMINI-Fork/vanilla/login.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,7 +16,40 @@
   <body>
     <div class="main-container">
       <div class="sign-in-form-container">
-        <div class="sign-in-form-wrapper">1</div>
+        <div class="sign-in-form-wrapper">
+          <h1 class="header-text">Sign In</h1>
+          <form class="sign-in-form">
+            <input
+              type="text"
+              class="input-field"
+              placeholder="Enter your username"
+            />
+            <input
+              type="password"
+              class="input-field"
+              placeholder="Enter your password"
+            />
+            <div class="horizontal-container forgotpass-container">
+              <div class="horizontal-container">
+                <input type="checkbox" class="remember-me-checkbox" />
+                <label class="remember-me-chkbx-lbl">Remember me</label>
+              </div>
+              <a href="#" class="forgot-password-link">Forgot Password?</a>
+            </div>
+            <button type="submit" class="button confirm-button">Sign In</button>
+            <div class="horizontal-container rawr">
+              <div class="line"></div>
+              <p class="just-or">or</p>
+              <div class="line"></div>
+            </div>
+            <div class="horizontal-container dont-have-an-account">
+              Don't have an account?
+            </div>
+            <button class="button register-button register-button-login-page">
+              Register
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </body>

@@ -1,0 +1,110 @@
+body {
+  background-image: url(/LuMINI-Fork/vanilla/assets/background-2-lumini.png);
+}
+
+.main-container-register {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: center;
+
+  height: 80%;
+  width: 100vw;
+  min-width: 440px;
+}
+
+/**/
+
+.registration-header-text {
+  margin: 0px 0px 50px 0px;
+  padding: 0px 0px 0px 0px;
+
+  font-size: 50px;
+  font-weight: 600;
+  letter-spacing: -3px;
+  color: var(--text);
+}
+
+.card-holder {
+  justify-content: space-around;
+  align-items: center;
+
+  margin: 20px 0px 0px 0px;
+  height: auto;
+  width: 350px;
+}
+
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  margin: 0px 0px 0px 0px;
+  height: 150px;
+  width: 150px;
+
+  border-radius: 10px;
+  background-color: #f3f3f3;
+}
+
+.svg-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  height: 45px;
+  width: 45px;
+  border-radius: 10px;
+  background-color: #d5efff;
+}
+
+.svg-icon-holder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  height: 30px;
+  width: 30px;
+
+  border-radius: 10px;
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.parent-icon {
+  background-image: url(/LuMINI-Fork/vanilla/assets/parent.svg);
+}
+
+.guardian-icon {
+  background-image: url(/LuMINI-Fork/vanilla/assets/guardian.svg);
+}
+
+.teacher-icon {
+  background-image: url(/LuMINI-Fork/vanilla/assets/teacher.svg);
+}
+
+/**/
+
+.redirect-sign-in-container {
+  justify-content: center;
+  align-items: center;
+
+  margin: 50px 0px 0px 0px;
+  align-items: center;
+  width: 100%;
+}
+
+.login-link {
+  margin: 0px 0px 0px 5px;
+  letter-spacing: -1px;
+  text-decoration: none;
+  color: var(--blue);
+}
+
+.label-already-acc {
+  letter-spacing: -1px;
+  color: var(--opacity-text);
+}

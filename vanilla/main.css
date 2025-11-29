@@ -1,4 +1,7 @@
 /* Defaults */
+* {
+  box-sizing: border-box;
+}
 
 :root {
   --blue: #39a8ed;
@@ -6,7 +9,8 @@
   --white: rgb(255, 255, 255);
   --color-accent: #f43f5e;
   --color-background: #f9fafb;
-  --color-text: #111827;
+  --text: #424242;
+  --opacity-text: #6a707c;
 }
 
 body {
@@ -23,6 +27,19 @@ body {
   padding: 0;
 
   background-image: url("/LuMINI-Fork/vanilla/assets/background-lumini.png");
+}
+
+h1,
+p {
+  margin: 0;
+  padding: 0;
+}
+
+.horizontal-container {
+  display: flex;
+  flex-direction: row;
+  height: auto;
+  width: auto;
 }
 
 /* Login Page */
