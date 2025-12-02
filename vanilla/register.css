@@ -46,6 +46,11 @@ body {
 
   border-radius: 10px;
   background-color: #f3f3f3;
+  cursor: pointer;
+}
+
+.card-wrapper:active {
+  background-color: #cac9c9;
 }
 
 .svg-wrapper {
