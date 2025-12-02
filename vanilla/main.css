@@ -26,7 +26,7 @@ body {
   margin: 0;
   padding: 0;
 
-  background-image: url("/LuMINI-Fork/vanilla/assets/background-lumini.png");
+  background-image: url("assets/background-lumini.png");
 }
 
 h1,
