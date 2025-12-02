@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Registration</title>
+    <link rel="stylesheet" href="/LuMINI/vanilla/main.css" />
+    <link rel="stylesheet" href="/LuMINI/vanilla/register.css" />
+    <link rel="stylesheet" href="teacher_registration.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="vertical-container teacher-registration-main-container">
+      <h1 class="teacher-registration-header-text">Create Account</h1>
+      <p class="teacher-registration-description-text">
+        Please fill out the form to create your account and access the system.
+      </p>
+
+      <!-- First Part-->
+      <form
+        class="teacher-registration-form vertical-container"
+        id="firstPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Account Setup
+        </p>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="user-name" class="teacher-registration-label"
+            >Username <span class="required">(required)</span></label
+          >
+          <input
+            type="text"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your username"
+            required
+          />
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Password <span class="required">(required)</span></label
+          >
+          <input
+            type="password"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your Password"
+            required
+          />
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Confirm Password
+            <span class="required">(required; must match password)</span></label
+          >
+          <input
+            type="password"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Confirm your Password"
+            required
+          />
+        </div>
+      </form>
+
+      <!-- Second Part-->
+      <form
+        class="teacher-registration-form vertical-container"
+        id="secondPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Teacher
+        </p>
+        <div class="horizontal-container multiple-input-wrapper">
+          <div class="vertical-container lbl-input-wrapper">
+            <label for="user-name" class="teacher-registration-label"
+              >Firstname <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter your firstname"
+              required
+            />
+          </div>
+          <div
+            class="vertical-container lbl-input-wrapper lbl-input-wrapper-alter"
+          >
+            <label for="user-name" class="teacher-registration-label"
+              >Lastname <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter your lastname"
+              required
+            />
+          </div>
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Email Address <span class="required">(required)</span></label
+          >
+          <input
+            type="email"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your Email Address"
+            required
+          />
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Phone Number <span class="required">(required)</span></label
+          >
+          <input
+            type="tel"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="e.g +639617481421"
+            required
+          />
+        </div>
+      </form>
+
+      <!-- Third Part-->
+      <form
+        class="teacher-registration-form vertical-container"
+        id="thirdPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Address Details
+        </p>
+        <div class="horizontal-container multiple-input-wrapper">
+          <div class="vertical-container lbl-input-wrapper">
+            <label for="user-name" class="teacher-registration-label"
+              >House Unit <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter your House Unit"
+              required
+            />
+          </div>
+          <div
+            class="vertical-container lbl-input-wrapper lbl-input-wrapper-alter"
+          >
+            <label for="user-name" class="teacher-registration-label"
+              >Street <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter the name of your street"
+              required
+            />
+          </div>
+        </div>
+        <div class="horizontal-container multiple-input-wrapper">
+          <div class="vertical-container lbl-input-wrapper">
+            <label for="user-name" class="teacher-registration-label"
+              >Barangay/Village <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter the name of your Brgy / Village"
+              required
+            />
+          </div>
+          <div
+            class="vertical-container lbl-input-wrapper lbl-input-wrapper-alter"
+          >
+            <label for="user-name" class="teacher-registration-label"
+              >City <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter the name of your City"
+              required
+            />
+          </div>
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Zip Code <span class="required">(required)</span></label
+          >
+          <input
+            type="number"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your Zip Code"
+            required
+          />
+        </div>
+      </form>
+
+      <!--BUTTONS-->
+      <div class="horizontal-container button-wrapper">
+        <button class="button back-button" id="backWardBtn">Back</button>
+        <button class="button next-button" id="frwrdBtn">Next</button>
+      </div>
+    </div>
+
+    <script>
+      let btnForward = document.getElementById("frwrdBtn");
+      let btnBackward = document.getElementById("backWardBtn");
+
+      let firstCont = document.getElementById("firstPartContent");
+      let secondCont = document.getElementById("secondPartContent");
+      let thirdPartContent = document.getElementById("thirdPartContent");
+
+      let array = [firstCont, secondCont, thirdPartContent];
+      let currentIndex = 0;
+
+      // Function to show the current content
+      function showContent(i) {
+        // hide everything first
+        array.forEach((item) => (item.style.display = "none"));
+
+        // show the active one
+        array[i].style.display = "flex";
+
+        updateButtons(); // update button states
+      }
+
+      function updateButtons() {
+        // Disable BACK at index 0
+        btnBackward.disabled = currentIndex === 0;
+
+        // Disable NEXT at last index
+        btnForward.disabled = currentIndex === array.length - 1;
+      }
+
+      // Forward button
+      btnForward.addEventListener("click", () => {
+        if (currentIndex < array.length - 1) {
+          currentIndex++;
+          showContent(currentIndex);
+        }
+      });
+
+      // Backward button
+      btnBackward.addEventListener("click", () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          showContent(currentIndex);
+        }
+      });
+
+      // Always start at index 0
+      showContent(currentIndex);
+    </script>
+  </body>
+</html>
