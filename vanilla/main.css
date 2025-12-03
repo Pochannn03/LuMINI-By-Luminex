@@ -1,6 +1,7 @@
 /* Defaults */
 * {
   box-sizing: border-box;
+  font-family: Poppins, sans-serif;
 }
 
 :root {
@@ -26,7 +27,7 @@ body {
   margin: 0;
   padding: 0;
 
-  background-image: url("/LuMINI-Fork/vanilla/assets/background-lumini.png");
+  background-image: url("assets/background-lumini.png");
 }
 
 h1,
@@ -38,6 +39,13 @@ p {
 .horizontal-container {
   display: flex;
   flex-direction: row;
+  height: auto;
+  width: auto;
+}
+
+.vertical-container {
+  display: flex;
+  flex-direction: column;
   height: auto;
   width: auto;
 }

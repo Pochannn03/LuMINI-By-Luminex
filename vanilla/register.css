@@ -1,5 +1,5 @@
 body {
-  background-image: url(/LuMINI-Fork/vanilla/assets/background-2-lumini.png);
+  background-image: url(assets/background-2-lumini.png);
 }
 
 .main-container-register {
@@ -13,7 +13,7 @@ body {
   min-width: 440px;
 }
 
-/**/
+/*SPECIFICS*/
 
 .registration-header-text {
   margin: 0px 0px 50px 0px;
@@ -80,15 +80,15 @@ body {
 }
 
 .parent-icon {
-  background-image: url(/LuMINI-Fork/vanilla/assets/parent.svg);
+  background-image: url(assets/parent.svg);
 }
 
 .guardian-icon {
-  background-image: url(/LuMINI-Fork/vanilla/assets/guardian.svg);
+  background-image: url(assets/guardian.svg);
 }
 
 .teacher-icon {
-  background-image: url(/LuMINI-Fork/vanilla/assets/teacher.svg);
+  background-image: url(assets/teacher.svg);
 }
 
 /**/
