@@ -1,0 +1,244 @@
+* {
+  letter-spacing: -0.5px;
+}
+
+body {
+  justify-content: start;
+  align-self: center;
+  color: var(--text);
+  font-family: "Poppins";
+}
+
+.teacher-registration-main-container {
+  display: flex;
+  justify-content: center;
+  align-items: start;
+
+  height: auto;
+  width: 80%;
+  max-width: 1000px;
+  margin: 50px 0px 0px 0px;
+}
+
+/*SPECIFICS*/
+
+.teacher-registration-header-text {
+  display: flex;
+
+  height: auto;
+  width: 100%;
+
+  font-weight: 600;
+  font-size: 32px;
+  font-style: semi-bold;
+}
+
+.teacher-registration-description-text {
+  display: flex;
+
+  height: auto;
+  width: 100%;
+  margin: 0px 0px 35px 0px;
+
+  font-size: 14px;
+  font-weight: 300;
+  font-style: extra-light;
+}
+
+.enlarged-text {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+/*FORM*/
+
+.teacher-registration-form {
+  height: auto;
+  width: 100%;
+  margin: 0px 0px 30px 0px;
+}
+
+.lbl-input-wrapper {
+  height: auto;
+  width: 100%;
+  margin: 0px 0px 30px 0px;
+}
+
+.teacher-registration-label {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+
+  width: auto;
+
+  font-size: 16px;
+  font-weight: 500;
+  color: #6a707c;
+}
+
+.teacher-registration-input {
+  height: 43px;
+  padding: 0px 12px 0px 12px;
+
+  color: var(--opacity-text);
+  border: solid 1px;
+  border-color: #e0e5ed;
+  border-radius: 10px;
+  background-color: #e8ecf4;
+}
+
+.teacher-registration-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.required {
+  margin: 0px 0px 0px 5px;
+
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.button-wrapper {
+  justify-content: space-around;
+  align-items: center;
+
+  height: auto;
+  width: 100%;
+}
+
+.back-button,
+.next-button {
+  width: 172px;
+  margin: 0;
+}
+
+.back-button {
+  background-color: transparent;
+  border: 1px solid #8b5cf6;
+  color: #8b5cf6;
+}
+
+.next-button {
+  background-color: #8b5cf6;
+  border: none;
+  color: var(--white);
+}
+
+.next-button:active {
+  background-color: #4c3088;
+}
+
+.back-button:active {
+  background-color: #4c3088;
+  color: var(--white);
+}
+
+/*PART 1*/
+
+/*PART 2*/
+
+.multiple-input-wrapper {
+  justify-content: space-between;
+  width: 100%;
+}
+
+.lbl-input-wrapper-alter {
+  margin: 0px 0px 0px 20px;
+}
+
+/*PART 4*/
+.upload-photo {
+  align-items: center;
+  justify-content: start;
+  height: 359px;
+  width: 100%;
+}
+
+.uploaded-photo-container {
+  justify-content: center;
+  align-items: center;
+
+  height: 180px;
+  width: 180px;
+
+  border: dashed 6px #edebeb;
+  border-radius: 50px;
+  background-color: white;
+}
+
+#previewing {
+  height: 180px;
+  width: 180px;
+
+  border-radius: 50px;
+}
+
+.upload-photo-button {
+  justify-content: center;
+  align-items: center;
+
+  height: 43px;
+  width: 180px;
+  margin: 25px 0px 0px 0px;
+
+  border: solid 1px var(--blue);
+  border-radius: 10px;
+  background-color: transparent;
+  color: var(--blue);
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.upload-photo-button:active {
+  background-color: var(--blue-active);
+  color: var(--white);
+}
+
+.icon {
+  height: 20px;
+  width: 20px;
+}
+
+/*CONFIRMATION*/
+
+.confirmation {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+
+  height: auto;
+  width: 85%;
+
+  color: var(--text);
+}
+
+.confirmation-image {
+  height: 300px;
+  width: 300px;
+}
+
+.confirmation-header-text,
+.confirmation-text {
+  text-align: center;
+}
+
+.confirmation-header-text {
+  margin: 0px 0px 20px 0px;
+}
+
+.confirmation-text {
+  width: 100%;
+  margin: 0px 0px 70px 0px;
+
+  font-size: 14px;
+}
+
+.home-button {
+  width: 100%;
+
+  background-color: var(--blue);
+  color: var(--white);
+}

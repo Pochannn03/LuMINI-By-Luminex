@@ -18,31 +18,52 @@
     />
   </head>
   <body>
+    <!--REGISTER AS MAIN BODY-->
     <div class="main-container-register">
       <h1 class="registration-header-text">Register as</h1>
+
       <div class="horizontal-container card-holder">
+        <!-- Parent Card -->
         <div class="card-wrapper">
           <div class="svg-wrapper">
             <div class="svg-icon-holder parent-icon"></div>
           </div>
+          <p class="card-lbl">Parent</p>
         </div>
+
+        <!-- Guardian Card -->
         <div class="card-wrapper">
           <div class="svg-wrapper">
             <div class="svg-icon-holder guardian-icon"></div>
           </div>
+          <p class="card-lbl">Guardian</p>
         </div>
       </div>
-      <div class="horizontal-container card-holder">
+
+      <!-- Teacher Card -->
+      <div class="horizontal-container card-holder" id="teacherRegistrationBtn">
         <div class="card-wrapper">
           <div class="svg-wrapper">
             <div class="svg-icon-holder teacher-icon"></div>
           </div>
+          <p class="card-lbl">Teacher</p>
         </div>
       </div>
+
       <div class="horizontal-container redirect-sign-in-container">
         <p class="label-already-acc">Already have an account?</p>
         <a href="login.html" class="login-link">Sign In</a>
+        <a href="login.html" class="login-link">Sign In</a>
       </div>
     </div>
+    <script>
+      let teacherRegistrationBtn = document.getElementById(
+        "teacherRegistrationBtn"
+      );
+
+      teacherRegistrationBtn.addEventListener("click", () => {
+        window.location.href = "teacher/teacher_registration.html"; // change this if needed
+      });
+    </script>
   </body>
 </html>

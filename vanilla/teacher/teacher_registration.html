@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Registration</title>
+    <link rel="stylesheet" href="/LuMINI/vanilla/main.css" />
+    <link rel="stylesheet" href="/LuMINI/vanilla/register.css" />
+    <link rel="stylesheet" href="teacher_registration.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!--Registration PROCESS-->
+    <div class="vertical-container teacher-registration-main-container">
+      <h1 class="teacher-registration-header-text">Create Account</h1>
+      <p class="teacher-registration-description-text">
+        Please fill out the form to create your account and access the system.
+      </p>
+
+      <!-- First Part-->
+      <form
+        class="teacher-registration-form vertical-container"
+        id="firstPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Account Setup
+        </p>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="user-name" class="teacher-registration-label"
+            >Username <span class="required">(required)</span></label
+          >
+          <input
+            type="text"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your username"
+            required
+          />
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Password <span class="required">(required)</span></label
+          >
+          <input
+            type="password"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your Password"
+            required
+          />
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Confirm Password
+            <span class="required">(required; must match password)</span></label
+          >
+          <input
+            type="password"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Confirm your Password"
+            required
+          />
+        </div>
+      </form>
+
+      <!-- Second Part-->
+      <form
+        class="teacher-registration-form vertical-container"
+        id="secondPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Teacher
+        </p>
+        <div class="horizontal-container multiple-input-wrapper">
+          <div class="vertical-container lbl-input-wrapper">
+            <label for="user-name" class="teacher-registration-label"
+              >Firstname <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter your firstname"
+              required
+            />
+          </div>
+          <div
+            class="vertical-container lbl-input-wrapper lbl-input-wrapper-alter"
+          >
+            <label for="user-name" class="teacher-registration-label"
+              >Lastname <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter your lastname"
+              required
+            />
+          </div>
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Email Address <span class="required">(required)</span></label
+          >
+          <input
+            type="email"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your Email Address"
+            required
+          />
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Phone Number <span class="required">(required)</span></label
+          >
+          <input
+            type="tel"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="e.g +639617481421"
+            required
+          />
+        </div>
+      </form>
+
+      <!-- Third Part-->
+      <form
+        class="teacher-registration-form vertical-container"
+        id="thirdPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Address Details
+        </p>
+        <div class="horizontal-container multiple-input-wrapper">
+          <div class="vertical-container lbl-input-wrapper">
+            <label for="user-name" class="teacher-registration-label"
+              >House Unit <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter your House Unit"
+              required
+            />
+          </div>
+          <div
+            class="vertical-container lbl-input-wrapper lbl-input-wrapper-alter"
+          >
+            <label for="user-name" class="teacher-registration-label"
+              >Street <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter the name of your street"
+              required
+            />
+          </div>
+        </div>
+        <div class="horizontal-container multiple-input-wrapper">
+          <div class="vertical-container lbl-input-wrapper">
+            <label for="user-name" class="teacher-registration-label"
+              >Barangay/Village <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter the name of your Brgy / Village"
+              required
+            />
+          </div>
+          <div
+            class="vertical-container lbl-input-wrapper lbl-input-wrapper-alter"
+          >
+            <label for="user-name" class="teacher-registration-label"
+              >City <span class="required">(required)</span></label
+            >
+            <input
+              type="text"
+              id="user-name"
+              name="user-name"
+              class="teacher-registration-input"
+              placeholder="Enter the name of your City"
+              required
+            />
+          </div>
+        </div>
+        <div class="vertical-container lbl-input-wrapper">
+          <label for="pass" class="teacher-registration-label"
+            >Zip Code <span class="required">(required)</span></label
+          >
+          <input
+            type="number"
+            id="user-name"
+            name="user-name"
+            class="teacher-registration-input"
+            placeholder="Enter your Zip Code"
+            required
+          />
+        </div>
+      </form>
+
+      <!-- Fourth Part-->
+      <form
+        class="teacher-registration-form vertical-container upload-photo"
+        id="fourthPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Upload Photo
+        </p>
+        <div class="vertical-container uploaded-photo-container">
+          <div class="vertical-container uploaded-photo-image-wrapper">
+            <img id="previewing" src="/LuMINI/vanilla/assets/photo_icon.png" />
+          </div>
+        </div>
+
+        <input type="file" id="imgInput" accept="image/*" hidden />
+        <button
+          type="button"
+          id="uploadPhoto"
+          class="horizontal-container upload-photo-button"
+        >
+          <img src="/LuMINI/vanilla/assets/photo_icon_blue.png" class="icon" />
+          <p class="required">Add a profile photo</p>
+        </button>
+      </form>
+
+      <!--BUTTONS-->
+      <div class="horizontal-container button-wrapper">
+        <button class="button back-button" id="backWardBtn">Back</button>
+        <button class="button next-button" id="frwrdBtn">Next</button>
+      </div>
+    </div>
+    <!--CONFIRMATION-->
+    <div
+      class="vertical-container teacher-registration-main-container confirmation"
+      id="confirmationPage"
+    >
+      <div class="vertical-container confirmation-image-wrapper">
+        <img
+          src="/LuMINI/vanilla/assets/user_confirmation.png"
+          class="confirmation-image"
+        />
+      </div>
+      <h1 class="confirmation-header-text">Almost There!</h1>
+      <p class="confirmation-text">
+        Thank you for completing your registration. Your details have been
+        submitted and are now pending review by the school administrator.
+      </p>
+      <!--BUTTONS-->
+      <div class="horizontal-container button-wrapper">
+        <button class="button home-button" id="homeBtn">Back to Home</button>
+      </div>
+    </div>
+
+    <script>
+      //BUTTONS
+      let btnForward = document.getElementById("frwrdBtn");
+      let btnBackward = document.getElementById("backWardBtn");
+      let homeBtn = document.getElementById("homeBtn");
+      let uploadBtn = document.getElementById("uploadPhoto");
+
+      //INPUT TRIGGERS
+      let imgInput = document.getElementById("imgInput");
+      let imgPreview = document.getElementById("previewing");
+
+      let firstCont = document.getElementById("firstPartContent");
+      let secondCont = document.getElementById("secondPartContent");
+      let thirdPartContent = document.getElementById("thirdPartContent");
+      let fourthPartContent = document.getElementById("fourthPartContent");
+
+      // confirmation modal (separate)
+      let confirmationCont = document.getElementById("confirmationPage");
+
+      let array = [firstCont, secondCont, thirdPartContent, fourthPartContent];
+      let currentIndex = 0;
+
+      // SHOW selected registration slide
+      function showContent(i) {
+        array.forEach((item) => (item.style.display = "none"));
+        confirmationCont.style.display = "none"; // always hide confirmation here
+
+        array[i].style.display = "flex";
+        updateButtons();
+      }
+
+      function updateButtons() {
+        // Back disabled only at first slide
+        btnBackward.disabled = currentIndex === 0;
+
+        // Next IS NOT disabled on last registration slide
+        btnForward.disabled = false;
+      }
+
+      // NEXT BUTTON
+      btnForward.addEventListener("click", () => {
+        // If user is NOT on last slide → go forward normally
+        if (currentIndex < array.length - 1) {
+          currentIndex++;
+          showContent(currentIndex);
+          return;
+        }
+
+        // If user is ON the last slide AND clicks NEXT → show confirmation
+        if (currentIndex === array.length - 1) {
+          // Hide all registration slides
+          array.forEach((item) => (item.style.display = "none"));
+
+          // Show confirmation modal
+          confirmationCont.style.display = "flex";
+
+          // Optional: hide forward/back buttons on confirmation
+          btnForward.style.display = "none";
+          btnBackward.style.display = "none";
+        }
+      });
+
+      // BACK BUTTON
+      btnBackward.addEventListener("click", () => {
+        if (currentIndex > 0) {
+          currentIndex--;
+          showContent(currentIndex);
+        }
+      });
+
+      //HOME BUTTON → redirect to your index.html
+      homeBtn.addEventListener("click", () => {
+        window.location.href = "/LuMINI/vanilla/login.html";
+      });
+
+      // UPLOAD PHOTO BUTTON
+      uploadBtn.addEventListener("click", () => {
+        imgInput.click();
+      });
+
+      //CHANGE PREVIEW IMAGE WHEN UPLOADING
+      imgInput.onchange = function () {
+        imgPreview.src = URL.createObjectURL(imgInput.files[0]);
+      };
+
+      // Start on slide 0
+      showContent(currentIndex);
+    </script>
+  </body>
+</html>
