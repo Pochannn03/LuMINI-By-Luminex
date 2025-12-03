@@ -10,6 +10,7 @@ body {
 }
 
 .teacher-registration-main-container {
+  display: flex;
   justify-content: center;
   align-items: start;
 
@@ -136,16 +137,7 @@ body {
 
 /*PART 1*/
 
-/*#irstPartContent {
-  display: none;
-}
-*/
-
 /*PART 2*/
-
-/*#secondPartContent {
-  display: none;
-}*/
 
 .multiple-input-wrapper {
   justify-content: space-between;
@@ -156,4 +148,91 @@ body {
   margin: 0px 0px 0px 20px;
 }
 
-/*PART 3*/
+/*PART 4*/
+.upload-photo {
+  align-items: center;
+  justify-content: start;
+  height: 359px;
+  width: 100%;
+}
+
+.uploaded-photo-container {
+  justify-content: center;
+  align-items: center;
+
+  height: 180px;
+  width: 180px;
+
+  border: dashed 6px #edebeb;
+  border-radius: 50px;
+  background-color: white;
+}
+
+.upload-photo-button {
+  justify-content: center;
+  align-items: center;
+
+  height: 43px;
+  width: 180px;
+  margin: 25px 0px 0px 0px;
+
+  border: solid 1px var(--blue);
+  border-radius: 10px;
+  background-color: transparent;
+  color: var(--blue);
+
+  cursor: pointer;
+  user-select: none;
+}
+
+.upload-photo-button:active {
+  background-color: var(--blue-active);
+  color: var(--white);
+}
+
+.icon {
+  height: 20px;
+  width: 20px;
+}
+
+/*CONFIRMATION*/
+
+.confirmation {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+
+  height: auto;
+  width: 85%;
+
+  color: var(--text);
+}
+
+.confirmation-image {
+  height: 300px;
+  width: 300px;
+}
+
+.confirmation-header-text,
+.confirmation-text {
+  text-align: center;
+}
+
+.confirmation-header-text {
+  margin: 0px 0px 20px 0px;
+}
+
+.confirmation-text {
+  width: 100%;
+  margin: 0px 0px 70px 0px;
+
+  font-size: 14px;
+}
+
+.home-button {
+  width: 100%;
+
+  background-color: transparent;
+  border: solid 2px var(--blue);
+  color: var(--blue);
+}
