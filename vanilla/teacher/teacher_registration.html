@@ -231,13 +231,19 @@
         </p>
         <div class="vertical-container uploaded-photo-container">
           <div class="vertical-container uploaded-photo-image-wrapper">
-            <img src="/LuMINI/vanilla/assets/photo_icon.png" />
+            <img id="previewing" src="/LuMINI/vanilla/assets/photo_icon.png" />
           </div>
         </div>
-        <div class="horizontal-container upload-photo-button">
+
+        <input type="file" id="imgInput" accept="image/*" hidden />
+        <button
+          type="button"
+          id="uploadPhoto"
+          class="horizontal-container upload-photo-button"
+        >
           <img src="/LuMINI/vanilla/assets/photo_icon_blue.png" class="icon" />
           <p class="required">Add a profile photo</p>
-        </div>
+        </button>
       </form>
 
       <!--BUTTONS-->
@@ -269,9 +275,15 @@
     </div>
 
     <script>
+      //BUTTONS
       let btnForward = document.getElementById("frwrdBtn");
       let btnBackward = document.getElementById("backWardBtn");
       let homeBtn = document.getElementById("homeBtn");
+      let uploadBtn = document.getElementById("uploadPhoto");
+
+      //INPUT TRIGGERS
+      let imgInput = document.getElementById("imgInput");
+      let imgPreview = document.getElementById("previewing");
 
       let firstCont = document.getElementById("firstPartContent");
       let secondCont = document.getElementById("secondPartContent");
@@ -334,8 +346,18 @@
 
       //HOME BUTTON → redirect to your index.html
       homeBtn.addEventListener("click", () => {
-        window.location.href = "/LuMINI/vanilla/login.html"; // change this if needed
+        window.location.href = "/LuMINI/vanilla/login.html";
       });
+
+      // UPLOAD PHOTO BUTTON
+      uploadBtn.addEventListener("click", () => {
+        imgInput.click();
+      });
+
+      //CHANGE PREVIEW IMAGE WHEN UPLOADING
+      imgInput.onchange = function () {
+        imgPreview.src = URL.createObjectURL(imgInput.files[0]);
+      };
 
       // Start on slide 0
       showContent(currentIndex);

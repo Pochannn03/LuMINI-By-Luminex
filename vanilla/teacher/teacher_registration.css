@@ -168,6 +168,13 @@ body {
   background-color: white;
 }
 
+#previewing {
+  height: 180px;
+  width: 180px;
+
+  border-radius: 50px;
+}
+
 .upload-photo-button {
   justify-content: center;
   align-items: center;
@@ -232,7 +239,6 @@ body {
 .home-button {
   width: 100%;
 
-  background-color: transparent;
-  border: solid 2px var(--blue);
-  color: var(--blue);
+  background-color: var(--blue);
+  color: var(--white);
 }
