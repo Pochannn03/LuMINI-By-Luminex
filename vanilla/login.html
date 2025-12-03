@@ -45,12 +45,25 @@
             <div class="horizontal-container dont-have-an-account">
               Don't have an account?
             </div>
-            <button class="button register-button register-button-login-page">
+            <button
+              type="button"
+              class="button register-button register-button-login-page"
+              id="index-register-btn"
+            >
               Register
             </button>
           </form>
         </div>
       </div>
     </div>
+
+    <script>
+      let registerBtn = document.getElementById("index-register-btn");
+
+      registerBtn.addEventListener("click", () => {
+        window.location.href = "/LuMINI/vanilla/register.html";
+      });
+    </script>
+    >
   </body>
 </html>

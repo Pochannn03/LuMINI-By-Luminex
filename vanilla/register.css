@@ -53,6 +53,14 @@ body {
   background-color: #cac9c9;
 }
 
+.card-lbl {
+  margin: 8px 0px 0px 0px;
+
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+
 .svg-wrapper {
   display: flex;
   flex-direction: column;
