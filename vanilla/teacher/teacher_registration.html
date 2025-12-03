@@ -15,6 +15,7 @@
     />
   </head>
   <body>
+    <!--Registration PROCESS-->
     <div class="vertical-container teacher-registration-main-container">
       <h1 class="teacher-registration-header-text">Create Account</h1>
       <p class="teacher-registration-description-text">
@@ -220,52 +221,110 @@
         </div>
       </form>
 
+      <!-- Fourth Part-->
+      <form
+        class="teacher-registration-form vertical-container upload-photo"
+        id="fourthPartContent"
+      >
+        <p class="teacher-registration-description-text enlarged-text">
+          Upload Photo
+        </p>
+        <div class="vertical-container uploaded-photo-container">
+          <div class="vertical-container uploaded-photo-image-wrapper">
+            <img src="/LuMINI/vanilla/assets/photo_icon.png" />
+          </div>
+        </div>
+        <div class="horizontal-container upload-photo-button">
+          <img src="/LuMINI/vanilla/assets/photo_icon_blue.png" class="icon" />
+          <p class="required">Add a profile photo</p>
+        </div>
+      </form>
+
       <!--BUTTONS-->
       <div class="horizontal-container button-wrapper">
         <button class="button back-button" id="backWardBtn">Back</button>
         <button class="button next-button" id="frwrdBtn">Next</button>
       </div>
     </div>
+    <!--CONFIRMATION-->
+    <div
+      class="vertical-container teacher-registration-main-container confirmation"
+      id="confirmationPage"
+    >
+      <div class="vertical-container confirmation-image-wrapper">
+        <img
+          src="/LuMINI/vanilla/assets/user_confirmation.png"
+          class="confirmation-image"
+        />
+      </div>
+      <h1 class="confirmation-header-text">Almost There!</h1>
+      <p class="confirmation-text">
+        Thank you for completing your registration. Your details have been
+        submitted and are now pending review by the school administrator.
+      </p>
+      <!--BUTTONS-->
+      <div class="horizontal-container button-wrapper">
+        <button class="button home-button" id="homeBtn">Back to Home</button>
+      </div>
+    </div>
 
     <script>
       let btnForward = document.getElementById("frwrdBtn");
       let btnBackward = document.getElementById("backWardBtn");
+      let homeBtn = document.getElementById("homeBtn");
 
       let firstCont = document.getElementById("firstPartContent");
       let secondCont = document.getElementById("secondPartContent");
       let thirdPartContent = document.getElementById("thirdPartContent");
+      let fourthPartContent = document.getElementById("fourthPartContent");
 
-      let array = [firstCont, secondCont, thirdPartContent];
+      // confirmation modal (separate)
+      let confirmationCont = document.getElementById("confirmationPage");
+
+      let array = [firstCont, secondCont, thirdPartContent, fourthPartContent];
       let currentIndex = 0;
 
-      // Function to show the current content
+      // SHOW selected registration slide
       function showContent(i) {
-        // hide everything first
         array.forEach((item) => (item.style.display = "none"));
+        confirmationCont.style.display = "none"; // always hide confirmation here
 
-        // show the active one
         array[i].style.display = "flex";
-
-        updateButtons(); // update button states
+        updateButtons();
       }
 
       function updateButtons() {
-        // Disable BACK at index 0
+        // Back disabled only at first slide
         btnBackward.disabled = currentIndex === 0;
 
-        // Disable NEXT at last index
-        btnForward.disabled = currentIndex === array.length - 1;
+        // Next IS NOT disabled on last registration slide
+        btnForward.disabled = false;
       }
 
-      // Forward button
+      // NEXT BUTTON
       btnForward.addEventListener("click", () => {
+        // If user is NOT on last slide → go forward normally
         if (currentIndex < array.length - 1) {
           currentIndex++;
           showContent(currentIndex);
+          return;
+        }
+
+        // If user is ON the last slide AND clicks NEXT → show confirmation
+        if (currentIndex === array.length - 1) {
+          // Hide all registration slides
+          array.forEach((item) => (item.style.display = "none"));
+
+          // Show confirmation modal
+          confirmationCont.style.display = "flex";
+
+          // Optional: hide forward/back buttons on confirmation
+          btnForward.style.display = "none";
+          btnBackward.style.display = "none";
         }
       });
 
-      // Backward button
+      // BACK BUTTON
       btnBackward.addEventListener("click", () => {
         if (currentIndex > 0) {
           currentIndex--;
@@ -273,7 +332,12 @@
         }
       });
 
-      // Always start at index 0
+      //HOME BUTTON → redirect to your index.html
+      homeBtn.addEventListener("click", () => {
+        window.location.href = "/LuMINI/vanilla/login.html"; // change this if needed
+      });
+
+      // Start on slide 0
       showContent(currentIndex);
     </script>
   </body>
