@@ -22,7 +22,7 @@ body {
 
 /*SPECIFICS*/
 
-.teacher-registration-header-text {
+.registration-header-text {
   display: flex;
 
   height: auto;
@@ -33,7 +33,7 @@ body {
   font-style: semi-bold;
 }
 
-.teacher-registration-description-text {
+.registration-description-text {
   display: flex;
 
   height: auto;
@@ -52,7 +52,7 @@ body {
 
 /*FORM*/
 
-.teacher-registration-form {
+.registration-form {
   height: auto;
   width: 100%;
   margin: 0px 0px 30px 0px;
@@ -64,7 +64,7 @@ body {
   margin: 0px 0px 30px 0px;
 }
 
-.teacher-registration-label {
+.registration-label {
   display: flex;
   justify-content: start;
   align-items: center;
@@ -76,7 +76,7 @@ body {
   color: #6a707c;
 }
 
-.teacher-registration-input {
+.registration-input {
   height: 43px;
   padding: 0px 12px 0px 12px;
 
@@ -87,7 +87,7 @@ body {
   background-color: #e8ecf4;
 }
 
-.teacher-registration-input:focus {
+.registration-input:focus {
   outline: none;
   border-color: var(--blue);
 }
