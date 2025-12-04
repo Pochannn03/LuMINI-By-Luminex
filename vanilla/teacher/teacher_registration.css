@@ -1,244 +1,270 @@
+/* 1. RESET & BASICS */
+/* I'm using the global variables inherited from ../main.css */
 * {
+  box-sizing: border-box; 
   letter-spacing: -0.5px;
 }
 
 body {
-  justify-content: start;
-  align-self: center;
-  color: var(--text);
-  font-family: "Poppins";
-}
-
-.teacher-registration-main-container {
   display: flex;
   justify-content: center;
-  align-items: start;
-
-  height: auto;
-  width: 80%;
-  max-width: 1000px;
-  margin: 50px 0px 0px 0px;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  color: var(--text-dark); 
+  font-family: "Poppins", sans-serif;
+  background-color: transparent; 
 }
 
-/*SPECIFICS*/
-
-.registration-header-text {
+/* 2. THE MAIN CARD */
+.teacher-registration-main-container {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 
-  height: auto;
-  width: 100%;
+  background-color: var(--white);
+  padding: 40px;
+  border-radius: 24px;
+  /* I defined this locally because this shadow is specific to this large form. */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1); 
 
-  font-weight: 600;
-  font-size: 32px;
-  font-style: semi-bold;
+  width: 90%;
+  max-width: 500px;
+  margin: 40px auto; 
+  position: relative;
+  z-index: 10;
+  
+  animation: floatIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  opacity: 0; 
 }
 
-.registration-description-text {
-  display: flex;
-
-  height: auto;
+/* SPECIFICS */
+.teacher-registration-header-text {
+  font-weight: 700;
+  font-size: 28px;
+  margin: 0 0 10px 0;
+  color: var(--text-dark);
+  text-align: left;
   width: 100%;
-  margin: 0px 0px 35px 0px;
+}
 
+.teacher-registration-description-text {
+  margin: 0 0 25px 0;
   font-size: 14px;
-  font-weight: 300;
-  font-style: extra-light;
+  font-weight: 400;
+  color: var(--text-light);
+  text-align: left;
+  width: 100%;
+  line-height: 1.5;
+}
+
+/* 3. STEP INDICATOR */
+.step-indicator {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--brand-blue);
+  background-color: #e3f2fd;
+  padding: 6px 14px;
+  border-radius: 50px;
+  margin: 0 0 30px 0; 
+  display: inline-block;
 }
 
 .enlarged-text {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
+  color: var(--text-dark); 
+  margin-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+  width: 100%;
+  text-align: left;
 }
 
-/*FORM*/
-
-.registration-form {
-  height: auto;
+/* 4. FORM LAYOUT */
+.teacher-registration-form {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  margin: 0px 0px 30px 0px;
 }
 
 .lbl-input-wrapper {
-  height: auto;
-  width: 100%;
-  margin: 0px 0px 30px 0px;
-}
-
-.registration-label {
   display: flex;
-  justify-content: start;
-  align-items: center;
-
-  width: auto;
-
-  font-size: 16px;
-  font-weight: 500;
-  color: #6a707c;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
-.registration-input {
-  height: 43px;
-  padding: 0px 12px 0px 12px;
-
-  color: var(--opacity-text);
-  border: solid 1px;
-  border-color: #e0e5ed;
-  border-radius: 10px;
-  background-color: #e8ecf4;
+.teacher-registration-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 8px;
 }
 
-.registration-input:focus {
+.teacher-registration-input {
+  height: 48px;
+  padding: 0 16px;
+  color: var(--text-dark);
+  border: 1px solid #e1e1e1;
+  border-radius: 12px;
+  background-color: #f8fafc;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.teacher-registration-input:focus {
   outline: none;
-  border-color: var(--blue);
+  border-color: var(--brand-blue);
+  background-color: var(--white);
+  box-shadow: 0 0 0 4px rgba(57, 168, 237, 0.1);
 }
 
 .required {
-  margin: 0px 0px 0px 5px;
-
-  color: var(--blue);
-  font-size: 13px;
-  font-weight: 400;
+  margin-left: 4px;
+  color: var(--brand-blue);
+  font-size: 12px;
 }
 
-.button-wrapper {
-  justify-content: space-around;
-  align-items: center;
-
-  height: auto;
+.multiple-input-wrapper {
+  display: flex;
+  gap: 15px;
   width: 100%;
 }
 
-.back-button,
-.next-button {
-  width: 172px;
-  margin: 0;
+/* 5. PHOTO UPLOAD STYLES */
+/* I custom designed this file input to look like a clickable box eme emeness. */
+.file-upload-wrapper {
+  position: relative; 
+  width: 100%;
+  height: auto;
+}
+
+.file-upload-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 140px; 
+  width: 100%;
+  border: 1px solid #e1e1e1; 
+  background-color: #f8fafc; 
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden; 
+}
+
+.file-upload-container:hover {
+  border-color: var(--brand-blue);
+  background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.hidden-file-input { display: none; }
+
+#default-upload-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--brand-blue);
+}
+
+.upload-icon-svg {
+  margin-bottom: 8px;
+  color: var(--brand-blue);
+}
+
+.upload-text {
+  font-size: 12px;
+  color: var(--brand-blue);
+  font-weight: 500;
+}
+
+.image-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; 
+  background-color: #f8fafc;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.remove-file-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #ef4444; 
+  color: white;
+  border: 2px solid white;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.remove-file-btn:hover {
+  background-color: #dc2626;
+  transform: scale(1.1);
+}
+
+/* 6. BUTTONS */
+.button-wrapper {
+  display: flex;
+  gap: 15px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.back-button, .next-button {
+  flex: 1;
+  height: 48px;
+  border-radius: 24px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Poppins', sans-serif;
 }
 
 .back-button {
   background-color: transparent;
-  border: 1px solid #8b5cf6;
-  color: #8b5cf6;
+  border: 2px solid #e0e0e0; 
+  color: #8898aa;
+}
+
+.back-button:hover {
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+  background-color: #fff;
 }
 
 .next-button {
-  background-color: #8b5cf6;
+  background-color: var(--brand-blue);
   border: none;
   color: var(--white);
+  box-shadow: 0 4px 15px rgba(57, 168, 237, 0.3);
 }
 
-.next-button:active {
-  background-color: #4c3088;
+.next-button:hover {
+  background-color: var(--brand-dark);
+  transform: translateY(-2px);
 }
 
-.back-button:active {
-  background-color: #4c3088;
-  color: var(--white);
-}
-
-/*PART 1*/
-
-/*PART 2*/
-
-.multiple-input-wrapper {
-  justify-content: space-between;
-  width: 100%;
-}
-
-.lbl-input-wrapper-alter {
-  margin: 0px 0px 0px 20px;
-}
-
-/*PART 4*/
-.upload-photo {
-  align-items: center;
-  justify-content: start;
-  height: 359px;
-  width: 100%;
-}
-
-.uploaded-photo-container {
-  justify-content: center;
-  align-items: center;
-
-  height: 180px;
-  width: 180px;
-
-  border: dashed 6px #edebeb;
-  border-radius: 50px;
-  background-color: white;
-}
-
-#previewing {
-  height: 180px;
-  width: 180px;
-
-  border-radius: 50px;
-}
-
-.upload-photo-button {
-  justify-content: center;
-  align-items: center;
-
-  height: 43px;
-  width: 180px;
-  margin: 25px 0px 0px 0px;
-
-  border: solid 1px var(--blue);
-  border-radius: 10px;
-  background-color: transparent;
-  color: var(--blue);
-
-  cursor: pointer;
-  user-select: none;
-}
-
-.upload-photo-button:active {
-  background-color: var(--blue-active);
-  color: var(--white);
-}
-
-.icon {
-  height: 20px;
-  width: 20px;
-}
-
-/*CONFIRMATION*/
-
-.confirmation {
-  display: flex;
-  justify-content: start;
-  align-items: center;
-
-  height: auto;
-  width: 85%;
-
-  color: var(--text);
-}
-
-.confirmation-image {
-  height: 300px;
-  width: 300px;
-}
-
-.confirmation-header-text,
-.confirmation-text {
-  text-align: center;
-}
-
-.confirmation-header-text {
-  margin: 0px 0px 20px 0px;
-}
-
-.confirmation-text {
-  width: 100%;
-  margin: 0px 0px 70px 0px;
-
-  font-size: 14px;
-}
-
-.home-button {
-  width: 100%;
-
-  background-color: var(--blue);
-  color: var(--white);
+/* ANIMATION */
+@keyframes floatIn {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
