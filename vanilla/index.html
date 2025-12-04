@@ -3,28 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Index</title>
+    <title>Lumini - Connect. Learn. Grow.</title>
     <link rel="stylesheet" href="main.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
   </head>
   <body>
-    <div class="main-container">
-      <div class="image-wrapper">
-        <img
-          src="assets/lumini-logo.png"
-          class="logo-image"
-        />
+    
+    <header class="hero-section">
+      
+      <nav class="navbar container">
+        <span class="nav-brand">Lumini.</span>
+        <div class="nav-links">
+          <a href="#" class="nav-link">About</a>
+          <a href="#" class="nav-link">Contact</a>
+        </div>
+      </nav>
+
+      <div class="hero-content container">
+        
+        <div class="hero-text fade-in-up">
+          <span class="pill-badge">Ver 1.0 Release</span>
+          <h1>Stay Connected with your School.</h1>
+          <p>
+            Bridging the gap between parents, teachers, and guardians. 
+            Experience seamless communication with simple taps.
+          </p>
+          <div class="button-group-row">
+            <a href="auth/login.html" class="btn btn-primary">Sign In</a>
+            <a href="auth/register.html" class="btn btn-outline">Create Account</a>
+          </div>
+        </div>
+
+        <div class="hero-visual fade-in-up delay-1">
+           <img src="assets/lumini-logo.png" alt="Lumini App" class="hero-img" />
+        </div>
+        
       </div>
 
-      <div class="button-holder">
-        <button class="button">Sign In</button>
-        <button class="button register-button">Register</button>
+    </header>
+
+    <section class="features-section">
+      <div class="container">
+        <div class="section-header">
+          <h2>What we do for you</h2>
+          <p>Simplifying school management one check-in at a time.</p>
+        </div>
+
+        <div class="cards-grid">
+          <div class="feature-card">
+            <div class="icon-box">🛡️</div>
+            <h3>Secure Identity</h3>
+            <p>Ensure only authorized guardians can pick up students.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon-box">⚡</div>
+            <h3>Fast Check-in</h3>
+            <p>QR code integration allows for instant attendance logging.</p>
+          </div>
+          <div class="feature-card">
+            <div class="icon-box">📱</div>
+            <h3>Real-time Updates</h3>
+            <p>Parents get notified instantly when their child arrives safely.</p>
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
+
   </body>
 </html>
