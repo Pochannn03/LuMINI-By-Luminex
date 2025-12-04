@@ -1,0 +1,241 @@
+/* 1. SETUP & VARIABLES */
+:root {
+  /* I only defined variables here naunique to this page or the kwan the wave effect. */
+  --bg-gray: #f8fafc;
+  --wave-front: #39a8ed; 
+  --wave-back: #bde0fe; 
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 10px 25px rgba(57, 168, 237, 0.25);
+}
+
+/* 2. BODY & BACKGROUND */
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  
+  background: 
+    linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.95)),
+    url("../assets/background-lumini.png");
+  background-size: 800px;
+  background-repeat: repeat;
+  background-position: center;
+
+  /* Layout */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden; 
+  position: relative;
+}
+
+/* 3. WAVE LAYERS */
+/* (before/after) to create the double wave effect at the bottom. */
+
+/* WAVE LAYER 1: The Back Wave */
+body::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 45vh;
+  
+  background-color: var(--wave-back);
+  clip-path: ellipse(90% 100% at 30% 100%);
+  z-index: -2;
+}
+
+/* WAVE LAYER 2: The Front Wave */
+body::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 35vh; 
+  
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-dark) 100%); /* variables from main.css */
+  
+  clip-path: ellipse(90% 100% at 70% 100%);
+  z-index: -1;
+}
+
+/* 4. THE CARD CONTAINER */
+.main-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+  position: relative; 
+  z-index: 10; 
+}
+
+.selection-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  background-color: var(--white); /* from main.css */
+  
+  width: 100%;
+  max-width: 480px; 
+  padding: 50px 30px;
+  
+  border-radius: 30px;
+  box-shadow: var(--shadow-card);
+  
+  animation: floatIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* 5. HEADERS */
+.registration-header-text {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-dark); /* from main.css */
+  text-align: center;
+}
+
+.registration-header-text::after {
+  content: "Select your role to get started";
+  display: block;
+  font-size: 15px;
+  color: var(--text-light); /* from main.css */
+  font-weight: 400;
+  margin-top: 8px;
+  margin-bottom: 30px;
+}
+
+/* 6. SELECTION CARDS GRID */
+.cards-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+/* INDIVIDUAL BUTTONS */
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  height: 140px;
+  width: 130px;
+
+  background-color: var(--bg-gray);
+  border: 2px solid transparent;
+  border-radius: 24px;
+  
+  text-decoration: none;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-wrapper:hover {
+  /* I added a lift effect on hover to para interactive kahit sa mobile yan bro pag hindi pa binibitawan yung button. */
+  transform: translateY(-8px);
+  background-color: var(--white);
+  border-color: var(--brand-blue); /* from main.css */
+  box-shadow: var(--shadow-hover);
+}
+
+.card-wrapper:active {
+  transform: scale(0.96);
+}
+
+/* Icons */
+.svg-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  height: 54px;
+  width: 54px;
+  border-radius: 50%;
+  background-color: #e0f2fe; 
+  margin-bottom: 12px;
+  transition: background-color 0.2s;
+}
+
+.card-wrapper:hover .svg-wrapper {
+  background-color: #39a8ed;
+}
+
+.svg-icon-holder {
+  height: 28px;
+  width: 28px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  transition: filter 0.2s;
+}
+
+.card-wrapper:hover .svg-icon-holder {
+  filter: brightness(0) invert(1); 
+}
+
+/* Icon Images */
+.parent-icon { background-image: url("../assets/parent.svg"); }
+.guardian-icon { background-image: url("../assets/guardian.svg"); }
+.teacher-icon { background-image: url("../assets/teacher.svg"); }
+
+.card-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+/* 7. FOOTER LINKS */
+.redirect-sign-in-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9; 
+  margin-top: 10px;
+}
+
+.label-already-acc {
+  font-size: 14px;
+  color: var(--text-light);
+  margin-right: 6px;
+}
+
+.login-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--brand-blue); /* from main.css */
+  text-decoration: none;
+}
+
+.login-link:hover {
+  text-decoration: underline;
+}
+
+/* ANIMATION */
+@keyframes floatIn {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* 8. DESKTOP TWEAKS */
+@media (min-width: 768px) {
+  .selection-wrapper {
+    max-width: 650px;
+    padding: 60px;
+  }
+  
+  .card-wrapper {
+    height: 160px;
+    width: 160px;
+  }
+}

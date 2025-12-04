@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teacher Registration</title>
+    
+    <link rel="stylesheet" href="../main.css" />
+    <link rel="stylesheet" href="../auth/register.css" />
+    <link rel="stylesheet" href="teacher_registration.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    
+    <div class="teacher-registration-main-container">
+      <h1 class="teacher-registration-header-text">Create Account</h1>
+      <p class="teacher-registration-description-text">
+        Please fill out the form to create your account and access the system.
+      </p>
+
+      <div class="step-indicator" id="stepIndicator">Step 1 of 3</div>
+
+      <form class="teacher-registration-form" id="mainRegistrationForm" action="#" method="POST">
+        
+        <div class="form-step" id="step1">
+          <p class="teacher-registration-description-text enlarged-text">
+            Account Setup
+          </p>
+          
+          <div class="lbl-input-wrapper">
+            <label for="username" class="teacher-registration-label">
+              Username <span class="required">*</span>
+            </label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              class="teacher-registration-input"
+              placeholder="Enter your username"
+              required
+            />
+          </div>
+
+          <div class="lbl-input-wrapper">
+            <label for="password" class="teacher-registration-label">
+              Password <span class="required">*</span>
+            </label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="teacher-registration-input"
+              placeholder="Enter your Password"
+              required
+            />
+          </div>
+
+          <div class="lbl-input-wrapper">
+            <label for="confirm-password" class="teacher-registration-label">
+              Confirm Password <span class="required">*</span>
+            </label>
+            <input
+              type="password"
+              id="confirm-password"
+              name="confirm-password"
+              class="teacher-registration-input"
+              placeholder="Confirm your Password"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="form-step" id="step2" style="display: none;">
+          <p class="teacher-registration-description-text enlarged-text">
+            Personal Details
+          </p>
+          
+          <div class="lbl-input-wrapper">
+            <label class="teacher-registration-label">
+              Profile Photo <span class="required">*</span>
+            </label>
+            
+            <div class="file-upload-wrapper">
+              <label for="profile-upload" class="file-upload-container">
+                <div id="default-upload-view">
+                  <svg class="upload-icon-svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <span class="upload-text">Tap to upload photo</span>
+                </div>
+                <img id="image-preview" class="image-preview hidden" src="" alt="Preview" />
+                <input 
+                  type="file" 
+                  id="profile-upload" 
+                  name="profile-upload" 
+                  accept="image/*" 
+                  class="hidden-file-input"
+                  onchange="handleFileUpload(this)"
+                  required
+                />
+              </label>
+              <button type="button" id="remove-btn" class="remove-file-btn hidden" onclick="removeFile()">✕</button>
+            </div>
+          </div>
+
+          <div class="multiple-input-wrapper">
+            <div class="lbl-input-wrapper">
+              <label for="firstname" class="teacher-registration-label">
+                Firstname <span class="required">*</span>
+              </label>
+              <input type="text" id="firstname" name="firstname" class="teacher-registration-input" placeholder="Firstname" required />
+            </div>
+            <div class="lbl-input-wrapper">
+              <label for="lastname" class="teacher-registration-label">
+                Lastname <span class="required">*</span>
+              </label>
+              <input type="text" id="lastname" name="lastname" class="teacher-registration-input" placeholder="Lastname" required />
+            </div>
+          </div>
+
+          <div class="lbl-input-wrapper">
+            <label for="email" class="teacher-registration-label">
+              Email Address <span class="required">*</span>
+            </label>
+            <input type="email" id="email" name="email" class="teacher-registration-input" placeholder="name@example.com" required />
+          </div>
+
+          <div class="lbl-input-wrapper">
+            <label for="phone" class="teacher-registration-label">
+              Phone Number <span class="required">*</span>
+            </label>
+            <input type="tel" id="phone" name="phone" class="teacher-registration-input" placeholder="e.g +63 900 000 0000" required />
+          </div>
+        </div>
+
+        <div class="form-step" id="step3" style="display: none;">
+          <p class="teacher-registration-description-text enlarged-text">
+            Address Details
+          </p>
+          
+          <div class="multiple-input-wrapper">
+            <div class="lbl-input-wrapper">
+              <label for="house-unit" class="teacher-registration-label">
+                House / Unit <span class="required">*</span>
+              </label>
+              <input type="text" id="house-unit" name="house-unit" class="teacher-registration-input" placeholder="Unit No." required />
+            </div>
+            <div class="lbl-input-wrapper">
+              <label for="street" class="teacher-registration-label">
+                Street <span class="required">*</span>
+              </label>
+              <input type="text" id="street" name="street" class="teacher-registration-input" placeholder="Street Name" required />
+            </div>
+          </div>
+
+          <div class="multiple-input-wrapper">
+            <div class="lbl-input-wrapper">
+              <label for="barangay" class="teacher-registration-label">
+                Barangay <span class="required">*</span>
+              </label>
+              <input type="text" id="barangay" name="barangay" class="teacher-registration-input" placeholder="Barangay" required />
+            </div>
+            <div class="lbl-input-wrapper">
+              <label for="city" class="teacher-registration-label">
+                City <span class="required">*</span>
+              </label>
+              <input type="text" id="city" name="city" class="teacher-registration-input" placeholder="City" required />
+            </div>
+          </div>
+
+          <div class="lbl-input-wrapper">
+            <label for="zipcode" class="teacher-registration-label">
+              Zip Code <span class="required">*</span>
+            </label>
+            <input type="text" inputmode="numeric" id="zipcode" name="zipcode" class="teacher-registration-input" placeholder="Zip Code" required />
+          </div>
+        </div>
+
+        <div class="button-wrapper">
+          <button type="button" class="button back-button" id="backWardBtn">Back</button>
+          <button type="button" class="button next-button" id="frwrdBtn">Next</button>
+        </div>
+
+      </form>
+    </div>
+
+    <script src="teacher_registration.js"></script>
+  </body>
+</html>
