@@ -62,6 +62,7 @@
       <!--SLIDE-ABLE CARD-->
       <!--PUT EVERY CONTENT INSIDE HERE-->
       <div class="vertical-container content-card">
+        <!--GREETING CARD-->
         <div class="vertical-container greeting-card-container">
           <p class="large-text greeting-text">
             Welcome Back, Teacher John Doe!
@@ -70,9 +71,182 @@
             Ready for your next class?
           </p>
         </div>
-        <div class="vertical-container queue-list">1</div>
-        <div class="vertical-container queue-list">1</div>
-        <div class="vertical-container queue-list">1</div>
+        <!--QUEUE LIST BOX-->
+        <div class="vertical-container queue-list">
+          <div class="horizontal-container description-holder">
+            <span
+              class="material-symbols-outlined my-icon blue-icon"
+              style="font-size: 24px"
+            >
+              pace
+            </span>
+            <p class="large-text card-header">Drop-off and Pickup Queue</p>
+          </div>
+          <div class="horizontal-container description-holder">
+            <p class="normal-text card-subheader">
+              Shows names of parents/guardians currently in line for drop-off or
+              pickup.
+            </p>
+          </div>
+          <!--QUEUE LIST CONTENT-->
+          <div class="vertical-container queue-individual-container">
+            <!--QUEUE CARDS-->
+
+            <!--PENDING CARD EXAMPLE-->
+            <div class="horizontal-container queue-individual-box sample-card">
+              <!--PROFILE PICTURE-->
+              <div class="vertical-container profile-picture-queue-wrapper">
+                <img
+                  src="/LuMINI/vanilla/assets/placeholder_image.jpg"
+                  class="profile-picture-queue"
+                />
+              </div>
+              <!--USER INFO-->
+              <div class="vertical-container user-info-container">
+                <p class="normal-text user-name">Juan Dela Cruz</p>
+                <p class="normal-text user-act-info" id="userAction">
+                  Dropping off
+                  <span id="nameOfStudent">Mark Christian Sison</span>
+                </p>
+                <p class="normal-text user-act-info" id="timeStamp">
+                  <i>5:00 a.m</i>
+                </p>
+              </div>
+              <!--ACTION STATUS-->
+              <div class="vertical-container user-status-container">
+                <div class="vertical-container user-status-box-pending">
+                  <p
+                    class="normal-text user-status-text-pending"
+                    id="userActStatus"
+                  >
+                    Pending
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!--ON THE WAY CARD EXAMPLE-->
+            <div class="horizontal-container queue-individual-box sample-card">
+              <!--PROFILE PICTURE-->
+              <div class="vertical-container profile-picture-queue-wrapper">
+                <img
+                  src="/LuMINI/vanilla/assets/placeholder_image.jpg"
+                  class="profile-picture-queue"
+                />
+              </div>
+              <!--USER INFO-->
+              <div class="vertical-container user-info-container">
+                <p class="normal-text user-name">Juan Dela Cruz</p>
+                <p class="normal-text user-act-info" id="userAction">
+                  Dropping off
+                  <span id="nameOfStudent">Mark Christian Sison</span>
+                </p>
+                <p class="normal-text user-act-info" id="timeStamp">
+                  <i>5:00 a.m</i>
+                </p>
+              </div>
+              <!--ACTION STATUS-->
+              <div class="vertical-container user-status-container">
+                <div class="vertical-container user-status-box-otw">
+                  <p
+                    class="normal-text user-status-text-otw"
+                    id="userActStatus"
+                  >
+                    On the way
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!--LATE CARD EXAMPLE-->
+            <div class="horizontal-container queue-individual-box sample-card">
+              <!--PROFILE PICTURE-->
+              <div class="vertical-container profile-picture-queue-wrapper">
+                <img
+                  src="/LuMINI/vanilla/assets/placeholder_image.jpg"
+                  class="profile-picture-queue"
+                />
+              </div>
+              <!--USER INFO-->
+              <div class="vertical-container user-info-container">
+                <p class="normal-text user-name">Juan Dela Cruz</p>
+                <p class="normal-text user-act-info" id="userAction">
+                  Dropping off
+                  <span id="nameOfStudent">Mark Christian Sison</span>
+                </p>
+                <p class="normal-text user-act-info" id="timeStamp">
+                  <i>5:00 a.m</i>
+                </p>
+              </div>
+              <!--ACTION STATUS-->
+              <div class="vertical-container user-status-container">
+                <div class="vertical-container user-status-box-late">
+                  <p
+                    class="normal-text user-status-text-late"
+                    id="userActStatus"
+                  >
+                    Running Late
+                  </p>
+                </div>
+              </div>
+            </div>
+            <!--EMERGENCY CARD EXAMPLE-->
+            <div class="horizontal-container queue-individual-box sample-card">
+              <!--PROFILE PICTURE-->
+              <div class="vertical-container profile-picture-queue-wrapper">
+                <img
+                  src="/LuMINI/vanilla/assets/placeholder_image.jpg"
+                  class="profile-picture-queue"
+                />
+              </div>
+              <!--USER INFO-->
+              <div class="vertical-container user-info-container">
+                <p class="normal-text user-name">Juan Dela Cruz</p>
+                <p class="normal-text user-act-info" id="userAction">
+                  Dropping off
+                  <span id="nameOfStudent">Mark Christian Sison</span>
+                </p>
+                <p class="normal-text user-act-info" id="timeStamp">
+                  <i>5:00 a.m</i>
+                </p>
+              </div>
+              <!--ACTION STATUS-->
+              <div class="vertical-container user-status-container">
+                <div class="vertical-container user-status-box-late">
+                  <p
+                    class="normal-text user-status-text-late"
+                    id="userActStatus"
+                  >
+                    Emergency
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="horizontal-container emergency-card-container">
+          <div class="vertical-container alert-icon-wrapper">
+            <span
+              class="material-symbols-outlined my-icon alert-icon"
+              style="font-size: 30px"
+            >
+              e911_emergency
+            </span>
+          </div>
+          <div class="vertical-container description-holder-emergency">
+            <p class="large-text card-header emergency-text-header">
+              Emergency Override
+            </p>
+            <p class="normal-text card-subheader emergency-text-subheader">
+              Activating this will alert staff and may override normal dismissal
+              processes.
+            </p>
+          </div>
+          <div class="vertical-container proceed-emergency-button">
+            <span class="material-symbols-outlined my-icon alert-icon">
+              arrow_forward_ios
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   </body>

@@ -34,6 +34,22 @@ body {
   cursor: pointer;
 }
 
+.card-header {
+  padding: 0px 0px 0px 8px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.card-subheader {
+  margin: 4px 0px 0px 0px;
+
+  font-size: 14px;
+  font-weight: 400;
+
+  line-height: 18px;
+  color: var(--text-light);
+}
+
 /*********************************** DASHBOARD **************************************/
 
 .dashboard-header-container {
@@ -140,9 +156,192 @@ body {
 /****************************** QUEUE LIST *******************************/
 
 .queue-list {
-  height: 500px;
+  justify-content: start;
+
+  padding: 16px;
+  height: 600px;
   width: 100%;
 
   border-radius: 12px;
   box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.15);
+}
+
+.description-holder {
+  justify-content: start;
+
+  height: auto;
+  width: 100%;
+}
+
+.blue-icon {
+  color: var(--brand-blue);
+}
+
+.queue-individual-container {
+  justify-content: start;
+  overflow-y: scroll;
+
+  margin: 16px 0px 0px 0px;
+  height: 100%;
+  width: 100%;
+}
+
+.queue-individual-container > div {
+  flex-shrink: 0;
+}
+
+.queue-individual-container::-webkit-scrollbar {
+  display: none;
+}
+
+/**** QUEUE CARDS ****/
+
+.queue-individual-box {
+  justify-content: start;
+
+  padding: 8px 12px 8px 12px;
+  height: auto;
+  width: 100%;
+}
+
+.profile-picture-queue-wrapper {
+  margin: 0px 12px 0px 0px;
+}
+
+.profile-picture-queue {
+  height: 50px;
+  width: 50px;
+
+  border-radius: 100px;
+}
+
+.user-info-container {
+  justify-content: space-between;
+  align-items: start;
+
+  height: 100%;
+  flex: 2.5;
+
+  line-height: 14px;
+}
+
+.user-name {
+  padding: 0px 0px 0px 0px;
+
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+
+.user-act-info {
+  font-size: 12px;
+
+  color: var(--text-light);
+}
+
+.user-status-container {
+  height: 100%;
+  flex: 1.5;
+}
+
+/** OTW **/
+
+.user-status-box-otw {
+  width: 100%;
+  padding: 4px 8px 4px 8px;
+
+  border: solid 2px var(--brand-blue);
+  border-radius: 100px;
+}
+
+.user-status-text-otw {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-blue);
+}
+
+/** PENDING **/
+
+.user-status-box-pending {
+  width: 100%;
+  padding: 4px 8px 4px 8px;
+
+  border: solid 2px var(--yellow-text);
+  border-radius: 100px;
+}
+
+.user-status-text-pending {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--yellow-text);
+}
+
+/** LATE **/
+
+.user-status-box-late {
+  width: 100%;
+  padding: 4px 8px 4px 8px;
+
+  border: solid 2px var(--red-text);
+  border-radius: 100px;
+}
+
+.user-status-text-late {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red-text);
+}
+
+/**************************** EMERGENCY CARD *****************************/
+
+.emergency-card-container {
+  justify-content: start;
+  align-items: start;
+
+  height: auto;
+  width: 100%;
+  padding: 16px;
+  margin: 16px 0px 0px 0px;
+
+  border: solid 2px var(--red-text);
+  border-radius: 12px;
+}
+
+.alert-icon-wrapper {
+  height: 100%;
+  flex: 0.5;
+}
+
+.alert-icon {
+  color: var(--red-text);
+}
+
+.description-holder-emergency {
+  justify-content: start;
+  align-items: start;
+
+  flex: 4;
+  margin: 0px 0px 0px 8px;
+}
+
+.emergency-text-header {
+  width: 100%;
+  padding: 0;
+
+  color: var(--red-text);
+}
+
+.emergency-text-subheader {
+  color: var(--red-text);
+}
+
+.proceed-emergency-button {
+  height: 100%;
+  flex: 0.5;
+}
+
+/**************************************************** FOR TESTING PURPOSES *************************************************************/
+
+.sample-card {
+  display: none;
 }
