@@ -21,7 +21,7 @@
   </head>
   <body>
     <div class="vertical-container dashboard-main-container">
-      <!--HEADER-->
+      <!--HEADER, DID NOT USE POSITION ABSOLUTE-->
       <div class="horizontal-container dashboard-header-container">
         <!--LEFT SIDE-->
         <div class="horizontal-container dashboard-left">
@@ -222,7 +222,7 @@
             </div>
           </div>
         </div>
-
+        <!--EMERGENCY CARD-->
         <div class="horizontal-container emergency-card-container">
           <div class="vertical-container alert-icon-wrapper">
             <span
@@ -245,6 +245,151 @@
             <span class="material-symbols-outlined my-icon alert-icon">
               arrow_forward_ios
             </span>
+          </div>
+        </div>
+        <!--QR CODE SCANNER PARENT/GUARDIAN-->
+        <div class="vertical-container qr-code-scanner-container">
+          <div class="horizontal-container description-holder">
+            <span
+              class="material-symbols-outlined my-icon blue-icon"
+              style="font-size: 24px"
+            >
+              qr_code_scanner
+            </span>
+            <p class="large-text card-header">Fetcher QR Verification</p>
+          </div>
+          <div class="horizontal-container description-holder">
+            <p class="normal-text card-subheader">
+              Shows names of parents/guardians currently in line for drop-off or
+              pickup.
+            </p>
+          </div>
+          <div class="vertical-container display-icon-wrapper">
+            <span
+              class="material-symbols-outlined my-icon"
+              style="
+                font-size: 200px;
+                color: color-mix(in srgb, var(--white), transparent 50%);
+              "
+            >
+              qr_code_scanner
+            </span>
+          </div>
+          <button type="button" class="default-button">
+            <span
+              class="material-symbols-outlined"
+              style="margin: 0px 8px 0px 0px"
+            >
+              qr_code_scanner
+            </span>
+            Scan Parent or Guardian QR
+          </button>
+
+          <button type="button" class="default-button white-button">
+            <span
+              class="material-symbols-outlined"
+              style="margin: 0px 8px 0px 0px"
+            >
+              visibility
+            </span>
+            Verify Manually
+          </button>
+        </div>
+        <!--QR CODE SCANNER STUDENT-->
+        <div class="vertical-container qr-code-scanner-container">
+          <div class="horizontal-container description-holder">
+            <span
+              class="material-symbols-outlined my-icon"
+              style="font-size: 24px; color: var(--green)"
+            >
+              qr_code_scanner
+            </span>
+            <p class="large-text card-header">Student QR Attendance</p>
+          </div>
+
+          <div class="horizontal-container description-holder">
+            <p class="normal-text card-subheader">
+              Initiate scan for daily student attendance.
+            </p>
+          </div>
+
+          <div class="vertical-container display-icon-wrapper student-display">
+            <span
+              class="material-symbols-outlined my-icon"
+              style="
+                font-size: 200px;
+                color: color-mix(in srgb, var(--white), transparent 50%);
+              "
+            >
+              qr_code_scanner
+            </span>
+          </div>
+
+          <button type="button" class="default-button green-button">
+            <span
+              class="material-symbols-outlined"
+              style="margin: 0px 8px 0px 0px"
+            >
+              qr_code_scanner
+            </span>
+            Scan Student QR Code
+          </button>
+          <button type="button" class="default-button white-button">
+            <span
+              class="material-symbols-outlined"
+              style="margin: 0px 8px 0px 0px"
+            >
+              edit_square
+            </span>
+            Record Attendance Manually
+          </button>
+        </div>
+
+        <!--CLASSROOM ANNOUNCEMENT-->
+        <div class="vertical-container class-announcement-container">
+          <div class="horizontal-container description-holder">
+            <span
+              class="material-symbols-outlined my-icon blue-icon"
+              style="font-size: 24px"
+            >
+              campaign
+            </span>
+            <p class="large-text card-header">Class Announcement</p>
+          </div>
+          <div class="vertical-container class-announcement-input-container">
+            <textarea
+              class="class-announcement-input"
+              placeholder="Write announcement..."
+            ></textarea>
+            <div class="horizontal-container class-announcement-act">
+              <div class="horizontal-container left-side-act">
+                <div
+                  class="horizontal-container icon-wrapper class-announcement-icon"
+                >
+                  <span
+                    class="material-symbols-outlined my-icon blue-icon"
+                    style="font-size: 24px"
+                  >
+                    image
+                  </span>
+                </div>
+                <div
+                  class="horizontal-container icon-wrapper class-announcement-icon"
+                >
+                  <span
+                    class="material-symbols-outlined my-icon blue-icon"
+                    style="font-size: 24px"
+                  >
+                    video_library
+                  </span>
+                </div>
+              </div>
+              <div class="horizontal-container right-side-act">
+                <button type="submit" class="default-button post-button">
+                  Post
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
