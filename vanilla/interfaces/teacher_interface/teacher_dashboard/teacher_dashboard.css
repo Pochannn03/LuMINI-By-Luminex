@@ -50,6 +50,36 @@ body {
   color: var(--text-light);
 }
 
+.default-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  height: 60px;
+  width: 100%;
+  margin: 16px 0px 0px 0px;
+
+  border: none;
+  border-radius: 12px;
+  background-color: var(--brand-blue);
+
+  font-family: Poppins, sans-serif;
+  font-size: 16px;
+  color: var(--white);
+
+  cursor: pointer;
+}
+
+.white-button {
+  background-color: var(--white);
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+  color: var(--text-dark);
+}
+
+.green-button {
+  background-color: var(--green);
+}
+
 /*********************************** DASHBOARD **************************************/
 
 .dashboard-header-container {
@@ -62,7 +92,7 @@ body {
   width: 100%;
 
   background-color: transparent;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.15);
 }
 
 .dashboard-left {
@@ -140,6 +170,7 @@ body {
   border-radius: 12px;
   line-height: 26px;
   background: linear-gradient(to right, #39a8ed 10%, #67e3f4 60%);
+  box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.15);
 }
 
 .greeting-text {
@@ -163,7 +194,7 @@ body {
   width: 100%;
 
   border-radius: 12px;
-  box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .description-holder {
@@ -303,8 +334,10 @@ body {
   padding: 16px;
   margin: 16px 0px 0px 0px;
 
-  border: solid 2px var(--red-text);
+  background-color: var(--red-bg);
   border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
 }
 
 .alert-icon-wrapper {
@@ -313,7 +346,7 @@ body {
 }
 
 .alert-icon {
-  color: var(--red-text);
+  color: var(--white);
 }
 
 .description-holder-emergency {
@@ -328,11 +361,11 @@ body {
   width: 100%;
   padding: 0;
 
-  color: var(--red-text);
+  color: var(--white);
 }
 
 .emergency-text-subheader {
-  color: var(--red-text);
+  color: var(--white);
 }
 
 .proceed-emergency-button {
@@ -340,8 +373,125 @@ body {
   flex: 0.5;
 }
 
+/**************************** QR CODE SCANNER *****************************/
+
+.qr-code-scanner-container {
+  justify-content: start;
+  align-items: center;
+
+  height: auto;
+  width: 100%;
+  margin: 16px 0px 0px 0px;
+  padding: 16px;
+
+  border-radius: 12px;
+  background-color: var(--white);
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.display-icon-wrapper {
+  height: 300px;
+  width: 100%;
+  margin: 16px 0px 0px 0px;
+
+  border-radius: 12px;
+  background: linear-gradient(to bottom, var(--brand-blue) 10%, #b7dff8 60%);
+}
+
+.student-display {
+  background: linear-gradient(to bottom, var(--green) 10%, #beffc6 60%);
+}
+
+/**************************** CLASSROOM ANNOUNCEMENT *****************************/
+
+.class-announcement-container {
+  justify-content: start;
+  align-items: center;
+
+  height: auto;
+  width: 100%;
+  margin: 16px 0px 0px 0px;
+  padding: 16px;
+
+  border-radius: 12px;
+  background-color: var(--white);
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.class-announcement-input-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+
+  height: 150px;
+  width: 100%;
+  padding: 16px;
+  margin: 8px 0px 0px 0px;
+
+  border: solid 1px var(--text-dark);
+  border-radius: 8px;
+
+  text-align: start;
+  font-family: Poppins, sans-serif;
+  color: var(--text-dark);
+}
+
+.class-announcement-input {
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  align-items: start;
+
+  height: 100px;
+  width: 100%;
+  resize: none;
+  border: none;
+
+  text-align: start;
+  font-family: Poppins, sans-serif;
+  color: var(--text-dark);
+}
+
+.class-announcement-input:focus {
+  outline: none;
+
+  border-radius: 4px;
+}
+
+.class-announcement-act {
+  justify-content: center;
+  align-items: center;
+
+  width: 100%;
+}
+
+.left-side-act,
+.right-side-act {
+  flex: 1;
+}
+
+.left-side-act {
+  justify-content: start;
+}
+
+.right-side-act {
+  justify-content: end;
+}
+
+.class-announcement-icon {
+  margin: 0px 8px 0px 0px;
+}
+
+.post-button {
+  height: 100%;
+  width: 50%;
+
+  margin: 0;
+}
+
 /**************************************************** FOR TESTING PURPOSES *************************************************************/
 
 .sample-card {
-  display: none;
+  display: flex;
 }
