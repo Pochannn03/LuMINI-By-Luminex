@@ -1,5 +1,36 @@
+/* CONTAINER MAIN SELECTOR */
+.vertical-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.horizontal-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.large-text {
+  font-size: 30px;
+  color: var(--text-dark);
+}
+
+.normal-text {
+  font-size: 16px;
+  color: var(--text-dark);
+}
+
+/*****************************************************************************/
+
 /* 1. RESET & GLOBALS */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   /* Defined my brand colors here so we can update the theme globally. */
@@ -11,9 +42,9 @@
 }
 
 body {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   width: 100%;
-  overflow-x: hidden; 
+  overflow-x: hidden;
   background-color: #ffffff;
 }
 
@@ -35,49 +66,53 @@ body {
 
 .nav-brand {
   font-weight: 700;
-  color: var(--brand-blue); 
+  color: var(--brand-blue);
   font-size: 24px;
 }
 
 .nav-links {
   /* Made sure these are visible on mobile (flex) instead of hidden. */
-  display: flex; 
-  gap: 15px; 
+  display: flex;
+  gap: 15px;
 }
 
 .nav-link {
   color: var(--text-light);
   text-decoration: none;
   font-weight: 500;
-  font-size: 13px; 
-  margin-left: 0; 
+  font-size: 13px;
+  margin-left: 0;
   transition: color 0.2s;
 }
 
-.nav-link:hover { color: var(--brand-blue); }
+.nav-link:hover {
+  color: var(--brand-blue);
+}
 
 /* 3. HERO SECTION */
 .hero-section {
   position: relative;
-  
-  background: 
-    linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.92)),
+
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.92)
+    ),
     url("assets/background-lumini.png");
-    
+
   /* Zoomed the background in (1000px) to make the texture more subtle. */
-  background-size: 1000px; 
+  background-size: 1000px;
   background-repeat: repeat;
   background-position: center;
-  
-  min-height: 80vh; 
+
+  min-height: 80vh;
   width: 100%;
-  
+
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  
-  padding-bottom: 60px; 
+
+  padding-bottom: 60px;
 }
 
 .hero-content {
@@ -85,10 +120,10 @@ body {
   z-index: 2;
   width: 90%;
   max-width: 1200px;
-  
+
   /* Mobile Layout: Logo on top, Text on bottom. */
   display: flex;
-  flex-direction: column-reverse; 
+  flex-direction: column-reverse;
   align-items: center;
   gap: 40px;
   margin-top: 40px;
@@ -96,7 +131,7 @@ body {
 
 .hero-text {
   text-align: center;
-  color: var(--text-dark); 
+  color: var(--text-dark);
   max-width: 600px;
 }
 
@@ -190,9 +225,15 @@ body {
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 /* 6. FEATURES SECTION */
@@ -226,12 +267,14 @@ body {
   background-color: #fff;
   padding: 30px;
   border-radius: 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.05); 
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
   border: 1px solid #f0f0f0;
   transition: transform 0.3s;
 }
 
-.feature-card:hover { transform: translateY(-10px); }
+.feature-card:hover {
+  transform: translateY(-10px);
+}
 
 .icon-box {
   font-size: 40px;
@@ -252,13 +295,16 @@ body {
 
 /* 7. DESKTOP MEDIA QUERIES */
 @media (min-width: 768px) {
-  
-  .nav-links { gap: 30px; }
-  .nav-link { font-size: 15px; }
+  .nav-links {
+    gap: 30px;
+  }
+  .nav-link {
+    font-size: 15px;
+  }
 
   /* Switched to a row layout for desktop screens. */
   .hero-content {
-    flex-direction: row; 
+    flex-direction: row;
     justify-content: space-between;
     text-align: left;
     margin-top: 0;
@@ -270,17 +316,25 @@ body {
     width: 50%;
   }
 
-  .hero-text h1 { font-size: 48px; }
-  .hero-text p { font-size: 18px; }
+  .hero-text h1 {
+    font-size: 48px;
+  }
+  .hero-text p {
+    font-size: 18px;
+  }
 
-  .button-group-row { justify-content: flex-start; }
+  .button-group-row {
+    justify-content: flex-start;
+  }
 
   .hero-visual {
     width: 45%;
     justify-content: flex-end;
   }
-  
-  .hero-img { width: 380px; }
+
+  .hero-img {
+    width: 380px;
+  }
 
   .cards-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -289,9 +343,20 @@ body {
 
 /* ANIMATIONS */
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.fade-in-up { opacity: 0; animation: fadeInUp 0.8s ease-out forwards; }
-.delay-1 { animation-delay: 0.2s; }
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+.delay-1 {
+  animation-delay: 0.2s;
+}
