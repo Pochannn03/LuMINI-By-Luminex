@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guardian Registration</title>
+    <link rel="stylesheet" href="../main.css" />
+    <link rel="stylesheet" href="../auth/register.css" />
+    <link rel="stylesheet" href="guardian_registration.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    
+    <div class="guardian-registration-main-container" id="invitationSection">
+      <h1 class="guardian-registration-header-text">Enter Invitation Code</h1>
+      <p class="guardian-registration-description-text">
+        Enter the invitation code provided by your child's teacher to create your account.
+      </p>
+
+      <div class="code-inputs-wrapper">
+        <input type="text" class="code-box" maxlength="1" />
+        <input type="text" class="code-box" maxlength="1" />
+        <input type="text" class="code-box" maxlength="1" />
+        <input type="text" class="code-box" maxlength="1" />
+        <input type="text" class="code-box" maxlength="1" />
+        <input type="text" class="code-box" maxlength="1" />
+      </div>
+
+      <button type="button" class="button next-button" id="submitCodeBtn">Submit</button>
+      
+      <div class="redirect-sign-in-container" style="margin-top:20px; border:none; padding:0;">
+          <p class="label-already-acc">Already have an account?</p>
+          <a href="../auth/login.html" class="login-link">Sign In</a>
+      </div>
+    </div>
+
+    <div class="guardian-registration-main-container" id="registrationSection" style="display: none; opacity: 0;">
+      <h1 class="guardian-registration-header-text">Create Account</h1>
+      <p class="guardian-registration-description-text">
+        Please fill out the form to create your guardian account.
+      </p>
+
+      <div class="step-indicator" id="stepIndicator">Step 1 of 4</div>
+
+      <form class="guardian-registration-form" id="mainRegistrationForm" action="#" method="POST">
+        
+        <div class="form-step" id="step1">
+          <p class="guardian-registration-description-text enlarged-text">Account Setup</p>
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Username <span class="required">*</span></label>
+            <input type="text" name="username" class="guardian-registration-input" placeholder="shizuka123" required />
+          </div>
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Password <span class="required">*</span></label>
+            <input type="password" name="password" class="guardian-registration-input" placeholder="shizuka_321" required />
+          </div>
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Confirm Password <span class="required">*</span></label>
+            <input type="password" name="confirm-password" class="guardian-registration-input" placeholder="shizuka_321" required />
+          </div>
+        </div>
+
+        <div class="form-step" id="step2" style="display: none;">
+          <p class="guardian-registration-description-text enlarged-text">Guardian Information</p>
+          
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">
+              Profile Photo <span class="required">*</span>
+            </label>
+            <div class="file-upload-wrapper">
+              <label for="profile-upload" class="file-upload-container">
+                <div id="default-upload-view">
+                  <svg class="upload-icon-svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                    <circle cx="12" cy="13" r="4"></circle>
+                  </svg>
+                  <span class="upload-text">Tap to upload photo</span>
+                </div>
+                <img id="image-preview" class="image-preview hidden" src="" alt="Preview" />
+                <input type="file" id="profile-upload" name="profile-upload" accept="image/*" class="hidden-file-input" onchange="handleFileUpload(this)" required />
+              </label>
+              <button type="button" id="remove-btn" class="remove-file-btn hidden" onclick="removeFile()">✕</button>
+            </div>
+          </div>
+
+          <div class="multiple-input-wrapper">
+            <div class="lbl-input-wrapper">
+              <label class="guardian-registration-label">Firstname <span class="required">*</span></label>
+              <input type="text" name="firstname" class="guardian-registration-input" placeholder="Shizuka" required />
+            </div>
+            <div class="lbl-input-wrapper">
+              <label class="guardian-registration-label">Lastname <span class="required">*</span></label>
+              <input type="text" name="lastname" class="guardian-registration-input" placeholder="Chen" required />
+            </div>
+          </div>
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Email Address <span class="required">*</span></label>
+            <input type="email" name="email" class="guardian-registration-input" placeholder="shizuka22@gmail.com" required />
+          </div>
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" name="phone" class="guardian-registration-input" placeholder="09836734235" required />
+          </div>
+        </div>
+
+        <div class="form-step" id="step3" style="display: none;">
+          <p class="guardian-registration-description-text enlarged-text">Relationship to the Student</p>
+          
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Guardian <span style="color: var(--brand-blue);">(autofilled)</span></label>
+            <input type="text" name="relationship" class="guardian-registration-input" value="Guardian" readonly style="background-color: #f8fafc; color: #8898aa; cursor: not-allowed;" />
+          </div>
+
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Child's name <span style="color: var(--brand-blue);">(autofilled)</span></label>
+            <input type="text" name="child_name" class="guardian-registration-input" value="Mia Chen" readonly style="background-color: #f8fafc; color: #8898aa; cursor: not-allowed;" />
+          </div>
+        </div>
+
+        <div class="form-step" id="step4" style="display: none;">
+          <p class="guardian-registration-description-text enlarged-text">Address Details</p>
+          <div class="multiple-input-wrapper">
+            <div class="lbl-input-wrapper">
+              <label class="guardian-registration-label">House Unit <span class="required">*</span></label>
+              <input type="text" name="house-unit" class="guardian-registration-input" placeholder="32F" required />
+            </div>
+            <div class="lbl-input-wrapper">
+              <label class="guardian-registration-label">Street <span class="required">*</span></label>
+              <input type="text" name="street" class="guardian-registration-input" placeholder="Cornelia" required />
+            </div>
+          </div>
+          <div class="multiple-input-wrapper">
+            <div class="lbl-input-wrapper">
+              <label class="guardian-registration-label">Brgy/Village <span class="required">*</span></label>
+              <input type="text" name="barangay" class="guardian-registration-input" placeholder="171" required />
+            </div>
+            <div class="lbl-input-wrapper">
+              <label class="guardian-registration-label">City <span class="required">*</span></label>
+              <input type="text" name="city" class="guardian-registration-input" placeholder="Biringan City" required />
+            </div>
+          </div>
+          <div class="lbl-input-wrapper">
+            <label class="guardian-registration-label">Zip Code <span class="required">*</span></label>
+            <input type="text" inputmode="numeric" name="zipcode" class="guardian-registration-input" placeholder="1432" required />
+          </div>
+        </div>
+
+        <div class="button-wrapper">
+          <button type="button" class="button back-button" id="backWardBtn">Back</button>
+          <button type="button" class="button next-button" id="frwrdBtn">Next</button>
+        </div>
+
+      </form>
+    </div>
+    <script src="guardian_registration.js"></script>
+  </body>
+</html>
