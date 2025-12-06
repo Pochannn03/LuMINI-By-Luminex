@@ -25,7 +25,7 @@
       <div class="horizontal-container dashboard-header-container">
         <!--LEFT SIDE-->
         <div class="horizontal-container dashboard-left">
-          <div class="horizontal-container icon-wrapper">
+          <div class="horizontal-container icon-wrapper" id="burgerIconOpenNav">
             <span
               class="material-symbols-outlined my-icon"
               style="font-size: 30px"
@@ -55,6 +55,45 @@
           </div>
           <div class="horizontal-container user-name-display-header">
             <p class="user-name-display">John Doe</p>
+          </div>
+        </div>
+      </div>
+
+      <!--FLOATING NAV BAR-->
+      <div class="nav-overlay" id="navOverlay"></div>
+
+      <div
+        class="vertical-container floating-nav-bar-container"
+        id="sideNavBar"
+      >
+        <div class="vertical-container floating-nav-bar">
+          <div class="vertical-container logo-wrapper">
+            <img
+              class="lumini-logo"
+              src="/LuMINI/vanilla/assets/lumini-logo.png"
+            />
+          </div>
+          <div class="vertical-container button-holder">
+            <button type="button" class="default-button nav-button on-display">
+              <span class="material-symbols-outlined dashboard-icon">
+                dashboard </span
+              >Dashboard
+            </button>
+            <button type="button" class="default-button nav-button">
+              <span class="material-symbols-outlined dashboard-icon">
+                person_edit </span
+              >Manage Class & Students
+            </button>
+            <button type="button" class="default-button nav-button">
+              <span class="material-symbols-outlined dashboard-icon">
+                analytics </span
+              >Analytics
+            </button>
+            <button type="button" class="default-button nav-button">
+              <span class="material-symbols-outlined dashboard-icon">
+                person </span
+              >Profile
+            </button>
           </div>
         </div>
       </div>
@@ -344,7 +383,6 @@
             Record Attendance Manually
           </button>
         </div>
-
         <!--CLASSROOM ANNOUNCEMENT-->
         <div class="vertical-container class-announcement-container">
           <div class="horizontal-container description-holder">
@@ -394,5 +432,7 @@
         </div>
       </div>
     </div>
+
+    <script src="teacher_dashboard.js"></script>
   </body>
 </html>
