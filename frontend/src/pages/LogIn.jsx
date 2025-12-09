@@ -65,9 +65,9 @@ export default function Login() {
 
             <div className="register-prompt">Don't have an account?</div>
 
-            <a href="register.html" className="button register-button">
+            <Link to="/register" className="button register-button">
               Register
-            </a>
+            </Link>
           </form>
         </div>
       </div>

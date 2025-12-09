@@ -1,28 +1,16 @@
 import mongoose from "mongoose";
 
-const UserSchema = new mongoose.Schema({
-  username: {
+const StudentSchema = new mongoose.Schema({
+  student_id: {
     type: mongoose.Schema.Types.String,
     required: true,
     unique: true,
   },
-  password: {
+  user_id: {
     type: mongoose.Schema.Types.String,
     required: true,
   },
-  email: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
-  first_name: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
-  middle_name: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
-  last_name: {
+  section_id: {
     type: mongoose.Schema.Types.String,
     required: true,
   },
@@ -30,19 +18,7 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.String,
     required: true,
   },
-  phone_number: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
   address: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
-  relationship: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
-  role: {
     type: mongoose.Schema.Types.String,
     required: true,
   },
@@ -65,10 +41,10 @@ const UserSchema = new mongoose.Schema({
   updated_by: {
     type: mongoose.Schema.Types.String,
     required: true,
-  }
+  },
 });
 
-export const User = mongoose.model("User", UserSchema, "mng.user_active");
+export const Student = mongoose.model("Student", UserSchema, "chd.kindergarten_student");
 
 
 

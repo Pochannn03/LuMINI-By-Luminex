@@ -25,7 +25,7 @@ export default function Landing() {
 
             <div className="button-group-row">
               <Link to="/login" className="btn btn-primary">Sign In</Link>
-              <Link to="/register" className="btn btn-outline">Sign In</Link>
+              <Link to="/register" className="btn btn-outline">Create Account</Link>
             </div>
           </div>
 
