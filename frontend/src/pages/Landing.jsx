@@ -1,7 +1,8 @@
 import React from "react";
+import { Link } from 'react-router-dom';
 import logo from "../assets/lumini-logo.png";
 
-export default function Home() {
+export default function Landing() {
   return (
     <>
       <header className="hero-section">
@@ -23,8 +24,8 @@ export default function Home() {
             </p>  
 
             <div className="button-group-row">
-              <a href="auth/login.html" className="btn btn-primary">Sign In</a>
-              <a href="auth/register.html" className="btn btn-outline">Create Account</a>
+              <Link to="/login" className="btn btn-primary">Sign In</Link>
+              <Link to="/register" className="btn btn-outline">Sign In</Link>
             </div>
           </div>
 
