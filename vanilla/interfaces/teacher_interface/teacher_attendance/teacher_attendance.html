@@ -3,328 +3,244 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Teacher Attendance</title>
+    <title>Manage Attendance</title>
+    
     <link rel="stylesheet" href="../../../main.css" />
+    <link rel="stylesheet" href="../teacher_dashboard/teacher_dashboard.css" />
     <link rel="stylesheet" href="teacher_attendance.css" />
+    
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
   </head>
   <body>
-    <div class="div-main-container attendance-main-container">
-      <div class="div-header-container attendance-header">
-        <div class="div-header-section left">
-          <button type="button" class="icon-btn">
-            <span class="material-symbols-outlined icon" style="font-size: 28px"
-              >menu</span
-            >
+    <div class="dashboard-wrapper">
+      
+      <header class="dashboard-header">
+        <div class="header-left">
+          <button id="burgerIconOpenNav" class="icon-btn">
+            <span class="material-symbols-outlined">menu</span>
           </button>
         </div>
-        <div class="div-header-section right">
-          <button type="button" class="icon-btn">
-            <span class="material-symbols-outlined icon" style="font-size: 28px"
-              >notifications</span
-            >
+        <div class="header-right">
+          <button class="icon-btn notification-btn">
+            <span class="material-symbols-outlined">notifications</span>
+            <span class="notification-badge"></span>
           </button>
-
           <div class="header-separator"></div>
-
-          <div class="profile-pic-wrapper">
-            <img class="profile-pic" src="/assets/placeholder_image.jpg" />
+          <div class="user-profile">
+            <img class="profile-avatar" src="../../../assets/placeholder_image.jpg" alt="Profile" />
+            <span class="user-name">John Doe</span>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div class="div-content-box-container">
-        <div class="div-content-box-header">Attendance</div>
-
-        <div class="div-date-box">
-          <div class="div-wrapper">
-            <span class="material-symbols-outlined normal-icon"
-              >calendar_today</span
-            >
-          </div>
-          <div class="div-wrapper date-indicator">
-            Date :
-            <p class="date-display" id="dateDisplay"></p>
-          </div>
+      <div class="nav-overlay" id="navOverlay"></div>
+      
+      <aside class="sidebar" id="sideNavBar">
+        <div class="sidebar-header">
+           <img src="../../../assets/lumini-logo.png" alt="Lumini" class="sidebar-logo">
         </div>
+        <nav class="sidebar-menu">
+          <a href="../teacher_dashboard/teacher_dashboard.html" class="nav-item">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <button class="nav-item active">
+            <span class="material-symbols-outlined">school</span>
+            <span>Manage Class</span>
+          </button>
+          <button class="nav-item">
+            <span class="material-symbols-outlined">analytics</span>
+            <span>Analytics</span>
+          </button>
+          <button class="nav-item">
+            <span class="material-symbols-outlined">person</span>
+            <span>Profile</span>
+          </button>
+        </nav>
+      </aside>
 
-        <div class="div-attendance-box-container">
-          <div class="div-wrapper attendance-box-header">
-            <div class="div-wrapper attendance-box-header-left-section">
-              <div class="div-wrapper">
-                <span
-                  class="material-symbols-outlined normal-icon"
-                  style="font-size: 24px"
-                  >groups</span
-                >
-              </div>
-              <p class="attendance-box-header-text">Attendance Sheet</p>
-            </div>
-            <div class="div-wrappper attendance-box-header-right-section">
-              <div class="div-wrapper">
-                <p class="date-display" id="chosenDate"></p>
-              </div>
-            </div>
-          </div>
+      <main class="main-content">
+        
+        <div class="attendance-container">
 
-          <div class="div-wrapper attendance-total-counter">
-            <p>Total Students :</p>
-            <p id="totalStudentsinClass">0</p>
-          </div>
+            <div class="attendance-header-card">
+                
+                <div class="header-top-row">
+                    <div class="page-title">Attendance Log</div>
+                    <div class="date-pill">
+                        <button class="nav-btn"><span class="material-symbols-outlined">chevron_left</span></button>
+                        <span id="dateDisplay" class="date-label">Loading...</span>
+                        <button class="nav-btn"><span class="material-symbols-outlined">chevron_right</span></button>
+                    </div>
+                </div>
 
-          <div class="div-wrapper attendance-summary-display">
-            <div class="div-wrapper attendance-summary-icon-holder">
-              <div class="div-wrapper attendance-summary-icon-wrapper pres">
-                <span class="material-symbols-outlined" style="font-weight: 900"
-                  >check</span
-                >
-              </div>
-              <p class="number-counter-indicator" id="presentCounter">0</p>
-              <p>Present</p>
+                <div class="header-stats-row">
+                    <div class="stats-container">
+                        <div class="stat-box present">
+                            <div class="stat-icon"><span class="material-symbols-outlined">check</span></div>
+                            <div class="stat-info">
+                                <span class="stat-num" id="countPresent">0</span>
+                                <span class="stat-label">Present</span>
+                            </div>
+                        </div>
+                        <div class="stat-box absent">
+                            <div class="stat-icon"><span class="material-symbols-outlined">close</span></div>
+                            <div class="stat-info">
+                                <span class="stat-num" id="countAbsent">0</span>
+                                <span class="stat-label">Absent</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="save-btn" id="saveBtn">
+    Save Attendance
+    <span class="material-symbols-outlined">save</span>
+</button>
+                </div>
             </div>
-            <div class="div-wrapper attendance-summary-icon-holder">
-              <div class="div-wrapper attendance-summary-icon-wrapper abs">
-                <span class="material-symbols-outlined" style="font-weight: 900"
-                  >close_small</span
-                >
-              </div>
-              <p class="number-counter-indicator" id="presentCounter">0</p>
-              <p>Absent</p>
-            </div>
-            <div class="div-wrapper attendance-summary-icon-holder">
-              <div class="div-wrapper attendance-summary-icon-wrapper late">
-                <span
-                  class="material-symbols-outlined"
-                  style="font-weight: 900; font-size: 24px"
-                  >hourglass_disabled</span
-                >
-              </div>
-              <p class="number-counter-indicator" id="presentCounter">0</p>
-              <p>Late</p>
-            </div>
-          </div>
 
-          <div class="div-wrapper button-holder">
-            <button type="button" class="hollow-button">
-              View Detailed Report
-            </button>
-          </div>
+            <div class="list-card">
+                <form id="attendanceForm">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th width="45%">Student Name</th>
+                                <th width="20%">Arrival Time</th>
+                                <th width="35%">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            
+                            <tr class="table-row" data-student-id="101">
+                                <td>
+                                    <div class="student-flex">
+                                        <div class="avatar-wrapper">
+                                            <img src="../../../assets/placeholder_image.jpg" class="s-avatar">
+                                            <div class="status-dot-indicator"></div>
+                                        </div>
+                                        <div class="s-info">
+                                            <span class="s-name">Mia Chen</span>
+                                            <span class="s-id">ID: 102394</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td>
+                                    <div class="time-pill arrived">
+                                        <span class="material-symbols-outlined" style="font-size:14px">schedule</span>
+                                        7:10 AM
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <div class="status-segment">
+                                        <label class="segment-opt present active">
+                                            <input type="radio" name="st_101" value="present" checked>
+                                            Present
+                                        </label>
+                                        <label class="segment-opt late">
+                                            <input type="radio" name="st_101" value="late">
+                                            Late
+                                        </label>
+                                        <label class="segment-opt absent">
+                                            <input type="radio" name="st_101" value="absent">
+                                            Absent
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="table-row" data-student-id="102">
+                                <td>
+                                    <div class="student-flex">
+                                        <div class="avatar-wrapper">
+                                            <img src="../../../assets/placeholder_image.jpg" class="s-avatar">
+                                            <div class="status-dot-indicator"></div>
+                                        </div>
+                                        <div class="s-info">
+                                            <span class="s-name">Noah Lee</span>
+                                            <span class="s-id">ID: 102395</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td>
+                                    <div class="time-pill pending">
+                                        <span class="material-symbols-outlined" style="font-size:14px">schedule</span>
+                                        --:--
+                                    </div>
+                                </td>
+                                
+                                <td>
+                                    <div class="status-segment">
+                                        <label class="segment-opt present">
+                                            <input type="radio" name="st_102" value="present">
+                                            Present
+                                        </label>
+                                        <label class="segment-opt late">
+                                            <input type="radio" name="st_102" value="late">
+                                            Late
+                                        </label>
+                                        <label class="segment-opt absent active">
+                                            <input type="radio" name="st_102" value="absent" checked>
+                                            Absent
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr class="table-row" data-student-id="103">
+                                <td>
+                                    <div class="student-flex">
+                                        <div class="avatar-wrapper">
+                                            <img src="../../../assets/placeholder_image.jpg" class="s-avatar">
+                                            <div class="status-dot-indicator"></div>
+                                        </div>
+                                        <div class="s-info">
+                                            <span class="s-name">Olivia Kim</span>
+                                            <span class="s-id">ID: 102396</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <td>
+                                    <div class="time-pill arrived">
+                                        <span class="material-symbols-outlined" style="font-size:14px">schedule</span>
+                                        7:45 AM
+                                    </div>
+                                </td>
+                                
+                                <td>
+                                    <div class="status-segment">
+                                        <label class="segment-opt present">
+                                            <input type="radio" name="st_103" value="present">
+                                            Present
+                                        </label>
+                                        <label class="segment-opt late active">
+                                            <input type="radio" name="st_103" value="late" checked>
+                                            Late
+                                        </label>
+                                        <label class="segment-opt absent">
+                                            <input type="radio" name="st_103" value="absent">
+                                            Absent
+                                        </label>
+                                    </div>
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </form>
+            </div>
+
         </div>
-
-        <div class="div-class-list">
-          <div class="div-wrapper student-info-container">
-            <div class="div-wrapper student-info-container-left-section">
-              <div class="div-wrapper student-profile-wrapper">
-                <img
-                  class="student-profile-picture"
-                  src="/assets/placeholder_image.jpg"
-                />
-              </div>
-              <div class="div-wrapper student-name-wrapper">
-                <p class="student-name-text">John Doe</p>
-                <p class="student-time-arrive">0:00</p>
-              </div>
-            </div>
-
-            <div class="div-wrapper student-info-container-right-section">
-              <div class="div-wrapper student-info-status status-present">
-                <div class="div-wrapper status-icon-wrapper">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >check</span
-                  >
-                </div>
-                <p class="student-info-status-text">Present</p>
-              </div>
-              <div class="div-wrapper edit-button-holder">
-                <button type="button" class="edit-button">
-                  <span class="material-symbols-outlined">edit_square</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="div-wrapper student-info-container">
-            <div class="div-wrapper student-info-container-left-section">
-              <div class="div-wrapper student-profile-wrapper">
-                <img
-                  class="student-profile-picture"
-                  src="/assets/placeholder_image.jpg"
-                />
-              </div>
-              <div class="div-wrapper student-name-wrapper">
-                <p class="student-name-text">John Doe</p>
-                <p class="student-time-arrive">0:00</p>
-              </div>
-            </div>
-            <div class="div-wrapper student-info-container-right-section">
-              <div class="div-wrapper student-info-status status-absent">
-                <div class="div-wrapper status-icon-wrapper">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >close_small</span
-                  >
-                </div>
-                <p class="student-info-status-text">Absent</p>
-              </div>
-              <div class="div-wrapper edit-button-holder">
-                <button type="button" class="edit-button">
-                  <span class="material-symbols-outlined">edit_square</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="div-wrapper student-info-container">
-            <div class="div-wrapper student-info-container-left-section">
-              <div class="div-wrapper student-profile-wrapper">
-                <img
-                  class="student-profile-picture"
-                  src="/assets/placeholder_image.jpg"
-                />
-              </div>
-              <div class="div-wrapper student-name-wrapper">
-                <p class="student-name-text">John Doe</p>
-                <p class="student-time-arrive">0:00</p>
-              </div>
-            </div>
-            <div class="div-wrapper student-info-container-right-section">
-              <div class="div-wrapper student-info-status status-late">
-                <div class="div-wrapper status-icon-wrapper">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >hourglass_disabled</span
-                  >
-                </div>
-                <p class="student-info-status-text">Late</p>
-              </div>
-              <div class="div-wrapper edit-button-holder">
-                <button type="button" class="edit-button">
-                  <span class="material-symbols-outlined">edit_square</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="div-wrapper student-info-container">
-            <div class="div-wrapper student-info-container-left-section">
-              <div class="div-wrapper student-profile-wrapper">
-                <img
-                  class="student-profile-picture"
-                  src="/assets/placeholder_image.jpg"
-                />
-              </div>
-              <div class="div-wrapper student-name-wrapper">
-                <p class="student-name-text">John Doe</p>
-                <p class="student-time-arrive">0:00</p>
-              </div>
-            </div>
-
-            <div class="div-wrapper student-info-container-right-section">
-              <div class="div-wrapper student-info-status status-present">
-                <div class="div-wrapper status-icon-wrapper">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >check</span
-                  >
-                </div>
-                <p class="student-info-status-text">Present</p>
-              </div>
-              <div class="div-wrapper edit-button-holder">
-                <button type="button" class="edit-button">
-                  <span class="material-symbols-outlined">edit_square</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="div-wrapper student-info-container">
-            <div class="div-wrapper student-info-container-left-section">
-              <div class="div-wrapper student-profile-wrapper">
-                <img
-                  class="student-profile-picture"
-                  src="/assets/placeholder_image.jpg"
-                />
-              </div>
-              <div class="div-wrapper student-name-wrapper">
-                <p class="student-name-text">John Doe</p>
-                <p class="student-time-arrive">0:00</p>
-              </div>
-            </div>
-            <div class="div-wrapper student-info-container-right-section">
-              <div class="div-wrapper student-info-status status-absent">
-                <div class="div-wrapper status-icon-wrapper">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >close_small</span
-                  >
-                </div>
-                <p class="student-info-status-text">Absent</p>
-              </div>
-              <div class="div-wrapper edit-button-holder">
-                <button type="button" class="edit-button">
-                  <span class="material-symbols-outlined">edit_square</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="div-wrapper student-info-container">
-            <div class="div-wrapper student-info-container-left-section">
-              <div class="div-wrapper student-profile-wrapper">
-                <img
-                  class="student-profile-picture"
-                  src="/assets/placeholder_image.jpg"
-                />
-              </div>
-              <div class="div-wrapper student-name-wrapper">
-                <p class="student-name-text">John Doe</p>
-                <p class="student-time-arrive">0:00</p>
-              </div>
-            </div>
-            <div class="div-wrapper student-info-container-right-section">
-              <div class="div-wrapper student-info-status status-late">
-                <div class="div-wrapper status-icon-wrapper">
-                  <span
-                    class="material-symbols-outlined"
-                    style="font-size: 16px"
-                    >hourglass_disabled</span
-                  >
-                </div>
-                <p class="student-info-status-text">Late</p>
-              </div>
-              <div class="div-wrapper edit-button-holder">
-                <button type="button" class="edit-button">
-                  <span class="material-symbols-outlined">edit_square</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="div-wrapper button-area">
-          <div class="button-wrapper">
-            <button type="button" class="button-normal">
-              Edit all Entries
-            </button>
-          </div>
-          <div class="button-wrapper">
-            <button type="button" class="button-normal finalize">
-              Finalize Attendance
-            </button>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
+
+    <script src="../teacher_dashboard/teacher_dashboard.js"></script>
     <script src="teacher_attendance.js"></script>
   </body>
 </html>
