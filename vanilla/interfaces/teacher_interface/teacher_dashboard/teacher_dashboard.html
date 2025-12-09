@@ -19,46 +19,57 @@
   </head>
   <body>
     <div class="dashboard-wrapper">
-      
       <header class="dashboard-header">
         <div class="header-left">
           <button id="burgerIconOpenNav" class="icon-btn">
             <span class="material-symbols-outlined">menu</span>
           </button>
         </div>
-        
+
         <div class="header-right">
           <button class="icon-btn notification-btn">
             <span class="material-symbols-outlined">notifications</span>
             <span class="notification-badge"></span>
           </button>
-          
+
           <div class="header-separator"></div>
-          
+
           <div class="user-profile">
-            <img class="profile-avatar" src="../../../assets/placeholder_image.jpg" alt="Profile" />
-            <span class="user-name">John Doe</span>
+            <img
+              class="profile-avatar"
+              src="../../../assets/placeholder_image.jpg"
+              alt="Profile"
+            />
+            <span class="user-name" id="headerUserName">Teacher</span>
           </div>
         </div>
       </header>
 
       <div class="nav-overlay" id="navOverlay"></div>
-      
+
       <aside class="sidebar" id="sideNavBar">
         <div class="sidebar-header">
-           <img src="../../../assets/lumini-logo.png" alt="Lumini" class="sidebar-logo">
+          <img
+            src="../../../assets/lumini-logo.png"
+            alt="Lumini"
+            class="sidebar-logo"
+          />
         </div>
-        
+
         <nav class="sidebar-menu">
           <button class="nav-item active">
             <span class="material-symbols-outlined">dashboard</span>
             <span>Dashboard</span>
           </button>
 
-          <button class="nav-item">
+          <a
+            href="../teacher_attendance/teacher_attendance.html"
+            class="nav-item"
+            style="text-decoration: none"
+          >
             <span class="material-symbols-outlined">school</span>
-            <span>Manage Class</span>
-          </button>
+            <span>Attendance</span>
+          </a>
 
           <button class="nav-item">
             <span class="material-symbols-outlined">analytics</span>
@@ -73,166 +84,196 @@
       </aside>
 
       <main class="main-content">
-        
         <section class="welcome-banner">
           <div>
-            <h1>Welcome Back, John! </h1>
+            <h1 id="welcomeMessage">Welcome Back!</h1>
             <p>Ready for your next class?</p>
           </div>
         </section>
 
         <div class="dashboard-grid">
-            
-            <div class="grid-column-left">
-                
-                <div class="card queue-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon blue-icon">schedule</span>
-                            <h2>Drop-off and Pickup Queue</h2>
-                        </div>
-                        <p class="header-desc">
-                            Shows names of parents/guardians currently in line for drop-off or pickup.
-                        </p>
-                    </div>
+          <div class="grid-column-left">
+            <div class="card queue-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span class="material-symbols-outlined header-icon blue-icon"
+                    >schedule</span
+                  >
+                  <h2>Drop-off and Pickup Queue</h2>
+                </div>
+                <p class="header-desc">
+                  Shows names of parents/guardians currently in line for
+                  drop-off or pickup.
+                </p>
+              </div>
 
-                    <div class="queue-list-container">
-                        
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Shizuka Chen</span>
-                                <span class="q-action">Picking up: Mia Chen</span>
-                                <span class="q-time">9:50 AM</span>
-                            </div>
-                            <span class="badge-pill badge-pending">Pending</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">David Lee</span>
-                                <span class="q-action">Picking up: Noah Lee</span>
-                                <span class="q-time">9:55 AM</span>
-                            </div>
-                            <span class="badge-pill badge-pending">Pending</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Jessica Kim</span>
-                                <span class="q-action">Picking up: Olivia Kim</span>
-                                <span class="q-time">9:58 AM</span>
-                            </div>
-                            <span class="badge-pill badge-pending">Pending</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Shizuka Chen</span>
-                                <span class="q-action">Dropping off: Mia Chen</span>
-                                <span class="q-time">9:10 AM</span>
-                            </div>
-                            <span class="badge-pill badge-otw">On the way</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Shizuka Chen</span>
-                                <span class="q-action">Dropping off: Mia Chen</span>
-                                <span class="q-time">9:10 AM</span>
-                            </div>
-                            <span class="badge-pill badge-late">Running late</span>
-                        </div>
-
-                    </div>
+              <div class="queue-list-container">
+                <div class="queue-item">
+                  <img
+                    src="../../../assets/placeholder_image.jpg"
+                    class="queue-avatar"
+                  />
+                  <div class="queue-info">
+                    <span class="q-name">Shizuka Chen</span>
+                    <span class="q-action">Picking up: Mia Chen</span>
+                    <span class="q-time">9:50 AM</span>
+                  </div>
+                  <span class="badge-pill badge-pending">Pending</span>
                 </div>
 
-                <div class="card emergency-card">
-                    <div class="emergency-icon">
-                        <span class="material-symbols-outlined">e911_emergency</span>
-                    </div>
-                    <div class="emergency-content">
-                        <h3>Emergency Override</h3>
-                        <p>Alert staff and override dismissal process.</p>
-                    </div>
-                    <span class="material-symbols-outlined arrow-icon">arrow_forward</span>
-                 </div>
+                <div class="queue-item">
+                  <img
+                    src="../../../assets/placeholder_image.jpg"
+                    class="queue-avatar"
+                  />
+                  <div class="queue-info">
+                    <span class="q-name">David Lee</span>
+                    <span class="q-action">Picking up: Noah Lee</span>
+                    <span class="q-time">9:55 AM</span>
+                  </div>
+                  <span class="badge-pill badge-pending">Pending</span>
+                </div>
 
+                <div class="queue-item">
+                  <img
+                    src="../../../assets/placeholder_image.jpg"
+                    class="queue-avatar"
+                  />
+                  <div class="queue-info">
+                    <span class="q-name">Jessica Kim</span>
+                    <span class="q-action">Picking up: Olivia Kim</span>
+                    <span class="q-time">9:58 AM</span>
+                  </div>
+                  <span class="badge-pill badge-pending">Pending</span>
+                </div>
+
+                <div class="queue-item">
+                  <img
+                    src="../../../assets/placeholder_image.jpg"
+                    class="queue-avatar"
+                  />
+                  <div class="queue-info">
+                    <span class="q-name">Shizuka Chen</span>
+                    <span class="q-action">Dropping off: Mia Chen</span>
+                    <span class="q-time">9:10 AM</span>
+                  </div>
+                  <span class="badge-pill badge-otw">On the way</span>
+                </div>
+
+                <div class="queue-item">
+                  <img
+                    src="../../../assets/placeholder_image.jpg"
+                    class="queue-avatar"
+                  />
+                  <div class="queue-info">
+                    <span class="q-name">Shizuka Chen</span>
+                    <span class="q-action">Dropping off: Mia Chen</span>
+                    <span class="q-time">9:10 AM</span>
+                  </div>
+                  <span class="badge-pill badge-late">Running late</span>
+                </div>
+              </div>
             </div>
 
-            <div class="grid-column-right">
-                
-                <div class="card action-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon orange-icon">qr_code_scanner</span>
-                            <h2>Guardian QR Verification</h2>
-                        </div>
-                        <p class="header-desc">Scan guardian's QR code for student pickup.</p>
-                    </div>
-                    
-                    <div class="qr-visual-block">
-                        <span class="material-symbols-outlined qr-large-icon">qr_code_2</span>
-                    </div>
-
-                    <div class="widget-actions">
-                        <button class="btn btn-primary">
-                            <span class="material-symbols-outlined">center_focus_weak</span>
-                            Scan Guardian QR Code
-                        </button>
-                        <button class="btn btn-outline">Verify Manually</button>
-                    </div>
-                </div>
-
-                <div class="card action-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon orange-icon">qr_code_2</span>
-                            <h2>Student QR Attendance</h2>
-                        </div>
-                        <p class="header-desc">Initiate scan for daily student attendance.</p>
-                    </div>
-
-                    <div class="widget-actions">
-                        <button class="btn btn-primary">
-                            <span class="material-symbols-outlined">center_focus_weak</span>
-                            Scan Student QR Code
-                        </button>
-                    </div>
-                </div>
-
-                <div class="card announcement-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon purple-icon">campaign</span>
-                            <h2>Class Announcement</h2>
-                        </div>
-                        <p class="header-desc">Post updates to parents.</p>
-                    </div>
-                    
-                    <div class="announcement-box">
-                        <textarea placeholder="Write an announcement..."></textarea>
-                        <div class="announcement-footer">
-                             <div class="attach-options">
-                                 <button class="icon-tool" title="Add Image">
-                                     <span class="material-symbols-outlined">image</span>
-                                 </button>
-                                 <button class="icon-tool" title="Add Link">
-                                     <span class="material-symbols-outlined">link</span>
-                                 </button>
-                             </div>
-                             <button class="btn-post">Post</button>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="card emergency-card">
+              <div class="emergency-icon">
+                <span class="material-symbols-outlined">e911_emergency</span>
+              </div>
+              <div class="emergency-content">
+                <h3>Emergency Override</h3>
+                <p>Alert staff and override dismissal process.</p>
+              </div>
+              <span class="material-symbols-outlined arrow-icon"
+                >arrow_forward</span
+              >
             </div>
+          </div>
+
+          <div class="grid-column-right">
+            <div class="card action-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon orange-icon"
+                    >qr_code_scanner</span
+                  >
+                  <h2>Guardian QR Verification</h2>
+                </div>
+                <p class="header-desc">
+                  Scan guardian's QR code for student pickup.
+                </p>
+              </div>
+
+              <div class="qr-visual-block">
+                <span class="material-symbols-outlined qr-large-icon"
+                  >qr_code_2</span
+                >
+              </div>
+
+              <div class="widget-actions">
+                <button class="btn btn-primary">
+                  <span class="material-symbols-outlined"
+                    >center_focus_weak</span
+                  >
+                  Scan Guardian QR Code
+                </button>
+                <button class="btn btn-outline">Verify Manually</button>
+              </div>
+            </div>
+
+            <div class="card action-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon orange-icon"
+                    >qr_code_2</span
+                  >
+                  <h2>Student QR Attendance</h2>
+                </div>
+                <p class="header-desc">
+                  Initiate scan for daily student attendance.
+                </p>
+              </div>
+
+              <div class="widget-actions">
+                <button class="btn btn-primary">
+                  <span class="material-symbols-outlined"
+                    >center_focus_weak</span
+                  >
+                  Scan Student QR Code
+                </button>
+              </div>
+            </div>
+
+            <div class="card announcement-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon purple-icon"
+                    >campaign</span
+                  >
+                  <h2>Class Announcement</h2>
+                </div>
+                <p class="header-desc">Post updates to parents.</p>
+              </div>
+
+              <div class="announcement-box">
+                <textarea placeholder="Write an announcement..."></textarea>
+                <div class="announcement-footer">
+                  <div class="attach-options">
+                    <button class="icon-tool" title="Add Image">
+                      <span class="material-symbols-outlined">image</span>
+                    </button>
+                    <button class="icon-tool" title="Add Link">
+                      <span class="material-symbols-outlined">link</span>
+                    </button>
+                  </div>
+                  <button class="btn-post">Post</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
       </main>
     </div>
     <script src="teacher_dashboard.js"></script>
