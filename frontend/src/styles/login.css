@@ -1,0 +1,300 @@
+/* 1. SETUP & VARIABLES */
+:root {
+  /* inheriting brand colors from main.css, but adding specific variables here. */
+  --bg-gray: #f0f4f8;
+  --shadow-soft: 0 10px 40px rgba(57, 168, 237, 0.15);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+}
+
+/* 2. LAYOUT CONTAINERS */
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.92)),
+              url("../assets/background-lumini.png");
+  background-size: 800px;
+  background-repeat: repeat;
+  background-position: center;
+  
+  /* UPDATED: Change height to min-height and allow scrolling */
+  min-height: 100vh; 
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto; /* This allows vertical scrolling */
+}
+
+.main-container {
+  /* UPDATED: Remove fixed height: 100% */
+  min-height: 100vh; 
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; 
+}
+
+/* 3. MOBILE LOGO STYLES */
+.mobile-logo-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 25%; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none; 
+}
+
+.mobile-logo {
+  width: 120px; 
+  height: auto;
+  opacity: 0;
+  animation: floatIn 0.8s ease-out forwards;
+}
+
+/* The Card (Bottom Sheet on Mobile) */
+.sign-in-form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  background-color: var(--white);
+  
+  position: relative;
+  width: 100%;
+  height: auto;
+  min-height: 70%; 
+  padding-top: 15px; 
+  
+  /* UPDATED: Add padding at the bottom for the button */
+  padding-bottom: 70px; 
+  
+  border-radius: 40px 40px 0 0;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
+  z-index: 10;
+  
+  animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.sheet-handle {
+  width: 50px;
+  height: 6px;
+  background-color: #e0e0e0;
+  border-radius: 10px;
+  margin-bottom: 30px; 
+}
+
+.sign-in-form-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 85%;
+  max-width: 400px;
+}
+
+/* 4. TYPOGRAPHY & FORM ELEMENTS */
+.header-text {
+  width: 100%;
+  color: var(--text-dark); /* from main.css */
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.header-text::after {
+  content: "Welcome Back";
+  display: block;
+  font-size: 15px;
+  color: var(--text-light); /* from main.css */
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+.sign-in-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.input-field {
+  height: 54px;
+  width: 100%;
+  padding: 0 24px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  
+  border: 1px solid #e1e1e1;
+  border-radius: 27px; /* I used pill-shaped inputs for a modern feel. */
+  
+  font-family: "Poppins", sans-serif;
+  font-size: 15px;
+  color: var(--text-dark);
+  background-color: #f8fafc; 
+  transition: all 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  background-color: var(--white);
+  border-color: var(--brand-blue); /* from main.css */
+  box-shadow: 0 0 0 4px rgba(57, 168, 237, 0.1);
+  transform: translateY(-1px);
+}
+
+/* 5. BUTTONS */
+.button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 54px;
+  width: 100%;
+  border: none;
+  border-radius: 27px;
+  font-family: "Poppins", sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+  text-decoration: none;
+}
+
+.confirm-button {
+  background-color: var(--brand-blue); /* from main.css */
+  color: var(--white);
+  margin-top: 10px;
+  box-shadow: 0 4px 15px rgba(57, 168, 237, 0.25);
+}
+
+.confirm-button:active { transform: scale(0.96); }
+
+.confirm-button:hover {
+  background-color: var(--brand-dark);
+}
+
+.register-button {
+  background-color: transparent;
+  border: 2px solid var(--brand-blue);
+  color: var(--brand-blue);
+  margin-top: 16px;
+}
+
+.register-button:hover {
+  background-color: #f0f8ff;
+}
+
+/* 6. UTILITIES */
+.forgotpass-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0 8px;
+  margin-bottom: 24px;
+  font-size: 13px; 
+}
+
+.checkbox-wrapper { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; 
+}
+
+.remember-me-checkbox {
+  width: 18px;
+  height: 18px;
+  background-color: white;
+  border: 2px solid var(--brand-blue);
+  border-radius: 4px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.remember-me-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 4px;
+  height: 9px;
+  border: solid var(--brand-blue); 
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.remember-me-lbl { 
+  color: var(--text-light); 
+  cursor: default; 
+}
+.forgot-password-link { 
+  color: var(--brand-blue); 
+  text-decoration: none; 
+  font-weight: 500; 
+}
+
+.divider-container {
+  display: flex; align-items: center; width: 100%; margin: 24px 0;
+}
+
+.line { flex-grow: 1; height: 1px; background-color: #eee; }
+.or-text { margin: 0 16px; color: var(--text-light); font-size: 14px; }
+.register-prompt { text-align: center; color: var(--text-light); font-size: 13px; margin-bottom: 6px; }
+
+/* ANIMATIONS */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes floatIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* 7. DESKTOP TWEAKS */
+@media (min-width: 768px) {
+  
+  .main-container {
+    justify-content: center; /* I centered everything on Desktop. */
+    align-items: center;
+  }
+
+  .mobile-logo-container {
+    display: none; 
+  }
+  
+  .sign-in-form-container {
+    /* I reset the bottom-sheet styles to turn it into a floating card. */
+    position: static; 
+    width: 450px;
+    height: auto;
+    min-height: auto;
+    padding: 50px 50px;
+    border-radius: 30px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+    animation: floatIn 0.8s ease-out forwards;
+    border: 1px solid #f0f0f0;
+  }
+
+  .sheet-handle { display: none; }
+  
+  /* added the logo inside the card specifically for the desktop view then mag collapse sha after ma reach yung width. */
+  .sign-in-form-wrapper::before {
+    content: "";
+    display: block;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 20px auto;
+    background-image: url("../assets/lumini-logo.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+}

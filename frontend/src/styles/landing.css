@@ -1,0 +1,373 @@
+/* CONTAINER MAIN SELECTOR */
+.vertical-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.horizontal-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.large-text {
+  font-size: 30px;
+  color: var(--text-dark);
+}
+
+.normal-text {
+  font-size: 16px;
+  color: var(--text-dark);
+}
+
+/*****************************************************************************/
+
+/* 1. RESET & GLOBALS */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  /* Defined my brand colors here so we can update the theme globally. */
+  --brand-blue: #39a8ed;
+  --brand-dark: #297aac;
+  --text-dark: #2c3e50;
+  --text-light: #5f6c7b;
+  --red-bg: #f04646;
+  --red-text: #ff2525;
+  --yellow-text: #ffb300;
+  --green: #4ade80;
+  --white: #ffffff;
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  width: 100%;
+  overflow-x: hidden;
+  background-color: #ffffff;
+}
+
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* 2. NAVBAR */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 25px;
+  position: relative;
+  z-index: 10;
+}
+
+.nav-brand {
+  font-weight: 700;
+  color: var(--brand-blue);
+  font-size: 24px;
+}
+
+.nav-links {
+  /* Made sure these are visible on mobile (flex) instead of hidden. */
+  display: flex;
+  gap: 15px;
+}
+
+.nav-link {
+  color: var(--text-light);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 13px;
+  margin-left: 0;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--brand-blue);
+}
+
+/* 3. HERO SECTION */
+.hero-section {
+  position: relative;
+
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.92)
+    ),
+    url("../assets/background-lumini.png");
+
+  /* Zoomed the background in (1000px) to make the texture more subtle. */
+  background-size: 1000px;
+  background-repeat: repeat;
+  background-position: center;
+
+  min-height: 80vh;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  padding-bottom: 60px;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  width: 90%;
+  max-width: 1200px;
+
+  /* Mobile Layout: Logo on top, Text on bottom. */
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 40px;
+  margin-top: 40px;
+}
+
+.hero-text {
+  text-align: center;
+  color: var(--text-dark);
+  max-width: 600px;
+}
+
+.pill-badge {
+  display: inline-block;
+  background-color: #e3f2fd;
+  color: var(--brand-blue);
+  padding: 8px 16px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+.hero-text h1 {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+.hero-text p {
+  font-size: 16px;
+  color: #5f6c7b;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* 4. BUTTONS */
+.button-group-row {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.btn {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  height: 52px;
+  padding: 0 32px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--brand-blue);
+  color: var(--white);
+  text-decoration: none;
+  box-shadow: 0 4px 15px rgba(57, 168, 237, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: var(--brand-dark);
+  text-decoration: none;
+  color: var(--white);
+  transform: translateY(-3px);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--brand-blue);
+  border: 2px solid var(--brand-blue);
+}
+
+.btn-outline:hover {
+  text-decoration: none;
+  color: var(--brand-blue);
+  background-color: #f0f8ff;
+  transform: translateY(-3px);
+}
+
+/* 5. HERO VISUAL */
+.hero-visual {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: auto;
+}
+
+.hero-img {
+  width: 200px;
+  height: auto;
+  display: block;
+  /* Added a floating animation here to make the page feel alive. */
+  animation: float 6s ease-in-out infinite;
+  filter: drop-shadow(0 20px 30px rgba(57, 168, 237, 0.15));
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* 6. FEATURES SECTION */
+.features-section {
+  padding: 80px 0;
+  background-color: var(--white);
+  text-align: center;
+}
+
+.section-header h2 {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--brand-blue);
+  margin-bottom: 10px;
+}
+
+.section-header p {
+  color: var(--text-light);
+  margin-bottom: 50px;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f0f0f0;
+  transition: transform 0.3s;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+}
+
+.icon-box {
+  font-size: 40px;
+  margin-bottom: 20px;
+}
+
+.feature-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 10px;
+}
+
+.feature-card p {
+  font-size: 14px;
+  color: var(--text-light);
+  line-height: 1.6;
+}
+
+/* 7. DESKTOP MEDIA QUERIES */
+@media (min-width: 768px) {
+  .nav-links {
+    gap: 30px;
+  }
+  .nav-link {
+    font-size: 15px;
+  }
+
+  /* Switched to a row layout for desktop screens. */
+  .hero-content {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+    margin-top: 0;
+  }
+
+  .hero-text {
+    align-items: flex-start;
+    text-align: left;
+    width: 50%;
+  }
+
+  .hero-text h1 {
+    font-size: 48px;
+  }
+  .hero-text p {
+    font-size: 18px;
+  }
+
+  .button-group-row {
+    justify-content: flex-start;
+  }
+
+  .hero-visual {
+    width: 45%;
+    justify-content: flex-end;
+  }
+
+  .hero-img {
+    width: 380px;
+  }
+
+  .cards-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ANIMATIONS */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  opacity: 0;
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+.delay-1 {
+  animation-delay: 0.2s;
+}
