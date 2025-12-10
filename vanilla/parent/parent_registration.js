@@ -43,23 +43,68 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Submit Code Button
+  // Submit Code Button Logic
   submitCodeBtn.addEventListener("click", function () {
+    // 1. Get the code from the boxes
     let code = "";
     codeInputs.forEach((input) => (code += input.value));
-    const validCodes = ["LUMINI", "PARENT", "TEST01"];
 
-    if (validCodes.includes(code)) {
-      invitationSection.style.opacity = "0";
-      setTimeout(() => {
-        invitationSection.style.display = "none";
-        registrationSection.style.display = "flex";
-        void registrationSection.offsetWidth;
-        registrationSection.style.opacity = "1";
-      }, 300);
-    } else {
-      alert("❌ Invalid Invitation Code. Try 'LUMINI'");
+    if (code.length < 6) {
+      alert("⚠️ Please enter the full 6-character code.");
+      return;
     }
+
+    // 2. Disable button while loading
+    const originalText = submitCodeBtn.innerText;
+    submitCodeBtn.innerText = "Checking...";
+    submitCodeBtn.disabled = true;
+
+    // 3. Send code to backend for verification
+    fetch("http://localhost:3000/verify-invite-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: code }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // --- SUCCESS: Code Found! ---
+
+          // A. Autofill Child's Name
+          const childNameInput = document.querySelector(
+            "input[name='child_name']"
+          );
+          if (childNameInput) {
+            childNameInput.value = data.childName;
+          }
+
+          // B. NEW: Store the Student ID in the hidden field
+          const studentIdInput = document.getElementById("linked_student_id");
+          if (studentIdInput) {
+            studentIdInput.value = data.studentID;
+          }
+
+          // B. Transition to Registration Form
+          invitationSection.style.opacity = "0";
+          setTimeout(() => {
+            invitationSection.style.display = "none";
+            registrationSection.style.display = "flex";
+            void registrationSection.offsetWidth; // Trigger reflow
+            registrationSection.style.opacity = "1";
+          }, 300);
+        } else {
+          // --- FAIL: Invalid Code ---
+          alert("❌ " + data.message);
+          submitCodeBtn.innerText = originalText;
+          submitCodeBtn.disabled = false;
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        alert("❌ Server connection failed. Is the backend running?");
+        submitCodeBtn.innerText = originalText;
+        submitCodeBtn.disabled = false;
+      });
   });
 
   // --- REGISTRATION FORM LOGIC ---

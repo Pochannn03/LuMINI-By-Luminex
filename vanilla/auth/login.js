@@ -38,6 +38,15 @@ document.addEventListener("DOMContentLoaded", function () {
               username: data.username,
               role: data.role,
               firstname: data.firstname,
+              lastname: data.lastname,
+              email: data.email,
+              phone: data.phone,
+              houseUnit: data.houseUnit,
+              street: data.street,
+              barangay: data.barangay,
+              city: data.city,
+              zipcode: data.zipcode,
+              profilePhoto: data.profilePhoto,
             };
             localStorage.setItem("currentUser", JSON.stringify(userInfo));
 
@@ -52,9 +61,9 @@ document.addEventListener("DOMContentLoaded", function () {
               window.location.href =
                 "../interfaces/teacher_interface/teacher_dashboard/teacher_dashboard.html";
             } else if (data.role === "parent") {
-              // Adjust this based on your parent folder structure
+              // Fixed Path: Added the /parent_dashboard/ folder
               window.location.href =
-                "../interfaces/parent_interface/parent_dashboard.html";
+                "../interfaces/parent_interface/parent_dashboard/parent_dashboard.html";
             } else {
               window.location.href = "../index.html";
             }

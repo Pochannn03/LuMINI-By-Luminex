@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // 3. UPDATE THE DASHBOARD TEXT
   const headerName = document.getElementById("headerUserName");
   const welcomeMsg = document.getElementById("welcomeMessage");
+  const profileImg = document.querySelector(".profile-avatar");
 
   // We use the 'firstname' we saved in login.js
   if (headerName) {
@@ -54,6 +55,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (welcomeMsg) {
     welcomeMsg.innerText = "Welcome Back, " + currentUser.firstname + "! 👋";
+  }
+
+  if (profileImg && currentUser.profilePhoto) {
+    // We prepend the server URL because the path in DB is just '/uploads/filename.jpg'
+    profileImg.src = "http://localhost:3000" + currentUser.profilePhoto;
   }
 
   // 4. LOGOUT FUNCTIONALITY (Optional but recommended)

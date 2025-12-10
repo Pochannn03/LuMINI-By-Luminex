@@ -237,15 +237,22 @@
           </div>
 
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label"
-              >Child's name
-              <span style="color: var(--brand-blue)">(autofilled)</span></label
-            >
+            <label class="parent-registration-label">
+              Child's name
+              <span style="color: var(--brand-blue)">(autofilled)</span>
+            </label>
+
+            <input
+              type="hidden"
+              name="linked_student_id"
+              id="linked_student_id"
+            />
+
             <input
               type="text"
               name="child_name"
               class="parent-registration-input"
-              value="Mia Chen"
+              placeholder="Waiting for code..."
               readonly
               style="
                 background-color: #f8fafc;
