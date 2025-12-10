@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Profile - LuMINI</title>
+    
+    <link rel="stylesheet" href="../../../main.css" />
+    <link rel="stylesheet" href="../teacher_dashboard/teacher_dashboard.css" />
+    <link rel="stylesheet" href="teacher_profile.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  </head>
+  <body>
+    <div class="dashboard-wrapper">
+      
+      <header class="dashboard-header">
+        <div class="header-left">
+          <button id="burgerIconOpenNav" class="icon-btn">
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+        </div>
+        <div class="header-right">
+          <button class="icon-btn notification-btn">
+            <span class="material-symbols-outlined">notifications</span>
+            <span class="notification-badge"></span>
+          </button>
+          <div class="header-separator"></div>
+          <div class="user-profile">
+            <img class="profile-avatar" src="../../../assets/placeholder_image.jpg" alt="Profile" />
+            <span class="user-name">John Doe</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="nav-overlay" id="navOverlay"></div>
+      
+      <aside class="sidebar" id="sideNavBar">
+        <div class="sidebar-header">
+           <img src="../../../assets/lumini-logo.png" alt="Lumini" class="sidebar-logo">
+        </div>
+        <nav class="sidebar-menu">
+          <a href="../teacher_dashboard/teacher_dashboard.html" class="nav-item">
+            <span class="material-symbols-outlined">dashboard</span>
+            <span>Dashboard</span>
+          </a>
+          <a href="../teacher_attendance/teacher_attendance.html" class="nav-item">
+            <span class="material-symbols-outlined">school</span>
+            <span>Manage Class</span>
+          </a>
+          <button class="nav-item">
+            <span class="material-symbols-outlined">analytics</span>
+            <span>Analytics</span>
+          </button>
+          <button class="nav-item active">
+            <span class="material-symbols-outlined">person</span>
+            <span>Profile</span>
+          </button>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        
+        <div class="profile-container">
+
+            <div class="profile-header-card">
+                <div class="profile-cover"></div>
+                <div class="profile-details-row">
+                    <div class="avatar-upload-wrapper">
+                        <img src="../../../assets/placeholder_image.jpg" class="large-avatar" id="profileImage">
+                        <button class="camera-btn">
+                            <span class="material-symbols-outlined">photo_camera</span>
+                        </button>
+                    </div>
+                    <div class="profile-text">
+                        <h1>John Doe</h1>
+                        <p>Mathematics Teacher • ID: T-8821</p>
+                    </div>
+                    <div class="profile-actions">
+                        <button class="btn btn-primary" id="saveProfileBtn">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-grid">
+                
+                <div class="card form-card">
+                    <div class="card-header">
+                        <h3>
+                            <span class="material-symbols-outlined header-icon">badge</span>
+                            Personal Information
+                        </h3>
+                        <p>Update your personal details here.</p>
+                    </div>
+                    <form class="profile-form">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <div class="input-wrapper">
+                                <span class="material-symbols-outlined icon">person</span>
+                                <input type="text" value="John Doe">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <div class="input-wrapper">
+                                <span class="material-symbols-outlined icon">mail</span>
+                                <input type="email" value="johndoe@lumini.edu">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <div class="input-wrapper">
+                                <span class="material-symbols-outlined icon">call</span>
+                                <input type="text" value="+63 912 345 6789">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <div class="input-wrapper">
+                                <span class="material-symbols-outlined icon">domain</span>
+                                <input type="text" value="Science & Mathematics" disabled style="opacity: 0.7; cursor: not-allowed;">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="right-stack">
+    
+                  <div class="card form-card">
+                      <div class="card-header">
+                          <h3>
+                              <span class="material-symbols-outlined header-icon">analytics</span>
+                              My Classroom
+                          </h3>
+                          <p>Quick overview of your active classes.</p>
+                      </div>
+                      
+                      <div class="stats-grid">
+                          <div class="mini-stat-box">
+                              <div class="stat-icon-bg blue">
+                                  <span class="material-symbols-outlined">groups</span>
+                              </div>
+                              <div class="stat-text">
+                                  <span class="stat-value">32</span>
+                                  <span class="stat-label">Total Students</span>
+                              </div>
+                          </div>
+
+                          <div class="mini-stat-box">
+                              <div class="stat-icon-bg orange">
+                                  <span class="material-symbols-outlined">school</span>
+                              </div>
+                              <div class="stat-text">
+                                  <span class="stat-value">4</span>
+                                  <span class="stat-label">Sections</span>
+                              </div>
+                          </div>
+
+                          <div class="mini-stat-box">
+                              <div class="stat-icon-bg green">
+                                  <span class="material-symbols-outlined">check_circle</span>
+                              </div>
+                              <div class="stat-text">
+                                  <span class="stat-value">96%</span>
+                                  <span class="stat-label">Attendance Rate</span>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+    <button class="btn btn-signout" onclick="window.location.href='../../../auth/login.html'">
+        <span class="material-symbols-outlined">logout</span>
+        Sign Out
+    </button>
+</div>
+
+            </div>
+        </div>
+      </main>
+    </div>
+
+    <script src="../teacher_dashboard/teacher_dashboard.js"></script>
+    <script src="teacher_profile.js"></script>
+  </body>
+</html>
