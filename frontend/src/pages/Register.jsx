@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from 'react-router-dom';
+import '../styles/register.css';
 
 export default function Register() {
   return (
@@ -8,12 +9,12 @@ export default function Register() {
         <h1 className="registration-header-text">Register as</h1>
 
         <div className="cards-container">
-          <a href="../parent/parent_registration.html" className="card-wrapper">
+          <Link to='/parentregister' className="card-wrapper">
             <div className="svg-wrapper">
               <div className="svg-icon-holder parent-icon"></div>
             </div>
             <span className="card-label">Parent</span>
-          </a>
+          </Link>
 
           <a
             href="../guardian/guardian_registration.html"
