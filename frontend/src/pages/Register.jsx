@@ -38,9 +38,9 @@ export default function Register() {
 
         <div className="redirect-sign-in-container">
           <p className="label-already-acc">Already have an account?</p>
-          <a href="login.html" className="login-link">
+          <Link to="/login" className="login-link">
             Sign In
-          </a>
+          </Link>
         </div>
       </div>
     </div>
