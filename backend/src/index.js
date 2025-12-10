@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from "cors";
 import mongoose from "mongoose";
+import passport from 'passport';
+import router from './routes/index.js';
 
 
 const PORT = process.env.PORT || 3000;
@@ -11,7 +13,15 @@ mongoose
   .then(() => console.log("Connected to Database"))
   .catch((err) => console.log(`Error ${err}`));
 
+app.use(cors({
+    origin: 'http://localhost:5173', 
+    credentials: true
+}));
+
 app.use(express.json());
+// app.use(passport.initialize());
+// app.use(passport.session());
+app.use(router);
 
 app.get("/", (req, res) => {
   res.send("Server is running!");
