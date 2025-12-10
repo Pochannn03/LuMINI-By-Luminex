@@ -9,6 +9,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const stepIndicator = document.getElementById("stepIndicator");
   const btnForward = document.getElementById("frwrdBtn");
   const btnBackward = document.getElementById("backWardBtn");
+  const mainForm = document.getElementById("mainRegistrationForm"); // GET THE FORM
+
   const steps = [
     document.getElementById("step1"),
     document.getElementById("step2"),
@@ -17,13 +19,10 @@ document.addEventListener("DOMContentLoaded", function () {
   ];
   let currentStepIndex = 0;
 
-  // --- INVITATION CODE LOGIC (Updated for Alphanumeric) ---
+  // --- INVITATION CODE LOGIC ---
   codeInputs.forEach((input, index) => {
     input.addEventListener("input", (e) => {
-      // Allow Letters & Numbers, auto-uppercase
       input.value = input.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-
-      // If user typed a char, move to next
       if (input.value.length === 1) {
         if (index < codeInputs.length - 1) {
           codeInputs[index + 1].focus();
@@ -32,7 +31,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     input.addEventListener("keydown", (e) => {
-      // Handle Backspace
       if (e.key === "Backspace" && input.value === "") {
         if (index > 0) {
           codeInputs[index - 1].focus();
@@ -45,21 +43,17 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // 2. Submit Button Click
+  // Submit Code Button
   submitCodeBtn.addEventListener("click", function () {
     let code = "";
     codeInputs.forEach((input) => (code += input.value));
-
-    // --- HARDCODED VALID CODES FOR TESTING ---
     const validCodes = ["LUMINI", "PARENT", "TEST01"];
 
     if (validCodes.includes(code)) {
-      // SUCCESS: Hide code section, Show form
       invitationSection.style.opacity = "0";
       setTimeout(() => {
         invitationSection.style.display = "none";
         registrationSection.style.display = "flex";
-        // Force reflow/repaint for transition
         void registrationSection.offsetWidth;
         registrationSection.style.opacity = "1";
       }, 300);
@@ -92,9 +86,10 @@ document.addEventListener("DOMContentLoaded", function () {
       btnBackward.style.cursor = "pointer";
     }
 
+    // ALWAYS keep type="button" to prevent browser confusion
     if (currentStepIndex === steps.length - 1) {
       btnForward.textContent = "Finish";
-      btnForward.type = "submit";
+      btnForward.type = "button";
     } else {
       btnForward.textContent = "Next";
       btnForward.type = "button";
@@ -102,7 +97,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   btnForward.addEventListener("click", function (e) {
-    // 1. VALIDATION (Check inputs on the CURRENT step only)
+    e.preventDefault(); // Safety check
+
+    // 1. VALIDATION
     const currentStepContainer = steps[currentStepIndex];
     const inputs = currentStepContainer.querySelectorAll(
       "input[required], select[required]"
@@ -112,49 +109,41 @@ document.addEventListener("DOMContentLoaded", function () {
     for (const input of inputs) {
       if (!input.checkValidity()) {
         allValid = false;
-        input.reportValidity(); // Shows the "Please fill out this field" bubble
-        break; // Stop checking so we don't spam errors
+        input.reportValidity();
+        break;
       }
     }
 
-    // If validation failed, stop here.
     if (!allValid) return;
 
-    // 2. CHECK: ARE WE ON THE LAST STEP?
+    // 2. CHECK: LAST STEP?
     if (currentStepIndex === steps.length - 1) {
-      // --- SUBMISSION LOGIC ---
-      e.preventDefault(); // Stop browser refresh
-
-      // A. Create FormData
+      // --- SUBMIT ---
       const formData = new FormData();
-
-      // B. Gather all inputs
       const allInputs = document
         .getElementById("mainRegistrationForm")
         .querySelectorAll("input, select");
 
       allInputs.forEach((input) => {
         if (input.type === "file") {
-          // Special handling for the file
           if (input.files[0]) {
             formData.append(input.name, input.files[0]);
           }
         } else {
-          // Handle text/select inputs
           formData.append(input.name, input.value);
         }
       });
 
-      // C. Send to Server
       fetch("http://localhost:3000/register-parent", {
         method: "POST",
-        body: formData, // No Content-Type header needed for FormData
+        body: formData,
       })
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            alert("✅ Parent Registration Successful!");
-            window.location.href = "../auth/login.html";
+            // 1. NO ALERT HERE. Just redirect immediately.
+            // We add '?status=registered' to the URL to tell the next page what happened.
+            window.location.href = "../auth/login.html?status=registered";
           } else {
             alert("❌ Error: " + data.message);
           }
@@ -164,8 +153,7 @@ document.addEventListener("DOMContentLoaded", function () {
           alert("❌ Server is offline.");
         });
     } else {
-      // --- NEXT STEP LOGIC ---
-      // If it's NOT the last step, just go forward
+      // --- NEXT STEP ---
       currentStepIndex++;
       updateView();
     }
@@ -181,6 +169,7 @@ document.addEventListener("DOMContentLoaded", function () {
   updateView();
 });
 
+// GLOBAL HELPER FUNCTIONS
 function handleFileUpload(input) {
   const file = input.files[0];
   const defaultView = document.getElementById("default-upload-view");

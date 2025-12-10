@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const stepIndicator = document.getElementById("stepIndicator");
   const btnForward = document.getElementById("frwrdBtn");
   const btnBackward = document.getElementById("backWardBtn");
-  const form = document.getElementById("mainRegistrationForm");
 
   // Select the DIVs for each step
   const steps = [
@@ -21,7 +20,7 @@ document.addEventListener("DOMContentLoaded", function () {
     steps.forEach((step, index) => {
       if (index === currentStepIndex) {
         step.style.display = "flex";
-        step.style.flexDirection = "column"; // Ensure layout stays correct
+        step.style.flexDirection = "column";
         step.style.width = "100%";
       } else {
         step.style.display = "none";
@@ -43,9 +42,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // 4. Update Next Button Text
+    // CRITICAL: Always keep type="button" to prevent browser reload!
     if (currentStepIndex === steps.length - 1) {
-      btnForward.textContent = "Submit";
-      btnForward.type = "submit";
+      btnForward.textContent = "Finish";
+      btnForward.type = "button";
     } else {
       btnForward.textContent = "Next";
       btnForward.type = "button";
@@ -55,39 +55,62 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- EVENT LISTENERS ---
 
   btnForward.addEventListener("click", function (e) {
+    // 1. SAFETY: Stop browser actions immediately
     e.preventDefault();
-    // If we are on the last step, let the form submit naturally
-    if (currentStepIndex === steps.length - 1) {
-      // 1. Gather all data from the HTML inputs
-      // Note: We map the HTML 'id' to the Database field names
-      const formData = {
-        username: document.getElementById("username").value,
-        password: document.getElementById("password").value,
-        firstname: document.getElementById("firstname").value,
-        lastname: document.getElementById("lastname").value,
-        email: document.getElementById("email").value,
-        phone: document.getElementById("phone").value,
-        houseUnit: document.getElementById("house-unit").value,
-        street: document.getElementById("street").value,
-        barangay: document.getElementById("barangay").value,
-        city: document.getElementById("city").value,
-        zipcode: document.getElementById("zipcode").value,
-      };
 
-      // 2. Send data to your local server
+    // 2. VALIDATION (Check inputs on the CURRENT step only)
+    const currentStepContainer = steps[currentStepIndex];
+    const inputs = currentStepContainer.querySelectorAll("input[required]");
+
+    let allValid = true;
+    for (const input of inputs) {
+      if (!input.checkValidity()) {
+        allValid = false;
+        input.reportValidity();
+        break;
+      }
+    }
+
+    // If validation failed, stop here.
+    if (!allValid) return;
+
+    // 3. LOGIC: SUBMIT OR NEXT?
+    if (currentStepIndex === steps.length - 1) {
+      // === SUBMIT LOGIC ===
+
+      // A. Create FormData
+      const formData = new FormData();
+
+      // B. Gather all Text Inputs
+      formData.append("username", document.getElementById("username").value);
+      formData.append("password", document.getElementById("password").value);
+      formData.append("firstname", document.getElementById("firstname").value);
+      formData.append("lastname", document.getElementById("lastname").value);
+      formData.append("email", document.getElementById("email").value);
+      formData.append("phone", document.getElementById("phone").value);
+      formData.append("houseUnit", document.getElementById("house-unit").value);
+      formData.append("street", document.getElementById("street").value);
+      formData.append("barangay", document.getElementById("barangay").value);
+      formData.append("city", document.getElementById("city").value);
+      formData.append("zipcode", document.getElementById("zipcode").value);
+
+      // C. Gather the File
+      const fileInput = document.getElementById("profile-upload");
+      if (fileInput.files[0]) {
+        formData.append("profile-upload", fileInput.files[0]);
+      }
+
+      // D. Send to Server
       fetch("http://localhost:3000/register-teacher", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: formData,
       })
         .then((response) => response.json())
         .then((data) => {
           if (data.success) {
-            // SUCCESS: Show Alert -> Redirect
-            alert("✅ Registration Successful! Click OK to login.");
-
-            // Redirect to Login Page (Adjust path if needed)
-            window.location.href = "../auth/login.html";
+            // --- SUCCESS: SILENT REDIRECT ---
+            // We do NOT show an alert here. We send them to Login with a "note".
+            window.location.href = "../auth/login.html?status=registered";
           } else {
             alert("❌ Registration Failed: " + data.message);
           }
@@ -96,27 +119,8 @@ document.addEventListener("DOMContentLoaded", function () {
           console.error("Error:", error);
           alert("❌ Server Error. Make sure 'node server.js' is running!");
         });
-
-      return; // Stop the function here
-    }
-
-    // VALIDATION LOGIC
-    // Get all inputs inside the CURRENT visible step
-    const currentStepContainer = steps[currentStepIndex];
-    const inputs = currentStepContainer.querySelectorAll("input");
-
-    let allValid = true;
-    for (const input of inputs) {
-      // HTML5 built-in validation check
-      if (!input.checkValidity()) {
-        allValid = false;
-        input.reportValidity(); // This pops up the browser "Please fill out this field" msg
-        break; // Stop at the first error to avoid spamming
-      }
-    }
-
-    // Only move forward if everything is valid
-    if (allValid) {
+    } else {
+      // --- NEXT STEP ---
       currentStepIndex++;
       updateView();
     }
@@ -133,8 +137,7 @@ document.addEventListener("DOMContentLoaded", function () {
   updateView();
 });
 
-// --- GLOBAL FUNCTIONS FOR PHOTO UPLOAD (Called by HTML attributes) ---
-
+// --- GLOBAL FUNCTIONS FOR PHOTO UPLOAD (Unchanged) ---
 function handleFileUpload(input) {
   const file = input.files[0];
   const defaultView = document.getElementById("default-upload-view");
@@ -159,7 +162,7 @@ function removeFile() {
   const previewImg = document.getElementById("image-preview");
   const removeBtn = document.getElementById("remove-btn");
 
-  input.value = ""; // Clear file input
+  input.value = "";
   previewImg.src = "";
   previewImg.classList.add("hidden");
   removeBtn.classList.add("hidden");

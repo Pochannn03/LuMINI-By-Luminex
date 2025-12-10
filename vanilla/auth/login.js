@@ -1,4 +1,16 @@
 document.addEventListener("DOMContentLoaded", function () {
+  // --- NEW: CHECK FOR REGISTRATION SUCCESS ---
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get("status") === "registered") {
+    // Small delay to ensure the page loads first
+    setTimeout(() => {
+      alert("✅ Registration Successful! Please sign in.");
+
+      // Optional: Clean the URL so the alert doesn't show on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }, 500);
+  }
+
   const loginForm = document.getElementById("loginForm");
 
   if (loginForm) {
