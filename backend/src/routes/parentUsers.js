@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { createUserValidationSchema } from '../validation/userValidation.js'
 import { query, validationResult, body, matchedData, checkSchema} from "express-validator";
+import { User } from "../schemas/users.js";
+import { hashPassword } from "../utils/passwordUtils.js";
 
 
 const router = Router();
@@ -11,7 +13,7 @@ router.get('/api/register', (req, res) => {
 );
 
 router.post('/api/parentregister', 
-  checkSchema(createUserValidationSchema), 
+  ...checkSchema(createUserValidationSchema), 
   async (req, res) => {
     const result = validationResult(req);
 
@@ -20,11 +22,19 @@ router.post('/api/parentregister',
     }
 
     const data = matchedData(req);
-
     console.log("Received Valid Data:", data);
+    data.password = await hashPassword(data.password);
+    data.role = "user";
+    console.log(data);
+    const newUser = new User(data);
 
-
-    return res.status(201).send({ msg: "Parent registered successfully!", user: data });
+    try {
+        const savedUser = await newUser.save();
+        return res.status(201).send({ msg: "Parent registered successfully!", user: savedUser });
+      } catch (err) {
+        console.log(err)
+        return res.sendStatus(400)
+      }
   }
 );
 

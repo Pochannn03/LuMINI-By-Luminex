@@ -23,6 +23,7 @@ const ParentRegistration = () => {
     last_name: '',
     email: '',
     phone_number: '',
+    role: 'user',
     relationship: '',
     childName: 'Mia Chen', // Autofilled
     houseUnit: '',
@@ -136,6 +137,7 @@ const ParentRegistration = () => {
         email: formData.email,
         phone_number: formData.phone_number,
         relationship: formData.relationship,
+        role: 'user',
         address: fullAddress,
 
         // If you are handling file uploads (profile photo), you might need FormData instead of JSON.
