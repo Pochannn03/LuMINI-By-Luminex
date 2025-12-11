@@ -106,11 +106,12 @@ document.addEventListener("DOMContentLoaded", function () {
         body: formData,
       })
         .then((response) => response.json())
+        // teacher_register.js (Concept)
         .then((data) => {
           if (data.success) {
-            // --- SUCCESS: SILENT REDIRECT ---
-            // We do NOT show an alert here. We send them to Login with a "note".
-            window.location.href = "../auth/login.html?status=registered";
+            // --- SILENT REDIRECT ---
+            // Instead of alerting here, we send them to login with a "note"
+            window.location.href = "../auth/login.html?status=pending";
           } else {
             alert("❌ Registration Failed: " + data.message);
           }

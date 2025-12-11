@@ -1,12 +1,24 @@
 document.addEventListener("DOMContentLoaded", function () {
   // --- NEW: CHECK FOR REGISTRATION SUCCESS ---
   const urlParams = new URLSearchParams(window.location.search);
+  const status = urlParams.get("status");
+
   if (urlParams.get("status") === "registered") {
     // Small delay to ensure the page loads first
     setTimeout(() => {
       alert("✅ Registration Successful! Please sign in.");
 
       // Optional: Clean the URL so the alert doesn't show on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }, 500);
+  }
+
+  // 2. NEW: Pending Approval Message (for Teachers)
+  if (status === "pending") {
+    setTimeout(() => {
+      alert(
+        "✅ Registration Submitted!\n\nYour account is currently PENDING APPROVAL.\nPlease wait for the School Administrator to verify your details before logging in."
+      );
       window.history.replaceState({}, document.title, window.location.pathname);
     }, 500);
   }
@@ -57,13 +69,16 @@ document.addEventListener("DOMContentLoaded", function () {
             // login.js
 
             if (data.role === "teacher") {
-              // Go UP one level (out of 'auth'), then DOWN into 'interfaces' -> 'teacher_interface' -> 'teacher_dashboard'
               window.location.href =
                 "../interfaces/teacher_interface/teacher_dashboard/teacher_dashboard.html";
             } else if (data.role === "parent") {
-              // Fixed Path: Added the /parent_dashboard/ folder
               window.location.href =
                 "../interfaces/parent_interface/parent_dashboard/parent_dashboard.html";
+            } else if (data.role === "admin") {
+              // --- NEW: Redirect for Admin ---
+              // Adjust this path if your folder structure is different!
+              window.location.href =
+                "../interfaces/admin_interface/admin_dashboard/admin_dashboard.html";
             } else {
               window.location.href = "../index.html";
             }
