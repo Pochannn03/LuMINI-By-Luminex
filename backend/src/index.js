@@ -1,7 +1,11 @@
 import express from 'express';
 import cors from "cors";
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
 import mongoose from "mongoose";
 import passport from 'passport';
+import MongoStore from 'connect-mongo';
+
 import router from './routes/index.js';
 
 
@@ -19,8 +23,22 @@ app.use(cors({
 }));
 
 app.use(express.json());
-// app.use(passport.initialize());
-// app.use(passport.session());
+app.use(cookieParser(process.env.COOKIE_SECRET || '0e8b85b58a23be2ee4479cd814fe36d0dd50885054ee09c1b5913b778ba0f7dc'));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || '4255883970d20fafb23c83f24ea4768db34a0f91bb5db86b8bc48008dd018d50',
+    saveUninitialized: false,
+    resave: false,
+    cookie: {
+      maxAge: 60000 * 60,
+    },
+    store: MongoStore.create({
+      client: mongoose.connection.getClient(),
+    })
+  })
+);
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(router);
 
 app.get("/", (req, res) => {
