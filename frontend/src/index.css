@@ -1,18 +1,26 @@
 @import "tailwindcss";
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  --brand-blue: #39a8ed;
+  --brand-dark: #297aac;
+  --text-dark: #2c3e50;
+  --text-light: #5f6c7b;
+  --red-bg: #f04646;
+  --red-text: #ff2525;
+  --yellow-text: #ffb300;
+  --green: #4ade80;
+  --white: #ffffff;
+}
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+body{
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.92)
+    ),
+    url("assets/background-lumini.png");
+  background-repeat: repeat;
+  background-position: center;
 }
 
 a {
@@ -24,15 +32,58 @@ a:hover {
   color: #535bf2;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+.title{
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  color: var(--brand-blue);
+}
+
+.link{
+  color: var(--text-light);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.link:hover{
+  color: var(--brand-blue);
+}
+
+.btn{
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  height: 52px;
+  padding: 0 32px;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--brand-blue);
+  color: var(--white);
+  box-shadow: 0 4px 15px rgba(57, 168, 237, 0.3);
+}
+
+.btn-primary:hover {
+  background-color: var(--brand-dark);
+  text-decoration: none;
+  color: var(--white);
+  transform: translateY(-3px);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: var(--brand-blue);
+  border: 2px solid var(--brand-blue);
+}
+
+.btn-outline:hover {
+  background-color: #f0f8ff;
+  text-decoration: none;
+  color: var(--brand-blue);
+  transform: translateY(-3px);
 }
