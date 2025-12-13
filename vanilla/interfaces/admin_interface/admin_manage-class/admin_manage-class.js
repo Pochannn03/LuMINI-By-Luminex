@@ -518,6 +518,10 @@ function renderClassCards(classes, container) {
         </div>
     `;
 
+    // Attach Edit Listener
+    const editBtn = item.querySelector(".btn-icon-tool[title='Edit']"); // Or use a specific class
+    editBtn.addEventListener("click", () => openEditClassModal(cls)); // Pass the 'cls' object!
+
     // Attach Delete Listener
     const deleteBtn = item.querySelector(".delete-class-btn");
     deleteBtn.addEventListener("click", () => {
@@ -532,6 +536,19 @@ function renderClassCards(classes, container) {
     container.appendChild(item);
   });
 }
+
+const viewStudentModal = document.getElementById("viewStudentModal");
+const closeViewStudentBtn = document.getElementById("closeViewStudentBtn");
+
+if (closeViewStudentBtn) {
+  closeViewStudentBtn.addEventListener("click", () => {
+    viewStudentModal.classList.remove("active");
+  });
+}
+window.addEventListener("click", (e) => {
+  if (e.target === viewStudentModal)
+    viewStudentModal.classList.remove("active");
+});
 
 // ==========================================
 // ADD CLASS MODAL LOGIC (UPDATED)
@@ -572,7 +589,7 @@ function loadTeacherOptions() {
           const option = document.createElement("option");
           option.value = teacher._id;
           option.textContent = `${teacher.firstname} ${teacher.lastname}`;
-          option.dataset.username = `${teacher.firstname} ${teacher.lastname}`;
+          option.dataset.username = teacher.username;
           teacherSelect.appendChild(option);
         });
       }
@@ -740,6 +757,8 @@ if (confirmDeleteClassBtn) {
       });
   });
 }
+
+let enrollmentMode = "create";
 
 // ==========================================
 // ADD STUDENT LOGIC (UPDATED)
@@ -931,13 +950,10 @@ function renderStudentCards(students, container) {
     const item = document.createElement("div");
     item.className = "queue-item";
 
-    // --- THE PHOTO LOGIC ---
-    // If student has a photo, use localhost + path. If not, use placeholder.
     const photoUrl = student.profilePhoto
       ? "http://localhost:3000" + student.profilePhoto
       : "../../../assets/placeholder_image.jpg";
 
-    // Fallbacks for data
     const gradeDisplay = student.gradeLevel || "Unassigned";
     const idDisplay = student.studentID || "No ID";
 
@@ -957,11 +973,15 @@ function renderStudentCards(students, container) {
             </div>
         </div>
         <div class="action-buttons-small">
-            <button class="btn-icon-tool" title="View Profile">
+            <button class="btn-icon-tool view-student-btn" title="View Profile">
                 <span class="material-symbols-outlined">visibility</span>
             </button>
         </div>
     `;
+
+    // --- ATTACH LISTENER ---
+    const viewBtn = item.querySelector(".view-student-btn");
+    viewBtn.addEventListener("click", () => openViewStudentModal(student));
 
     container.appendChild(item);
   });
@@ -995,31 +1015,58 @@ if (openEnrollmentBtn) {
     selectedStudentIDs = new Set(savedIDs);
 
     // C. Load List
-    loadEnrollmentList();
+    loadEnrollmentList([]);
 
     enrollmentModal.classList.add("active");
   });
 }
 
-// 2. FETCH & RENDER LIST
-function loadEnrollmentList() {
+// 2. FETCH & RENDER LIST (Updated with Filtering Logic)
+function loadEnrollmentList(currentClassStudentIds = []) {
   const container = document.getElementById("enrollmentChecklistContainer");
-  container.innerHTML = `<p style="padding:10px; color:#888;">Loading students...</p>`;
+  container.innerHTML = `<p style="padding:10px; color:#888;">Loading available students...</p>`;
 
   fetch("http://localhost:3000/get-all-students")
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        renderEnrollmentCheckboxes(data.students, container);
+        renderEnrollmentCheckboxes(
+          data.students,
+          container,
+          currentClassStudentIds
+        );
       }
     });
 }
 
-function renderEnrollmentCheckboxes(students, container) {
+function renderEnrollmentCheckboxes(
+  students,
+  container,
+  currentClassStudentIds
+) {
   container.innerHTML = "";
+
+  // FILTER THE STUDENTS ("The Cube Logic")
+  const availableStudents = students.filter((student) => {
+    // 1. If student is Unassigned, SHOW them.
+    if (student.gradeLevel === "Unassigned") return true;
+
+    // 2. If we are in EDIT mode, and the student is already in THIS class, SHOW them.
+    // (We check if their ID exists in the currentClassStudentIds array)
+    if (currentClassStudentIds.includes(student.studentID)) return true;
+
+    // 3. Otherwise (Enrolled in another class), HIDE them.
+    return false;
+  });
+
+  if (availableStudents.length === 0) {
+    container.innerHTML = `<p style="padding:15px; color:var(--text-gray); font-size:13px; text-align:center;">No available students found.</p>`;
+    return;
+  }
+
   updateHeaderCount(); // Update "0 / 30" immediately
 
-  students.forEach((student) => {
+  availableStudents.forEach((student) => {
     const label = document.createElement("label");
     label.className = "student-check-item";
 
@@ -1033,13 +1080,22 @@ function renderEnrollmentCheckboxes(students, container) {
       ? "http://localhost:3000" + student.profilePhoto
       : "../../../assets/placeholder_image.jpg";
 
+    // Show their current status label for clarity
+    const statusBadge =
+      student.gradeLevel === "Unassigned"
+        ? `<span style="font-size:10px; background:#e2e8f0; padding:2px 6px; border-radius:4px;">Available</span>`
+        : `<span style="font-size:10px; background:#dcfce7; color:#166534; padding:2px 6px; border-radius:4px;">In Class</span>`;
+
     label.innerHTML = `
             <input type="checkbox" class="enroll-checkbox" value="${student.studentID}" ${isChecked}/>
             <div class="check-content">
                 <img src="${photoUrl}" class="small-avatar" style="object-fit:cover;" />
                 <div class="check-info">
                     <span class="name">${student.firstname} ${student.lastname}</span>
-                    <span class="id">${student.studentID}</span>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="id">${student.studentID}</span>
+                        ${statusBadge}
+                    </div>
                 </div>
             </div>
         `;
@@ -1050,10 +1106,9 @@ function renderEnrollmentCheckboxes(students, container) {
       const id = e.target.value;
 
       if (e.target.checked) {
-        // Check Capacity
         if (selectedStudentIDs.size >= currentMaxCapacity) {
           e.preventDefault();
-          e.target.checked = false; // Uncheck immediately
+          e.target.checked = false;
           alert(
             `⚠️ Limit Reached! This class can only hold ${currentMaxCapacity} students.`
           );
@@ -1096,15 +1151,198 @@ if (saveEnrollmentBtn) {
     // Convert Set back to Array
     const finalArray = Array.from(selectedStudentIDs);
 
-    // Save to Hidden Input (So the Create Class form can read it later)
-    document.getElementById("finalStudentListJSON").value =
-      JSON.stringify(finalArray);
-
-    // Update Summary Text
-    document.getElementById(
-      "enrollmentSummaryCount"
-    ).innerText = `${finalArray.length} Selected`;
+    if (enrollmentMode === "create") {
+      // Update Create Form
+      document.getElementById("finalStudentListJSON").value =
+        JSON.stringify(finalArray);
+      document.getElementById(
+        "enrollmentSummaryCount"
+      ).innerText = `${finalArray.length} Selected`;
+    } else {
+      // Update Edit Form
+      document.getElementById("editStudentListJSON").value =
+        JSON.stringify(finalArray);
+      document.getElementById(
+        "editEnrollmentSummaryCount"
+      ).innerText = `${finalArray.length} Selected`;
+    }
 
     enrollmentModal.classList.remove("active");
   });
+}
+
+// ==========================================
+// EDIT CLASS LOGIC
+// ==========================================
+
+const editClassModal = document.getElementById("editClassModal");
+const closeEditClassBtn = document.getElementById("closeEditClassBtn");
+const saveClassChangesBtn = document.getElementById("saveClassChangesBtn");
+const openEditEnrollmentBtn = document.getElementById(
+  "openEditEnrollmentModalBtn"
+);
+
+// 1. Open Edit Modal (Called from the Pencil Icon)
+function openEditClassModal(classData) {
+  // A. Populate Basic Fields
+  document.getElementById("editClassId_Hidden").value = classData._id;
+  document.getElementById("editClassGrade").value = classData.gradeLevel;
+  document.getElementById("editClassSection").value = classData.section;
+  document.getElementById("editClassSchedule").value = classData.schedule;
+  document.getElementById("editClassCapacity").value = classData.maxCapacity;
+  document.getElementById("editClassDesc").value = classData.description || "";
+
+  // B. Populate Teacher
+  loadTeacherOptionsForEdit(classData.teacherId);
+
+  // C. Populate Enrollment Data
+  const currentStudents = classData.students || [];
+  document.getElementById("editStudentListJSON").value =
+    JSON.stringify(currentStudents);
+  document.getElementById(
+    "editEnrollmentSummaryCount"
+  ).innerText = `${currentStudents.length} Selected`;
+
+  editClassModal.classList.add("active");
+}
+
+// Helper: Load Teachers and select the current one
+function loadTeacherOptionsForEdit(currentTeacherId) {
+  const teacherSelect = document.getElementById("editClassTeacher");
+  teacherSelect.innerHTML = `<option value="" disabled>Loading...</option>`;
+
+  fetch("http://localhost:3000/get-approved-teachers")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        teacherSelect.innerHTML = `<option value="" disabled>Select a Teacher</option>`;
+        data.teachers.forEach((teacher) => {
+          const option = document.createElement("option");
+          option.value = teacher._id;
+          option.textContent = `${teacher.firstname} ${teacher.lastname}`;
+          option.dataset.username = `${teacher.firstname} ${teacher.lastname}`;
+
+          // Pre-select if matches
+          if (teacher._id === currentTeacherId) {
+            option.selected = true;
+          }
+
+          teacherSelect.appendChild(option);
+        });
+      }
+    });
+}
+
+// 2. Open Enrollment Modal (FROM EDIT MODE)
+if (openEditEnrollmentBtn) {
+  openEditEnrollmentBtn.addEventListener("click", () => {
+    enrollmentMode = "edit"; // Set flag
+
+    // Get Capacity
+    const capInput = document.getElementById("editClassCapacity").value;
+    currentMaxCapacity = parseInt(capInput) || 30;
+    document.getElementById("maxCapacityDisplay").innerText =
+      currentMaxCapacity;
+
+    // Load IDs from the Edit Hidden Input
+    const savedJSON = document.getElementById("editStudentListJSON").value;
+    const savedIDs = JSON.parse(savedJSON || "[]");
+    selectedStudentIDs = new Set(savedIDs);
+
+    loadEnrollmentList(savedIDs);
+    enrollmentModal.classList.add("active");
+  });
+}
+
+// 3. Save Changes
+if (saveClassChangesBtn) {
+  saveClassChangesBtn.addEventListener("click", () => {
+    const classId = document.getElementById("editClassId_Hidden").value;
+    const gradeLevel = document.getElementById("editClassGrade").value;
+    const section = document.getElementById("editClassSection").value;
+    const schedule = document.getElementById("editClassSchedule").value;
+    const maxCapacity = document.getElementById("editClassCapacity").value;
+    const description = document.getElementById("editClassDesc").value;
+
+    // Teacher
+    const teacherSelect = document.getElementById("editClassTeacher");
+    const teacherId = teacherSelect.value;
+    let teacherUsername = "Unassigned";
+    if (teacherSelect.selectedIndex > -1 && teacherId) {
+      teacherUsername =
+        teacherSelect.options[teacherSelect.selectedIndex].dataset.username;
+    }
+
+    // Students
+    const studentsJSON = document.getElementById("editStudentListJSON").value;
+    const students = JSON.parse(studentsJSON || "[]");
+
+    saveClassChangesBtn.innerText = "Saving...";
+
+    fetch("http://localhost:3000/update-class", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        classId,
+        gradeLevel,
+        section,
+        schedule,
+        maxCapacity,
+        description,
+        teacherId,
+        teacherUsername,
+        students,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        saveClassChangesBtn.innerText = "Save Changes";
+        if (data.success) {
+          alert("✅ Class Updated Successfully!");
+          editClassModal.classList.remove("active");
+          loadActiveClasses(); // Refresh dashboard
+          loadStudentsDirectory(); // Refresh students to show new assignments
+        } else {
+          alert("Error: " + data.message);
+        }
+      });
+  });
+}
+
+// Close Button
+if (closeEditClassBtn) {
+  closeEditClassBtn.addEventListener("click", () =>
+    editClassModal.classList.remove("active")
+  );
+}
+
+function openViewStudentModal(student) {
+  // 1. Photo
+  const photoUrl = student.profilePhoto
+    ? "http://localhost:3000" + student.profilePhoto
+    : "../../../assets/placeholder_image.jpg";
+  document.getElementById("viewStudentPhoto").src = photoUrl;
+
+  // 2. Text Details
+  document.getElementById(
+    "viewStudentName"
+  ).innerText = `${student.firstname} ${student.lastname}`;
+  document.getElementById(
+    "viewStudentID"
+  ).innerText = `ID: ${student.studentID}`;
+
+  // 3. Class Logic
+  const grade = student.gradeLevel || "Unassigned";
+  const section = student.section || "";
+  document.getElementById("viewStudentClass").value =
+    grade === "Unassigned" ? "Unassigned" : `${grade} - ${section}`;
+
+  // 4. Parent Logic
+  document.getElementById("viewStudentParent").value =
+    student.parentUsername || "Not Linked Yet";
+  document.getElementById("viewStudentInvite").value =
+    student.parentInviteCode || "N/A";
+
+  // 5. Show Modal
+  viewStudentModal.classList.add("active");
 }

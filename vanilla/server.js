@@ -102,6 +102,18 @@ const ClassSchema = new mongoose.Schema({
 });
 const ClassModel = mongoose.model("Class", ClassSchema);
 
+// ATTENDANCE SCHEMA
+const AttendanceSchema = new mongoose.Schema({
+  studentID: String,
+  studentName: String, // Optional, but makes reading DB easier
+  classID: String, // Helpful for reports later
+  date: String, // Format: YYYY-MM-DD
+  status: String, // "present", "late", "absent"
+  arrivalTime: String, // "08:30" (24h format)
+  recordedAt: { type: Date, default: Date.now },
+});
+const Attendance = mongoose.model("Attendance", AttendanceSchema);
+
 // --- ROUTES ---
 
 // 1. REGISTER TEACHER
@@ -125,7 +137,8 @@ app.post(
   }
 );
 
-// 2. REGISTER PARENT (UPDATED)
+// 2. REGISTER PARENT (FIXED ADDRESS MAPPING)
+// 2. REGISTER PARENT (FIXED ADDRESS MAPPING)
 app.post(
   "/register-parent",
   upload.single("profile-upload"),
@@ -133,11 +146,30 @@ app.post(
     try {
       console.log("📥 New Parent Registration:", req.body.username);
 
-      // 1. Save the Parent
+      // Explicitly map fields to match the Schema
       const parentData = {
-        ...req.body,
+        username: req.body.username,
+        password: req.body.password,
+        firstname: req.body.firstname,
+        lastname: req.body.lastname,
+        email: req.body.email,
+        phone: req.body.phone,
+        relationship: req.body.relationship,
+
+        // ADDRESS FIX: Check both camelCase and kebab-case
+        houseUnit: req.body.houseUnit || req.body["house-unit"],
+        street: req.body.street,
+        barangay: req.body.barangay,
+        city: req.body.city,
+        zipcode: req.body.zipcode || req.body["zip-code"], // Common mismatch
+
+        role: "parent",
         profilePhoto: req.file ? "/uploads/" + req.file.filename : null,
+
+        // Link info (We don't save this in Parent, but we use it below)
+        linked_student_id: req.body.linked_student_id,
       };
+
       const newParent = new Parent(parentData);
       await newParent.save();
 
@@ -145,17 +177,10 @@ app.post(
       const studentID = req.body.linked_student_id;
 
       if (studentID) {
-        // Create the full name from the form data
         const fullParentName = `${req.body.firstname} ${req.body.lastname}`;
-
         await Student.updateOne(
           { studentID: studentID },
-          {
-            $set: {
-              // STORING REAL FULL NAME instead of username
-              parentUsername: fullParentName,
-            },
-          }
+          { $set: { parentUsername: fullParentName } }
         );
         console.log(
           `🔗 Linked Parent "${fullParentName}" to Student ${studentID}`
@@ -214,6 +239,7 @@ app.post("/login", async (req, res) => {
         message: "Login Successful",
 
         // Common Data
+        id: user._id,
         role: user.role,
         username: user.username,
         firstname: user.firstname || user.username, // Fallback if no firstname
@@ -221,6 +247,12 @@ app.post("/login", async (req, res) => {
         email: user.email,
         phone: user.phone,
         profilePhoto: user.profilePhoto,
+
+        houseUnit: user.houseUnit || "",
+        street: user.street || "",
+        barangay: user.barangay || "",
+        city: user.city || "",
+        zipcode: user.zipcode || "",
 
         // Parent/Teacher specific fields might be undefined for Admin, which is fine
       });
@@ -422,12 +454,43 @@ app.get("/get-all-sections", async (req, res) => {
   }
 });
 
-// I. Delete Class
+// I. Delete Class (Safe Version)
 app.post("/delete-class", async (req, res) => {
   const { id } = req.body;
   try {
+    // 1. Find the class first (so we know who is inside it)
+    const classToDelete = await ClassModel.findById(id);
+
+    if (!classToDelete) {
+      return res.json({ success: false, message: "Class not found." });
+    }
+
+    // 2. Get the list of enrolled students
+    const enrolledStudents = classToDelete.students || [];
+
+    // 3. RELEASE THE STUDENTS (Reset them to Unassigned)
+    if (enrolledStudents.length > 0) {
+      await Student.updateMany(
+        { studentID: { $in: enrolledStudents } }, // Find all students in this class
+        {
+          $set: {
+            gradeLevel: "Unassigned",
+            section: "Unassigned",
+          },
+        }
+      );
+      console.log(
+        `🔓 Released ${enrolledStudents.length} students from deleted class.`
+      );
+    }
+
+    // 4. Finally, delete the class
     await ClassModel.findByIdAndDelete(id);
-    res.json({ success: true, message: "Class deleted successfully!" });
+
+    res.json({
+      success: true,
+      message: "Class deleted and students released!",
+    });
   } catch (error) {
     console.error("Delete Class Error:", error);
     res
@@ -509,6 +572,180 @@ app.get("/get-all-students", async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Error fetching students" });
+  }
+});
+
+// J. Update Class Details & Enrollment
+app.post("/update-class", async (req, res) => {
+  const {
+    classId,
+    gradeLevel,
+    section,
+    schedule,
+    maxCapacity,
+    description,
+    teacherUsername,
+    teacherId,
+    students, // The NEW list of Student IDs
+  } = req.body;
+
+  try {
+    // 1. Find the current class state (before update)
+    const oldClass = await ClassModel.findById(classId);
+    if (!oldClass) {
+      return res.json({ success: false, message: "Class not found." });
+    }
+
+    // 2. Identify Removed Students
+    // (Students who were in the old list but are NOT in the new list)
+    const oldStudentIds = oldClass.students || [];
+    const newStudentIds = students || [];
+
+    const removedStudentIds = oldStudentIds.filter(
+      (id) => !newStudentIds.includes(id)
+    );
+
+    // 3. Update the Class Document
+    oldClass.gradeLevel = gradeLevel;
+    oldClass.section = section;
+    oldClass.schedule = schedule;
+    oldClass.maxCapacity = maxCapacity;
+    oldClass.description = description;
+    oldClass.teacherUsername = teacherUsername;
+    oldClass.teacherId = teacherId;
+    oldClass.students = newStudentIds;
+
+    await oldClass.save();
+
+    // 4. Update Student Profiles
+
+    // A. Reset Removed Students to "Unassigned"
+    if (removedStudentIds.length > 0) {
+      await Student.updateMany(
+        { studentID: { $in: removedStudentIds } },
+        {
+          $set: {
+            gradeLevel: "Unassigned",
+            section: "Unassigned",
+          },
+        }
+      );
+    }
+
+    // B. Update Added/Kept Students to New Class Details
+    if (newStudentIds.length > 0) {
+      await Student.updateMany(
+        { studentID: { $in: newStudentIds } },
+        {
+          $set: {
+            gradeLevel: gradeLevel,
+            section: section,
+          },
+        }
+      );
+    }
+
+    res.json({ success: true, message: "Class updated successfully!" });
+  } catch (error) {
+    console.error("Update Class Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// K. GET CLASS FOR TEACHER (Fixed Version)
+app.post("/get-teacher-class", async (req, res) => {
+  const { teacherId } = req.body;
+
+  try {
+    // 1. Search by teacherId
+    const targetClass = await ClassModel.findOne({ teacherId: teacherId });
+
+    if (!targetClass) {
+      return res.json({
+        success: false,
+        message: "No class assigned to this teacher.",
+      });
+    }
+
+    // 2. Define studentIds FIRST
+    const studentIds = targetClass.students || [];
+
+    // 3. Now we can check the length safely
+    if (studentIds.length === 0) {
+      return res.json({
+        success: true,
+        className: `${targetClass.gradeLevel} - ${targetClass.section}`,
+        students: [],
+      });
+    }
+
+    // 4. Fetch the actual Student profiles
+    const students = await Student.find({ studentID: { $in: studentIds } });
+
+    res.json({
+      success: true,
+      className: `${targetClass.gradeLevel} - ${targetClass.section}`,
+      students: students,
+    });
+  } catch (error) {
+    console.error("Get Teacher Class Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// L. SAVE ATTENDANCE
+app.post("/save-attendance", async (req, res) => {
+  const { attendanceData } = req.body; // Expecting an ARRAY of records
+
+  try {
+    // Loop through each record sent from frontend
+    for (const record of attendanceData) {
+      await Attendance.findOneAndUpdate(
+        {
+          studentID: record.studentID,
+          date: record.date,
+        }, // Search Criteria
+        {
+          $set: {
+            status: record.status,
+            arrivalTime: record.arrivalTime,
+            studentName: record.studentName,
+            classID: record.classID,
+          },
+        }, // Update Fields
+        { upsert: true, new: true } // Options: Create if new
+      );
+    }
+
+    res.json({ success: true, message: "Attendance saved successfully!" });
+  } catch (error) {
+    console.error("Save Attendance Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// M. GET STUDENT STATUS FOR TODAY
+app.post("/get-student-today-status", async (req, res) => {
+  const { studentID } = req.body;
+
+  // Get today's date in YYYY-MM-DD (matches how we saved it)
+  // Note: ensuring timezone match is key, but for localhost this works fine
+  const today = new Date().toISOString().split("T")[0];
+
+  try {
+    const record = await Attendance.findOne({
+      studentID: studentID,
+      date: today,
+    });
+
+    if (record) {
+      res.json({ success: true, status: record.status }); // "present", "late", "absent"
+    } else {
+      res.json({ success: true, status: "no_record" }); // Still "On Way"
+    }
+  } catch (error) {
+    console.error("Status Check Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 

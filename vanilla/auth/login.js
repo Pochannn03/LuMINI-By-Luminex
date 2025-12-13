@@ -47,6 +47,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // A. Save User Info (So dashboard knows who is logged in)
             const userInfo = {
+              id: data.id,
               username: data.username,
               role: data.role,
               firstname: data.firstname,

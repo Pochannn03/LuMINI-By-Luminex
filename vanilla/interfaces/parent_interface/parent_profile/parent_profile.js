@@ -1,36 +1,30 @@
-// parent_profile.js
-
 document.addEventListener("DOMContentLoaded", function () {
   // --- 1. GET & CHECK USER DATA ---
   const userString = localStorage.getItem("currentUser");
-  // Parse the data immediately
   const currentUser = JSON.parse(userString);
 
-  // Redirect if not logged in or not a parent
+  // Redirect if not logged in
   if (!currentUser || currentUser.role !== "parent") {
     window.location.href = "../../../auth/login.html";
     return;
   }
 
   const serverUrl = "http://localhost:3000";
-  // Construct full name from stored data
   const fullName = `${currentUser.firstname} ${currentUser.lastname}`;
 
-  // --- 2. POPULATE STATIC PROFILE DATA ---
+  // --- 2. POPULATE STATIC PROFILE DATA (Address Logic is here) ---
   populateProfileData(currentUser, fullName, serverUrl);
 
-  // --- 3. FETCH & RENDER DYNAMIC CHILDREN LIST (NEW SECTION) ---
+  // --- 3. FETCH & RENDER DYNAMIC CHILDREN ---
+  // Passing serverUrl so we can load photos correctly
   fetchAndRenderChildren(fullName, serverUrl);
 
-  // --- 4. SETUP EVENT LISTENERS (Save button & Modals) ---
+  // --- 4. SETUP EVENT LISTENERS ---
   setupEventListeners();
 });
 
 // =============== HELPER FUNCTIONS ===============
 
-/**
- * Populates the header and main profile card with user info.
- */
 function populateProfileData(currentUser, fullName, serverUrl) {
   const headerName = document.getElementById("headerUserName");
   const headerImg = document.getElementById("headerProfileImage");
@@ -42,7 +36,7 @@ function populateProfileData(currentUser, fullName, serverUrl) {
   const inputPhone = document.getElementById("profilePhone");
   const inputAddress = document.getElementById("profileAddress");
 
-  // Header & Main Card visuals
+  // Visuals
   if (headerName) headerName.innerText = currentUser.firstname;
   if (headerImg && currentUser.profilePhoto) {
     headerImg.src = serverUrl + currentUser.profilePhoto;
@@ -50,48 +44,49 @@ function populateProfileData(currentUser, fullName, serverUrl) {
   if (mainName) mainName.innerText = fullName;
   if (mainRole)
     mainRole.innerText = `Parent / Guardian • @${currentUser.username}`;
+
+  // Main Profile Picture
   if (mainImage && currentUser.profilePhoto) {
     mainImage.src = serverUrl + currentUser.profilePhoto;
   }
 
-  // Form Inputs
+  // Inputs
   if (inputName) inputName.value = fullName;
   if (inputEmail) inputEmail.value = currentUser.email || "N/A";
   if (inputPhone) inputPhone.value = currentUser.phone || "N/A";
 
+  // --- ADDRESS LOGIC ---
   if (inputAddress) {
+    // We filter out any null/undefined/empty fields
     const parts = [
       currentUser.houseUnit,
       currentUser.street,
       currentUser.barangay,
       currentUser.city,
       currentUser.zipcode,
-    ].filter(Boolean);
+    ].filter((part) => part && part.trim() !== ""); // Stricter check
+
     inputAddress.value =
       parts.length > 0 ? parts.join(", ") : "Address not set";
   }
 }
 
-/**
- * (NEW) Fetches children from server and renders them.
- */
 function fetchAndRenderChildren(parentFullName, serverUrl) {
   const childrenListContainer = document.getElementById(
     "childrenListContainer"
   );
   if (!childrenListContainer) return;
 
-  // Use the existing endpoint
   fetch(`${serverUrl}/get-my-children`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ parentName: parentFullName }), // Send parent name
+    body: JSON.stringify({ parentName: parentFullName }),
   })
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        // Render the received array of children documents
-        renderChildrenList(data.children, childrenListContainer);
+        // Pass serverUrl to the render function
+        renderChildrenList(data.children, childrenListContainer, serverUrl);
       } else {
         childrenListContainer.innerHTML = `<p style="color: red; padding: 10px;">${data.message}</p>`;
       }
@@ -102,7 +97,8 @@ function fetchAndRenderChildren(parentFullName, serverUrl) {
     });
 }
 
-function renderChildrenList(children, container) {
+// UPDATED: Now accepts serverUrl to fix the image path
+function renderChildrenList(children, container, serverUrl) {
   container.innerHTML = "";
 
   if (children.length === 0) {
@@ -114,13 +110,17 @@ function renderChildrenList(children, container) {
     const childItem = document.createElement("div");
     childItem.className = "child-item";
 
-    // --- CORRECTION HERE ---
-    // We now use child.gradeLevel to match your Dashboard and Schema
     const grade = child.gradeLevel || "Grade N/A";
     const section = child.section || "Section N/A";
 
+    // --- FIX: DYNAMIC PHOTO LOGIC ---
+    // If child has a photo, append serverUrl. If not, use placeholder.
+    const photoSrc = child.profilePhoto
+      ? serverUrl + child.profilePhoto
+      : "../../../assets/placeholder_image.jpg";
+
     childItem.innerHTML = `
-        <img src="../../../assets/placeholder_image.jpg" class="child-avatar" alt="Child Avatar" />
+        <img src="${photoSrc}" class="child-avatar" alt="Child Avatar" style="object-fit:cover;" />
         <div class="child-info">
             <span class="child-name">${child.firstname} ${child.lastname}</span>
             <span class="child-grade">${grade} - ${section}</span>
@@ -133,15 +133,13 @@ function renderChildrenList(children, container) {
     container.appendChild(childItem);
   });
 
-  // Re-attach listeners for the "Edit" buttons
   attachModalTriggers();
 }
 
-/**
- * Sets up general UI event listeners.
- */
+// ... (Rest of your Event Listeners & Modal functions stay the same) ...
 function setupEventListeners() {
-  // Save Button Animation
+  // ... copy your existing setupEventListeners code here ...
+  // (I kept the rest standard to save space, but ensure you include the modal logic below this)
   const saveBtn = document.getElementById("saveProfileBtn");
   if (saveBtn) {
     saveBtn.addEventListener("click", function () {
@@ -187,8 +185,6 @@ function setupEventListeners() {
   }
 }
 
-// ================= MODAL FUNCTIONS =================
-
 function openModal() {
   const modalOverlay = document.getElementById("studentModal");
   if (modalOverlay) {
@@ -205,14 +201,9 @@ function closeModal() {
   }
 }
 
-/**
- * Finds all .edit-child-btn buttons and makes them open the modal.
- * Must be called AFTER children are rendered.
- */
 function attachModalTriggers() {
   const editButtons = document.querySelectorAll(".edit-child-btn");
   editButtons.forEach((btn) => {
-    // Remove existing listener first to prevent duplicates
     btn.removeEventListener("click", openModal);
     btn.addEventListener("click", openModal);
   });
