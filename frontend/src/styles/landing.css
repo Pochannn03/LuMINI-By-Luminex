@@ -1,29 +1,5 @@
-:root {
-  --brand-blue: #39a8ed;
-  --brand-dark: #297aac;
-  --text-dark: #2c3e50;
-  --text-light: #5f6c7b;
-  --red-bg: #f04646;
-  --red-text: #ff2525;
-  --yellow-text: #ffb300;
-  --green: #4ade80;
-  --white: #ffffff;
-}
-
 .background-custom{
   background-color: #e3f2fd;
-}
-
-.text-cdark{
-  color: var(--text-dark);
-}
-
-.text-cbrand-blue{
-  color: var(--brand-blue);
-}
-
-.text-clight{
-  color: var(--text-light);
 }
 
 .feature-card {

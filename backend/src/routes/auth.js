@@ -4,11 +4,32 @@ import passport from "../config/passport.js";
 
 const router = Router();
 
-router.post('/api/auth', passport.authenticate("local"), (req, res) => {
-    console.log("Login successfully")
-    return res.sendStatus(200);
-  }
-);
+router.post('/api/auth', (req, res, next) => {
+  // We call passport.authenticate with a custom callback function
+  passport.authenticate("local", (err, user, info) => {
+    
+    if (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid Credentials" });
+    }
+
+    // 3. Handle Login Success
+    // (When using a custom callback, we must manually call req.logIn)
+    req.logIn(user, (err) => {
+      if (err) {
+        return res.status(500).json({ message: "Session login failed" });
+      } else {
+        return res.status(200).json({ 
+          message: "Login successful", 
+          user: user 
+        });
+      }
+    });
+  })(req, res, next); // <--- We must invoke the function with req, res, next
+});
 
 router.post('/api/auth/logout', (req, res) => {
     if(!req.user){

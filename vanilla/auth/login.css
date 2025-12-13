@@ -199,22 +199,49 @@ body {
   font-size: 13px; 
 }
 
-.checkbox-wrapper { display: flex; align-items: center; gap: 8px; }
+.checkbox-wrapper { 
+  display: flex; 
+  align-items: center; 
+  gap: 8px; }
 
 .remember-me-checkbox {
   width: 18px; height: 18px; accent-color: var(--brand-blue);
 }
 
-.remember-me-lbl { color: var(--text-light); cursor: pointer; }
-.forgot-password-link { color: var(--brand-blue); text-decoration: none; font-weight: 500; }
-
-.divider-container {
-  display: flex; align-items: center; width: 100%; margin: 24px 0;
+.remember-me-lbl { 
+  color: var(--text-light); 
+  cursor: pointer; 
 }
 
-.line { flex-grow: 1; height: 1px; background-color: #eee; }
-.or-text { margin: 0 16px; color: var(--text-light); font-size: 14px; }
-.register-prompt { text-align: center; color: var(--text-light); font-size: 13px; margin-bottom: 6px; }
+.forgot-password-link { 
+  color: var(--brand-blue); 
+  text-decoration: none; 
+  font-weight: 500; 
+}
+
+.divider-container {
+  display: flex; 
+  align-items: center; 
+  width: 100%; 
+  margin: 24px 0;
+}
+
+.line { 
+  flex-grow: 1; 
+  height: 1px; 
+  background-color: #eee; 
+}
+.or-text { 
+  margin: 0 16px; 
+  color: var(--text-light); 
+  font-size: 14px; 
+}
+
+.register-prompt {
+   text-align: center; 
+   color: var(--text-light); 
+   font-size: 13px; 
+   margin-bottom: 6px; }
 
 /* ANIMATIONS */
 @keyframes slideUp {

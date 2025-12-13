@@ -24,10 +24,11 @@ export default passport.use(
     try{
       const findUser = await User.findOne({ username });
       if(!findUser) {
-        throw new Error("User not found");
+        return done(null, false, { message: "User not found" });
       }
-      if(!comparePassword(password, findUser.password)){
-        throw new Error("Invalid Credentials");
+      const isValid = await comparePassword(password, findUser.password);
+      if (!isValid) { 
+        return done(null, false, { message: "Invalid Credentials" });
       }
       done(null, findUser)
     } catch (err) {
