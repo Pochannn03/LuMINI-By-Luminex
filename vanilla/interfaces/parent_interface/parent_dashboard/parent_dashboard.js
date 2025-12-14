@@ -5,6 +5,7 @@ const body = document.body;
 
 let statusPollInterval; // Variable to control the timer
 let modePollInterval;
+let html5QrcodeScanner = null; // Scanner instance
 
 // Toggle Menu
 openBtn.addEventListener("click", () => {
@@ -22,6 +23,33 @@ overlay.addEventListener("click", () => {
   navBar.classList.remove("active");
   overlay.classList.remove("active");
 });
+
+// 5. GATEKEEPER MODAL LOGIC
+const gateModal = document.getElementById("pickupGateModal");
+const openScannerFromGateBtn = document.getElementById(
+  "openScannerFromGateBtn"
+);
+const cancelGateBtn = document.getElementById("cancelGateBtn");
+
+// A. "Scan Entry QR" Clicked -> Close Gate Modal -> Open Scanner Modal
+if (openScannerFromGateBtn) {
+  openScannerFromGateBtn.addEventListener("click", () => {
+    // Close the warning modal
+    if (gateModal) gateModal.classList.remove("active");
+
+    // Open the actual camera modal (reuse existing logic)
+    const scannerModal = document.getElementById("qrScannerModal");
+    if (scannerModal) scannerModal.classList.add("active");
+    startCamera();
+  });
+}
+
+// B. Cancel Clicked -> Just close
+if (cancelGateBtn) {
+  cancelGateBtn.addEventListener("click", () => {
+    if (gateModal) gateModal.classList.remove("active");
+  });
+}
 
 document.addEventListener("DOMContentLoaded", function () {
   // 1. GET USER DATA
@@ -85,27 +113,58 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // 4. ATTACH BUTTON LISTENERS
   const btnOtw = document.querySelector(".status-option-btn.status-blue");
-  const btnHere = document.querySelector(".status-option-btn.status-green");
+  const btnHere = document.querySelector(".status-option-btn.status-green"); // The "At School" button
   const btnLate = document.querySelector(".status-option-btn.status-red");
 
   if (btnOtw) btnOtw.addEventListener("click", () => sendStatusUpdate("otw"));
-  if (btnHere)
-    btnHere.addEventListener("click", () => sendStatusUpdate("here"));
+
+  // --- UPDATED LOGIC FOR "AT SCHOOL" ---
+  if (btnHere) {
+    btnHere.addEventListener("click", () => {
+      // CHECK MODE
+      if (window.currentClassMode === "dismissal") {
+        // AFTERNOON LOGIC: INTERCEPT & SHOW MODAL
+        const gateModal = document.getElementById("pickupGateModal");
+        if (gateModal) gateModal.classList.add("active");
+      } else {
+        // MORNING LOGIC: JUST UPDATE STATUS
+        sendStatusUpdate("here");
+      }
+    });
+  }
+
   if (btnLate)
     btnLate.addEventListener("click", () => sendStatusUpdate("late"));
 
-  // 5. SCAN BUTTON LOGIC (Strict Gatekeeper)
+  // 5. SCAN BUTTON LOGIC (Real Scanner Implementation)
   const scanBtn = document.getElementById("scanQrBtn");
+  const closeScannerBtn = document.getElementById("closeScannerBtn");
+  const scannerModal = document.getElementById("qrScannerModal");
+
   if (scanBtn) {
     scanBtn.addEventListener("click", () => {
-      // STRICT CHECK: Only allow scan if explicitly in dismissal mode
+      // 1. Check Mode
       if (window.currentClassMode !== "dismissal") {
         alert(
           "⛔ SCANNING DISABLED.\n\nThe camera is locked until Dismissal time."
         );
         return;
       }
-      alert("✅ Camera Opening... (Dismissal Mode Active)");
+
+      // 2. Open UI & Start Camera
+      if (scannerModal) scannerModal.classList.add("active");
+      startCamera();
+    });
+  }
+
+  if (closeScannerBtn) {
+    closeScannerBtn.addEventListener("click", stopCameraAndClose);
+  }
+
+  // Close on background click
+  if (scannerModal) {
+    scannerModal.addEventListener("click", (e) => {
+      if (e.target === scannerModal) stopCameraAndClose();
     });
   }
 
@@ -209,6 +268,9 @@ function sendStatusUpdate(status) {
   const parentFullName = `${user.firstname} ${user.lastname}`;
   const parentPhoto = user.profilePhoto || "";
 
+  // Use the global mode we detected earlier (or default to dropoff if missing)
+  const modeToSend = window.currentClassMode || "dropoff";
+
   fetch("http://localhost:3000/get-my-children", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -219,15 +281,13 @@ function sendStatusUpdate(status) {
       if (data.success && data.children.length > 0) {
         const studentID = data.children[0].studentID;
 
-        // If parent clicks "At School", we assume they are dropping off
-        // We can opt to immediately lock the card OR wait for teacher scan
-        // For now, just send the update
+        // SEND THE UPDATE TO THE SERVER
         return fetch("http://localhost:3000/update-queue-status", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             studentID: studentID,
-            mode: "dropoff",
+            mode: modeToSend, // <--- FIXED: Now dynamic! (sends "dismissal" or "dropoff")
             status: status,
             parentPhoto: parentPhoto,
           }),
@@ -237,11 +297,9 @@ function sendStatusUpdate(status) {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        alert(
-          `✅ Teacher Notified: ${
-            status === "otw" ? "On the Way" : "At School"
-          }`
-        );
+        // UI FEEDBACK
+        const actionText = status === "otw" ? "On the Way" : "At School";
+        alert(`✅ Teacher Notified: ${actionText}`);
 
         // Optional: If you want to lock the card immediately after "At School" is clicked:
         // if (status === 'here') checkIfAlreadyDroppedOff(studentID);
@@ -359,5 +417,100 @@ function renderVisualTracker(status) {
       badge.style.color = "#0369a1";
       badge.style.borderColor = "#7dd3fc";
     }
+  }
+}
+
+// ================= SCANNER FUNCTIONS =================
+
+function startCamera() {
+  if (!document.getElementById("reader")) return;
+
+  html5QrcodeScanner = new Html5Qrcode("reader");
+
+  Html5Qrcode.getCameras()
+    .then((devices) => {
+      if (devices && devices.length) {
+        console.log("Cameras found:", devices);
+
+        // --- SMART SELECTION LOGIC (Copy-pasted from Teacher Dashboard) ---
+        let cameraId = devices[0].id; // Default to first
+
+        // Try to find a camera that looks "Real"
+        const realCamera = devices.find((device) => {
+          const label = device.label.toLowerCase();
+          return (
+            (label.includes("integrated") ||
+              label.includes("webcam") ||
+              label.includes("usb") ||
+              label.includes("back") || // Mobile back camera
+              label.includes("environment")) && // Mobile environment camera
+            !label.includes("virtual") &&
+            !label.includes("obs")
+          );
+        });
+
+        if (realCamera) {
+          console.log("Selecting real camera:", realCamera.label);
+          cameraId = realCamera.id;
+        }
+        // ------------------------------------------------------------------
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
+
+        html5QrcodeScanner
+          .start(cameraId, config, onScanSuccess, onScanFailure)
+          .catch((err) => {
+            console.error("Start Error", err);
+            alert("Camera started but failed to feed: " + err);
+          });
+      } else {
+        alert("No cameras found.");
+      }
+    })
+    .catch((err) => {
+      console.error("Permission Error", err);
+      alert("Permission Denied. Please reset site permissions.");
+    });
+}
+
+function onScanSuccess(decodedText, decodedResult) {
+  // 1. Pause to prevent multiple reads
+  if (html5QrcodeScanner.isScanning) {
+    html5QrcodeScanner.pause();
+  }
+
+  console.log(`SCANNED: ${decodedText}`);
+
+  // 2. TEMPORARY TEST (Just prove it works)
+  alert(`✅ QR Code Read Successfully!\n\nData: ${decodedText}`);
+
+  // 3. Close the scanner
+  stopCameraAndClose();
+}
+
+function onScanFailure(error) {
+  // console.warn(error); // Ignored to keep console clean
+}
+
+function stopCameraAndClose() {
+  const scannerModal = document.getElementById("qrScannerModal");
+
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner
+      .stop()
+      .then(() => {
+        html5QrcodeScanner.clear();
+        if (scannerModal) scannerModal.classList.remove("active");
+      })
+      .catch((err) => {
+        console.error("Stop failed", err);
+        if (scannerModal) scannerModal.classList.remove("active");
+      });
+  } else {
+    if (scannerModal) scannerModal.classList.remove("active");
   }
 }
