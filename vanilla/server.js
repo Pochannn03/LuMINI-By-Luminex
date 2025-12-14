@@ -1238,6 +1238,64 @@ app.post("/set-class-mode", async (req, res) => {
   }
 });
 
+// T. VERIFY GUARDIAN PICKUP QR
+app.post("/verify-pickup-qr", async (req, res) => {
+  const { qrString, teacherId } = req.body;
+  const today = getTodayPH(); // Use PH Time
+
+  // 1. VALIDATE FORMAT
+  // Expected: "STUDENTID-PARENT-PARENTNAME-TIMESTAMP"
+  const parts = qrString.split("-PARENT-");
+
+  if (parts.length !== 2) {
+    return res.json({
+      success: false,
+      message: "❌ Invalid QR: Not a Guardian Pass.",
+    });
+  }
+
+  const studentID = parts[0]; // "2025-001"
+  const rest = parts[1].split("-"); // ["JoseRizal", "1702658400000"]
+  const parentName = rest[0];
+
+  try {
+    const teacherClass = await ClassModel.findOne({ teacherId });
+    if (!teacherClass)
+      return res.json({ success: false, message: "No class assigned." });
+
+    // 2. CHECK IF STUDENT BELONGS TO CLASS
+    if (!teacherClass.students.includes(studentID)) {
+      return res.json({
+        success: false,
+        message: "⚠️ Student not in your class.",
+      });
+    }
+
+    // 3. MARK ATTENDANCE (As "Picked Up" or just note the time)
+    // We update the existing record to say they departed
+    // Note: Usually schools mark "Present" in AM and "Dismissed" in PM.
+    // We will update the Queue status to "completed" primarily.
+
+    await QueueModel.updateOne(
+      { studentID: studentID, date: today, mode: "dismissal" },
+      { $set: { status: "completed" } } // Removes them from the queue list
+    );
+
+    // Optional: Log it in Attendance Sheet if you want a "Departure Time"
+    // For now, we just acknowledge the secure handoff.
+
+    const student = await Student.findOne({ studentID });
+
+    res.json({
+      success: true,
+      message: `✅ Authorized! \nStudent: ${student.firstname}\nGuardian: ${parentName}`,
+    });
+  } catch (error) {
+    console.error("Pickup Verification Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
 // --- START SERVER ---
 app.listen(3000, () =>
   console.log("🚀 Server running at http://localhost:3000")

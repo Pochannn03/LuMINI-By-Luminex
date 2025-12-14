@@ -75,6 +75,9 @@ document.addEventListener("DOMContentLoaded", function () {
     headerImg.src = "http://localhost:3000" + currentUser.profilePhoto;
   }
 
+  // --- RESTORE PASS IF ACTIVE ---
+  restoreActivePass();
+
   // 3. FETCH LINKED CHILD & MODE
   const parentFullName = `${currentUser.firstname} ${currentUser.lastname}`;
 
@@ -525,15 +528,9 @@ function stopCameraAndClose() {
 // ================= PICKUP PASS GENERATOR =================
 
 function generatePickupPass() {
-  // 1. Get Data
   const userString = localStorage.getItem("currentUser");
   const user = JSON.parse(userString);
-  const parentName = `${user.firstname}${user.lastname}`.replace(/\s/g, ""); // Remove spaces
-
-  // Get Student ID (We fetch children data on load, so we might need to store it globally)
-  // For now, let's re-fetch or assume we stored it.
-  // TRICK: We can grab it from the "Visual Tracker" logic if available,
-  // OR just fetch it quickly if missing.
+  const parentName = `${user.firstname}${user.lastname}`.replace(/\s/g, "");
 
   fetch("http://localhost:3000/get-my-children", {
     method: "POST",
@@ -546,11 +543,37 @@ function generatePickupPass() {
         const studentID = data.children[0].studentID;
         const studentName = `${data.children[0].firstname} ${data.children[0].lastname}`;
 
-        // 2. Create the Secret String
-        // Format: STUDENTID-PARENT-PARENTNAME-TIMESTAMP
+        // 1. Create Data
         const timestamp = Date.now();
         const secretString = `${studentID}-PARENT-${parentName}-${timestamp}`;
 
+        // 2. Set Expiration (10 minutes)
+        const expiryTime = Date.now() + 600000;
+
+        // 3. SAVE TO LOCAL STORAGE
+        localStorage.setItem("lumini_pass_active", "true");
+        localStorage.setItem("lumini_pass_secret", secretString);
+        localStorage.setItem("lumini_pass_student", studentName);
+        localStorage.setItem("lumini_pass_expiry", expiryTime);
+
+        // --- NEW LOGIC: NOTIFY TEACHER AUTOMATICALLY ---
+        console.log("🎟️ Pass Generated. Notifying Teacher...");
+
+        fetch("http://localhost:3000/update-queue-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentID: studentID,
+            mode: "dismissal", // Explicitly for Pickup
+            status: "here", // This sets the green "At School" badge
+            parentPhoto: user.profilePhoto,
+          }),
+        }).then(() =>
+          console.log("✅ Teacher Alerted: Parent is Here with Pass")
+        );
+        // -----------------------------------------------
+
+        // 4. Show UI
         showPassModal(studentName, secretString);
       } else {
         alert("Error: No student linked to this account.");
@@ -558,7 +581,7 @@ function generatePickupPass() {
     });
 }
 
-function showPassModal(studentName, secretString) {
+function showPassModal(studentName, secretString, openModal = true) {
   const modal = document.getElementById("pickupPassModal");
   const qrContainer = document.getElementById("generatedQr");
   const nameEl = document.getElementById("passStudentName");
@@ -566,7 +589,7 @@ function showPassModal(studentName, secretString) {
 
   // 1. Setup UI
   if (nameEl) nameEl.innerText = studentName;
-  if (qrContainer) qrContainer.innerHTML = ""; // Clear old QR
+  if (qrContainer) qrContainer.innerHTML = "";
 
   // 2. Generate QR
   new QRCode(qrContainer, {
@@ -578,49 +601,80 @@ function showPassModal(studentName, secretString) {
     correctLevel: QRCode.CorrectLevel.H,
   });
 
-  // 3. Show Modal & Header Button
-  if (modal) modal.classList.add("active");
+  // 3. Show Header Button (Always)
   if (headerBtn) {
     headerBtn.style.display = "flex";
-    // Ensure clicking the header button re-opens the modal
-    headerBtn.onclick = () => modal.classList.add("active");
+    headerBtn.onclick = () => {
+      // Re-generate QR if container is empty (safety) or just show modal
+      modal.classList.add("active");
+    };
   }
 
-  // 4. Start Countdown
-  startPassTimer(600); // 600 seconds = 10 minutes
+  // 4. Show Modal (Only if requested, e.g. on first scan)
+  if (modal && openModal) modal.classList.add("active");
+
+  // 5. Start the Smart Timer
+  startPassTimer();
 }
 
-function startPassTimer(duration) {
-  let timer = duration;
+function startPassTimer() {
   const display = document.getElementById("passTimer");
   const headerBtn = document.getElementById("viewPassBtn");
   const modal = document.getElementById("pickupPassModal");
 
-  // Clear existing timer
+  // Clear any existing timer to prevent duplicates/speeding up
   if (passTimerInterval) clearInterval(passTimerInterval);
 
   passTimerInterval = setInterval(function () {
-    const minutes = parseInt(timer / 60, 10);
-    const seconds = parseInt(timer % 60, 10);
+    // 1. Get the DEADLINE from storage
+    const expiryStr = localStorage.getItem("lumini_pass_expiry");
+
+    // Safety: If no deadline exists, kill the pass
+    if (!expiryStr) {
+      killPass();
+      return;
+    }
+
+    const expiryTime = parseInt(expiryStr, 10);
+    const now = Date.now();
+
+    // 2. Calculate remaining time in seconds
+    const secondsRemaining = Math.floor((expiryTime - now) / 1000);
+
+    if (secondsRemaining < 0) {
+      // TIME'S UP!
+      killPass();
+      alert(
+        "⚠️ Pickup Pass Expired.\nPlease scan the gate code again if needed."
+      );
+      return;
+    }
+
+    // 3. Format MM:SS
+    const minutes = Math.floor(secondsRemaining / 60);
+    const seconds = secondsRemaining % 60;
 
     const minStr = minutes < 10 ? "0" + minutes : minutes;
     const secStr = seconds < 10 ? "0" + seconds : seconds;
 
     if (display) display.textContent = minStr + ":" + secStr;
-
-    if (--timer < 0) {
-      // TIME'S UP!
-      clearInterval(passTimerInterval);
-
-      // Kill the pass
-      if (headerBtn) headerBtn.style.display = "none";
-      if (modal) modal.classList.remove("active");
-
-      alert(
-        "⚠️ Pickup Pass Expired.\nPlease scan the gate code again if needed."
-      );
-    }
   }, 1000);
+}
+
+// Helper to clean up everything
+function killPass() {
+  if (passTimerInterval) clearInterval(passTimerInterval);
+
+  localStorage.removeItem("lumini_pass_active");
+  localStorage.removeItem("lumini_pass_secret");
+  localStorage.removeItem("lumini_pass_student");
+  localStorage.removeItem("lumini_pass_expiry");
+
+  const headerBtn = document.getElementById("viewPassBtn");
+  const modal = document.getElementById("pickupPassModal");
+
+  if (headerBtn) headerBtn.style.display = "none";
+  if (modal) modal.classList.remove("active");
 }
 
 // Close Button Logic for Pass Modal
@@ -629,4 +683,23 @@ if (closePassBtn) {
   closePassBtn.addEventListener("click", () => {
     document.getElementById("pickupPassModal").classList.remove("active");
   });
+}
+
+function restoreActivePass() {
+  const isActive = localStorage.getItem("lumini_pass_active");
+  const expiryStr = localStorage.getItem("lumini_pass_expiry");
+
+  if (isActive === "true" && expiryStr) {
+    const expiryTime = parseInt(expiryStr, 10);
+
+    if (Date.now() > expiryTime) {
+      killPass();
+    } else {
+      const studentName = localStorage.getItem("lumini_pass_student");
+      const secretString = localStorage.getItem("lumini_pass_secret");
+
+      console.log("♻️ Restoring active Pickup Pass...");
+      showPassModal(studentName, secretString, false);
+    }
+  }
 }

@@ -339,7 +339,7 @@ function renderQueue(queueItems, mode) {
       badgeClass = "badge-late";
       badgeText = "Running late";
     } else if (item.status === "here") {
-      badgeClass = "badge-otw"; // Green-ish (reusing OTW style or make a new one)
+      badgeClass = "badge-success"; // <--- CHANGED: Now uses the new Green style
       badgeText = "At School";
       div.style.borderLeft = "4px solid #2ecc71"; // Visual highlight
     }
@@ -366,4 +366,150 @@ function renderQueue(queueItems, mode) {
 
     container.appendChild(div);
   });
+}
+
+// ==========================================
+// GUARDIAN SCANNER LOGIC
+// ==========================================
+
+const guardianModal = document.getElementById("guardianScannerModal");
+const scanGuardianBtn = document.getElementById("scanGuardianBtn");
+const closeGuardianBtn = document.getElementById("closeGuardianScannerBtn");
+let guardianScanner = null; // Separate instance for Guardian Scanner
+
+// 1. OPEN SCANNER
+if (scanGuardianBtn) {
+  scanGuardianBtn.addEventListener("click", () => {
+    if (guardianModal) guardianModal.classList.add("active");
+    startGuardianCamera();
+  });
+}
+
+// 2. CLOSE SCANNER
+if (closeGuardianBtn) {
+  closeGuardianBtn.addEventListener("click", stopGuardianCamera);
+}
+
+// Close on background click
+if (guardianModal) {
+  guardianModal.addEventListener("click", (e) => {
+    if (e.target === guardianModal) stopGuardianCamera();
+  });
+}
+
+// 3. START CAMERA (With Virtual Camera Filter)
+function startGuardianCamera() {
+  // Ensure we are targeting the NEW reader box
+  if (!document.getElementById("guardianReader")) return;
+
+  guardianScanner = new Html5Qrcode("guardianReader");
+
+  Html5Qrcode.getCameras()
+    .then((devices) => {
+      if (devices && devices.length) {
+        // --- SMART SELECTION LOGIC (Reused) ---
+        let cameraId = devices[0].id;
+
+        const realCamera = devices.find((device) => {
+          const label = device.label.toLowerCase();
+          return (
+            (label.includes("integrated") ||
+              label.includes("webcam") ||
+              label.includes("usb") ||
+              label.includes("back")) &&
+            !label.includes("virtual") &&
+            !label.includes("obs")
+          );
+        });
+
+        if (realCamera) {
+          console.log("Guardian Scanner: Using " + realCamera.label);
+          cameraId = realCamera.id;
+        }
+        // --------------------------------------
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
+
+        guardianScanner
+          .start(cameraId, config, onGuardianSuccess, (err) => {}) // Fail silently
+          .catch((err) => alert("Camera Error: " + err));
+      } else {
+        alert("No cameras found.");
+      }
+    })
+    .catch((err) => alert("Permission Denied: " + err));
+}
+
+// 4. SCAN SUCCESS (Updated with Verification Logic)
+function onGuardianSuccess(decodedText, decodedResult) {
+  if (guardianScanner.isScanning) {
+    guardianScanner.pause();
+  }
+
+  console.log(`Guardian Scanned: ${decodedText}`);
+
+  // 1. Client-Side Format Check (Fail fast)
+  if (!decodedText.includes("-PARENT-")) {
+    alert(
+      "⛔ WRONG QR CODE.\n\nThis looks like a Student ID or unknown code.\nPlease ask the parent for their 'Pickup Pass'."
+    );
+    guardianScanner.resume();
+    return;
+  }
+
+  // 2. Get Teacher ID
+  const userString = localStorage.getItem("currentUser");
+  const teacherId = JSON.parse(userString).id;
+
+  // 3. Verify with Server
+  fetch("http://localhost:3000/verify-pickup-qr", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      qrString: decodedText,
+      teacherId: teacherId,
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // SUCCESS!
+        alert(data.message);
+        stopGuardianCamera(); // Close scanner, job done.
+
+        // Refresh Queue immediately to remove the card
+        fetchQueueData();
+      } else {
+        // FAILED (Wrong class, expired, etc)
+        alert(data.message);
+        guardianScanner.resume();
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Server Connection Error");
+      stopGuardianCamera();
+    });
+}
+
+// 5. STOP CAMERA
+function stopGuardianCamera() {
+  if (guardianScanner) {
+    guardianScanner
+      .stop()
+      .then(() => {
+        guardianScanner.clear();
+        guardianModal.classList.remove("active");
+      })
+      .catch((err) => {
+        console.error("Stop Failed", err);
+        guardianModal.classList.remove("active");
+      });
+  } else {
+    guardianModal.classList.remove("active");
+  }
 }

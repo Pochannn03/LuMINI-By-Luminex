@@ -773,3 +773,9 @@ body {
   border-radius: 8px;
   overflow: hidden;
 }
+
+.badge-success {
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+  background: #f0fdf4; /* Optional: Very light green background */
+}

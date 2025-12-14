@@ -149,7 +149,7 @@
               </div>
 
               <div class="widget-actions">
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" id="scanGuardianBtn">
                   <span class="material-symbols-outlined"
                     >center_focus_weak</span
                   >
@@ -241,6 +241,37 @@
             "
           >
             Point the camera at a Student ID QR Code.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="guardianScannerModal">
+      <div class="modal-card" style="max-width: 500px; width: 100%">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined orange-icon"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Guardian Pass</h3>
+          </div>
+          <button class="close-modal-btn" id="closeGuardianScannerBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 0">
+          <div id="guardianReader" style="width: 100%"></div>
+
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              padding: 20px;
+              font-size: 14px;
+            "
+          >
+            Ask the parent to show their Pickup Pass.
           </p>
         </div>
       </div>
