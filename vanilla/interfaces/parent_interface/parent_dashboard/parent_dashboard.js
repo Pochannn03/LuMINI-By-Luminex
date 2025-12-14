@@ -162,27 +162,33 @@ function checkIfAlreadyDroppedOff(studentID) {
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        // 1. UPDATE VISUAL TRACKER (Every time we check!) <--- FIX IS HERE
+        // 1. UPDATE VISUAL TRACKER
         renderVisualTracker(data.status);
 
-        // 2. CHECK IF PRESENT
-        if (data.status === "present" || data.status === "late") {
-          console.log("✅ Student marked present! Stopping poller.");
+        // 2. SMART TOGGLE LOGIC
+        const buttons = document.getElementById("statusButtonsContainer");
+        const safeMsg = document.getElementById("safeMessageContainer");
+        const currentMode = window.currentClassMode || "dropoff"; // Default safety
 
-          // Stop polling
+        // Definition: We only hide buttons if it's MORNING and they are ALREADY HERE.
+        const isSafeAndMorning =
+          (data.status === "present" || data.status === "late") &&
+          currentMode === "dropoff";
+
+        if (isSafeAndMorning) {
+          // Case A: Job Done for the Morning -> Show Checkmark
+          if (buttons) buttons.style.display = "none";
+          if (safeMsg) safeMsg.style.display = "block";
+
+          console.log("✅ Drop-off Complete. Stopping poller.");
           if (statusPollInterval) clearInterval(statusPollInterval);
+        } else {
+          // Case B: Either Absent OR It's Dismissal Time -> Show Buttons!
+          if (buttons) buttons.style.display = "flex"; // Restore flex layout
+          if (safeMsg) safeMsg.style.display = "none";
 
-          // Update Action Card to 'Safe in Class'
-          const dropoffCard = document.getElementById("dropoffCard");
-          if (dropoffCard) {
-            dropoffCard.innerHTML = `
-              <div style="text-align: center; padding: 40px 20px;">
-                  <span class="material-symbols-outlined" style="font-size: 56px; color: #2ecc71; margin-bottom: 16px;">check_circle</span>
-                  <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 8px;">Safe in Class</h3>
-                  <p style="color: #7f8c8d; font-size: 14px;">Attendance has been marked. Updates are now disabled.</p>
-              </div>
-            `;
-          }
+          // NOTE: We do NOT stop the poller here, because if it's Dismissal,
+          // we are waiting for the next status change (Pickup Completed).
         }
       }
     })
