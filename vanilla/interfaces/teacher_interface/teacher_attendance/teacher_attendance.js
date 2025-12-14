@@ -489,3 +489,31 @@ if (setSimBtn) {
 
 // Initial check on load
 checkSimulationVisibility();
+
+let attendancePollInterval;
+
+function startAttendancePolling(teacherId) {
+  // Poll every 3 seconds
+  attendancePollInterval = setInterval(() => {
+    // Only refresh if we are looking at "Today"
+    // (We don't want to refresh if the teacher is looking at history)
+    if (isViewingToday()) {
+      refreshAttendanceData(teacherId);
+    }
+  }, 3000);
+}
+
+// Helper to check if the date picker matches Today
+function isViewingToday() {
+  const picker = document.getElementById("datePickerHidden");
+  if (!picker) return false;
+
+  const viewedDate = picker.value;
+
+  // Calculate "Today" in Local Time (matching your existing logic)
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  const todayStr = new Date(now - offset).toISOString().slice(0, 10);
+
+  return viewedDate === todayStr;
+}

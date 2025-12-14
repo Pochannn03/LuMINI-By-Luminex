@@ -5,6 +5,13 @@ const multer = require("multer"); // 1. Import Multer
 const path = require("path");
 const app = express();
 
+function getTodayPH() {
+  const now = new Date();
+  // Add 8 hours to UTC time
+  const phTime = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+  return phTime.toISOString().split("T")[0]; // Returns "2025-12-15" correctly
+}
+
 // --- CONFIGURATION SECTION (MUST BE AT THE TOP) ---
 
 // A. Middleware
@@ -855,14 +862,15 @@ app.post("/save-attendance", async (req, res) => {
   }
 });
 
-// M. GET STUDENT STATUS FOR TODAY (Fixed: Finds Class via Student ID)
+// M. GET STUDENT STATUS FOR TODAY (Fixed: Uses PH Time to match QR Scan)
 app.post("/get-student-today-status", async (req, res) => {
-  const { studentID } = req.body; // We only need studentID now
-  const today = new Date().toISOString().split("T")[0];
+  const { studentID } = req.body;
+
+  // ERROR WAS HERE: const today = new Date().toISOString().split("T")[0];
+  const today = getTodayPH(); // <--- FIXED: Now looks in the correct folder!
 
   try {
     // 1. Find the Class this student belongs to
-    // We search ClassModel for a class where the 'students' array contains this ID
     const studentClass = await ClassModel.findOne({ students: studentID });
 
     if (!studentClass) {
@@ -889,44 +897,41 @@ app.post("/get-student-today-status", async (req, res) => {
 });
 
 // N. QUICK MARK ATTENDANCE (QR SCAN WITH QUEUE CHECK)
+// N. QUICK MARK ATTENDANCE (QR SCAN WITH QUEUE CHECK)
 app.post("/mark-attendance-qr", async (req, res) => {
   const { studentID, teacherId } = req.body;
-  const today = new Date().toISOString().split("T")[0];
+
+  const today = getTodayPH(); // <--- FIXED: Uses PH Time
+
   const now = new Date();
-  // --- FIX IS HERE ---
-  // Use 24-Hour Format (HH:mm) so the HTML Input can read it!
   const timeString =
     now.getHours().toString().padStart(2, "0") +
     ":" +
     now.getMinutes().toString().padStart(2, "0");
 
   try {
-    // 1. Basic Checks
     const teacherClass = await ClassModel.findOne({ teacherId });
     if (!teacherClass)
       return res.json({ success: false, message: "No class assigned." });
     if (!teacherClass.students.includes(studentID))
       return res.json({ success: false, message: "Student not in class." });
 
-    // --- NEW: THE GATEKEEPER CHECK ---
-    // Check if the parent has updated their status for today (Drop-off mode)
+    // --- GATEKEEPER CHECK ---
     const queueEntry = await QueueModel.findOne({
       studentID: studentID,
       date: today,
       mode: "dropoff",
-      status: { $ne: "completed" }, // Must be active (otw, late, or here)
+      status: { $ne: "completed" },
     });
 
-    // If no active queue entry exists, REJECT the scan
     if (!queueEntry) {
       return res.json({
         success: false,
-        message:
-          "⚠️ RESTRICTED: Parent has not updated their status yet. Please ask parent to set status to 'At School'.",
+        message: "⚠️ RESTRICTED: Parent has not updated their status yet.",
       });
     }
 
-    // 2. If Valid, Mark Attendance
+    // Mark Attendance
     await getOrInitAttendanceSheet(teacherClass._id, teacherId, today);
 
     await ClassAttendance.updateOne(
@@ -943,7 +948,7 @@ app.post("/mark-attendance-qr", async (req, res) => {
       }
     );
 
-    // 3. CLOSE THE QUEUE TICKET (Mark as completed so it disappears from Teacher list)
+    // Close Queue Ticket
     await QueueModel.updateOne(
       { studentID: studentID, date: today, mode: "dropoff" },
       { $set: { status: "completed" } }
@@ -988,7 +993,9 @@ app.post("/get-class-attendance", async (req, res) => {
 // P. SAVE SINGLE STUDENT (Auto-Save)
 app.post("/save-single-attendance", async (req, res) => {
   const { studentID, status, arrivalTime, teacherId, date } = req.body;
-  const targetDate = date || new Date().toISOString().split("T")[0];
+
+  // Use the provided date, OR fallback to PH time (not UTC)
+  const targetDate = date || getTodayPH();
 
   try {
     const teacherClass = await ClassModel.findOne({ teacherId });
@@ -1142,12 +1149,12 @@ app.post("/update-student-health", async (req, res) => {
   }
 });
 
-// R. UPDATE PARENT STATUS (Fixed: Uses req.body for photo)
+// R. UPDATE PARENT STATUS
 app.post("/update-queue-status", async (req, res) => {
   const { studentID, mode, status } = req.body;
-  const today = new Date().toISOString().split("T")[0];
 
-  // Use 12h format for the Queue Card display (looks nicer)
+  const today = getTodayPH(); // <--- FIXED
+
   const now = new Date();
   const timeString = now.toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -1162,9 +1169,6 @@ app.post("/update-queue-status", async (req, res) => {
 
     const studentClass = await ClassModel.findOne({ students: studentID });
     const classID = studentClass ? studentClass._id : "Unassigned";
-
-    // --- FIX IS HERE ---
-    // We use req.body.parentPhoto (sent from JS) OR fallback to student photo
     const photoToSave = req.body.parentPhoto || student.profilePhoto;
 
     await QueueModel.findOneAndUpdate(
@@ -1176,7 +1180,7 @@ app.post("/update-queue-status", async (req, res) => {
           classID: classID,
           status: status,
           time: timeString,
-          profilePhoto: photoToSave, // <--- Using the variable we just made
+          profilePhoto: photoToSave,
         },
       },
       { upsert: true, new: true }
@@ -1189,26 +1193,23 @@ app.post("/update-queue-status", async (req, res) => {
   }
 });
 
-// S. GET CLASS QUEUE (Smart Version: Auto-detects Mode)
+// S. GET CLASS QUEUE
 app.post("/get-class-queue", async (req, res) => {
   const { teacherId } = req.body;
-  const today = new Date().toISOString().split("T")[0];
+
+  const today = getTodayPH(); // <--- FIXED
 
   try {
-    // 1. Find Teacher's Class
     const teacherClass = await ClassModel.findOne({ teacherId });
     if (!teacherClass)
       return res.json({ success: true, queue: [], currentMode: "dropoff" });
 
-    // 2. GET THE MODE FROM DB (The Source of Truth)
     const currentMode = teacherClass.currentMode || "dropoff";
 
-    // 3. If "Class" mode, return empty immediately (no queue needed)
     if (currentMode === "class") {
       return res.json({ success: true, queue: [], currentMode: "class" });
     }
 
-    // 4. Find Queue items for this class, today, and the ACTIVE mode
     const queue = await QueueModel.find({
       classID: teacherClass._id,
       date: today,
@@ -1216,7 +1217,6 @@ app.post("/get-class-queue", async (req, res) => {
       status: { $ne: "completed" },
     });
 
-    // 5. Return both the Queue AND the Mode (so frontend can update title)
     res.json({ success: true, queue: queue, currentMode: currentMode });
   } catch (error) {
     console.error("Fetch Queue Error:", error);

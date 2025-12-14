@@ -3,6 +3,9 @@ const navBar = document.getElementById("sideNavBar");
 const overlay = document.getElementById("navOverlay");
 const body = document.body;
 
+let statusPollInterval; // Variable to control the timer
+let modePollInterval;
+
 // Toggle Menu
 openBtn.addEventListener("click", () => {
   const isDesktop = window.innerWidth >= 1024;
@@ -64,6 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // C. CHECK ATTENDANCE (Lock if already present)
         checkIfAlreadyDroppedOff(child.studentID);
+
+        // D. START POLLING (With Debug Log)
+        console.log("🚀 Starting Status Poller for Student:", child.studentID);
+        startStatusPolling(child.studentID);
+
+        // --- NEW: START MODE POLLING ---
+        startModePolling(parentFullName);
 
         // D. UPDATE VISUALS
         updateVisuals(child);
@@ -151,19 +161,33 @@ function checkIfAlreadyDroppedOff(studentID) {
   })
     .then((res) => res.json())
     .then((data) => {
-      // If Present or Late -> REPLACE CARD WITH SUCCESS MESSAGE
-      if (data && (data.status === "present" || data.status === "late")) {
-        const dropoffCard = document.getElementById("dropoffCard");
-        if (dropoffCard) {
-          dropoffCard.innerHTML = `
-            <div style="text-align: center; padding: 40px 20px;">
-                <span class="material-symbols-outlined" style="font-size: 56px; color: #2ecc71; margin-bottom: 16px;">check_circle</span>
-                <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 8px;">Safe in Class</h3>
-                <p style="color: #7f8c8d; font-size: 14px;">Attendance has been marked. Updates are now disabled.</p>
-            </div>
-          `;
+      if (data.success) {
+        // 1. UPDATE VISUAL TRACKER (Every time we check!) <--- FIX IS HERE
+        renderVisualTracker(data.status);
+
+        // 2. CHECK IF PRESENT
+        if (data.status === "present" || data.status === "late") {
+          console.log("✅ Student marked present! Stopping poller.");
+
+          // Stop polling
+          if (statusPollInterval) clearInterval(statusPollInterval);
+
+          // Update Action Card to 'Safe in Class'
+          const dropoffCard = document.getElementById("dropoffCard");
+          if (dropoffCard) {
+            dropoffCard.innerHTML = `
+              <div style="text-align: center; padding: 40px 20px;">
+                  <span class="material-symbols-outlined" style="font-size: 56px; color: #2ecc71; margin-bottom: 16px;">check_circle</span>
+                  <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 8px;">Safe in Class</h3>
+                  <p style="color: #7f8c8d; font-size: 14px;">Attendance has been marked. Updates are now disabled.</p>
+              </div>
+            `;
+          }
         }
       }
+    })
+    .catch((err) => {
+      console.error("Polling Error:", err);
     });
 }
 
@@ -235,41 +259,99 @@ function updateVisuals(child) {
 
   if (child.gradeLevel && child.gradeLevel !== "Unassigned") {
     if (gradeEl) gradeEl.innerText = `${child.gradeLevel} - ${child.section}`;
-    checkStudentStatus(child.studentID);
+
+    renderVisualTracker("otw");
   } else {
     if (gradeEl) gradeEl.innerText = "No Active Class";
   }
 }
 
-function checkStudentStatus(studentID) {
-  fetch("http://localhost:3000/get-student-today-status", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ studentID: studentID }),
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.success) {
-        // Update the Visual Tracker based on status
-        const steps = document.querySelectorAll(".tracker-step");
-        const badge = document.querySelector(".current-status-badge");
+function startStatusPolling(studentID) {
+  // 1. Clear any existing timer to prevent duplicates
+  if (statusPollInterval) {
+    clearInterval(statusPollInterval);
+  }
 
-        steps.forEach((s) => s.classList.remove("active", "completed"));
+  // 2. Start the Loop (Every 3 Seconds)
+  statusPollInterval = setInterval(() => {
+    console.log(`⏱️ Polling status for ${studentID}...`); // Debug Log
+    checkIfAlreadyDroppedOff(studentID);
+  }, 3000);
+}
 
-        if (data.status === "present" || data.status === "late") {
-          steps[0].classList.add("completed");
-          steps[1].classList.add("active"); // Learning
-          badge.innerText = "Learning at School";
-          badge.style.background = "#fffbeb";
-          badge.style.color = "#b45309";
-          badge.style.borderColor = "#fcd34d";
-        } else {
-          steps[0].classList.add("active"); // On Way
-          badge.innerText = "On the Way";
-          badge.style.background = "#e0f2fe";
-          badge.style.color = "#0369a1";
-          badge.style.borderColor = "#7dd3fc";
+function startModePolling(parentFullName) {
+  // Clear existing to be safe
+  if (modePollInterval) clearInterval(modePollInterval);
+
+  modePollInterval = setInterval(() => {
+    fetch("http://localhost:3000/get-my-children", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parentName: parentFullName }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.children.length > 0) {
+          const child = data.children[0];
+          const newMode = child.classMode;
+
+          // CHECK IF MODE CHANGED
+          if (newMode !== window.currentClassMode) {
+            console.log(
+              `🔄 Mode Change Detected: ${window.currentClassMode} -> ${newMode}`
+            );
+
+            // 1. Update Global Variable
+            window.currentClassMode = newMode;
+
+            // 2. Update UI Immediately
+            updateInterfaceForMode(newMode);
+
+            // 3. CRITICAL FIX: Re-check attendance immediately
+            // If we just switched to Drop-off, maybe the kid is already here!
+            if (newMode === "dropoff" || newMode === "dismissal") {
+              console.log(
+                "Re-checking attendance status due to mode change..."
+              );
+              checkIfAlreadyDroppedOff(child.studentID);
+              // Ensure status polling is active
+              startStatusPolling(child.studentID);
+            }
+          }
         }
-      }
-    });
+      })
+      .catch((err) => console.error("Mode Polling Error:", err));
+  }, 3000); // Check every 3 seconds
+}
+
+// NEW HELPER: Updates the Visual Tracker UI based on status string
+function renderVisualTracker(status) {
+  const steps = document.querySelectorAll(".tracker-step");
+  const badge = document.querySelector(".current-status-badge");
+
+  // Reset all
+  steps.forEach((s) => s.classList.remove("active", "completed"));
+
+  if (status === "present" || status === "late") {
+    // STATE: LEARNING (Complete)
+    steps[0].classList.add("completed"); // On Way done
+    steps[1].classList.add("active"); // Learning active
+
+    if (badge) {
+      badge.innerText = "Learning at School";
+      badge.style.background = "#fffbeb";
+      badge.style.color = "#b45309";
+      badge.style.borderColor = "#fcd34d";
+    }
+  } else {
+    // STATE: ON THE WAY (Default)
+    steps[0].classList.add("active"); // On Way active
+
+    if (badge) {
+      badge.innerText = "On the Way";
+      badge.style.background = "#e0f2fe";
+      badge.style.color = "#0369a1";
+      badge.style.borderColor = "#7dd3fc";
+    }
+  }
 }
