@@ -446,3 +446,137 @@ a.nav-item {
   background: white;
   color: var(--text-dark);
 }
+
+/* =========================================
+   6. SIMULATION BAR (Fixed & Centered)
+   ========================================= */
+
+.simulation-bar {
+  background: #fff7ed; /* Soft Orange */
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  animation: slideDown 0.3s ease-out;
+  box-shadow: 0 2px 5px rgba(249, 115, 22, 0.05);
+}
+
+.sim-content {
+  display: flex;
+  align-items: center;
+  width: 100%; /* Ensure the flex container fills the bar */
+  padding: 12px 24px;
+  height: 60px;
+}
+
+.sim-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c2410c;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sim-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto; /* <--- THIS IS THE MAGIC! Pushes this group to the far right */
+}
+
+/* --- FIXED DROPDOWN STYLING --- */
+
+.custom-select-wrapper.sim-select {
+  position: relative; /* Crucial for the arrow */
+  width: 220px;
+  display: flex; /* Helps with vertical alignment */
+  align-items: center;
+}
+
+.form-input.small {
+  width: 100%;
+  padding: 10px 14px; /* Slightly taller for better touch target */
+  font-size: 13px;
+  background: white;
+  border: 1px solid #fdba74;
+  border-radius: 8px;
+  color: #9a3412;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+
+  /* Hides default browser arrow so ours shows up */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+.form-input.small:focus {
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+}
+
+/* The Missing Arrow Code */
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%); /* Perfectly centers it vertically */
+  color: #c2410c;
+  pointer-events: none; /* Lets clicks pass through to the select */
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Button Styling */
+.btn-sim-set {
+  background: #f97316;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%; /* Match height of input */
+}
+
+.btn-sim-set:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  .sim-content {
+    flex-direction: column;
+    height: auto;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .sim-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .custom-select-wrapper.sim-select {
+    flex: 1;
+  }
+}

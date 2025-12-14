@@ -243,3 +243,127 @@ function stopCameraAndClose() {
     scannerModal.classList.remove("active");
   }
 }
+
+// ==========================================
+// REAL-TIME QUEUE LOGIC
+// ==========================================
+
+// 1. Start Polling when page loads
+document.addEventListener("DOMContentLoaded", () => {
+  // ... your existing init code ...
+
+  // Start the loop
+  startQueuePolling();
+});
+
+let queueInterval;
+
+function startQueuePolling() {
+  // Fetch immediately
+  fetchQueueData();
+
+  // Then fetch every 3 seconds
+  queueInterval = setInterval(fetchQueueData, 3000);
+}
+
+function fetchQueueData() {
+  const userString = localStorage.getItem("currentUser");
+  if (!userString) return;
+  const teacherId = JSON.parse(userString).id;
+
+  // REMOVED: const currentMode = localStorage.getItem...
+  // REMOVED: if (currentMode === "class") return...
+
+  // We trust the Server now. Just ask for data.
+  fetch("http://localhost:3000/get-class-queue", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      teacherId: teacherId,
+      // No need to send 'mode', the server finds it!
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // 1. Get the TRUTH from the server
+        const serverMode = data.currentMode;
+
+        // 2. Update Title UI based on the SERVER mode
+        const titleEl = document.getElementById("queueTitle");
+        if (titleEl) {
+          if (serverMode === "dropoff")
+            titleEl.innerText = "Morning Drop-off Queue";
+          else if (serverMode === "dismissal")
+            titleEl.innerText = "Afternoon Pickup Queue";
+          else titleEl.innerText = "Class In-Session";
+        }
+
+        // 3. Update the Pill (If you added it)
+        if (typeof updateHeaderPill === "function") {
+          updateHeaderPill(serverMode);
+        }
+
+        // 4. Render the Queue
+        renderQueue(data.queue, serverMode);
+      }
+    })
+    .catch((err) => console.error("Queue Polling Error:", err));
+}
+
+function renderQueue(queueItems, mode) {
+  const container = document.getElementById("queueContainer");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (queueItems.length === 0) {
+    const msg =
+      mode === "class" ? "Students are in class." : "No active requests.";
+    container.innerHTML = `<p style="padding: 20px; text-align: center; color: #cbd5e1;">${msg}</p>`;
+    return;
+  }
+
+  queueItems.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "queue-item";
+
+    // Determine Badge Color & Text
+    let badgeClass = "badge-pending"; // default yellow
+    let badgeText = item.status;
+
+    if (item.status === "otw") {
+      badgeClass = "badge-otw";
+      badgeText = "On the way";
+    } else if (item.status === "late") {
+      badgeClass = "badge-late";
+      badgeText = "Running late";
+    } else if (item.status === "here") {
+      badgeClass = "badge-otw"; // Green-ish (reusing OTW style or make a new one)
+      badgeText = "At School";
+      div.style.borderLeft = "4px solid #2ecc71"; // Visual highlight
+    }
+
+    // Determine Action Text
+    const actionText =
+      mode === "dropoff"
+        ? `Dropping off: ${item.studentName}`
+        : `Picking up: ${item.studentName}`;
+
+    const photoSrc = item.profilePhoto
+      ? "http://localhost:3000" + item.profilePhoto
+      : "../../../assets/placeholder_image.jpg";
+
+    div.innerHTML = `
+            <img src="${photoSrc}" class="queue-avatar" style="object-fit:cover;" />
+            <div class="queue-info">
+                <span class="q-name">${item.parentName}</span>
+                <span class="q-action">${actionText}</span>
+                <span class="q-time">${item.time}</span>
+            </div>
+            <span class="badge-pill ${badgeClass}">${badgeText}</span>
+        `;
+
+    container.appendChild(div);
+  });
+}

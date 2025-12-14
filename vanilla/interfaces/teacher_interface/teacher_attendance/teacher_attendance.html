@@ -83,15 +83,56 @@
 
       <main class="main-content">
         <div class="attendance-container">
+          <div
+            id="simulationControls"
+            class="simulation-bar"
+            style="display: none"
+          >
+            <div class="sim-content">
+              <div class="sim-label">
+                <span class="material-symbols-outlined">tune</span>
+                <span>System Override</span>
+              </div>
+
+              <div class="sim-actions">
+                <div class="custom-select-wrapper sim-select">
+                  <select id="simModeSelect" class="form-input small">
+                    <option value="dropoff">🌅 Drop-off (Morning)</option>
+                    <option value="class">📚 Class In-Session</option>
+                    <option value="dismissal">👋 Dismissal (Afternoon)</option>
+                  </select>
+                  <span class="material-symbols-outlined select-arrow"
+                    >expand_more</span
+                  >
+                </div>
+
+                <button id="setSimModeBtn" class="btn-sim-set">Set Mode</button>
+              </div>
+            </div>
+          </div>
+
           <div class="attendance-header-card">
             <div class="header-top-row">
               <div class="page-title">Attendance Log</div>
               <div class="date-pill">
-                <button class="nav-btn">
+                <button class="nav-btn" id="prevDateBtn">
                   <span class="material-symbols-outlined">chevron_left</span>
                 </button>
-                <span id="dateDisplay" class="date-label">Loading...</span>
-                <button class="nav-btn">
+
+                <span
+                  id="dateDisplay"
+                  class="date-label"
+                  style="cursor: pointer"
+                  >Loading...</span
+                >
+
+                <input
+                  type="date"
+                  id="datePickerHidden"
+                  style="position: absolute; opacity: 0; pointer-events: none"
+                />
+
+                <button class="nav-btn" id="nextDateBtn">
                   <span class="material-symbols-outlined">chevron_right</span>
                 </button>
               </div>

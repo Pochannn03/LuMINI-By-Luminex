@@ -3,64 +3,47 @@ const navBar = document.getElementById("sideNavBar");
 const overlay = document.getElementById("navOverlay");
 const body = document.body;
 
-// Function to Toggle Menu (Identical to Teacher Dashboard)
+// Toggle Menu
 openBtn.addEventListener("click", () => {
-  // Check if we are on Desktop or Mobile
   const isDesktop = window.innerWidth >= 1024;
-
   if (isDesktop) {
-    // DESKTOP: Toggle the "expanded" class for width change
     navBar.classList.toggle("expanded");
     body.classList.toggle("sidebar-open");
   } else {
-    // MOBILE: Toggle the "active" class for slide-in
     navBar.classList.toggle("active");
     overlay.classList.toggle("active");
   }
 });
 
-// Close menu when clicking overlay (Mobile only)
 overlay.addEventListener("click", () => {
   navBar.classList.remove("active");
   overlay.classList.remove("active");
 });
-
-// --- AUTHENTICATION & PERSONALIZATION LOGIC ---
 
 document.addEventListener("DOMContentLoaded", function () {
   // 1. GET USER DATA
   const userString = localStorage.getItem("currentUser");
   const currentUser = JSON.parse(userString);
 
-  // 2. SECURITY CHECK
   if (!currentUser || currentUser.role !== "parent") {
     alert("⚠️ Access Denied: Parents Only.");
     window.location.href = "../../../auth/login.html";
     return;
   }
 
-  // 3. UPDATE HEADER TEXT & IMAGE
+  // 2. UPDATE HEADER
   const headerName = document.getElementById("headerUserName");
   const welcomeMsg = document.getElementById("welcomeMessage");
-  const headerImg = document.getElementById("headerProfileImage"); // <--- NEW
+  const headerImg = document.getElementById("headerProfileImage");
 
-  // Update Name
-  if (headerName) {
-    headerName.innerText = currentUser.firstname;
-  }
-
-  // Update Welcome Banner
-  if (welcomeMsg) {
+  if (headerName) headerName.innerText = currentUser.firstname;
+  if (welcomeMsg)
     welcomeMsg.innerText = "Good Afternoon, " + currentUser.firstname + "!";
-  }
-
-  // Update Profile Image (NEW LOGIC)
   if (headerImg && currentUser.profilePhoto) {
-    // Prepend server URL to the file path
     headerImg.src = "http://localhost:3000" + currentUser.profilePhoto;
   }
 
-  // 5. FETCH & DISPLAY LINKED CHILD
+  // 3. FETCH LINKED CHILD & MODE
   const parentFullName = `${currentUser.firstname} ${currentUser.lastname}`;
 
   fetch("http://localhost:3000/get-my-children", {
@@ -73,108 +56,50 @@ document.addEventListener("DOMContentLoaded", function () {
       if (data.success && data.children.length > 0) {
         const child = data.children[0];
 
-        // --- 1. SET BASIC INFO ---
-        const childNameEl = document.querySelector(".visual-name");
-        if (childNameEl)
-          childNameEl.innerText = `${child.firstname} ${child.lastname}`;
+        // A. SET MODE GLOBALLY (The Source of Truth)
+        window.currentClassMode = child.classMode;
 
-        // Photo
-        const childImgEl = document.querySelector(".visual-avatar");
-        if (childImgEl && child.profilePhoto) {
-          childImgEl.src = "http://localhost:3000" + child.profilePhoto;
-        }
+        // B. UPDATE INTERFACE
+        updateInterfaceForMode(child.classMode);
 
-        // --- 2. THE FORK IN THE ROAD (Enrollment Check) ---
-        const isEnrolled =
-          child.gradeLevel && child.gradeLevel !== "Unassigned";
+        // C. CHECK ATTENDANCE (Lock if already present)
+        checkIfAlreadyDroppedOff(child.studentID);
 
-        if (!isEnrolled) {
-          // === PATH A: NOT ENROLLED ===
-
-          // Text Update
-          document.querySelector(".visual-grade").innerText = "No Active Class";
-
-          // Badge Update
-          const badge = document.querySelector(".current-status-badge");
-          badge.innerText = "Currently not enrolled in any class";
-          badge.style.background = "#f1f5f9"; // Neutral Gray
-          badge.style.color = "#94a3b8"; // Text Gray
-          badge.style.borderColor = "#e2e8f0";
-
-          // Progress Bar: TURN OFF ALL LIGHTS
-          const steps = document.querySelectorAll(".tracker-step");
-          steps.forEach((step) => step.classList.remove("active", "completed"));
-        } else {
-          // === PATH B: ENROLLED (Normal Behavior) ===
-
-          document.querySelector(
-            ".visual-grade"
-          ).innerText = `${child.gradeLevel} - ${child.section}`;
-
-          // Only check attendance if they are actually in a class!
-          checkStudentStatus(child.studentID);
-        }
+        // D. UPDATE VISUALS
+        updateVisuals(child);
       } else {
         console.log("No linked children found.");
-        document.querySelector(".visual-name").innerText = "No Student Linked";
-        document.querySelector(".visual-grade").innerText =
-          "Please contact admin";
       }
     })
     .catch((err) => console.error("Error loading children:", err));
 
-  // HELPER FUNCTION: Update Progress Bar
-  function checkStudentStatus(studentID) {
-    fetch("http://localhost:3000/get-student-today-status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ studentID: studentID }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          updateProgressBar(data.status);
-        }
-      });
-  }
+  // 4. ATTACH BUTTON LISTENERS
+  const btnOtw = document.querySelector(".status-option-btn.status-blue");
+  const btnHere = document.querySelector(".status-option-btn.status-green");
+  const btnLate = document.querySelector(".status-option-btn.status-red");
 
-  function updateProgressBar(status) {
-    // 1. Get Elements
-    const steps = document.querySelectorAll(".tracker-step");
-    // Index 0 = On Way, 1 = Learning, 2 = Dismissed
+  if (btnOtw) btnOtw.addEventListener("click", () => sendStatusUpdate("otw"));
+  if (btnHere)
+    btnHere.addEventListener("click", () => sendStatusUpdate("here"));
+  if (btnLate)
+    btnLate.addEventListener("click", () => sendStatusUpdate("late"));
 
-    const badge = document.querySelector(".current-status-badge");
-
-    // 2. RESET ALL (Clean slate)
-    steps.forEach((step) => {
-      step.classList.remove("active", "completed");
+  // 5. SCAN BUTTON LOGIC (Strict Gatekeeper)
+  const scanBtn = document.getElementById("scanQrBtn");
+  if (scanBtn) {
+    scanBtn.addEventListener("click", () => {
+      // STRICT CHECK: Only allow scan if explicitly in dismissal mode
+      if (window.currentClassMode !== "dismissal") {
+        alert(
+          "⛔ SCANNING DISABLED.\n\nThe camera is locked until Dismissal time."
+        );
+        return;
+      }
+      alert("✅ Camera Opening... (Dismissal Mode Active)");
     });
-
-    // 3. APPLY LOGIC
-    if (status === "present" || status === "late") {
-      // STATE: LEARNING
-      // Step 1 is done
-      steps[0].classList.add("completed");
-      // Step 2 is active
-      steps[1].classList.add("active");
-
-      badge.innerText = "Learning at School";
-      badge.style.background = "#fffbeb";
-      badge.style.color = "#b45309";
-      badge.style.borderColor = "#fcd34d";
-    } else {
-      // STATE: ON WAY (Default for "no_record" or "absent")
-      // Step 1 is active
-      steps[0].classList.add("active");
-
-      badge.innerText = "On the Way";
-      badge.style.background = "#e0f2fe";
-      badge.style.color = "#0369a1";
-      badge.style.borderColor = "#7dd3fc";
-    }
   }
 
-  // 4. LOGOUT FUNCTION
+  // 6. LOGOUT
   window.logout = function () {
     if (confirm("Are you sure you want to log out?")) {
       localStorage.removeItem("currentUser");
@@ -182,3 +107,169 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   };
 });
+
+// ================= HELPER FUNCTIONS =================
+
+function updateInterfaceForMode(mode) {
+  const dropoffCard = document.querySelector("#dropoffCard");
+  const classCard = document.querySelector("#classModeCard");
+
+  // 1. Reset: Hide everything initially
+  if (dropoffCard) dropoffCard.style.display = "none";
+  if (classCard) classCard.style.display = "none";
+
+  console.log("Applying Mode:", mode);
+
+  // 2. Apply Logic
+  if (mode === "dropoff") {
+    // MORNING: Show Status Card
+    if (dropoffCard) {
+      dropoffCard.style.display = "block";
+      dropoffCard.querySelector("h2").innerText = "Morning Drop-off";
+      dropoffCard.querySelector(".header-desc").innerText =
+        "Let us know you are on the way.";
+    }
+  } else if (mode === "class") {
+    // CLASS: Show Message
+    if (classCard) classCard.style.display = "block";
+  } else if (mode === "dismissal") {
+    // DISMISSAL: Show Status Card (Context: Pickup)
+    if (dropoffCard) {
+      dropoffCard.style.display = "block";
+      dropoffCard.querySelector("h2").innerText = "Afternoon Pickup";
+      dropoffCard.querySelector(".header-desc").innerText =
+        "Let us know you are coming to pick up.";
+    }
+  }
+}
+
+function checkIfAlreadyDroppedOff(studentID) {
+  fetch("http://localhost:3000/get-student-today-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentID: studentID }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      // If Present or Late -> REPLACE CARD WITH SUCCESS MESSAGE
+      if (data && (data.status === "present" || data.status === "late")) {
+        const dropoffCard = document.getElementById("dropoffCard");
+        if (dropoffCard) {
+          dropoffCard.innerHTML = `
+            <div style="text-align: center; padding: 40px 20px;">
+                <span class="material-symbols-outlined" style="font-size: 56px; color: #2ecc71; margin-bottom: 16px;">check_circle</span>
+                <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 8px;">Safe in Class</h3>
+                <p style="color: #7f8c8d; font-size: 14px;">Attendance has been marked. Updates are now disabled.</p>
+            </div>
+          `;
+        }
+      }
+    });
+}
+
+function sendStatusUpdate(status) {
+  // STRICT CHECK: Double protection against updating in wrong mode
+  if (window.currentClassMode === "class") {
+    alert("⛔ Updates disabled while class is in session.");
+    return;
+  }
+
+  const userString = localStorage.getItem("currentUser");
+  const user = JSON.parse(userString);
+  const parentFullName = `${user.firstname} ${user.lastname}`;
+  const parentPhoto = user.profilePhoto || "";
+
+  fetch("http://localhost:3000/get-my-children", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parentName: parentFullName }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success && data.children.length > 0) {
+        const studentID = data.children[0].studentID;
+
+        // If parent clicks "At School", we assume they are dropping off
+        // We can opt to immediately lock the card OR wait for teacher scan
+        // For now, just send the update
+        return fetch("http://localhost:3000/update-queue-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            studentID: studentID,
+            mode: "dropoff",
+            status: status,
+            parentPhoto: parentPhoto,
+          }),
+        });
+      }
+    })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        alert(
+          `✅ Teacher Notified: ${
+            status === "otw" ? "On the Way" : "At School"
+          }`
+        );
+
+        // Optional: If you want to lock the card immediately after "At School" is clicked:
+        // if (status === 'here') checkIfAlreadyDroppedOff(studentID);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Error updating status.");
+    });
+}
+
+function updateVisuals(child) {
+  const childNameEl = document.querySelector(".visual-name");
+  const childImgEl = document.querySelector(".visual-avatar");
+  const gradeEl = document.querySelector(".visual-grade");
+
+  if (childNameEl)
+    childNameEl.innerText = `${child.firstname} ${child.lastname}`;
+  if (childImgEl && child.profilePhoto)
+    childImgEl.src = "http://localhost:3000" + child.profilePhoto;
+
+  if (child.gradeLevel && child.gradeLevel !== "Unassigned") {
+    if (gradeEl) gradeEl.innerText = `${child.gradeLevel} - ${child.section}`;
+    checkStudentStatus(child.studentID);
+  } else {
+    if (gradeEl) gradeEl.innerText = "No Active Class";
+  }
+}
+
+function checkStudentStatus(studentID) {
+  fetch("http://localhost:3000/get-student-today-status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentID: studentID }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // Update the Visual Tracker based on status
+        const steps = document.querySelectorAll(".tracker-step");
+        const badge = document.querySelector(".current-status-badge");
+
+        steps.forEach((s) => s.classList.remove("active", "completed"));
+
+        if (data.status === "present" || data.status === "late") {
+          steps[0].classList.add("completed");
+          steps[1].classList.add("active"); // Learning
+          badge.innerText = "Learning at School";
+          badge.style.background = "#fffbeb";
+          badge.style.color = "#b45309";
+          badge.style.borderColor = "#fcd34d";
+        } else {
+          steps[0].classList.add("active"); // On Way
+          badge.innerText = "On the Way";
+          badge.style.background = "#e0f2fe";
+          badge.style.color = "#0369a1";
+          badge.style.borderColor = "#7dd3fc";
+        }
+      }
+    });
+}

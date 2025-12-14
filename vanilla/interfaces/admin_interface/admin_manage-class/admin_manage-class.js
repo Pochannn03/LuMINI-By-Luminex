@@ -957,6 +957,7 @@ function renderStudentCards(students, container) {
     const gradeDisplay = student.gradeLevel || "Unassigned";
     const idDisplay = student.studentID || "No ID";
 
+    // 1. ADD THE EDIT BUTTON TO THE HTML BELOW
     item.innerHTML = `
         <img src="${photoUrl}" class="queue-avatar" style="object-fit:cover;" />
         <div class="queue-info">
@@ -976,12 +977,21 @@ function renderStudentCards(students, container) {
             <button class="btn-icon-tool view-student-btn" title="View Profile">
                 <span class="material-symbols-outlined">visibility</span>
             </button>
+            <button class="btn-icon-tool edit-student-btn" title="Edit Profile">
+                <span class="material-symbols-outlined">edit</span>
+            </button>
         </div>
     `;
 
-    // --- ATTACH LISTENER ---
+    // 2. ATTACH LISTENERS
+
+    // View Button
     const viewBtn = item.querySelector(".view-student-btn");
     viewBtn.addEventListener("click", () => openViewStudentModal(student));
+
+    // Edit Button (NEW)
+    const editBtn = item.querySelector(".edit-student-btn");
+    editBtn.addEventListener("click", () => openEditStudentModal(student));
 
     container.appendChild(item);
   });
@@ -1343,6 +1353,152 @@ function openViewStudentModal(student) {
   document.getElementById("viewStudentInvite").value =
     student.parentInviteCode || "N/A";
 
-  // 5. Show Modal
+  // --- 5. NEW: MEDICAL INFO (Read Only) ---
+  // Default to "None known" if the string is empty
+  document.getElementById("viewStudentAllergies").value =
+    student.allergies || "None known";
+  document.getElementById("viewStudentMedical").value =
+    student.medicalHistory || "None known";
+
+  // 6. Show Modal
   viewStudentModal.classList.add("active");
+}
+
+// ==========================================
+// MISSING LOGIC: EDIT STUDENT & AGE CALC
+// ==========================================
+
+// 1. Age Calculator Utility
+function calculateAge(birthDateString) {
+  if (!birthDateString) return "";
+  const today = new Date();
+  const birthDate = new Date(birthDateString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+
+  // Adjust if birthday hasn't occurred yet this year
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+// 2. Open Edit Student Modal
+function openEditStudentModal(student) {
+  const modal = document.getElementById("editStudentModal");
+
+  // Populate IDs and Hidden Fields
+  document.getElementById("editStudentDbId").value = student._id;
+  document.getElementById("editStudentID").value = student.studentID;
+
+  // Populate Names
+  document.getElementById("editStudentFirst").value = student.firstname;
+  document.getElementById("editStudentLast").value = student.lastname;
+
+  // Populate Birthday & Auto-Calc Age
+  const bdayInput = document.getElementById("editStudentBirthday");
+  bdayInput.value = student.birthdate || "";
+  document.getElementById("editStudentAge").value = calculateAge(
+    student.birthdate
+  );
+
+  // Populate Photo Preview
+  const photoUrl = student.profilePhoto
+    ? "http://localhost:3000" + student.profilePhoto
+    : "../../../assets/placeholder_image.jpg";
+  document.getElementById("editStudentPreview").src = photoUrl;
+
+  // Show Modal
+  modal.classList.add("active");
+}
+
+// 3. Auto-Calculate Age when Date Changes (For both Add & Edit modals)
+const addBdayInput = document.getElementById("addStudentBirthday");
+const editBdayInput = document.getElementById("editStudentBirthday");
+
+if (addBdayInput) {
+  addBdayInput.addEventListener("change", (e) => {
+    document.getElementById("addStudentAge").value = calculateAge(
+      e.target.value
+    );
+  });
+}
+
+if (editBdayInput) {
+  editBdayInput.addEventListener("change", (e) => {
+    document.getElementById("editStudentAge").value = calculateAge(
+      e.target.value
+    );
+  });
+}
+
+// 4. Save Changes Listener
+const saveStudentBtn = document.getElementById("saveStudentChangesBtn");
+if (saveStudentBtn) {
+  saveStudentBtn.addEventListener("click", () => {
+    const id = document.getElementById("editStudentDbId").value;
+    const firstname = document.getElementById("editStudentFirst").value;
+    const lastname = document.getElementById("editStudentLast").value;
+    const birthdate = document.getElementById("editStudentBirthday").value;
+    const photoInput = document.getElementById("editStudentPhotoInput");
+
+    saveStudentBtn.innerText = "Saving...";
+
+    const formData = new FormData();
+    formData.append("id", id);
+    formData.append("firstname", firstname);
+    formData.append("lastname", lastname);
+    formData.append("birthdate", birthdate);
+
+    if (photoInput.files[0]) {
+      formData.append("profile-upload", photoInput.files[0]);
+    }
+
+    fetch("http://localhost:3000/update-student", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        saveStudentBtn.innerText = "Save Changes";
+        if (data.success) {
+          alert("✅ Student Updated!");
+          document
+            .getElementById("editStudentModal")
+            .classList.remove("active");
+          loadStudentsDirectory(); // Refresh the list
+        } else {
+          alert("Error: " + data.message);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        saveStudentBtn.innerText = "Save Changes";
+        alert("Server Error");
+      });
+  });
+}
+
+// 5. Close Edit Modal Button
+const closeEditStudentBtn = document.getElementById("closeEditStudentBtn");
+if (closeEditStudentBtn) {
+  closeEditStudentBtn.addEventListener("click", () => {
+    document.getElementById("editStudentModal").classList.remove("active");
+  });
+}
+
+// OPTIONAL: Immediate Preview for Edit Student Photo
+const editPhotoInput = document.getElementById("editStudentPhotoInput");
+const editPhotoPreview = document.getElementById("editStudentPreview");
+
+if (editPhotoInput && editPhotoPreview) {
+  editPhotoInput.addEventListener("change", function (e) {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        editPhotoPreview.src = e.target.result; // Update the image tag instantly
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
 }

@@ -225,12 +225,12 @@
                 />
               </div>
 
-              <button class="btn btn-primary big-scan-btn">
+              <button class="btn btn-primary big-scan-btn" id="scanQrBtn">
                 Scan Entry QR
               </button>
             </div>
 
-            <div class="card action-card">
+            <div class="card action-card" id="dropoffCard">
               <div class="clean-header">
                 <div class="header-title-row">
                   <span
@@ -267,6 +267,22 @@
                   >
                 </button>
               </div>
+            </div>
+
+            <div
+              class="card action-card"
+              id="classModeCard"
+              style="display: none; text-align: center; padding: 40px"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 48px; color: #cbd5e1; margin-bottom: 16px"
+                >school</span
+              >
+              <h3 style="font-size: 18px; color: #64748b">Class in Session</h3>
+              <p style="color: #94a3b8; font-size: 13px">
+                Status updates are disabled until dismissal.
+              </p>
             </div>
 
             <div class="card queue-card">

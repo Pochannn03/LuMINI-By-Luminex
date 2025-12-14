@@ -62,11 +62,14 @@ const StudentSchema = new mongoose.Schema({
   studentID: String,
   firstname: String,
   lastname: String,
+  birthdate: String,
   gradeLevel: String,
   section: String,
   parentInviteCode: String,
   parentUsername: String,
   profilePhoto: String,
+  allergies: { type: String, default: "" },
+  medicalHistory: { type: String, default: "" },
 });
 const Student = mongoose.model("Student", StudentSchema);
 
@@ -95,24 +98,106 @@ const ClassSchema = new mongoose.Schema({
   section: { type: String, required: true }, // e.g. "Dahlia"
   schedule: { type: String, required: true },
   maxCapacity: { type: Number, default: 30 },
+  gradeLevel: { type: String, required: true },
+  section: { type: String, required: true },
   description: String,
   teacherUsername: String, // We link by username for simplicity in display
   teacherId: String, // We keep ID for robust linking
   students: [String], // Array of Student IDs (for future use)
+  currentMode: { type: String, default: "dropoff" },
 });
 const ClassModel = mongoose.model("Class", ClassSchema);
 
-// ATTENDANCE SCHEMA
-const AttendanceSchema = new mongoose.Schema({
-  studentID: String,
-  studentName: String, // Optional, but makes reading DB easier
-  classID: String, // Helpful for reports later
-  date: String, // Format: YYYY-MM-DD
-  status: String, // "present", "late", "absent"
-  arrivalTime: String, // "08:30" (24h format)
-  recordedAt: { type: Date, default: Date.now },
+// --- NEW: CLASS ATTENDANCE SCHEMA (The "Daily Folder") ---
+const ClassAttendanceSchema = new mongoose.Schema({
+  classID: { type: mongoose.Schema.Types.ObjectId, ref: "Class" },
+  teacherId: String,
+  className: String, // e.g. "Kindergarten - Sampaguita"
+  date: String, // "2025-12-14" (The unique ID for this folder)
+
+  // The "Contents" of the folder:
+  records: [
+    {
+      studentID: String,
+      studentName: String,
+      status: { type: String, default: "absent" },
+      arrivalTime: { type: String, default: "" },
+    },
+  ],
 });
-const Attendance = mongoose.model("Attendance", AttendanceSchema);
+
+// --- NEW: QUEUE SCHEMA (Daily Status for Drop-off/Pickup) ---
+const QueueSchema = new mongoose.Schema({
+  studentID: String,
+  studentName: String,
+  parentName: String,
+  classID: String, // To help Teacher find their own students
+  date: String, // "2025-12-14"
+  mode: String, // "dropoff" or "pickup"
+  status: String, // "otw" (On the Way), "late" (Running Late), "here" (At School), "completed"
+  time: String, // "8:15 AM"
+  profilePhoto: String,
+});
+
+// Ensure one status per student per mode per day
+QueueSchema.index({ studentID: 1, date: 1, mode: 1 }, { unique: true });
+
+const QueueModel = mongoose.model("Queue", QueueSchema);
+
+// This ensures we never have two folders for the same class on the same day
+ClassAttendanceSchema.index({ classID: 1, date: 1 }, { unique: true });
+
+const ClassAttendance = mongoose.model(
+  "ClassAttendance",
+  ClassAttendanceSchema
+);
+
+// --- HELPER: ENSURE ATTENDANCE SHEET EXISTS ---
+// This acts like "Creating the folder" if it doesn't exist yet.
+async function getOrInitAttendanceSheet(classId, teacherId, dateString) {
+  // 1. Try to find existing sheet
+  let sheet = await ClassAttendance.findOne({
+    classID: classId,
+    date: dateString,
+  });
+
+  if (!sheet) {
+    // 2. If not found, CREATE IT (The "Folder Creation" Step)
+    console.log(
+      `📂 Creating new Attendance Sheet for Class ${classId} on ${dateString}`
+    );
+
+    // Fetch the Class details to get the student list
+    const classData = await ClassModel.findById(classId);
+    if (!classData) throw new Error("Class not found");
+
+    // Fetch actual student names to populate the sheet nicely
+    const students = await Student.find({
+      studentID: { $in: classData.students },
+    });
+
+    // Build the initial empty records
+    const initialRecords = students.map((s) => ({
+      studentID: s.studentID,
+      studentName: `${s.firstname} ${s.lastname}`,
+      status: "absent", // Default state
+      arrivalTime: "",
+    }));
+
+    // Save the new "Folder"
+    sheet = new ClassAttendance({
+      classID: classId,
+      teacherId: teacherId,
+      className: `${classData.gradeLevel} - ${classData.section}`,
+      date: dateString,
+      records: initialRecords,
+    });
+
+    await sheet.save();
+  }
+
+  return sheet;
+}
 
 // --- ROUTES ---
 
@@ -264,15 +349,30 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// 5. GET MY CHILDREN
+// 5. GET MY CHILDREN (Enhanced with Class Mode)
 app.post("/get-my-children", async (req, res) => {
   const { parentName } = req.body;
 
   try {
-    // Find students linked to this parent's full name
     const children = await Student.find({ parentUsername: parentName });
 
-    res.json({ success: true, children: children });
+    // We need to attach the class mode to each child
+    const childrenWithMode = await Promise.all(
+      children.map(async (child) => {
+        // Find the class this child belongs to
+        // (Assuming you have gradeLevel/section, but searching by ID in 'students' array is safer)
+        const childClass = await ClassModel.findOne({
+          students: child.studentID,
+        });
+
+        // Convert mongoose doc to object and append mode
+        const childObj = child.toObject();
+        childObj.classMode = childClass ? childClass.currentMode : "dropoff"; // Default if unassigned
+        return childObj;
+      })
+    );
+
+    res.json({ success: true, children: childrenWithMode });
   } catch (error) {
     console.error("Error fetching children:", error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -499,19 +599,18 @@ app.post("/delete-class", async (req, res) => {
   }
 });
 
-// 3. REGISTER STUDENT (NEW)
+// B. UPDATE REGISTER STUDENT ROUTE (To save birthdate)
 app.post(
   "/register-student",
   upload.single("profile-upload"),
   async (req, res) => {
     try {
-      // Construct the student object
       const studentData = {
         firstname: req.body.firstname,
         lastname: req.body.lastname,
         studentID: req.body.studentID,
+        birthdate: req.body.birthdate, // <--- SAVE THIS
         parentInviteCode: req.body.parentInviteCode,
-        // Default values for fields we aren't setting yet
         gradeLevel: "Unassigned",
         section: "Unassigned",
         parentUsername: "Unlinked",
@@ -524,6 +623,34 @@ app.post(
       res.json({ success: true, message: "Student Registered Successfully!" });
     } catch (error) {
       console.error("Student Register Error:", error);
+      res.status(500).json({ success: false, message: "Server Error" });
+    }
+  }
+);
+
+// C. NEW ROUTE: UPDATE STUDENT
+app.post(
+  "/update-student",
+  upload.single("profile-upload"),
+  async (req, res) => {
+    try {
+      const { id, firstname, lastname, birthdate } = req.body;
+
+      const updateData = {
+        firstname,
+        lastname,
+        birthdate,
+      };
+
+      if (req.file) {
+        updateData.profilePhoto = "/uploads/" + req.file.filename;
+      }
+
+      await Student.findByIdAndUpdate(id, updateData);
+
+      res.json({ success: true, message: "Student Updated!" });
+    } catch (error) {
+      console.error("Update Student Error:", error);
       res.status(500).json({ success: false, message: "Server Error" });
     }
   }
@@ -693,55 +820,77 @@ app.post("/get-teacher-class", async (req, res) => {
   }
 });
 
-// L. SAVE ATTENDANCE
+// L. BULK SAVE ATTENDANCE (Fixed: Uses ClassAttendance)
 app.post("/save-attendance", async (req, res) => {
-  const { attendanceData } = req.body; // Expecting an ARRAY of records
+  const { attendanceData } = req.body;
+
+  if (!attendanceData || attendanceData.length === 0) {
+    return res.json({ success: true, message: "Nothing to save." });
+  }
 
   try {
-    // Loop through each record sent from frontend
+    const sample = attendanceData[0];
+    const teacherClass = await ClassModel.findOne({
+      teacherId: sample.teacherId,
+    });
+
+    // Ensure the folder exists
+    await getOrInitAttendanceSheet(
+      teacherClass._id,
+      sample.teacherId,
+      sample.date
+    );
+
+    // Update each student inside the folder
     for (const record of attendanceData) {
-      await Attendance.findOneAndUpdate(
+      await ClassAttendance.updateOne(
         {
-          studentID: record.studentID,
+          classID: teacherClass._id,
           date: record.date,
-        }, // Search Criteria
+          "records.studentID": record.studentID,
+        },
         {
           $set: {
-            status: record.status,
-            arrivalTime: record.arrivalTime,
-            studentName: record.studentName,
-            classID: record.classID,
+            "records.$.status": record.status,
+            "records.$.arrivalTime": record.arrivalTime,
           },
-        }, // Update Fields
-        { upsert: true, new: true } // Options: Create if new
+        }
       );
     }
 
-    res.json({ success: true, message: "Attendance saved successfully!" });
+    res.json({ success: true, message: "Attendance Folder Updated!" });
   } catch (error) {
-    console.error("Save Attendance Error:", error);
+    console.error("Bulk Save Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
-// M. GET STUDENT STATUS FOR TODAY
+// M. GET STUDENT STATUS FOR TODAY (Fixed: Finds Class via Student ID)
 app.post("/get-student-today-status", async (req, res) => {
-  const { studentID } = req.body;
-
-  // Get today's date in YYYY-MM-DD (matches how we saved it)
-  // Note: ensuring timezone match is key, but for localhost this works fine
+  const { studentID } = req.body; // We only need studentID now
   const today = new Date().toISOString().split("T")[0];
 
   try {
-    const record = await Attendance.findOne({
-      studentID: studentID,
+    // 1. Find the Class this student belongs to
+    // We search ClassModel for a class where the 'students' array contains this ID
+    const studentClass = await ClassModel.findOne({ students: studentID });
+
+    if (!studentClass) {
+      return res.json({ success: true, status: "no_record" });
+    }
+
+    // 2. Find the Attendance Sheet for that class & date
+    const sheet = await ClassAttendance.findOne({
+      classID: studentClass._id,
       date: today,
     });
 
-    if (record) {
-      res.json({ success: true, status: record.status }); // "present", "late", "absent"
+    if (sheet) {
+      // 3. Find the specific student record inside the array
+      const record = sheet.records.find((r) => r.studentID === studentID);
+      res.json({ success: true, status: record ? record.status : "no_record" });
     } else {
-      res.json({ success: true, status: "no_record" }); // Still "On Way"
+      res.json({ success: true, status: "no_record" });
     }
   } catch (error) {
     console.error("Status Check Error:", error);
@@ -749,86 +898,97 @@ app.post("/get-student-today-status", async (req, res) => {
   }
 });
 
-// N. QUICK MARK ATTENDANCE (QR SCAN)
+// N. QUICK MARK ATTENDANCE (QR SCAN WITH QUEUE CHECK)
 app.post("/mark-attendance-qr", async (req, res) => {
   const { studentID, teacherId } = req.body;
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const today = new Date().toISOString().split("T")[0];
   const now = new Date();
+  // --- FIX IS HERE ---
+  // Use 24-Hour Format (HH:mm) so the HTML Input can read it!
   const timeString =
     now.getHours().toString().padStart(2, "0") +
     ":" +
-    now.getMinutes().toString().padStart(2, "0"); // HH:MM
+    now.getMinutes().toString().padStart(2, "0");
 
   try {
-    // 1. Find the Teacher's Class
-    const teacherClass = await ClassModel.findOne({ teacherId: teacherId });
+    // 1. Basic Checks
+    const teacherClass = await ClassModel.findOne({ teacherId });
+    if (!teacherClass)
+      return res.json({ success: false, message: "No class assigned." });
+    if (!teacherClass.students.includes(studentID))
+      return res.json({ success: false, message: "Student not in class." });
 
-    if (!teacherClass) {
+    // --- NEW: THE GATEKEEPER CHECK ---
+    // Check if the parent has updated their status for today (Drop-off mode)
+    const queueEntry = await QueueModel.findOne({
+      studentID: studentID,
+      date: today,
+      mode: "dropoff",
+      status: { $ne: "completed" }, // Must be active (otw, late, or here)
+    });
+
+    // If no active queue entry exists, REJECT the scan
+    if (!queueEntry) {
       return res.json({
         success: false,
-        message: "You don't have a class assigned yet.",
+        message:
+          "⚠️ RESTRICTED: Parent has not updated their status yet. Please ask parent to set status to 'At School'.",
       });
     }
 
-    // 2. Check if Student is in this Class
-    // We check if the scanned ID exists in the class's student list
-    if (!teacherClass.students.includes(studentID)) {
-      return res.json({
-        success: false,
-        message: "Student not found in your class list.",
-      });
-    }
+    // 2. If Valid, Mark Attendance
+    await getOrInitAttendanceSheet(teacherClass._id, teacherId, today);
 
-    // 3. Get Student Details (for the success message)
-    const student = await Student.findOne({ studentID: studentID });
-    if (!student) {
-      return res.json({ success: false, message: "Student ID invalid." });
-    }
-
-    // 4. Mark them PRESENT
-    await Attendance.findOneAndUpdate(
+    await ClassAttendance.updateOne(
       {
-        studentID: studentID,
+        classID: teacherClass._id,
         date: today,
+        "records.studentID": studentID,
       },
       {
         $set: {
-          status: "present",
-          arrivalTime: timeString,
-          studentName: student.firstname + " " + student.lastname,
-          classID: teacherClass._id, // Link to the class object
+          "records.$.status": "present",
+          "records.$.arrivalTime": timeString,
         },
-      },
-      { upsert: true, new: true } // Create if doesn't exist
+      }
     );
 
+    // 3. CLOSE THE QUEUE TICKET (Mark as completed so it disappears from Teacher list)
+    await QueueModel.updateOne(
+      { studentID: studentID, date: today, mode: "dropoff" },
+      { $set: { status: "completed" } }
+    );
+
+    const student = await Student.findOne({ studentID });
     res.json({
       success: true,
-      message: `✅ ${student.firstname} marked Present at ${timeString}!`,
+      message: `✅ Success! ${student.firstname} marked Present.`,
     });
   } catch (error) {
-    console.error("QR Attendance Error:", error);
+    console.error("QR Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
-// O. GET TODAY'S ATTENDANCE (For loading the list)
-app.post("/get-class-attendance-today", async (req, res) => {
-  const { teacherId } = req.body;
-  const today = new Date().toISOString().split("T")[0];
+// O. GET CLASS ATTENDANCE (Loads the "Folder")
+app.post("/get-class-attendance", async (req, res) => {
+  const { teacherId, date } = req.body;
+  const targetDate = date || new Date().toISOString().split("T")[0];
 
   try {
-    // 1. Find the teacher's class first
+    // 1. Find the teacher's class ID first
     const teacherClass = await ClassModel.findOne({ teacherId });
     if (!teacherClass) return res.json({ success: false, data: [] });
 
-    // 2. Find attendance records for these students, for TODAY
-    const records = await Attendance.find({
-      classID: teacherClass._id, // Filter by Class
-      date: today, // Filter by Today
-    });
+    // 2. Get or Create the sheet for this date
+    // This effectively "Creates the folder" just by viewing the page!
+    const sheet = await getOrInitAttendanceSheet(
+      teacherClass._id,
+      teacherId,
+      targetDate
+    );
 
-    res.json({ success: true, data: records });
+    res.json({ success: true, data: sheet.records });
   } catch (error) {
     console.error("Fetch Attendance Error:", error);
     res.status(500).json({ success: false });
@@ -837,29 +997,254 @@ app.post("/get-class-attendance-today", async (req, res) => {
 
 // P. SAVE SINGLE STUDENT (Auto-Save)
 app.post("/save-single-attendance", async (req, res) => {
-  const { studentID, status, arrivalTime, teacherId } = req.body;
-  const today = new Date().toISOString().split("T")[0];
+  const { studentID, status, arrivalTime, teacherId, date } = req.body;
+  const targetDate = date || new Date().toISOString().split("T")[0];
 
   try {
     const teacherClass = await ClassModel.findOne({ teacherId });
+    if (!teacherClass) return res.json({ success: false });
 
-    // Update or Insert the record
-    await Attendance.findOneAndUpdate(
-      { studentID: studentID, date: today },
+    // 1. Ensure sheet exists
+    await getOrInitAttendanceSheet(teacherClass._id, teacherId, targetDate);
+
+    // 2. Update the specific student INSIDE the array
+    await ClassAttendance.updateOne(
+      {
+        classID: teacherClass._id,
+        date: targetDate,
+        "records.studentID": studentID,
+      },
       {
         $set: {
-          status: status,
-          arrivalTime: arrivalTime,
-          classID: teacherClass._id,
+          "records.$.status": status,
+          "records.$.arrivalTime": arrivalTime,
         },
-      },
-      { upsert: true, new: true }
+      }
     );
 
     res.json({ success: true });
   } catch (error) {
     console.error("Auto-Save Error:", error);
     res.status(500).json({ success: false });
+  }
+});
+
+// L. BULK SAVE ATTENDANCE
+app.post("/save-attendance", async (req, res) => {
+  const { attendanceData } = req.body; // Array of { studentID, status, arrivalTime, date, teacherId }
+
+  if (!attendanceData || attendanceData.length === 0) {
+    return res.json({ success: true, message: "Nothing to save." });
+  }
+
+  try {
+    // We assume all data belongs to the same class/date context for simplicity
+    const sample = attendanceData[0];
+    const teacherClass = await ClassModel.findOne({
+      teacherId: sample.teacherId,
+    });
+
+    // 1. Ensure sheet exists
+    await getOrInitAttendanceSheet(
+      teacherClass._id,
+      sample.teacherId,
+      sample.date
+    );
+
+    // 2. Perform Bulk Updates (Looping is fine for small class sizes)
+    for (const record of attendanceData) {
+      await ClassAttendance.updateOne(
+        {
+          classID: teacherClass._id,
+          date: record.date,
+          "records.studentID": record.studentID,
+        },
+        {
+          $set: {
+            "records.$.status": record.status,
+            "records.$.arrivalTime": record.arrivalTime,
+          },
+        }
+      );
+    }
+
+    res.json({ success: true, message: "Attendance Folder Updated!" });
+  } catch (error) {
+    console.error("Bulk Save Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// N. QR SCAN ATTENDANCE
+app.post("/mark-attendance-qr", async (req, res) => {
+  const { studentID, teacherId } = req.body;
+  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const timeString =
+    now.getHours().toString().padStart(2, "0") +
+    ":" +
+    now.getMinutes().toString().padStart(2, "0");
+
+  try {
+    const teacherClass = await ClassModel.findOne({ teacherId });
+    if (!teacherClass)
+      return res.json({ success: false, message: "No class found." });
+
+    // 1. Check if student belongs to class
+    if (!teacherClass.students.includes(studentID)) {
+      return res.json({
+        success: false,
+        message: "Student not in your class.",
+      });
+    }
+
+    // 2. Ensure sheet exists
+    await getOrInitAttendanceSheet(teacherClass._id, teacherId, today);
+
+    // 3. Update Status
+    const updateResult = await ClassAttendance.updateOne(
+      {
+        classID: teacherClass._id,
+        date: today,
+        "records.studentID": studentID,
+      },
+      {
+        $set: {
+          "records.$.status": "present",
+          "records.$.arrivalTime": timeString,
+        },
+      }
+    );
+
+    // Get student name for the message
+    const student = await Student.findOne({ studentID });
+
+    res.json({
+      success: true,
+      message: `✅ ${student ? student.firstname : "Student"} marked Present!`,
+    });
+  } catch (error) {
+    console.error("QR Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// Q. UPDATE STUDENT HEALTH (For Parents)
+app.post("/update-student-health", async (req, res) => {
+  const { studentID, allergies, medicalHistory } = req.body;
+
+  try {
+    // Update only the health fields
+    await Student.updateOne(
+      { studentID: studentID },
+      {
+        $set: {
+          allergies: allergies,
+          medicalHistory: medicalHistory,
+        },
+      }
+    );
+
+    res.json({ success: true, message: "Health details updated!" });
+  } catch (error) {
+    console.error("Health Update Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// R. UPDATE PARENT STATUS (Fixed: Uses req.body for photo)
+app.post("/update-queue-status", async (req, res) => {
+  const { studentID, mode, status } = req.body;
+  const today = new Date().toISOString().split("T")[0];
+
+  // Use 12h format for the Queue Card display (looks nicer)
+  const now = new Date();
+  const timeString = now.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  try {
+    const student = await Student.findOne({ studentID });
+    if (!student)
+      return res.json({ success: false, message: "Student not found" });
+
+    const studentClass = await ClassModel.findOne({ students: studentID });
+    const classID = studentClass ? studentClass._id : "Unassigned";
+
+    // --- FIX IS HERE ---
+    // We use req.body.parentPhoto (sent from JS) OR fallback to student photo
+    const photoToSave = req.body.parentPhoto || student.profilePhoto;
+
+    await QueueModel.findOneAndUpdate(
+      { studentID: studentID, date: today, mode: mode },
+      {
+        $set: {
+          studentName: `${student.firstname} ${student.lastname}`,
+          parentName: student.parentUsername || "Guardian",
+          classID: classID,
+          status: status,
+          time: timeString,
+          profilePhoto: photoToSave, // <--- Using the variable we just made
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, message: "Status Updated!" });
+  } catch (error) {
+    console.error("Queue Update Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// S. GET CLASS QUEUE (Smart Version: Auto-detects Mode)
+app.post("/get-class-queue", async (req, res) => {
+  const { teacherId } = req.body;
+  const today = new Date().toISOString().split("T")[0];
+
+  try {
+    // 1. Find Teacher's Class
+    const teacherClass = await ClassModel.findOne({ teacherId });
+    if (!teacherClass)
+      return res.json({ success: true, queue: [], currentMode: "dropoff" });
+
+    // 2. GET THE MODE FROM DB (The Source of Truth)
+    const currentMode = teacherClass.currentMode || "dropoff";
+
+    // 3. If "Class" mode, return empty immediately (no queue needed)
+    if (currentMode === "class") {
+      return res.json({ success: true, queue: [], currentMode: "class" });
+    }
+
+    // 4. Find Queue items for this class, today, and the ACTIVE mode
+    const queue = await QueueModel.find({
+      classID: teacherClass._id,
+      date: today,
+      mode: currentMode,
+      status: { $ne: "completed" },
+    });
+
+    // 5. Return both the Queue AND the Mode (so frontend can update title)
+    res.json({ success: true, queue: queue, currentMode: currentMode });
+  } catch (error) {
+    console.error("Fetch Queue Error:", error);
+    res.status(500).json({ success: false });
+  }
+});
+
+app.post("/set-class-mode", async (req, res) => {
+  const { teacherId, mode } = req.body;
+  try {
+    // Update the class assigned to this teacher
+    await ClassModel.findOneAndUpdate(
+      { teacherId: teacherId },
+      { $set: { currentMode: mode } }
+    );
+    res.json({ success: true, message: `Mode updated to ${mode}` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
