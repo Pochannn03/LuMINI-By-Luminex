@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Teacher Dashboard</title>
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
     <link rel="stylesheet" href="../../../main.css" />
     <link rel="stylesheet" href="teacher_dashboard.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -235,7 +239,7 @@
               </div>
 
               <div class="widget-actions">
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" id="startScanBtn">
                   <span class="material-symbols-outlined"
                     >center_focus_weak</span
                   >
@@ -274,6 +278,37 @@
           </div>
         </div>
       </main>
+    </div>
+
+    <div class="modal-overlay" id="qrScannerModal">
+      <div class="modal-card" style="max-width: 500px; width: 100%">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined blue-icon"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Student QR</h3>
+          </div>
+          <button class="close-modal-btn" id="closeScannerBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 0">
+          <div id="reader" style="width: 100%"></div>
+
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              padding: 20px;
+              font-size: 14px;
+            "
+          >
+            Point the camera at a Student ID QR Code.
+          </p>
+        </div>
+      </div>
     </div>
     <script src="teacher_dashboard.js"></script>
   </body>

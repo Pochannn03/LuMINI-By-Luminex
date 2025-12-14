@@ -749,6 +749,120 @@ app.post("/get-student-today-status", async (req, res) => {
   }
 });
 
+// N. QUICK MARK ATTENDANCE (QR SCAN)
+app.post("/mark-attendance-qr", async (req, res) => {
+  const { studentID, teacherId } = req.body;
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const now = new Date();
+  const timeString =
+    now.getHours().toString().padStart(2, "0") +
+    ":" +
+    now.getMinutes().toString().padStart(2, "0"); // HH:MM
+
+  try {
+    // 1. Find the Teacher's Class
+    const teacherClass = await ClassModel.findOne({ teacherId: teacherId });
+
+    if (!teacherClass) {
+      return res.json({
+        success: false,
+        message: "You don't have a class assigned yet.",
+      });
+    }
+
+    // 2. Check if Student is in this Class
+    // We check if the scanned ID exists in the class's student list
+    if (!teacherClass.students.includes(studentID)) {
+      return res.json({
+        success: false,
+        message: "Student not found in your class list.",
+      });
+    }
+
+    // 3. Get Student Details (for the success message)
+    const student = await Student.findOne({ studentID: studentID });
+    if (!student) {
+      return res.json({ success: false, message: "Student ID invalid." });
+    }
+
+    // 4. Mark them PRESENT
+    await Attendance.findOneAndUpdate(
+      {
+        studentID: studentID,
+        date: today,
+      },
+      {
+        $set: {
+          status: "present",
+          arrivalTime: timeString,
+          studentName: student.firstname + " " + student.lastname,
+          classID: teacherClass._id, // Link to the class object
+        },
+      },
+      { upsert: true, new: true } // Create if doesn't exist
+    );
+
+    res.json({
+      success: true,
+      message: `✅ ${student.firstname} marked Present at ${timeString}!`,
+    });
+  } catch (error) {
+    console.error("QR Attendance Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// O. GET TODAY'S ATTENDANCE (For loading the list)
+app.post("/get-class-attendance-today", async (req, res) => {
+  const { teacherId } = req.body;
+  const today = new Date().toISOString().split("T")[0];
+
+  try {
+    // 1. Find the teacher's class first
+    const teacherClass = await ClassModel.findOne({ teacherId });
+    if (!teacherClass) return res.json({ success: false, data: [] });
+
+    // 2. Find attendance records for these students, for TODAY
+    const records = await Attendance.find({
+      classID: teacherClass._id, // Filter by Class
+      date: today, // Filter by Today
+    });
+
+    res.json({ success: true, data: records });
+  } catch (error) {
+    console.error("Fetch Attendance Error:", error);
+    res.status(500).json({ success: false });
+  }
+});
+
+// P. SAVE SINGLE STUDENT (Auto-Save)
+app.post("/save-single-attendance", async (req, res) => {
+  const { studentID, status, arrivalTime, teacherId } = req.body;
+  const today = new Date().toISOString().split("T")[0];
+
+  try {
+    const teacherClass = await ClassModel.findOne({ teacherId });
+
+    // Update or Insert the record
+    await Attendance.findOneAndUpdate(
+      { studentID: studentID, date: today },
+      {
+        $set: {
+          status: status,
+          arrivalTime: arrivalTime,
+          classID: teacherClass._id,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Auto-Save Error:", error);
+    res.status(500).json({ success: false });
+  }
+});
+
 // --- START SERVER ---
 app.listen(3000, () =>
   console.log("🚀 Server running at http://localhost:3000")

@@ -1,231 +1,217 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // 1. Load User Data from LocalStorage
   const userString = localStorage.getItem("currentUser");
-  if (!userString) {
-    // Optional: Redirect if not logged in
-    // window.location.href = "../../../auth/login.html";
-    return;
-  }
+  if (!userString) return;
   const currentUser = JSON.parse(userString);
 
-  // 2. Update Header Profile (Name & Photo)
-  const headerName = document.querySelector(".user-name");
-  const headerImg = document.querySelector(".profile-avatar");
-
-  if (headerName)
-    headerName.innerText = `${currentUser.firstname} ${currentUser.lastname}`;
-  if (headerImg && currentUser.profilePhoto) {
-    headerImg.src = "http://localhost:3000" + currentUser.profilePhoto;
-  }
-
-  // 3. Set Date
-  const dateDisplay = document.getElementById("dateDisplay");
-  const today = new Date();
-  if (dateDisplay)
-    dateDisplay.innerText = today.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "long",
-      day: "numeric",
-    });
-
-  console.log("🕵️ DETECTIVE: My User ID is:", currentUser.id);
-
-  // 4. Load Class & Students
+  // 1. Load the Class List
   loadTeacherClass(currentUser.id);
-
-  // 5. Attach Save Button Listener
-  document
-    .getElementById("saveBtn")
-    .addEventListener("click", collectAttendanceData);
 });
 
-function loadTeacherClass(id) {
-  // Changed parameter name to 'id' for clarity
+// --- LOAD CLASS & STUDENTS ---
+function loadTeacherClass(teacherId) {
   fetch("http://localhost:3000/get-teacher-class", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ teacherId: id }), // Send 'teacherId'
+    body: JSON.stringify({ teacherId: teacherId }),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        // Update Page Title with Class Name
-        const title = document.querySelector(".page-title");
-        if (title) title.innerText = `Attendance: ${data.className}`;
+        document.querySelector(
+          ".page-title"
+        ).innerText = `Attendance: ${data.className}`;
 
+        // A. Render the student rows first
         renderStudentRows(data.students);
-      } else {
-        console.warn(data.message);
-        const listContainer = document.querySelector(".modern-table tbody");
-        listContainer.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px; color:#64748b;">${data.message}</td></tr>`;
+
+        // B. THEN, fetch today's attendance to pre-fill the status
+        loadTodayAttendance(teacherId);
       }
-    })
-    .catch((err) => console.error("Error loading class:", err));
+    });
 }
 
+// --- RENDER ROWS (Updated with "Saved" Indicator) ---
 function renderStudentRows(students) {
   const listContainer = document.querySelector(".modern-table tbody");
   listContainer.innerHTML = "";
 
-  if (students.length === 0) {
-    listContainer.innerHTML = `<tr><td colspan="3" style="text-align:center; padding:20px;">No students enrolled yet.</td></tr>`;
-    return;
-  }
-
   students.forEach((student) => {
-    const tr = document.createElement("tr");
-    tr.className = "table-row";
-    tr.setAttribute("data-student-id", student.studentID);
-    tr.setAttribute(
-      "data-student-name",
-      `${student.firstname} ${student.lastname}`
-    );
-
     const photoUrl = student.profilePhoto
       ? "http://localhost:3000" + student.profilePhoto
       : "../../../assets/placeholder_image.jpg";
 
-    const fullName = `${student.firstname} ${student.lastname}`;
+    const tr = document.createElement("tr");
+    tr.className = "table-row";
+    tr.setAttribute("data-student-id", student.studentID);
 
-    // HTML GENERATION
     tr.innerHTML = `
-            <td>
-              <div class="student-flex">
-                <div class="avatar-wrapper">
-                  <img src="${photoUrl}" class="s-avatar" />
-                  <div class="status-dot-indicator"></div>
-                </div>
+        <td>
+            <div class="student-flex">
+                <img src="${photoUrl}" class="s-avatar" />
                 <div class="s-info">
-                  <span class="s-name">${fullName}</span>
-                  <span class="s-id">ID: ${student.studentID}</span>
+                    <span class="s-name">${student.firstname} ${student.lastname}</span>
+                    <span class="s-id">ID: ${student.studentID}</span>
                 </div>
-              </div>
-            </td>
-
-            <td>
-              <input type="time" class="time-input-styled" value="" />
-            </td>
-
-            <td>
-              <div class="status-segment">
-                <label class="segment-opt present">
-                  <input type="radio" name="st_${student.studentID}" value="present" />
-                  Present
+            </div>
+        </td>
+        <td>
+            <input type="time" class="time-input-styled" id="time_${student.studentID}" onchange="triggerAutoSave('${student.studentID}')" />
+        </td>
+        <td>
+            <div class="status-segment">
+                <label class="segment-opt present" onclick="selectStatus('${student.studentID}', 'present')">
+                    <input type="radio" name="st_${student.studentID}" value="present" /> Present
                 </label>
-                <label class="segment-opt late">
-                  <input type="radio" name="st_${student.studentID}" value="late" />
-                  Late
+                <label class="segment-opt late" onclick="selectStatus('${student.studentID}', 'late')">
+                    <input type="radio" name="st_${student.studentID}" value="late" /> Late
                 </label>
-                <label class="segment-opt absent active"> 
-                  <input type="radio" name="st_${student.studentID}" value="absent" checked />
-                  Absent
+                <label class="segment-opt absent active" onclick="selectStatus('${student.studentID}', 'absent')">
+                    <input type="radio" name="st_${student.studentID}" value="absent" checked /> Absent
                 </label>
-              </div>
-            </td>
-        `;
-
+            </div>
+        </td>
+        <td style="text-align: center;">
+            <span class="save-indicator" id="save_icon_${student.studentID}" style="color: #cbd5e1; font-size: 20px;">
+                <span class="material-symbols-outlined">cloud_off</span>
+            </span>
+        </td>
+    `;
     listContainer.appendChild(tr);
   });
-
-  attachToggleListeners();
-  updateStats();
 }
 
-function attachToggleListeners() {
-  const toggles = document.querySelectorAll(".segment-opt");
-
-  toggles.forEach((btn) => {
-    btn.addEventListener("click", function () {
-      // Visual Update
-      const group = this.parentElement;
-      group
-        .querySelectorAll(".segment-opt")
-        .forEach((sib) => sib.classList.remove("active"));
-      this.classList.add("active");
-
-      // Check input
-      this.querySelector("input").checked = true;
-
-      updateStats();
-    });
-  });
-}
-
-function updateStats() {
-  // Logic: Present AND Late both count as "Present" in the summary box
-  const totalPresent = document.querySelectorAll(
-    ".segment-opt.present input:checked"
-  ).length;
-  const totalLate = document.querySelectorAll(
-    ".segment-opt.late input:checked"
-  ).length;
-
-  // Combine them
-  const combinedPresent = totalPresent + totalLate;
-
-  const totalAbsent = document.querySelectorAll(
-    ".segment-opt.absent input:checked"
-  ).length;
-
-  const countPresentEl = document.getElementById("countPresent");
-  const countAbsentEl = document.getElementById("countAbsent");
-
-  if (countPresentEl) countPresentEl.innerText = combinedPresent;
-  if (countAbsentEl) countAbsentEl.innerText = totalAbsent;
-}
-
-function collectAttendanceData() {
-  const attendancePayload = [];
-  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-  const saveBtn = document.getElementById("saveBtn");
-
-  // Loop through rows to gather data
-  document.querySelectorAll(".table-row").forEach((row) => {
-    const studentId = row.getAttribute("data-student-id");
-    const studentName = row.getAttribute("data-student-name");
-
-    // Get Status
-    const statusInput = row.querySelector('input[type="radio"]:checked');
-    const status = statusInput ? statusInput.value : "absent";
-
-    // Get Time
-    const timeInput = row.querySelector(".time-input-styled");
-    const timeValue = timeInput ? timeInput.value : ""; // Returns "HH:mm" (24h) or empty
-
-    attendancePayload.push({
-      studentID: studentId,
-      studentName: studentName,
-      date: date,
-      status: status,
-      arrivalTime: timeValue,
-      classID: "Class_ID_Here", // Optional: You could store this in a hidden var if needed
-    });
-  });
-
-  // UI Feedback
-  saveBtn.innerText = "Saving...";
-
-  // SEND TO SERVER
-  fetch("http://localhost:3000/save-attendance", {
+// --- LOAD TODAY'S DATA (The Missing Link!) ---
+function loadTodayAttendance(teacherId) {
+  fetch("http://localhost:3000/get-class-attendance-today", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ attendanceData: attendancePayload }),
+    body: JSON.stringify({ teacherId: teacherId }),
+  })
+    .then((res) => res.json())
+    .then((response) => {
+      if (response.success) {
+        const records = response.data;
+
+        records.forEach((record) => {
+          // 1. Find the row for this student
+          const studentID = record.studentID;
+
+          // 2. Update Status Visuals
+          if (record.status) {
+            selectStatusUIOnly(studentID, record.status);
+          }
+
+          // 3. Update Time
+          if (record.arrivalTime) {
+            document.getElementById(`time_${studentID}`).value =
+              record.arrivalTime;
+          }
+
+          // 4. Mark as "Saved"
+          markAsSaved(studentID);
+        });
+
+        updateStats();
+      }
+    });
+}
+
+// --- UI HELPERS ---
+
+// Helper: Just updates the colors, doesn't save (used during loading)
+function selectStatusUIOnly(id, status) {
+  const row = document.querySelector(`tr[data-student-id="${id}"]`);
+  if (!row) return;
+
+  // Reset all
+  row
+    .querySelectorAll(".segment-opt")
+    .forEach((opt) => opt.classList.remove("active"));
+
+  // Set active
+  const activeOpt = row.querySelector(`.segment-opt.${status}`);
+  if (activeOpt) {
+    activeOpt.classList.add("active");
+    activeOpt.querySelector("input").checked = true;
+  }
+}
+
+// Helper: Updates colors AND SAVES (used when clicking)
+function selectStatus(id, status) {
+  selectStatusUIOnly(id, status);
+
+  // Auto-fill time if Present/Late and time is empty
+  const timeInput = document.getElementById(`time_${id}`);
+  if ((status === "present" || status === "late") && !timeInput.value) {
+    const now = new Date();
+    const timeString =
+      now.getHours().toString().padStart(2, "0") +
+      ":" +
+      now.getMinutes().toString().padStart(2, "0");
+    timeInput.value = timeString;
+  } else if (status === "absent") {
+    timeInput.value = "";
+  }
+
+  triggerAutoSave(id);
+}
+
+// --- AUTO SAVE LOGIC ---
+function triggerAutoSave(studentID) {
+  const userString = localStorage.getItem("currentUser");
+  const teacherId = JSON.parse(userString).id;
+
+  // Get current values
+  const row = document.querySelector(`tr[data-student-id="${studentID}"]`);
+  const status = row.querySelector('input[type="radio"]:checked').value;
+  const time = document.getElementById(`time_${studentID}`).value;
+
+  // Show "Saving..." icon (Cloud Upload)
+  const icon = document.getElementById(`save_icon_${studentID}`);
+  icon.innerHTML =
+    '<span class="material-symbols-outlined">cloud_upload</span>';
+  icon.style.color = "#f59e0b"; // Orange
+
+  // Send to Server
+  fetch("http://localhost:3000/save-single-attendance", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      studentID: studentID,
+      status: status,
+      arrivalTime: time,
+      teacherId: teacherId,
+    }),
   })
     .then((res) => res.json())
     .then((data) => {
-      saveBtn.innerHTML = `Saved <span class="material-symbols-outlined">check</span>`;
-      setTimeout(() => {
-        saveBtn.innerHTML = `Save Attendance <span class="material-symbols-outlined">save</span>`;
-      }, 2000);
-
       if (data.success) {
-        alert("✅ Attendance Saved Successfully!");
-      } else {
-        alert("Error: " + data.message);
+        markAsSaved(studentID);
+        updateStats();
       }
-    })
-    .catch((err) => {
-      console.error(err);
-      saveBtn.innerText = "Save Failed";
     });
+}
+
+function markAsSaved(id) {
+  const icon = document.getElementById(`save_icon_${id}`);
+  if (icon) {
+    icon.innerHTML =
+      '<span class="material-symbols-outlined">cloud_done</span>';
+    icon.style.color = "#2ecc71"; // Green
+  }
+}
+
+function updateStats() {
+  const totalPresent = document.querySelectorAll(
+    ".segment-opt.present.active"
+  ).length;
+  const totalLate = document.querySelectorAll(
+    ".segment-opt.late.active"
+  ).length;
+  const totalAbsent = document.querySelectorAll(
+    ".segment-opt.absent.active"
+  ).length;
+
+  document.getElementById("countPresent").innerText = totalPresent + totalLate;
+  document.getElementById("countAbsent").innerText = totalAbsent;
 }

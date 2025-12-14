@@ -71,33 +71,51 @@ document.addEventListener("DOMContentLoaded", function () {
     .then((res) => res.json())
     .then((data) => {
       if (data.success && data.children.length > 0) {
-        // We'll take the first child found for now
         const child = data.children[0];
 
-        // --- A. UPDATE TEXT INFO ---
+        // --- 1. SET BASIC INFO ---
         const childNameEl = document.querySelector(".visual-name");
-        const childGradeEl = document.querySelector(".visual-grade");
-
         if (childNameEl)
           childNameEl.innerText = `${child.firstname} ${child.lastname}`;
-        if (childGradeEl)
-          childGradeEl.innerText = `${child.gradeLevel || "Grade N/A"} - ${
-            child.section || "Section N/A"
-          }`;
 
-        // --- B. UPDATE PROFILE PHOTO ---
+        // Photo
         const childImgEl = document.querySelector(".visual-avatar");
-        if (childImgEl) {
-          // Use the photo if it exists, otherwise keep the placeholder
-          if (child.profilePhoto) {
-            childImgEl.src = "http://localhost:3000" + child.profilePhoto;
-          }
+        if (childImgEl && child.profilePhoto) {
+          childImgEl.src = "http://localhost:3000" + child.profilePhoto;
         }
 
-        // --- C. CHECK ATTENDANCE STATUS (The Progress Bar) ---
-        checkStudentStatus(child.studentID);
+        // --- 2. THE FORK IN THE ROAD (Enrollment Check) ---
+        const isEnrolled =
+          child.gradeLevel && child.gradeLevel !== "Unassigned";
+
+        if (!isEnrolled) {
+          // === PATH A: NOT ENROLLED ===
+
+          // Text Update
+          document.querySelector(".visual-grade").innerText = "No Active Class";
+
+          // Badge Update
+          const badge = document.querySelector(".current-status-badge");
+          badge.innerText = "Currently not enrolled in any class";
+          badge.style.background = "#f1f5f9"; // Neutral Gray
+          badge.style.color = "#94a3b8"; // Text Gray
+          badge.style.borderColor = "#e2e8f0";
+
+          // Progress Bar: TURN OFF ALL LIGHTS
+          const steps = document.querySelectorAll(".tracker-step");
+          steps.forEach((step) => step.classList.remove("active", "completed"));
+        } else {
+          // === PATH B: ENROLLED (Normal Behavior) ===
+
+          document.querySelector(
+            ".visual-grade"
+          ).innerText = `${child.gradeLevel} - ${child.section}`;
+
+          // Only check attendance if they are actually in a class!
+          checkStudentStatus(child.studentID);
+        }
       } else {
-        console.log("No linked children found for: " + parentFullName);
+        console.log("No linked children found.");
         document.querySelector(".visual-name").innerText = "No Student Linked";
         document.querySelector(".visual-grade").innerText =
           "Please contact admin";
