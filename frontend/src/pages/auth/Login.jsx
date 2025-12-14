@@ -50,7 +50,6 @@ export default function Login() {
       if (response.ok) {
         navigate('/dashboard'); 
       } else {
-        // If status is 401 (Unauthorized), force the message
         if (response.status === 401) {
           setError("Invalid Credentials");
         } else {
@@ -75,7 +74,7 @@ export default function Login() {
           <div className="w-[50px] h-1.5 mb-[30px] rounded-[10px] md:hidden"></div>
 
         <div className="sign-in-form-wrapper">
-          <h1 className="after-word">
+          <h1 className="after-word text-center">
             Sign In
           </h1>
 
@@ -106,13 +105,13 @@ export default function Login() {
                 <a href="#" className="text-cbrand-blue no-underline font-medium" >Forgot Password</a>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full border-0 rounded-[27px] no-underline">
+            <button type="submit" className="btn btn-primary w-full border-0 rounded-[27px] no-underline h-[52px] py-0 px-8 text-[16px] font-medium">
               Sign in
             </button>
 
             <div className="flex items-center w-full my-6 mx-0">
               <div className="grow h-px bg-[#eee]"></div>
-              <p className="text-clight my-0 mx-4 text-[14px]">or</p>
+              <p className="text-clight my-0 mx-4 text-center text-[14px]">or</p>
               <div className="grow h-px bg-[#eee]"></div>
             </div>
 
@@ -120,9 +119,7 @@ export default function Login() {
               Don't have an account?
             </div>
 
-            <a href="#" className="btn btn-outline mt-4">
-              Register
-            </a>
+            <Link to="/register" className="btn btn-outline mt-4 h-[52px] py-0 px-8 rounded-[27px] text-[16px] font-medium">Sign Up</Link>
 
           </form>
 

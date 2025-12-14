@@ -1,15 +1,27 @@
 @import "tailwindcss";
 
 :root {
+  /* Text Color */
   --brand-blue: #39a8ed;
   --brand-dark: #297aac;
   --text-dark: #2c3e50;
   --text-light: #5f6c7b;
-  --red-bg: #f04646;
   --red-text: #ff2525;
   --yellow-text: #ffb300;
   --green: #4ade80;
   --white: #ffffff;
+
+  /* For Background */
+  --bg-gray: #f8fafc;
+  --red-bg: #f04646;
+
+  /* Wave Background */
+  --wave-front: #39a8ed; 
+  --wave-back: #bde0fe; 
+
+  /* Shadows */
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 10px 25px rgba(57, 168, 237, 0.25);
 }
 
 body{
@@ -29,9 +41,15 @@ h1 {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 8px;
-  text-align: center;
 }
 
+p {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-light);
+  width: 100%;
+  line-height: 1.625;
+}
 
 a {
   font-weight: 500;
@@ -61,6 +79,8 @@ a:hover {
   color: var(--brand-blue);
 }
 
+/* Links */
+
 .link{
   color: var(--text-light);
   text-decoration: none;
@@ -72,16 +92,13 @@ a:hover {
   color: var(--brand-blue);
 }
 
+/* Buttons */
+
 .btn{
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  height: 52px;
-  padding: 0 32px;
-  border-radius: 30px;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 16px;
   transition: all 0.2s ease;
   cursor: pointer;
 }
@@ -110,4 +127,67 @@ a:hover {
   text-decoration: none;
   color: var(--brand-blue);
   transform: translateY(-3px);
+}
+
+/* Cards */
+
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  height: 140px;
+  width: 130px;
+
+  background-color: var(--bg-gray);
+  border: 2px solid transparent;
+  border-radius: 24px;
+  
+  text-decoration: none;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-wrapper:hover {
+  transform: translateY(-8px);
+  background-color: var(--white);
+  border-color: var(--brand-blue);
+  box-shadow: var(--shadow-hover);
+}
+
+.card-wrapper:active {
+  transform: scale(0.96);
+}
+
+
+/* Wave */
+
+.wave::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 45vh;
+  
+  background-color: var(--wave-back);
+  clip-path: ellipse(90% 100% at 30% 100%);
+  z-index: -2;
+}
+
+.wave::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 35vh; 
+  
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-dark) 100%); /* variables from main.css */
+  
+  clip-path: ellipse(90% 100% at 70% 100%);
+  z-index: -1;
 }
