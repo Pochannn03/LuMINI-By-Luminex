@@ -862,47 +862,72 @@ app.post("/save-attendance", async (req, res) => {
   }
 });
 
-// M. GET STUDENT STATUS FOR TODAY (Fixed: Uses PH Time to match QR Scan)
+// M. GET STUDENT STATUS FOR TODAY (Smart Priority Logic)
 app.post("/get-student-today-status", async (req, res) => {
   const { studentID } = req.body;
-
-  // ERROR WAS HERE: const today = new Date().toISOString().split("T")[0];
-  const today = getTodayPH(); // <--- FIXED: Now looks in the correct folder!
+  const today = getTodayPH(); // Uses PH Time
 
   try {
-    // 1. Find the Class this student belongs to
-    const studentClass = await ClassModel.findOne({ students: studentID });
-
-    if (!studentClass) {
-      return res.json({ success: true, status: "no_record" });
-    }
-
-    // 2. Find the Attendance Sheet for that class & date
-    const sheet = await ClassAttendance.findOne({
-      classID: studentClass._id,
+    // 1. GET QUEUE DATA
+    const queueEntry = await QueueModel.findOne({
+      studentID: studentID,
       date: today,
-    });
+      // We don't filter by mode here, we want to see ANY activity
+    }).sort({ _id: -1 }); // Get latest
 
-    if (sheet) {
-      // 3. Find the specific student record inside the array
-      const record = sheet.records.find((r) => r.studentID === studentID);
-      res.json({ success: true, status: record ? record.status : "no_record" });
-    } else {
-      res.json({ success: true, status: "no_record" });
+    // 2. GET ATTENDANCE DATA
+    const studentClass = await ClassModel.findOne({ students: studentID });
+    let attendanceStatus = "no_record";
+
+    if (studentClass) {
+      const sheet = await ClassAttendance.findOne({
+        classID: studentClass._id,
+        date: today,
+      });
+      if (sheet) {
+        const record = sheet.records.find((r) => r.studentID === studentID);
+        if (record) attendanceStatus = record.status;
+      }
     }
+
+    // 3. DETERMINE THE "TRUTH" TO SEND TO PARENT
+
+    // SCENARIO A: AFTERNOON PICKUP COMPLETE
+    // If the Queue explicitly says "Dismissal" and "Completed", that is the priority event.
+    if (
+      queueEntry &&
+      queueEntry.mode === "dismissal" &&
+      queueEntry.status === "completed"
+    ) {
+      return res.json({ success: true, status: "completed" });
+    }
+
+    // SCENARIO B: SAFE IN CLASS (Morning or Mid-day)
+    // If they are Present or Late, they are safe.
+    // (Note: Even if Morning Queue is 'completed', we prefer returning 'present' here
+    // so the progress bar works correctly).
+    if (attendanceStatus === "present" || attendanceStatus === "late") {
+      return res.json({ success: true, status: attendanceStatus });
+    }
+
+    // SCENARIO C: STILL IN QUEUE (On the way / At School waiting)
+    if (queueEntry && queueEntry.status !== "completed") {
+      return res.json({ success: true, status: queueEntry.status });
+    }
+
+    // DEFAULT
+    res.json({ success: true, status: "no_record" });
   } catch (error) {
     console.error("Status Check Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
   }
 });
 
-// N. QUICK MARK ATTENDANCE (QR SCAN WITH QUEUE CHECK)
-// N. QUICK MARK ATTENDANCE (QR SCAN WITH QUEUE CHECK)
+// N. QUICK MARK ATTENDANCE (QR SCAN WITH QUEUE CHECK - ROBUST)
 app.post("/mark-attendance-qr", async (req, res) => {
   const { studentID, teacherId } = req.body;
 
-  const today = getTodayPH(); // <--- FIXED: Uses PH Time
-
+  const today = getTodayPH(); // Uses PH Time
   const now = new Date();
   const timeString =
     now.getHours().toString().padStart(2, "0") +
@@ -931,33 +956,60 @@ app.post("/mark-attendance-qr", async (req, res) => {
       });
     }
 
-    // Mark Attendance
+    // 1. Ensure sheet exists
     await getOrInitAttendanceSheet(teacherClass._id, teacherId, today);
 
-    await ClassAttendance.updateOne(
-      {
-        classID: teacherClass._id,
-        date: today,
-        "records.studentID": studentID,
-      },
-      {
-        $set: {
-          "records.$.status": "present",
-          "records.$.arrivalTime": timeString,
-        },
-      }
-    );
+    // 2. CHECK IF RECORD EXISTS
+    // We check if this specific student is already in the 'records' array
+    const sheet = await ClassAttendance.findOne({
+      classID: teacherClass._id,
+      date: today,
+      "records.studentID": studentID,
+    });
 
-    // Close Queue Ticket
+    if (sheet) {
+      // A. RECORD EXISTS: Update it
+      await ClassAttendance.updateOne(
+        {
+          classID: teacherClass._id,
+          date: today,
+          "records.studentID": studentID,
+        },
+        {
+          $set: {
+            "records.$.status": "present",
+            "records.$.arrivalTime": timeString,
+          },
+        }
+      );
+    } else {
+      // B. RECORD MISSING (Ghost Student): Push new record!
+      const student = await Student.findOne({ studentID });
+      await ClassAttendance.updateOne(
+        { classID: teacherClass._id, date: today },
+        {
+          $push: {
+            records: {
+              studentID: studentID,
+              studentName: `${student.firstname} ${student.lastname}`,
+              status: "present",
+              arrivalTime: timeString,
+            },
+          },
+        }
+      );
+    }
+
+    // 3. Close Queue Ticket
     await QueueModel.updateOne(
       { studentID: studentID, date: today, mode: "dropoff" },
       { $set: { status: "completed" } }
     );
 
-    const student = await Student.findOne({ studentID });
+    const studentData = await Student.findOne({ studentID });
     res.json({
       success: true,
-      message: `✅ Success! ${student.firstname} marked Present.`,
+      message: `✅ Success! ${studentData.firstname} marked Present.`,
     });
   } catch (error) {
     console.error("QR Error:", error);
@@ -1238,61 +1290,74 @@ app.post("/set-class-mode", async (req, res) => {
   }
 });
 
-// T. VERIFY GUARDIAN PICKUP QR
+// T. VERIFY GUARDIAN PICKUP QR (STEP 1: FETCH DETAILS)
 app.post("/verify-pickup-qr", async (req, res) => {
   const { qrString, teacherId } = req.body;
-  const today = getTodayPH(); // Use PH Time
 
   // 1. VALIDATE FORMAT
-  // Expected: "STUDENTID-PARENT-PARENTNAME-TIMESTAMP"
   const parts = qrString.split("-PARENT-");
-
   if (parts.length !== 2) {
-    return res.json({
-      success: false,
-      message: "❌ Invalid QR: Not a Guardian Pass.",
-    });
+    return res.json({ success: false, message: "❌ Invalid QR Format" });
   }
 
-  const studentID = parts[0]; // "2025-001"
-  const rest = parts[1].split("-"); // ["JoseRizal", "1702658400000"]
-  const parentName = rest[0];
+  const studentID = parts[0];
+  const rest = parts[1].split("-");
+  const parentName = rest[0]; // Simple string from QR (or fetch real parent doc if preferred)
 
   try {
-    const teacherClass = await ClassModel.findOne({ teacherId });
-    if (!teacherClass)
-      return res.json({ success: false, message: "No class assigned." });
-
-    // 2. CHECK IF STUDENT BELONGS TO CLASS
-    if (!teacherClass.students.includes(studentID)) {
-      return res.json({
-        success: false,
-        message: "⚠️ Student not in your class.",
-      });
-    }
-
-    // 3. MARK ATTENDANCE (As "Picked Up" or just note the time)
-    // We update the existing record to say they departed
-    // Note: Usually schools mark "Present" in AM and "Dismissed" in PM.
-    // We will update the Queue status to "completed" primarily.
-
-    await QueueModel.updateOne(
-      { studentID: studentID, date: today, mode: "dismissal" },
-      { $set: { status: "completed" } } // Removes them from the queue list
-    );
-
-    // Optional: Log it in Attendance Sheet if you want a "Departure Time"
-    // For now, we just acknowledge the secure handoff.
-
+    // 2. GET REAL DATA FROM DB
     const student = await Student.findOne({ studentID });
+    if (!student)
+      return res.json({ success: false, message: "Student not found" });
 
+    // Find the Parent object to get their real photo (Optional, but better security)
+    // We can try to match by username or just use the photo they uploaded to the Queue
+    // For now, let's grab the Queue entry which has the most recent photo/status
+    const today = getTodayPH();
+    const queueEntry = await QueueModel.findOne({
+      studentID: studentID,
+      date: today,
+      mode: "dismissal",
+    });
+
+    // Return the data for the Teacher to review
     res.json({
       success: true,
-      message: `✅ Authorized! \nStudent: ${student.firstname}\nGuardian: ${parentName}`,
+      student: {
+        name: `${student.firstname} ${student.lastname}`,
+        photo: student.profilePhoto,
+        id: student.studentID,
+      },
+      parent: {
+        name: queueEntry ? queueEntry.parentName : parentName,
+        photo: queueEntry ? queueEntry.profilePhoto : null, // This is the photo they uploaded/have
+      },
     });
   } catch (error) {
-    console.error("Pickup Verification Error:", error);
+    console.error("Verify Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// U. AUTHORIZE PICKUP (STEP 2: COMMIT)
+app.post("/authorize-pickup", async (req, res) => {
+  const { studentID } = req.body;
+  const today = getTodayPH();
+
+  try {
+    // 1. MARK QUEUE AS COMPLETED
+    // This tells the Parent Dashboard "You are done"
+    await QueueModel.updateOne(
+      { studentID: studentID, date: today, mode: "dismissal" },
+      { $set: { status: "completed" } }
+    );
+
+    // 2. OPTIONAL: UPDATE ATTENDANCE TO 'DISMISSED'
+    // ... code here if you want to track dismissal time in the main sheet ...
+
+    res.json({ success: true, message: "Pickup Confirmed" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Authorization Failed" });
   }
 });
 

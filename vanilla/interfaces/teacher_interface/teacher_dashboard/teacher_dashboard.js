@@ -444,55 +444,65 @@ function startGuardianCamera() {
     .catch((err) => alert("Permission Denied: " + err));
 }
 
-// 4. SCAN SUCCESS (Updated with Verification Logic)
+// 4. SCAN SUCCESS (Step 1: Open Review Modal)
+let pendingStudentID = null; // Store ID temporarily for the confirm button
+
 function onGuardianSuccess(decodedText, decodedResult) {
   if (guardianScanner.isScanning) {
     guardianScanner.pause();
   }
 
-  console.log(`Guardian Scanned: ${decodedText}`);
-
-  // 1. Client-Side Format Check (Fail fast)
+  // 1. Format Check
   if (!decodedText.includes("-PARENT-")) {
-    alert(
-      "⛔ WRONG QR CODE.\n\nThis looks like a Student ID or unknown code.\nPlease ask the parent for their 'Pickup Pass'."
-    );
+    alert("⛔ WRONG QR CODE.");
     guardianScanner.resume();
     return;
   }
 
-  // 2. Get Teacher ID
   const userString = localStorage.getItem("currentUser");
   const teacherId = JSON.parse(userString).id;
 
-  // 3. Verify with Server
+  // 2. Verify & Fetch Data
   fetch("http://localhost:3000/verify-pickup-qr", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      qrString: decodedText,
-      teacherId: teacherId,
-    }),
+    body: JSON.stringify({ qrString: decodedText, teacherId: teacherId }),
   })
     .then((res) => res.json())
     .then((data) => {
       if (data.success) {
-        // SUCCESS!
-        alert(data.message);
-        stopGuardianCamera(); // Close scanner, job done.
+        // 3. POPULATE MODAL
+        document.getElementById("authStudentName").innerText =
+          data.student.name;
+        document.getElementById("authParentName").innerText = data.parent.name;
 
-        // Refresh Queue immediately to remove the card
-        fetchQueueData();
+        const sImg = document.getElementById("authStudentImg");
+        const pImg = document.getElementById("authParentImg");
+
+        if (sImg)
+          sImg.src = data.student.photo
+            ? "http://localhost:3000" + data.student.photo
+            : "../../../assets/placeholder_image.jpg";
+        if (pImg)
+          pImg.src = data.parent.photo
+            ? "http://localhost:3000" + data.parent.photo
+            : "../../../assets/placeholder_image.jpg";
+
+        // Store ID for the next step
+        pendingStudentID = data.student.id;
+
+        // 4. SHOW MODAL
+        stopGuardianCamera(); // Close camera
+        document.getElementById("pickupAuthModal").classList.add("active");
       } else {
-        // FAILED (Wrong class, expired, etc)
         alert(data.message);
         guardianScanner.resume();
       }
     })
     .catch((err) => {
       console.error(err);
-      alert("Server Connection Error");
-      stopGuardianCamera();
+      alert("Connection Error");
+      guardianScanner.resume();
     });
 }
 
@@ -513,3 +523,53 @@ function stopGuardianCamera() {
     guardianModal.classList.remove("active");
   }
 }
+
+// ==========================================
+// AUTHORIZATION MODAL LOGIC
+// ==========================================
+
+const authModal = document.getElementById("pickupAuthModal");
+const confirmBtn = document.getElementById("confirmPickupBtn");
+const cancelBtn = document.getElementById("cancelAuthBtn");
+const closeAuthBtn = document.getElementById("closeAuthBtn");
+
+if (confirmBtn) {
+  confirmBtn.addEventListener("click", () => {
+    if (!pendingStudentID) return;
+
+    // CALL SERVER TO CONFIRM
+    fetch("http://localhost:3000/authorize-pickup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentID: pendingStudentID }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // 1. Close Modal
+          authModal.classList.remove("active");
+
+          // 2. Show Success Message
+          alert(
+            `✅ SUCCESS!\n${
+              document.getElementById("authStudentName").innerText
+            } has been officially dismissed.`
+          );
+
+          // 3. Refresh Queue (Card should disappear)
+          fetchQueueData();
+        } else {
+          alert("Error authorizing pickup.");
+        }
+      });
+  });
+}
+
+// Cancel Logic
+function closeAuthModal() {
+  authModal.classList.remove("active");
+  pendingStudentID = null;
+}
+
+if (cancelBtn) cancelBtn.addEventListener("click", closeAuthModal);
+if (closeAuthBtn) closeAuthBtn.addEventListener("click", closeAuthModal);

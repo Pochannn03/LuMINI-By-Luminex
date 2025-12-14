@@ -228,30 +228,37 @@ function checkIfAlreadyDroppedOff(studentID) {
         // 1. UPDATE VISUAL TRACKER
         renderVisualTracker(data.status);
 
-        // 2. SMART TOGGLE LOGIC
+        // 2. CHECK FOR PICKUP COMPLETION (Afternoon Logic)
+        if (data.status === "completed") {
+          const isPassActive = localStorage.getItem("lumini_pass_active");
+          if (isPassActive === "true") {
+            killPass();
+            setTimeout(() => {
+              alert(
+                "🎉 PICKUP SUCCESSFUL!\n\nThe teacher has confirmed the handover."
+              );
+            }, 100);
+          }
+        }
+
+        // 3. SHOW "SAFE IN CLASS" (Morning Logic)
         const buttons = document.getElementById("statusButtonsContainer");
         const safeMsg = document.getElementById("safeMessageContainer");
-        const currentMode = window.currentClassMode || "dropoff"; // Default safety
 
-        // Definition: We only hide buttons if it's MORNING and they are ALREADY HERE.
-        const isSafeAndMorning =
-          (data.status === "present" || data.status === "late") &&
-          currentMode === "dropoff";
+        // Simple Rule: If Present/Late, show Safe Message.
+        // We only hide buttons if we are in Dropoff mode (to avoid hiding pickup buttons if they stay present)
+        const isSafe = data.status === "present" || data.status === "late";
+        const isDropoffMode =
+          (window.currentClassMode || "dropoff") === "dropoff";
 
-        if (isSafeAndMorning) {
-          // Case A: Job Done for the Morning -> Show Checkmark
+        if (isSafe && isDropoffMode) {
           if (buttons) buttons.style.display = "none";
           if (safeMsg) safeMsg.style.display = "block";
-
-          console.log("✅ Drop-off Complete. Stopping poller.");
           if (statusPollInterval) clearInterval(statusPollInterval);
         } else {
-          // Case B: Either Absent OR It's Dismissal Time -> Show Buttons!
-          if (buttons) buttons.style.display = "flex"; // Restore flex layout
+          // Default: Show buttons (unless it's Class mode, handled by updateInterfaceForMode)
+          if (buttons) buttons.style.display = "flex";
           if (safeMsg) safeMsg.style.display = "none";
-
-          // NOTE: We do NOT stop the poller here, because if it's Dismissal,
-          // we are waiting for the next status change (Pickup Completed).
         }
       }
     })
@@ -392,7 +399,6 @@ function startModePolling(parentFullName) {
   }, 3000); // Check every 3 seconds
 }
 
-// NEW HELPER: Updates the Visual Tracker UI based on status string
 function renderVisualTracker(status) {
   const steps = document.querySelectorAll(".tracker-step");
   const badge = document.querySelector(".current-status-badge");
@@ -400,10 +406,11 @@ function renderVisualTracker(status) {
   // Reset all
   steps.forEach((s) => s.classList.remove("active", "completed"));
 
+  // STANDARD CHECK (Server now guarantees 'present' for morning safety)
   if (status === "present" || status === "late") {
     // STATE: LEARNING (Complete)
-    steps[0].classList.add("completed"); // On Way done
-    steps[1].classList.add("active"); // Learning active
+    steps[0].classList.add("completed");
+    steps[1].classList.add("active");
 
     if (badge) {
       badge.innerText = "Learning at School";
@@ -413,7 +420,7 @@ function renderVisualTracker(status) {
     }
   } else {
     // STATE: ON THE WAY (Default)
-    steps[0].classList.add("active"); // On Way active
+    steps[0].classList.add("active");
 
     if (badge) {
       badge.innerText = "On the Way";
@@ -610,11 +617,33 @@ function showPassModal(studentName, secretString, openModal = true) {
     };
   }
 
-  // 4. Show Modal (Only if requested, e.g. on first scan)
+  // 1. Show Modal
   if (modal && openModal) modal.classList.add("active");
 
-  // 5. Start the Smart Timer
+  // 2. Start Timer
   startPassTimer();
+
+  // 3. FORCE FAST POLLING (Check every 1 second while pass is open)
+  // This ensures the parent gets the "Success" msg instantly when teacher clicks button.
+  if (window.fastPoll) clearInterval(window.fastPoll);
+
+  // We grab the studentID from localStorage since we saved it during generation
+  const userString = localStorage.getItem("currentUser");
+  const user = JSON.parse(userString);
+
+  // We need the studentID. Since 'generatePickupPass' saves data to localStorage,
+  // let's grab it from the secret string which is "ID-PARENT-..."
+  const savedSecret = localStorage.getItem("lumini_pass_secret");
+  if (savedSecret) {
+    const parts = savedSecret.split("-PARENT-");
+    const studentID = parts[0];
+
+    console.log("🚀 High-Speed Polling Activated for:", studentID);
+
+    window.fastPoll = setInterval(() => {
+      checkIfAlreadyDroppedOff(studentID);
+    }, 1000); // 1-second interval
+  }
 }
 
 function startPassTimer() {
@@ -665,6 +694,13 @@ function startPassTimer() {
 function killPass() {
   if (passTimerInterval) clearInterval(passTimerInterval);
 
+  // --- NEW: STOP FAST POLLING ---
+  if (window.fastPoll) {
+    clearInterval(window.fastPoll);
+    window.fastPoll = null;
+  }
+  // ------------------------------
+
   localStorage.removeItem("lumini_pass_active");
   localStorage.removeItem("lumini_pass_secret");
   localStorage.removeItem("lumini_pass_student");
@@ -701,5 +737,31 @@ function restoreActivePass() {
       console.log("♻️ Restoring active Pickup Pass...");
       showPassModal(studentName, secretString, false);
     }
+  }
+}
+
+// ================= HELPER FUNCTIONS =================
+
+// ... (inside renderVisualTracker)
+
+function renderVisualTracker(status) {
+  const steps = document.querySelectorAll(".tracker-step");
+  const badge = document.querySelector(".current-status-badge");
+
+  // Reset all
+  steps.forEach((s) => s.classList.remove("active", "completed"));
+
+  // FIX: Added "completed" to the list of safe statuses
+  if (status === "present" || status === "late" || status === "completed") {
+    // STATE: LEARNING (Complete)
+    steps[0].classList.add("completed");
+    steps[1].classList.add("active");
+
+    if (badge) {
+      badge.innerText = "Learning at School";
+      // ... styles ...
+    }
+  } else {
+    // ... default "On the Way" styles ...
   }
 }
