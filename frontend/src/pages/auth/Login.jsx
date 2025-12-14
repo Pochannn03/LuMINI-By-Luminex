@@ -105,7 +105,7 @@ export default function Login() {
                 <a href="#" className="text-cbrand-blue no-underline font-medium" >Forgot Password</a>
             </div>
 
-            <button type="submit" className="btn btn-primary w-full border-0 rounded-[27px] no-underline">
+            <button type="submit" className="btn btn-primary w-full border-0 rounded-[27px] no-underline h-[52px] py-0 px-8 text-[16px] font-medium">
               Sign in
             </button>
 
@@ -119,7 +119,7 @@ export default function Login() {
               Don't have an account?
             </div>
 
-            <Link to="/register" className="btn btn-outline mt-4">Sign Up</Link>
+            <Link to="/register" className="btn btn-outline mt-4 h-[52px] py-0 px-8 rounded-[27px] text-[16px] font-medium">Sign Up</Link>
 
           </form>
 

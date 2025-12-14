@@ -33,8 +33,8 @@ export default function Landing() {
             </p>
 
             <div className="flex justify-center w-full gap-[15px] lg:justify-start">
-              <Link to="/login" className="btn btn-primary">Sign In</Link>
-              <Link to="/register" className="btn btn-outline">Create Account</Link>
+              <Link to="/login" className="btn btn-primary h-[52px]py-0 px-8 rounded-[30px] text-[16px] font-medium">Sign In</Link>
+              <Link to="/register" className="btn btn-outline h-[52px] py-0 px-8 rounded-[30px] text-[16px] font-medium">Create Account</Link>
             </div>
           </div>
 

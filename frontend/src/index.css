@@ -51,7 +51,6 @@ p {
   line-height: 1.625;
 }
 
-
 a {
   font-weight: 500;
   color: #646cff;
@@ -80,6 +79,8 @@ a:hover {
   color: var(--brand-blue);
 }
 
+/* Links */
+
 .link{
   color: var(--text-light);
   text-decoration: none;
@@ -91,16 +92,13 @@ a:hover {
   color: var(--brand-blue);
 }
 
+/* Buttons */
+
 .btn{
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  height: 52px;
-  padding: 0 32px;
-  border-radius: 30px;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 16px;
   transition: all 0.2s ease;
   cursor: pointer;
 }
@@ -131,6 +129,8 @@ a:hover {
   transform: translateY(-3px);
 }
 
+/* Cards */
+
 .card-wrapper {
   display: flex;
   flex-direction: column;
@@ -160,4 +160,34 @@ a:hover {
 
 .card-wrapper:active {
   transform: scale(0.96);
+}
+
+
+/* Wave */
+
+.wave::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 45vh;
+  
+  background-color: var(--wave-back);
+  clip-path: ellipse(90% 100% at 30% 100%);
+  z-index: -2;
+}
+
+.wave::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 35vh; 
+  
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-dark) 100%); /* variables from main.css */
+  
+  clip-path: ellipse(90% 100% at 70% 100%);
+  z-index: -1;
 }
