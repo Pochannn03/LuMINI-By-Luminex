@@ -2,8 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Landing from './pages/Landing';
-// import ParentRegistration from './pages/auth/ParentRegistration';
-// import ParentDashboard from './pages/ParentDashboard';
+import GuardianRegister from './pages/auth/register/GuardianRegistration'
+
 
 
 export default function App() {
@@ -13,8 +13,8 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        {/*<Route path="/parentregister" element={<ParentRegistration />} />
-        <Route path="/parent-dashboard" element={<ParentDashboard />} /> */}
+        <Route path="/register/guardian" element={<GuardianRegister />}  />
+        {/* <Route path="/parent-dashboard" element={<ParentDashboard />} /> */}
 
       </Routes>
     </div>

@@ -74,7 +74,7 @@ export default function Login() {
           <div className="w-[50px] h-1.5 mb-[30px] rounded-[10px] md:hidden"></div>
 
         <div className="sign-in-form-wrapper">
-          <h1 className="after-word">
+          <h1 className="after-word text-center">
             Sign In
           </h1>
 
@@ -111,7 +111,7 @@ export default function Login() {
 
             <div className="flex items-center w-full my-6 mx-0">
               <div className="grow h-px bg-[#eee]"></div>
-              <p className="text-clight my-0 mx-4 text-[14px]">or</p>
+              <p className="text-clight my-0 mx-4 text-center text-[14px]">or</p>
               <div className="grow h-px bg-[#eee]"></div>
             </div>
 

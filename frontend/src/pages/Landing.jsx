@@ -23,16 +23,16 @@ export default function Landing() {
           <div className="text-cdark text-center max-w-[600px] lg:items-start lg:text-left lg:w-1/2">
             <span className="background-custom text-cbrand-blue inline-block py-[8px] px-[16px] rounded-full text-[12px] font-bold uppercase tracking-wider mb-[24px]">Ver 1.0 Release</span>
 
-            <h1 className="text-cdark text-[36px] font-extrabold leading-tight mb-5 lg:text-[48px]">
+            <h1 className="text-cdark text-[36px] text-center font-extrabold leading-tight mb-5 lg:text-[48px] lg:text-start">
               Stay Connected with your School
             </h1>
 
-            <p className="text-cdark text-[16px] leading-relaxed mb-8 lg:text-[18px]">
+            <p className="text-cdark mb-8 lg:text-[18px]">
               Bridging the gap between parents, teachers, and guardians.
               Experience seamless communication with simple taps.
             </p>
 
-            <div className="flex justify-center w-full gap-[15px]">
+            <div className="flex justify-center w-full gap-[15px] lg:justify-start">
               <Link to="/login" className="btn btn-primary">Sign In</Link>
               <Link to="/register" className="btn btn-outline">Create Account</Link>
             </div>
