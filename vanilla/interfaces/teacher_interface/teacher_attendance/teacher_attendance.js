@@ -6,6 +6,19 @@ document.addEventListener("DOMContentLoaded", function () {
   if (!userString) return;
   const currentUser = JSON.parse(userString);
 
+  // --- FIX: UPDATE HEADER (First Name Only) ---
+  const headerName = document.querySelector(".user-name");
+  const headerImg = document.querySelector(".profile-avatar");
+
+  if (headerName) {
+    // Just the first name, as requested!
+    headerName.innerText = currentUser.firstname;
+  }
+
+  if (headerImg && currentUser.profilePhoto) {
+    headerImg.src = "http://localhost:3000" + currentUser.profilePhoto;
+  }
+
   // 1. Initialize Date Display
   updateDateDisplay();
 
@@ -159,10 +172,41 @@ function loadTeacherClass(teacherId) {
         document.querySelector(
           ".page-title"
         ).innerText = `Attendance: ${data.className}`;
+
+        // 1. Sync the Dropdown with Real Data
+        const realMode = data.currentMode || "dropoff";
+        const simSelect = document.getElementById("simModeSelect");
+        if (simSelect) simSelect.value = realMode;
+
+        // 2. Update the New Indicator Pill
+        updateModeIndicator(realMode);
+
         renderStudentRows(data.students);
         refreshAttendanceData(teacherId);
       }
     });
+}
+
+// --- NEW HELPER FUNCTION ---
+function updateModeIndicator(mode) {
+  const pill = document.getElementById("activeModeDisplay");
+  const text = document.getElementById("activeModeText");
+
+  if (!pill || !text) return;
+
+  // Reset Classes
+  pill.classList.remove("status-dropoff", "status-class", "status-dismissal");
+
+  if (mode === "dropoff") {
+    pill.classList.add("status-dropoff");
+    text.innerText = "Current: Morning Drop-off";
+  } else if (mode === "class") {
+    pill.classList.add("status-class");
+    text.innerText = "Current: Class In-Session";
+  } else if (mode === "dismissal") {
+    pill.classList.add("status-dismissal");
+    text.innerText = "Current: Afternoon Dismissal";
+  }
 }
 
 function refreshAttendanceData(teacherId) {
@@ -436,6 +480,8 @@ if (setSimBtn) {
             setSimBtn.innerText = originalText;
             setSimBtn.style.backgroundColor = "";
           }, 1500);
+
+          updateModeIndicator(selectedMode);
         }
       });
   });

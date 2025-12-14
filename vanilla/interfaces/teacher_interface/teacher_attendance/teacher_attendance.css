@@ -580,3 +580,49 @@ a.nav-item {
     flex: 1;
   }
 }
+
+/* ACTIVE MODE INDICATOR PILL */
+.active-mode-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 50px;
+  border: 1px solid #fed7aa;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c2410c;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin: 0 auto; /* Centers it if flex parent allows */
+  transition: all 0.3s ease;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #cbd5e1; /* Default Gray */
+  box-shadow: 0 0 0 2px rgba(203, 213, 225, 0.3);
+}
+
+/* Mode Variants */
+.active-mode-pill.status-dropoff .status-dot {
+  background-color: #f59e0b; /* Orange/Sun */
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+.active-mode-pill.status-class .status-dot {
+  background-color: #3b82f6; /* Blue/Book */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+.active-mode-pill.status-dismissal .status-dot {
+  background-color: #8b5cf6; /* Purple/Wave */
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+/* Mobile Fix: Hide on very small screens or stack */
+@media (max-width: 600px) {
+  .active-mode-pill {
+    display: none;
+  }
+}

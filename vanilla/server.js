@@ -779,12 +779,11 @@ app.post("/update-class", async (req, res) => {
   }
 });
 
-// K. GET CLASS FOR TEACHER (Fixed Version)
+// K. GET CLASS FOR TEACHER (Updated to return currentMode)
 app.post("/get-teacher-class", async (req, res) => {
   const { teacherId } = req.body;
 
   try {
-    // 1. Search by teacherId
     const targetClass = await ClassModel.findOne({ teacherId: teacherId });
 
     if (!targetClass) {
@@ -794,25 +793,16 @@ app.post("/get-teacher-class", async (req, res) => {
       });
     }
 
-    // 2. Define studentIds FIRST
     const studentIds = targetClass.students || [];
 
-    // 3. Now we can check the length safely
-    if (studentIds.length === 0) {
-      return res.json({
-        success: true,
-        className: `${targetClass.gradeLevel} - ${targetClass.section}`,
-        students: [],
-      });
-    }
-
-    // 4. Fetch the actual Student profiles
+    // Fetch students (even if empty list, we need the class info)
     const students = await Student.find({ studentID: { $in: studentIds } });
 
     res.json({
       success: true,
       className: `${targetClass.gradeLevel} - ${targetClass.section}`,
       students: students,
+      currentMode: targetClass.currentMode || "dropoff", // <--- ADD THIS LINE
     });
   } catch (error) {
     console.error("Get Teacher Class Error:", error);
