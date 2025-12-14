@@ -8,6 +8,7 @@
       src="https://unpkg.com/html5-qrcode"
       type="text/javascript"
     ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="../../../main.css" />
     <link rel="stylesheet" href="parent_dashboard.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -31,6 +32,14 @@
         </div>
 
         <div class="header-right">
+          <button
+            id="viewPassBtn"
+            class="pass-btn-header"
+            style="display: none"
+          >
+            <span class="material-symbols-outlined">qr_code_2</span>
+            <span>View Pass</span>
+          </button>
           <button class="icon-btn notification-btn">
             <span class="material-symbols-outlined">notifications</span>
             <span class="notification-badge"></span>
@@ -440,6 +449,37 @@
         </div>
       </div>
     </div>
+
+    <div class="modal-overlay" id="pickupPassModal">
+      <div class="modal-card ticket-card">
+        <div class="ticket-header">
+          <h3>Pickup Pass</h3>
+          <button class="close-modal-btn" id="closePassBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="ticket-body">
+          <div class="pass-info">
+            <span class="pass-label">Student</span>
+            <span class="pass-value" id="passStudentName">Loading...</span>
+          </div>
+
+          <div id="generatedQr" class="qr-output-box"></div>
+
+          <div class="timer-box">
+            <span class="material-symbols-outlined">timer</span>
+            <span id="passTimer">10:00</span>
+          </div>
+
+          <p class="ticket-note">
+            Show this to the teacher. <br />
+            Do not share this screen.
+          </p>
+        </div>
+      </div>
+    </div>
+
     <script src="parent_dashboard.js"></script>
   </body>
 </html>

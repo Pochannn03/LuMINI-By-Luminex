@@ -6,6 +6,7 @@ const body = document.body;
 let statusPollInterval; // Variable to control the timer
 let modePollInterval;
 let html5QrcodeScanner = null; // Scanner instance
+let passTimerInterval; // Controls the 10min countdown
 
 // Toggle Menu
 openBtn.addEventListener("click", () => {
@@ -478,18 +479,24 @@ function startCamera() {
 }
 
 function onScanSuccess(decodedText, decodedResult) {
-  // 1. Pause to prevent multiple reads
+  // 1. Pause Scanner
   if (html5QrcodeScanner.isScanning) {
     html5QrcodeScanner.pause();
   }
 
   console.log(`SCANNED: ${decodedText}`);
 
-  // 2. TEMPORARY TEST (Just prove it works)
-  alert(`✅ QR Code Read Successfully!\n\nData: ${decodedText}`);
+  // 2. CHECK FOR SECRET KEY
+  if (decodedText === "THISISTHECODEFORQRENTRYHELLO") {
+    // Close the Camera Modal
+    stopCameraAndClose();
 
-  // 3. Close the scanner
-  stopCameraAndClose();
+    // Generate the Pass
+    generatePickupPass();
+  } else {
+    alert("❌ Invalid QR Code. Please scan the School Entry QR.");
+    html5QrcodeScanner.resume();
+  }
 }
 
 function onScanFailure(error) {
@@ -513,4 +520,113 @@ function stopCameraAndClose() {
   } else {
     if (scannerModal) scannerModal.classList.remove("active");
   }
+}
+
+// ================= PICKUP PASS GENERATOR =================
+
+function generatePickupPass() {
+  // 1. Get Data
+  const userString = localStorage.getItem("currentUser");
+  const user = JSON.parse(userString);
+  const parentName = `${user.firstname}${user.lastname}`.replace(/\s/g, ""); // Remove spaces
+
+  // Get Student ID (We fetch children data on load, so we might need to store it globally)
+  // For now, let's re-fetch or assume we stored it.
+  // TRICK: We can grab it from the "Visual Tracker" logic if available,
+  // OR just fetch it quickly if missing.
+
+  fetch("http://localhost:3000/get-my-children", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parentName: `${user.firstname} ${user.lastname}` }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success && data.children.length > 0) {
+        const studentID = data.children[0].studentID;
+        const studentName = `${data.children[0].firstname} ${data.children[0].lastname}`;
+
+        // 2. Create the Secret String
+        // Format: STUDENTID-PARENT-PARENTNAME-TIMESTAMP
+        const timestamp = Date.now();
+        const secretString = `${studentID}-PARENT-${parentName}-${timestamp}`;
+
+        showPassModal(studentName, secretString);
+      } else {
+        alert("Error: No student linked to this account.");
+      }
+    });
+}
+
+function showPassModal(studentName, secretString) {
+  const modal = document.getElementById("pickupPassModal");
+  const qrContainer = document.getElementById("generatedQr");
+  const nameEl = document.getElementById("passStudentName");
+  const headerBtn = document.getElementById("viewPassBtn");
+
+  // 1. Setup UI
+  if (nameEl) nameEl.innerText = studentName;
+  if (qrContainer) qrContainer.innerHTML = ""; // Clear old QR
+
+  // 2. Generate QR
+  new QRCode(qrContainer, {
+    text: secretString,
+    width: 180,
+    height: 180,
+    colorDark: "#000000",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.H,
+  });
+
+  // 3. Show Modal & Header Button
+  if (modal) modal.classList.add("active");
+  if (headerBtn) {
+    headerBtn.style.display = "flex";
+    // Ensure clicking the header button re-opens the modal
+    headerBtn.onclick = () => modal.classList.add("active");
+  }
+
+  // 4. Start Countdown
+  startPassTimer(600); // 600 seconds = 10 minutes
+}
+
+function startPassTimer(duration) {
+  let timer = duration;
+  const display = document.getElementById("passTimer");
+  const headerBtn = document.getElementById("viewPassBtn");
+  const modal = document.getElementById("pickupPassModal");
+
+  // Clear existing timer
+  if (passTimerInterval) clearInterval(passTimerInterval);
+
+  passTimerInterval = setInterval(function () {
+    const minutes = parseInt(timer / 60, 10);
+    const seconds = parseInt(timer % 60, 10);
+
+    const minStr = minutes < 10 ? "0" + minutes : minutes;
+    const secStr = seconds < 10 ? "0" + seconds : seconds;
+
+    if (display) display.textContent = minStr + ":" + secStr;
+
+    if (--timer < 0) {
+      // TIME'S UP!
+      clearInterval(passTimerInterval);
+
+      // Kill the pass
+      if (headerBtn) headerBtn.style.display = "none";
+      if (modal) modal.classList.remove("active");
+
+      alert(
+        "⚠️ Pickup Pass Expired.\nPlease scan the gate code again if needed."
+      );
+    }
+  }, 1000);
+}
+
+// Close Button Logic for Pass Modal
+const closePassBtn = document.getElementById("closePassBtn");
+if (closePassBtn) {
+  closePassBtn.addEventListener("click", () => {
+    document.getElementById("pickupPassModal").classList.remove("active");
+  });
 }
