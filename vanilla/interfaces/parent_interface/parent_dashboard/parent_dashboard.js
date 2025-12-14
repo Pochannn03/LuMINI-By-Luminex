@@ -748,20 +748,43 @@ function renderVisualTracker(status) {
   const steps = document.querySelectorAll(".tracker-step");
   const badge = document.querySelector(".current-status-badge");
 
-  // Reset all
+  // 1. RESET ALL (Clean Slate)
   steps.forEach((s) => s.classList.remove("active", "completed"));
 
-  // FIX: Added "completed" to the list of safe statuses
-  if (status === "present" || status === "late" || status === "completed") {
-    // STATE: LEARNING (Complete)
-    steps[0].classList.add("completed");
-    steps[1].classList.add("active");
-
+  // 2. DEFINE BADGE STYLES
+  const setBadge = (text, bg, border, color) => {
     if (badge) {
-      badge.innerText = "Learning at School";
-      // ... styles ...
+      badge.innerText = text;
+      badge.style.background = bg;
+      badge.style.borderColor = border;
+      badge.style.color = color;
     }
+  };
+
+  // 3. STATE MACHINE LOGIC
+  if (status === "completed") {
+    // --- STATE 3: DISMISSED / HOME ---
+    steps[0].classList.add("completed"); // On Way: Done
+    steps[1].classList.add("completed"); // Learning: Done
+    steps[2].classList.add("active"); // Dismissed: Active
+
+    setBadge("Dismissed", "#eff6ff", "#bfdbfe", "#1e40af");
+  } else if (status === "present" || status === "late") {
+    // --- STATE 2: LEARNING ---
+    steps[0].classList.add("completed"); // On Way: Done
+    steps[1].classList.add("active"); // Learning: Active
+
+    setBadge("Learning at School", "#f0fdf4", "#86efac", "#166534");
   } else {
-    // ... default "On the Way" styles ...
+    // --- STATE 1: ON THE WAY (Default) ---
+    // Includes: 'otw', 'here', 'no_record', etc.
+    steps[0].classList.add("active"); // On Way: Active
+
+    // Optional: Distinct text for "At School but waiting" vs "On Way"
+    if (status === "here") {
+      setBadge("At School (Waiting)", "#fffbeb", "#fcd34d", "#b45309");
+    } else {
+      setBadge("On the Way", "#fefce8", "#fef08a", "#854d0e");
+    }
   }
 }
