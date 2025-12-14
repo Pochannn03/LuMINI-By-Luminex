@@ -9,7 +9,7 @@ export default function Register(){
     <div className="wave relative flex w-full justify-center items-center min-h-screen p-5 z-10 overflow-hidden">
       <div className="relative flex w-full justify-center items-center min-h-screen p-5 z-10 overflow-hidden">
         <div className="selection-wrapper max-w-[480px] lg:max-w-[650px] lg:p-[60px]">
-          <h1 className="text-[32px] text-center pb-5">Register as</h1>
+          <h1 className="text-[32px] text-center pb-5 w-full">Register as</h1>
 
           <div className="cards-container">
 

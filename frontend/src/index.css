@@ -13,6 +13,7 @@
 
   /* For Background */
   --bg-gray: #f8fafc;
+  --bg-light: #e3f2fd;
   --red-bg: #f04646;
 
   /* Wave Background */
@@ -22,6 +23,9 @@
   /* Shadows */
   --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
   --shadow-hover: 0 10px 25px rgba(57, 168, 237, 0.25);
+
+  /* For Border Bottom on Registration  */
+  --border-bottom-color: #f0f0f0;
 }
 
 body{
@@ -36,18 +40,15 @@ body{
 }
 
 h1 {
-  width: 100%;
   color: var(--text-dark);
   font-size: 28px;
   font-weight: 700;
-  margin-bottom: 8px;
 }
 
 p {
   font-size: 16px;
   font-weight: 400;
   color: var(--text-light);
-  width: 100%;
   line-height: 1.625;
 }
 

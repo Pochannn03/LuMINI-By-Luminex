@@ -74,7 +74,7 @@ export default function Login() {
           <div className="w-[50px] h-1.5 mb-[30px] rounded-[10px] md:hidden"></div>
 
         <div className="sign-in-form-wrapper">
-          <h1 className="after-word text-center">
+          <h1 className="after-word text-center w-full">
             Sign In
           </h1>
 
