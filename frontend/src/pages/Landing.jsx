@@ -24,7 +24,7 @@ export default function Landing() {
             <span className="background-custom text-cbrand-blue inline-block py-[8px] px-[16px] rounded-full text-[12px] font-bold uppercase tracking-wider mb-[24px]">Ver 1.0 Release</span>
 
             <h1 className="text-cdark text-[36px] font-extrabold leading-tight mb-5 lg:text-[48px]">
-              Stay Connected with your School.
+              Stay Connected with your School
             </h1>
 
             <p className="text-cdark text-[16px] leading-relaxed mb-8 lg:text-[18px]">

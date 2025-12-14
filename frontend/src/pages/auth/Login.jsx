@@ -50,7 +50,6 @@ export default function Login() {
       if (response.ok) {
         navigate('/dashboard'); 
       } else {
-        // If status is 401 (Unauthorized), force the message
         if (response.status === 401) {
           setError("Invalid Credentials");
         } else {
@@ -120,9 +119,7 @@ export default function Login() {
               Don't have an account?
             </div>
 
-            <a href="#" className="btn btn-outline mt-4">
-              Register
-            </a>
+            <Link to="/register" className="btn btn-outline mt-4">Sign Up</Link>
 
           </form>
 
