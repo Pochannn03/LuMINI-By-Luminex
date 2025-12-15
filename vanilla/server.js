@@ -129,6 +129,8 @@ const ClassAttendanceSchema = new mongoose.Schema({
       studentName: String,
       status: { type: String, default: "absent" },
       arrivalTime: { type: String, default: "" },
+      dismissalTime: { type: String, default: "" },
+      authorizedPickupPerson: { type: String, default: "" },
     },
   ],
 });
@@ -159,17 +161,19 @@ const ClassAttendance = mongoose.model(
   ClassAttendanceSchema
 );
 
-// --- HELPER: ENSURE ATTENDANCE SHEET EXISTS ---
-// This acts like "Creating the folder" if it doesn't exist yet.
+// --- HELPER: ENSURE ATTENDANCE SHEET EXISTS (Race-Condition Proof) ---
 async function getOrInitAttendanceSheet(classId, teacherId, dateString) {
-  // 1. Try to find existing sheet
-  let sheet = await ClassAttendance.findOne({
-    classID: classId,
-    date: dateString,
-  });
+  try {
+    // 1. Try to find existing sheet
+    let sheet = await ClassAttendance.findOne({
+      classID: classId,
+      date: dateString,
+    });
 
-  if (!sheet) {
-    // 2. If not found, CREATE IT (The "Folder Creation" Step)
+    // If found, simply return it (No creation needed)
+    if (sheet) return sheet;
+
+    // 2. If not found, PREPARE to create it
     console.log(
       `📂 Creating new Attendance Sheet for Class ${classId} on ${dateString}`
     );
@@ -191,8 +195,8 @@ async function getOrInitAttendanceSheet(classId, teacherId, dateString) {
       arrivalTime: "",
     }));
 
-    // Save the new "Folder"
-    sheet = new ClassAttendance({
+    // 3. ATTEMPT TO SAVE (Atomic Creation)
+    const newSheet = new ClassAttendance({
       classID: classId,
       teacherId: teacherId,
       className: `${classData.gradeLevel} - ${classData.section}`,
@@ -200,10 +204,25 @@ async function getOrInitAttendanceSheet(classId, teacherId, dateString) {
       records: initialRecords,
     });
 
-    await sheet.save();
+    sheet = await newSheet.save();
+    return sheet;
+  } catch (error) {
+    // 4. THE PERMANENT FIX: Catch the "Duplicate" Error
+    // If Auto-Save and Manual-Save race, and one just created the file
+    // milliseconds ago, MongoDB throws error code 11000.
+    if (error.code === 11000) {
+      console.log(
+        "⚠️ Race condition handled: Using the sheet that was just created."
+      );
+      // Instead of crashing, we just fetch the sheet that "won" the race
+      return await ClassAttendance.findOne({
+        classID: classId,
+        date: dateString,
+      });
+    }
+    // If it's some other crash, throw it normally
+    throw error;
   }
-
-  return sheet;
 }
 
 // --- ROUTES ---
@@ -287,16 +306,27 @@ app.post(
   }
 );
 
-// 4. VERIFY INVITE CODE (Add this new route)
+// 4. VERIFY INVITE CODE (Updated with "Already Used" Check)
 app.post("/verify-invite-code", async (req, res) => {
   const { code } = req.body;
   try {
     const student = await Student.findOne({ parentInviteCode: code });
+
     if (student) {
+      // --- CONSTRAINT: CHECK IF ALREADY LINKED ---
+      // We check if the parentUsername is anything other than "Unlinked" or null
+      if (student.parentUsername && student.parentUsername !== "Unlinked") {
+        return res.json({
+          success: false,
+          message:
+            "This invitation code has already been used by another parent.",
+        });
+      }
+
       res.json({
         success: true,
         childName: `${student.firstname} ${student.lastname}`,
-        studentID: student.studentID, // sending this to the frontend
+        studentID: student.studentID,
       });
     } else {
       res.json({ success: false, message: "Invalid Invitation Code" });
@@ -356,30 +386,53 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// 5. GET MY CHILDREN (Enhanced with Class Mode)
+// 5. GET MY CHILDREN (Enhanced with Class Mode AND Teacher Info)
 app.post("/get-my-children", async (req, res) => {
   const { parentName } = req.body;
 
   try {
     const children = await Student.find({ parentUsername: parentName });
 
-    // We need to attach the class mode to each child
-    const childrenWithMode = await Promise.all(
+    const childrenWithData = await Promise.all(
       children.map(async (child) => {
-        // Find the class this child belongs to
-        // (Assuming you have gradeLevel/section, but searching by ID in 'students' array is safer)
+        // 1. Find the class this child belongs to
         const childClass = await ClassModel.findOne({
           students: child.studentID,
         });
 
-        // Convert mongoose doc to object and append mode
+        // 2. Default Values
+        let currentMode = "dropoff";
+        let teacherInfo = {
+          name: "Unassigned",
+          email: "N/A",
+          phone: "N/A",
+        };
+
+        // 3. If Class Exists, Fetch Teacher Details
+        if (childClass) {
+          currentMode = childClass.currentMode;
+
+          if (childClass.teacherId) {
+            const teacher = await Teacher.findById(childClass.teacherId);
+            if (teacher) {
+              teacherInfo = {
+                name: `${teacher.firstname} ${teacher.lastname}`,
+                email: teacher.email || "N/A",
+                phone: teacher.phone || "N/A",
+              };
+            }
+          }
+        }
+
+        // 4. Return merged object
         const childObj = child.toObject();
-        childObj.classMode = childClass ? childClass.currentMode : "dropoff"; // Default if unassigned
+        childObj.classMode = currentMode;
+        childObj.teacherInfo = teacherInfo; // <--- Attach Teacher Data
         return childObj;
       })
     );
 
-    res.json({ success: true, children: childrenWithMode });
+    res.json({ success: true, children: childrenWithData });
   } catch (error) {
     console.error("Error fetching children:", error);
     res.status(500).json({ success: false, message: "Server Error" });
@@ -1339,24 +1392,61 @@ app.post("/verify-pickup-qr", async (req, res) => {
   }
 });
 
-// U. AUTHORIZE PICKUP (STEP 2: COMMIT)
+// U. AUTHORIZE PICKUP (STEP 2: COMMIT & RECORD)
 app.post("/authorize-pickup", async (req, res) => {
   const { studentID } = req.body;
-  const today = getTodayPH();
+  const today = getTodayPH(); // Use the global helper for PH time
+
+  // Generate a pretty time string (e.g. "3:45 PM")
+  const now = new Date();
+  const timeString = now.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 
   try {
-    // 1. MARK QUEUE AS COMPLETED
-    // This tells the Parent Dashboard "You are done"
+    // 1. FETCH QUEUE DETAILS (To get the Guardian Name)
+    // We need to know WHO is picking them up before we close the ticket
+    const queueEntry = await QueueModel.findOne({
+      studentID: studentID,
+      date: today,
+      mode: "dismissal",
+    });
+
+    // Fallback if something weird happens and queue is missing
+    const guardianName = queueEntry
+      ? queueEntry.parentName
+      : "Unknown Guardian";
+
+    // 2. MARK QUEUE AS COMPLETED
     await QueueModel.updateOne(
       { studentID: studentID, date: today, mode: "dismissal" },
       { $set: { status: "completed" } }
     );
 
-    // 2. OPTIONAL: UPDATE ATTENDANCE TO 'DISMISSED'
-    // ... code here if you want to track dismissal time in the main sheet ...
+    // 3. UPDATE ATTENDANCE SHEET (The new logic)
+    // We search for a sheet dated "today" that contains this studentID
+    const attendanceUpdate = await ClassAttendance.updateOne(
+      {
+        date: today,
+        "records.studentID": studentID,
+      },
+      {
+        $set: {
+          "records.$.dismissalTime": timeString,
+          "records.$.authorizedPickupPerson": guardianName,
+        },
+      }
+    );
 
-    res.json({ success: true, message: "Pickup Confirmed" });
+    console.log(
+      `✅ Recorded dismissal for ${studentID}: picked up by ${guardianName} at ${timeString}`
+    );
+
+    res.json({ success: true, message: "Pickup Confirmed & Recorded" });
   } catch (error) {
+    console.error("Auth Pickup Error:", error);
     res.status(500).json({ success: false, message: "Authorization Failed" });
   }
 });

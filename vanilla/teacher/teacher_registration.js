@@ -62,6 +62,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const currentStepContainer = steps[currentStepIndex];
     const inputs = currentStepContainer.querySelectorAll("input[required]");
 
+    // A. Basic HTML5 Validation (Required fields, types, etc.)
     let allValid = true;
     for (const input of inputs) {
       if (!input.checkValidity()) {
@@ -70,9 +71,40 @@ document.addEventListener("DOMContentLoaded", function () {
         break;
       }
     }
+    if (!allValid) return; // Stop if basic checks fail
 
-    // If validation failed, stop here.
-    if (!allValid) return;
+    // B. CUSTOM VALIDATION (Logic based on Step)
+
+    // STEP 1: ACCOUNT SETUP (Password Matching)
+    if (currentStepIndex === 0) {
+      const pass = document.getElementById("password").value;
+      const confirmPass = document.getElementById("confirm-password").value;
+
+      if (pass !== confirmPass) {
+        alert("⛔ Passwords do not match!");
+        return; // Stop logic
+      }
+
+      if (pass.length < 6) {
+        alert("⚠️ Password must be at least 6 characters long.");
+        return;
+      }
+    }
+
+    // STEP 2: PERSONAL DETAILS (Phone Number Format)
+    if (currentStepIndex === 1) {
+      const phoneInput = document.getElementById("phone").value;
+
+      // Regex: Starts with '09', followed by exactly 9 digits (total 11)
+      const phPhoneRegex = /^09\d{9}$/;
+
+      if (!phPhoneRegex.test(phoneInput)) {
+        alert(
+          "⛔ Invalid Phone Number.\nFormat should be 11 digits starting with 09 (e.g., 09123456789)."
+        );
+        return; // Stop logic
+      }
+    }
 
     // 3. LOGIC: SUBMIT OR NEXT?
     if (currentStepIndex === steps.length - 1) {

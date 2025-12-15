@@ -137,37 +137,54 @@ function openStudentModal(child, serverUrl) {
   // 1. Get Elements
   const modalImg = document.getElementById("modalStudentImage");
   const modalBody = document.querySelector(".modal-body");
-  const inputs = modalBody.querySelectorAll("input");
-  const textareas = modalBody.querySelectorAll("textarea"); // [0] Allergies, [1] Medical
 
-  // Inputs Mapping based on HTML order
-  const nameInput = inputs[0];
-  const bdayInput = inputs[1];
-  const idInput = inputs[2];
-  const gradeInput = inputs[3];
+  // Select all inputs generally first (for the original fields)
+  const allInputs = modalBody.querySelectorAll("input");
+
+  // Mapping the original fields (Indices 0-3 based on your HTML order)
+  const nameInput = allInputs[0];
+  const bdayInput = allInputs[1];
+  const idInput = allInputs[2];
+  const gradeInput = allInputs[3];
+
+  // --- NEW: Select the Teacher Inputs by ID ---
+  const teacherNameInput = document.getElementById("modalTeacherName");
+  const teacherEmailInput = document.getElementById("modalTeacherEmail");
+  const teacherPhoneInput = document.getElementById("modalTeacherPhone");
+
+  const textareas = modalBody.querySelectorAll("textarea"); // [0] Allergies, [1] Medical
 
   // 2. Populate Image
   modalImg.src = child.profilePhoto
     ? serverUrl + child.profilePhoto
     : "../../../assets/placeholder_image.jpg";
 
-  // 3. Populate Read-Only Fields
+  // 3. Populate Student Info (Existing)
   nameInput.value = `${child.firstname} ${child.lastname}`;
-
-  // --- NEW: DISPLAY BIRTHDAY ---
   bdayInput.value = child.birthdate || "Not set";
-
   idInput.value = child.studentID || "N/A";
   gradeInput.value = `${child.gradeLevel || "Unassigned"} - ${
     child.section || ""
   }`;
 
-  // 4. Populate Editable Health Fields
-  // We use empty string if undefined to avoid "undefined" text
+  // 4. --- NEW: Populate Teacher Info ---
+  // We check if the 'teacherInfo' object exists (from our server update)
+  if (child.teacherInfo) {
+    teacherNameInput.value = child.teacherInfo.name;
+    teacherEmailInput.value = child.teacherInfo.email;
+    teacherPhoneInput.value = child.teacherInfo.phone;
+  } else {
+    // Fallback if no teacher assigned yet
+    teacherNameInput.value = "Unassigned";
+    teacherEmailInput.value = "N/A";
+    teacherPhoneInput.value = "N/A";
+  }
+
+  // 5. Populate Editable Health Fields
   textareas[0].value = child.allergies || "";
   textareas[1].value = child.medicalHistory || "";
 
-  // 5. Open the Modal
+  // 6. Open the Modal
   openModal();
 }
 
