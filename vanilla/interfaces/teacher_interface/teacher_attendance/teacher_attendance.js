@@ -281,7 +281,7 @@ function renderStudentRows(students) {
     tr.innerHTML = `
         <td>
             <div class="student-flex">
-                <img src="${photoUrl}" class="s-avatar" />
+                <img src="${photoUrl}" class="s-avatar clickable-profile" onclick="openStudentDetail('${student.studentID}')" style="cursor:pointer;" />
                 <div class="s-info">
                     <span class="s-name">${student.firstname} ${student.lastname}</span>
                     <span class="s-id">ID: ${student.studentID}</span>
@@ -516,4 +516,170 @@ function isViewingToday() {
   const todayStr = new Date(now - offset).toISOString().slice(0, 10);
 
   return viewedDate === todayStr;
+}
+
+// ==========================================
+// STUDENT PROFILE & HISTORY MODAL LOGIC
+// ==========================================
+
+const detailModal = document.getElementById("studentDetailModal");
+const historyModal = document.getElementById("historyModal");
+let currentViewedStudentID = null; // State
+let currentHistoryDate = new Date(); // State
+
+// 1. OPEN PROFILE
+function openStudentDetail(studentID) {
+  currentViewedStudentID = studentID;
+
+  // Show loading state
+  document.getElementById("detailName").innerText = "Loading...";
+  detailModal.classList.add("active");
+
+  // Fetch Data
+  fetch("http://localhost:3000/get-student-details-full", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ studentID }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        const s = data.student;
+        const p = data.parent;
+
+        // Populate Student
+        document.getElementById(
+          "detailName"
+        ).innerText = `${s.firstname} ${s.lastname}`;
+        document.getElementById("detailID").innerText = `ID: ${s.studentID}`;
+        document.getElementById("detailBday").innerText = `Born: ${
+          s.birthdate || "N/A"
+        }`;
+        document.getElementById("detailPhoto").src = s.profilePhoto
+          ? "http://localhost:3000" + s.profilePhoto
+          : "../../../assets/placeholder_image.jpg";
+
+        // Populate Parent
+        if (p) {
+          document.getElementById(
+            "detailParentName"
+          ).innerText = `${p.firstname} ${p.lastname}`;
+          document.getElementById("detailParentPhone").innerText =
+            p.phone || "N/A";
+
+          // Construct Address
+          const addr = [p.houseUnit, p.street, p.barangay, p.city]
+            .filter((x) => x)
+            .join(", ");
+          document.getElementById("detailAddress").innerText =
+            addr || "Address not set";
+        } else {
+          document.getElementById("detailParentName").innerText =
+            "No linked parent account";
+          document.getElementById("detailParentPhone").innerText = "--";
+          document.getElementById("detailAddress").innerText = "--";
+        }
+      }
+    });
+}
+
+// 2. OPEN HISTORY (From Profile)
+document.getElementById("openHistoryBtn").addEventListener("click", () => {
+  detailModal.classList.remove("active"); // Switch modals
+  historyModal.classList.add("active");
+  currentHistoryDate = new Date(); // Reset to today
+  updateHistoryUI();
+});
+
+// Close Buttons
+document
+  .getElementById("closeDetailBtn")
+  .addEventListener("click", () => detailModal.classList.remove("active"));
+document
+  .getElementById("closeHistoryModalBtn")
+  .addEventListener("click", () => {
+    historyModal.classList.remove("active");
+    detailModal.classList.add("active"); // Go back to profile
+  });
+
+// --- HISTORY NAVIGATION ---
+const hDateDisplay = document.getElementById("hDateDisplay");
+const hPicker = document.getElementById("hDatePicker");
+
+function updateHistoryUI() {
+  const options = { weekday: "short", month: "short", day: "numeric" };
+  hDateDisplay.innerText = currentHistoryDate.toLocaleDateString(
+    "en-US",
+    options
+  );
+
+  const offset = currentHistoryDate.getTimezoneOffset() * 60000;
+  const serverDate = new Date(currentHistoryDate - offset)
+    .toISOString()
+    .slice(0, 10);
+  hPicker.value = serverDate;
+
+  fetchHistoryRecord(serverDate);
+}
+
+document.getElementById("hPrevBtn").addEventListener("click", () => {
+  currentHistoryDate.setDate(currentHistoryDate.getDate() - 1);
+  updateHistoryUI();
+});
+document.getElementById("hNextBtn").addEventListener("click", () => {
+  currentHistoryDate.setDate(currentHistoryDate.getDate() + 1);
+  updateHistoryUI();
+});
+hPicker.addEventListener("change", (e) => {
+  if (e.target.value) {
+    currentHistoryDate = new Date(e.target.value);
+    updateHistoryUI();
+  }
+});
+
+// --- FETCH HISTORY ---
+function fetchHistoryRecord(dateString) {
+  const box = document.getElementById("hResultBox");
+  box.innerHTML = `<p style="text-align:center; color:#94a3b8;">Loading...</p>`;
+
+  fetch("http://localhost:3000/get-student-history-by-id", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      studentID: currentViewedStudentID,
+      date: dateString,
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success && data.record) {
+        const r = data.record;
+        // Reusing the simple card style from parent dashboard logic
+        let statusColor = r.status === "present" ? "#166534" : "#64748b";
+        let statusText = r.status.charAt(0).toUpperCase() + r.status.slice(1);
+
+        box.innerHTML = `
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding-bottom:8px;">
+          <span style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Status</span>
+          <span style="font-weight:700; color:${statusColor}">${statusText}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+          <span style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Arrival</span>
+          <span style="font-weight:600;">${r.arrivalTime || "--"}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; border-bottom:1px solid #f1f5f9; padding:8px 0;">
+          <span style="font-size:11px; color:#94a3b8; text-transform:uppercase;">Dismissal</span>
+          <span style="font-weight:600;">${r.dismissalTime || "--"}</span>
+        </div>
+        <div style="padding-top:8px;">
+          <span style="font-size:11px; color:#94a3b8; text-transform:uppercase; display:block; margin-bottom:4px;">Authorized Pickup</span>
+          <span style="font-weight:600; color:#3b82f6;">${
+            r.authorizedPickupPerson || "--"
+          }</span>
+        </div>
+      `;
+      } else {
+        box.innerHTML = `<p style="text-align:center; color:#cbd5e1; margin-top:20px;">No records found.</p>`;
+      }
+    });
 }

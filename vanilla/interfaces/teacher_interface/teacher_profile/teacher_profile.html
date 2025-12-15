@@ -161,12 +161,13 @@
                 </div>
 
                 <div class="form-group">
-                  <label>Class</label>
+                  <label>Class / Sections</label>
                   <div class="input-wrapper">
                     <span class="material-symbols-outlined icon">domain</span>
                     <input
                       type="text"
-                      value="PlaceHolderClassName"
+                      id="profileClass"
+                      value="Loading..."
                       disabled
                       style="opacity: 0.7; cursor: not-allowed"
                     />
@@ -193,7 +194,7 @@
                       <span class="material-symbols-outlined">groups</span>
                     </div>
                     <div class="stat-text">
-                      <span class="stat-value">32</span>
+                      <span class="stat-value" id="statTotalStudents">--</span>
                       <span class="stat-label">Total Students</span>
                     </div>
                   </div>
@@ -203,7 +204,7 @@
                       <span class="material-symbols-outlined">school</span>
                     </div>
                     <div class="stat-text">
-                      <span class="stat-value">4</span>
+                      <span class="stat-value" id="statTotalSections">--</span>
                       <span class="stat-label">Sections</span>
                     </div>
                   </div>
@@ -215,7 +216,7 @@
                       >
                     </div>
                     <div class="stat-text">
-                      <span class="stat-value">96%</span>
+                      <span class="stat-value">100%</span>
                       <span class="stat-label">Attendance Rate</span>
                     </div>
                   </div>

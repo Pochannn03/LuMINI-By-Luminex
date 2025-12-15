@@ -1494,6 +1494,100 @@ app.post("/get-student-history", async (req, res) => {
   }
 });
 
+// W. GET FULL STUDENT DETAILS (Teacher View)
+app.post("/get-student-details-full", async (req, res) => {
+  const { studentID } = req.body;
+  try {
+    const student = await Student.findOne({ studentID });
+    if (!student)
+      return res.json({ success: false, message: "Student not found" });
+
+    // Find Parent: Match "First Last" to student.parentUsername
+    // We use a Mongo expression to concat fields for the search
+    const parent = await Parent.findOne({
+      $expr: {
+        $eq: [
+          { $concat: ["$firstname", " ", "$lastname"] },
+          student.parentUsername,
+        ],
+      },
+    });
+
+    res.json({ success: true, student, parent });
+  } catch (error) {
+    console.error("Detail Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// X. GET HISTORY BY ID (Teacher Version)
+app.post("/get-student-history-by-id", async (req, res) => {
+  const { studentID, date } = req.body;
+  try {
+    // 1. Find Class
+    const studentClass = await ClassModel.findOne({ students: studentID });
+    if (!studentClass) return res.json({ success: true, record: null });
+
+    // 2. Find Sheet
+    const sheet = await ClassAttendance.findOne({
+      classID: studentClass._id,
+      date: date,
+    });
+
+    if (!sheet) return res.json({ success: true, record: null });
+
+    // 3. Find Record
+    const record = sheet.records.find((r) => r.studentID === studentID);
+    res.json({ success: true, record: record || null });
+  } catch (error) {
+    console.error("Teacher History Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// Y. GET TEACHER STATISTICS (Profile Page)
+app.post("/get-teacher-stats", async (req, res) => {
+  const { teacherId } = req.body;
+
+  try {
+    // 1. Find ALL classes assigned to this teacher
+    const classes = await ClassModel.find({ teacherId: teacherId });
+
+    if (!classes || classes.length === 0) {
+      return res.json({
+        success: true,
+        totalStudents: 0,
+        totalSections: 0,
+        sectionNames: "No Active Classes",
+      });
+    }
+
+    // 2. Calculate Stats
+    const totalSections = classes.length;
+
+    // Join section names with commas (e.g. "Sampaguita, Rosas")
+    const sectionNames = classes.map((c) => c.section).join(", ");
+
+    // Count total unique students across all classes
+    let totalStudents = 0;
+    classes.forEach((c) => {
+      if (c.students && Array.isArray(c.students)) {
+        totalStudents += c.students.length;
+      }
+    });
+
+    res.json({
+      success: true,
+      totalStudents,
+      totalSections,
+      sectionNames,
+    });
+  } catch (error) {
+    console.error("Teacher Stats Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
 // --- START SERVER ---
 app.listen(3000, () =>
   console.log("🚀 Server running at http://localhost:3000")
