@@ -1000,3 +1000,94 @@ body {
   text-align: center;
   margin-top: 8px;
 }
+
+/* =========================================
+   PICKUP HISTORY MODAL STYLES
+   ========================================= */
+
+/* Date Navigator Pill */
+.history-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 8px;
+  border-radius: 50px;
+  margin-bottom: 24px;
+  border: 1px solid #e2e8f0;
+}
+
+.nav-arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: var(--text-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s;
+}
+.nav-arrow-btn:hover {
+  color: var(--primary-blue);
+  transform: scale(1.1);
+}
+
+.date-display-wrapper {
+  position: relative;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 14px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+/* Result Box (The "Ticket") */
+.history-result-box {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 12px;
+}
+.history-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.h-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.h-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Status Colors for text */
+.text-green {
+  color: #166534;
+}
+.text-gray {
+  color: #94a3b8;
+  font-style: italic;
+}

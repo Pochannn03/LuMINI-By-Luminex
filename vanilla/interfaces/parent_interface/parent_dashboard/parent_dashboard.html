@@ -76,7 +76,7 @@
             <span>Dashboard</span>
           </a>
 
-          <a href="#" class="nav-item">
+          <a href="#" class="nav-item" id="navPickupHistoryBtn">
             <span class="material-symbols-outlined">history</span>
             <span>Pickup History</span>
           </a>
@@ -476,6 +476,53 @@
             Show this to the teacher. <br />
             Do not share this screen.
           </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="historyModal">
+      <div class="modal-card" style="max-width: 400px">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined purple-icon">history</span>
+            <h3>Pickup History</h3>
+          </div>
+          <button class="close-modal-btn" id="closeHistoryBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="history-date-nav">
+            <button class="nav-arrow-btn" id="histPrevBtn">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+
+            <div class="date-display-wrapper">
+              <span id="historyDateDisplay">Today</span>
+              <input
+                type="date"
+                id="historyDatePicker"
+                style="
+                  position: absolute;
+                  opacity: 0;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  cursor: pointer;
+                "
+              />
+            </div>
+
+            <button class="nav-arrow-btn" id="histNextBtn">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+
+          <div id="historyResultContainer" class="history-result-box">
+            <p style="color: #94a3b8; text-align: center">Loading...</p>
+          </div>
         </div>
       </div>
     </div>

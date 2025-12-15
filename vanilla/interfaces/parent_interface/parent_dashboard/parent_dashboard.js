@@ -788,3 +788,169 @@ function renderVisualTracker(status) {
     }
   }
 }
+
+// ==========================================
+// PICKUP HISTORY LOGIC
+// ==========================================
+
+const historyModal = document.getElementById("historyModal");
+const openHistoryBtn = document.getElementById("navPickupHistoryBtn"); // Ensure ID is in HTML sidebar!
+const closeHistoryBtn = document.getElementById("closeHistoryBtn");
+const prevDateBtn = document.getElementById("histPrevBtn");
+const nextDateBtn = document.getElementById("histNextBtn");
+const datePicker = document.getElementById("historyDatePicker");
+const dateDisplay = document.getElementById("historyDateDisplay");
+const resultContainer = document.getElementById("historyResultContainer");
+
+let currentHistoryDate = new Date(); // State for the modal
+
+// 1. Open Modal
+if (openHistoryBtn) {
+  openHistoryBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    historyModal.classList.add("active");
+    currentHistoryDate = new Date(); // Reset to today
+    updateHistoryUI();
+  });
+}
+
+// 2. Close Modal
+if (closeHistoryBtn) {
+  closeHistoryBtn.addEventListener("click", () => {
+    historyModal.classList.remove("active");
+  });
+}
+
+// 3. Navigation
+if (prevDateBtn) {
+  prevDateBtn.addEventListener("click", () => {
+    currentHistoryDate.setDate(currentHistoryDate.getDate() - 1);
+    updateHistoryUI();
+  });
+}
+
+if (nextDateBtn) {
+  nextDateBtn.addEventListener("click", () => {
+    currentHistoryDate.setDate(currentHistoryDate.getDate() + 1);
+    updateHistoryUI();
+  });
+}
+
+if (datePicker) {
+  datePicker.addEventListener("change", (e) => {
+    if (e.target.value) {
+      currentHistoryDate = new Date(e.target.value);
+      updateHistoryUI();
+    }
+  });
+}
+
+// 4. Update UI & Fetch
+function updateHistoryUI() {
+  // A. Format Date for Display (e.g., "Mon, Dec 15")
+  const options = {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  };
+  dateDisplay.innerText = currentHistoryDate.toLocaleDateString(
+    "en-US",
+    options
+  );
+
+  // B. Format Date for Server (YYYY-MM-DD in Local Time)
+  const offset = currentHistoryDate.getTimezoneOffset() * 60000;
+  const serverDate = new Date(currentHistoryDate - offset)
+    .toISOString()
+    .slice(0, 10);
+
+  // Sync hidden picker
+  datePicker.value = serverDate;
+
+  // C. Fetch Data
+  fetchHistoryData(serverDate);
+}
+
+function fetchHistoryData(dateString) {
+  const userString = localStorage.getItem("currentUser");
+  const user = JSON.parse(userString);
+  const parentFullName = `${user.firstname} ${user.lastname}`;
+
+  resultContainer.innerHTML = `<p style="color:#94a3b8; text-align:center; padding:20px;">Loading records...</p>`;
+
+  fetch("http://localhost:3000/get-student-history", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parentName: parentFullName, date: dateString }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success && data.record) {
+        renderHistoryCard(data.record);
+      } else {
+        renderEmptyCard();
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      resultContainer.innerHTML = `<p style="color:red; text-align:center;">Error loading data.</p>`;
+    });
+}
+
+function renderHistoryCard(record) {
+  // Default values if empty
+  const arrival = record.arrivalTime || "--:--";
+  const dismissal = record.dismissalTime || "--:--";
+  const guardian = record.authorizedPickupPerson || "Not Recorded";
+
+  // Status Logic
+  let statusText = `<span class="text-gray">Absent</span>`;
+  if (record.status === "present")
+    statusText = `<span class="text-green">Present</span>`;
+  if (record.status === "late")
+    statusText = `<span style="color:#f59e0b">Late</span>`;
+
+  resultContainer.innerHTML = `
+        <div class="history-row">
+            <div>
+                <div class="h-label">Attendance Status</div>
+                <div class="h-value">${statusText}</div>
+            </div>
+            <div>
+                <div class="h-label" style="text-align:right;">Arrival</div>
+                <div class="h-value" style="justify-content:flex-end;">
+                    <span class="material-symbols-outlined" style="font-size:16px;">login</span> ${arrival}
+                </div>
+            </div>
+        </div>
+
+        <div class="history-row">
+            <div>
+                <div class="h-label">Dismissal Time</div>
+                <div class="h-value">
+                    <span class="material-symbols-outlined" style="font-size:16px;">logout</span> ${dismissal}
+                </div>
+            </div>
+        </div>
+
+        <div class="history-row">
+            <div style="width:100%;">
+                <div class="h-label">Authorized Pickup By</div>
+                <div class="h-value" style="margin-top:4px;">
+                    <span class="material-symbols-outlined" style="font-size:18px; color:#3b82f6;">verified_user</span> 
+                    ${guardian}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderEmptyCard() {
+  resultContainer.innerHTML = `
+        <div style="text-align:center; padding:30px 10px;">
+            <span class="material-symbols-outlined" style="font-size:48px; color:#e2e8f0; margin-bottom:10px;">event_busy</span>
+            <p style="color:#94a3b8; font-size:14px;">No records found for this date.</p>
+        </div>
+    `;
+}

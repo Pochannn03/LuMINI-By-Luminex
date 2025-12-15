@@ -1451,6 +1451,49 @@ app.post("/authorize-pickup", async (req, res) => {
   }
 });
 
+// V. GET PICKUP HISTORY (For Parent Modal)
+app.post("/get-student-history", async (req, res) => {
+  const { parentName, date } = req.body;
+
+  try {
+    // 1. Find the child linked to this parent (Defaults to first child found)
+    const student = await Student.findOne({ parentUsername: parentName });
+    if (!student) {
+      return res.json({ success: false, message: "No linked student found." });
+    }
+
+    // 2. Find the class this student belongs to
+    // (Attendance sheets are stored by Class ID)
+    const studentClass = await ClassModel.findOne({
+      students: student.studentID,
+    });
+
+    // If not in a class, they can't have attendance records
+    if (!studentClass) {
+      return res.json({ success: true, record: null });
+    }
+
+    // 3. Find the Attendance Sheet for that specific Date
+    const sheet = await ClassAttendance.findOne({
+      classID: studentClass._id,
+      date: date,
+    });
+
+    if (!sheet) {
+      // No sheet exists for this date (e.g. Sunday or Holiday)
+      return res.json({ success: true, record: null });
+    }
+
+    // 4. Extract the specific record for this student
+    const record = sheet.records.find((r) => r.studentID === student.studentID);
+
+    res.json({ success: true, record: record || null });
+  } catch (error) {
+    console.error("History Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
 // --- START SERVER ---
 app.listen(3000, () =>
   console.log("🚀 Server running at http://localhost:3000")
