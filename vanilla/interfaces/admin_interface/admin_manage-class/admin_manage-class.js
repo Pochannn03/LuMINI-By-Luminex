@@ -1326,7 +1326,12 @@ if (closeEditClassBtn) {
   );
 }
 
+// Variable to store the ID of the student currently being viewed
+let currentViewStudentDbId = null;
+
 function openViewStudentModal(student) {
+  currentViewStudentDbId = student._id; // Save ID for deletion
+
   // 1. Photo
   const photoUrl = student.profilePhoto
     ? "http://localhost:3000" + student.profilePhoto
@@ -1341,6 +1346,21 @@ function openViewStudentModal(student) {
     "viewStudentID"
   ).innerText = `ID: ${student.studentID}`;
 
+  // --- NEW: Birthday & Age ---
+  const bday = student.birthdate
+    ? new Date(student.birthdate).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Not Set";
+  const age = calculateAge(student.birthdate); // Uses your existing helper function
+
+  document.getElementById("viewStudentBday").innerText = `Born: ${bday}`;
+  document.getElementById("viewStudentAgeBadge").innerText = age
+    ? `Age: ${age}`
+    : "Age: --";
+
   // 3. Class Logic
   const grade = student.gradeLevel || "Unassigned";
   const section = student.section || "";
@@ -1353,8 +1373,7 @@ function openViewStudentModal(student) {
   document.getElementById("viewStudentInvite").value =
     student.parentInviteCode || "N/A";
 
-  // --- 5. NEW: MEDICAL INFO (Read Only) ---
-  // Default to "None known" if the string is empty
+  // 5. Medical Info
   document.getElementById("viewStudentAllergies").value =
     student.allergies || "None known";
   document.getElementById("viewStudentMedical").value =
@@ -1362,6 +1381,46 @@ function openViewStudentModal(student) {
 
   // 6. Show Modal
   viewStudentModal.classList.add("active");
+}
+
+// --- NEW: Delete Student Logic ---
+const deleteViewStudentBtn = document.getElementById("deleteViewStudentBtn");
+
+if (deleteViewStudentBtn) {
+  deleteViewStudentBtn.addEventListener("click", () => {
+    if (!currentViewStudentDbId) return;
+
+    if (
+      confirm(
+        "Are you sure you want to PERMANENTLY delete this student? This cannot be undone."
+      )
+    ) {
+      deleteViewStudentBtn.innerText = "Deleting...";
+
+      fetch("http://localhost:3000/delete-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: currentViewStudentDbId }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          deleteViewStudentBtn.innerText = "Delete Student";
+          if (data.success) {
+            alert("🗑️ Student Deleted Successfully.");
+            viewStudentModal.classList.remove("active");
+            loadStudentsDirectory(); // Refresh the list
+            loadActiveClasses(); // Refresh classes (student count changes)
+          } else {
+            alert("Error: " + data.message);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          deleteViewStudentBtn.innerText = "Delete Student";
+          alert("Server Error");
+        });
+    }
+  });
 }
 
 // ==========================================

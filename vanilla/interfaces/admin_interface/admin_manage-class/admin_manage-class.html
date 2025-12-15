@@ -1121,18 +1121,40 @@
           >
             Student Name
           </h3>
-          <span
-            id="viewStudentID"
-            style="
-              background: #e0f2fe;
-              color: var(--primary-blue);
-              padding: 4px 10px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: 600;
-            "
-            >ID: 2025-001</span
+
+          <div style="display: flex; gap: 8px; margin-bottom: 8px">
+            <span
+              id="viewStudentID"
+              style="
+                background: #e0f2fe;
+                color: var(--primary-blue);
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+              "
+              >ID: --</span
+            >
+            <span
+              id="viewStudentAgeBadge"
+              style="
+                background: #f1f5f9;
+                color: var(--text-gray);
+                padding: 4px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+              "
+              >Age: --</span
+            >
+          </div>
+
+          <p
+            id="viewStudentBday"
+            style="font-size: 13px; color: #64748b; margin: 0"
           >
+            Born: --
+          </p>
 
           <div style="width: 100%; margin-top: 24px; text-align: left">
             <div class="section-divider">
@@ -1158,7 +1180,6 @@
                 >
                 <h3>Medical Information</h3>
               </div>
-
               <div class="form-group">
                 <label>Allergies</label>
                 <textarea
@@ -1171,10 +1192,8 @@
                     background: #fff5f5;
                     color: #c0392b;
                   "
-                >
-                </textarea>
+                ></textarea>
               </div>
-
               <div class="form-group" style="margin-top: 8px">
                 <label>Medical History</label>
                 <textarea
@@ -1187,8 +1206,7 @@
                     background: #fff5f5;
                     color: #c0392b;
                   "
-                >
-                </textarea>
+                ></textarea>
               </div>
             </div>
 
@@ -1231,8 +1249,27 @@
           </div>
         </div>
 
-        <div class="modal-footer">
-          <button class="btn-cancel" id="closeViewStudentBtn">Close</button>
+        <div class="modal-footer" style="justify-content: space-between">
+          <button
+            class="btn-danger enabled"
+            id="deleteViewStudentBtn"
+            style="
+              flex: 0 0 auto;
+              background: #fee2e2;
+              color: #dc2626;
+              border: none;
+              padding: 0 20px;
+            "
+          >
+            Delete Student
+          </button>
+          <button
+            class="btn-cancel"
+            id="closeViewStudentBtn"
+            style="flex: 0 0 auto; padding: 0 24px"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

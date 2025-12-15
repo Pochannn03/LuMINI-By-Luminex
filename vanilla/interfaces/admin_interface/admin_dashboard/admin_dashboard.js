@@ -5,21 +5,16 @@ const body = document.body;
 
 // Function to Toggle Menu
 openBtn.addEventListener("click", () => {
-  // Check if we are on Desktop or Mobile
   const isDesktop = window.innerWidth >= 1024;
-
   if (isDesktop) {
-    // DESKTOP: Toggle the "expanded" class for width change
     navBar.classList.toggle("expanded");
     body.classList.toggle("sidebar-open");
   } else {
-    // MOBILE: Toggle the "active" class for slide-in
     navBar.classList.toggle("active");
     overlay.classList.toggle("active");
   }
 });
 
-// Close menu when clicking overlay (Mobile only)
 overlay.addEventListener("click", () => {
   navBar.classList.remove("active");
   overlay.classList.remove("active");
@@ -30,23 +25,35 @@ document.addEventListener("DOMContentLoaded", function () {
   const userString = localStorage.getItem("currentUser");
   const currentUser = JSON.parse(userString);
 
-  // 2. Security Check (Optional but recommended)
-  if (!currentUser || currentUser.role !== "admin") {
-    // alert("Access Denied");
-    // window.location.href = "../../../auth/login.html";
-    // return;
-  }
+  // 2. Security Check (Optional)
+  // if (!currentUser || currentUser.role !== "admin") { ... }
 
   // 3. Update Header
   const headerName = document.getElementById("headerUserName");
-  const headerImg = document.getElementById("headerProfileImage");
-
-  if (headerName && currentUser.firstname) {
-    headerName.innerText = currentUser.firstname; // Should show "Admin_01"
+  if (headerName && currentUser && currentUser.firstname) {
+    headerName.innerText = currentUser.firstname;
   }
 
+  // 4. Load Data
   loadPendingTeachers();
+  loadAdminStats();
 });
+
+function loadAdminStats() {
+  const studentEl = document.getElementById("statTotalStudents");
+  if (!studentEl) return;
+
+  fetch("http://localhost:3000/get-admin-stats")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        document.getElementById("statTotalStudents").innerText = data.students;
+        document.getElementById("statTotalTeachers").innerText = data.teachers;
+        document.getElementById("statTotalParents").innerText = data.parents;
+      }
+    })
+    .catch((err) => console.error("Error loading stats:", err));
+}
 
 function loadPendingTeachers() {
   const listContainer = document.getElementById("pendingApprovalsList");
@@ -63,7 +70,7 @@ function loadPendingTeachers() {
 }
 
 function renderPendingList(teachers, container) {
-  container.innerHTML = ""; // Clear "Loading..." text
+  container.innerHTML = "";
 
   if (teachers.length === 0) {
     container.innerHTML = `<p style="padding:15px; color:var(--text-gray); font-size:13px;">No pending approvals.</p>`;
@@ -71,27 +78,24 @@ function renderPendingList(teachers, container) {
   }
 
   teachers.forEach((teacher) => {
-    // 1. Create the Item Div
     const item = document.createElement("div");
     item.className = "queue-item";
 
-    // 2. Handle Profile Photo
     const photoUrl = teacher.profilePhoto
       ? "http://localhost:3000" + teacher.profilePhoto
       : "../../../assets/placeholder_image.jpg";
 
-    // 3. FIX: Handle Date Formatting
-    // If dateJoined exists, format it nicely. If not, fallback to "Unknown Date".
     const dateObj = teacher.dateJoined ? new Date(teacher.dateJoined) : null;
     const dateString = dateObj
       ? dateObj.toLocaleDateString("en-US", {
           year: "numeric",
-          month: "short", // "Dec" instead of "12"
+          month: "short",
           day: "numeric",
         })
       : "Date N/A";
 
-    // 4. Generate HTML
+    // --- UPDATED BUTTONS ---
+    // Added onclick to the Reject Button passing the ID and Username
     item.innerHTML = `
             <img src="${photoUrl}" class="queue-avatar" style="object-fit:cover;" />
             <div class="queue-info">
@@ -100,10 +104,10 @@ function renderPendingList(teachers, container) {
                 <span class="q-time">Joined: ${dateString}</span>
             </div>
             <div class="action-buttons-small">
-                <button class="btn-icon-approve" onclick="approveTeacher('${teacher.username}')">
+                <button class="btn-icon-approve" onclick="approveTeacher('${teacher.username}')" title="Approve">
                     <span class="material-symbols-outlined">check</span>
                 </button>
-                <button class="btn-icon-deny">
+                <button class="btn-icon-deny" onclick="rejectTeacher('${teacher._id}', '${teacher.username}')" title="Reject & Delete">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             </div>
@@ -113,7 +117,8 @@ function renderPendingList(teachers, container) {
   });
 }
 
-// Global function to handle approval click
+// --- ACTIONS ---
+
 window.approveTeacher = function (username) {
   if (!confirm(`Approve teacher account for @${username}?`)) return;
 
@@ -127,8 +132,40 @@ window.approveTeacher = function (username) {
       if (data.success) {
         alert("✅ Teacher Approved Successfully!");
         loadPendingTeachers(); // Refresh the list
+        loadAdminStats(); // Refresh stats (Teacher count increases!)
       } else {
         alert("Error: " + data.message);
       }
+    });
+};
+
+// --- NEW: REJECT FUNCTION ---
+window.rejectTeacher = function (id, username) {
+  if (
+    !confirm(
+      `Are you sure you want to REJECT and DELETE the request for @${username}?`
+    )
+  )
+    return;
+
+  // We reuse the existing /delete-teacher route which does exactly what we want
+  fetch("http://localhost:3000/delete-teacher", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: id }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        alert("🗑️ Request Rejected. Teacher account removed.");
+        loadPendingTeachers(); // Refresh list (item disappears)
+        loadAdminStats(); // Refresh stats
+      } else {
+        alert("Error: " + data.message);
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Server Error");
     });
 };

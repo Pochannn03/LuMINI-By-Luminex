@@ -1588,6 +1588,56 @@ app.post("/get-teacher-stats", async (req, res) => {
   }
 });
 
+// Z. GET ADMIN DASHBOARD STATS
+app.get("/get-admin-stats", async (req, res) => {
+  try {
+    // 1. Count all students
+    const studentCount = await Student.countDocuments({});
+
+    // 2. Count ONLY approved teachers
+    const teacherCount = await Teacher.countDocuments({ isApproved: true });
+
+    // 3. Count all registered parents
+    const parentCount = await Parent.countDocuments({});
+
+    res.json({
+      success: true,
+      students: studentCount,
+      teachers: teacherCount,
+      parents: parentCount,
+    });
+  } catch (error) {
+    console.error("Admin Stats Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// NEW ROUTE: DELETE STUDENT
+app.post("/delete-student", async (req, res) => {
+  const { id } = req.body; // This is the MongoDB _id
+  try {
+    // 1. Find the student to get their studentID string (e.g., "2025-001")
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.json({ success: false, message: "Student not found" });
+    }
+
+    // 2. Remove this studentID from any Class that contains it
+    await ClassModel.updateMany(
+      { students: student.studentID },
+      { $pull: { students: student.studentID } }
+    );
+
+    // 3. Delete the Student Profile
+    await Student.findByIdAndDelete(id);
+
+    res.json({ success: true, message: "Student deleted successfully!" });
+  } catch (error) {
+    console.error("Delete Student Error:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
 // --- START SERVER ---
 app.listen(3000, () =>
   console.log("🚀 Server running at http://localhost:3000")
