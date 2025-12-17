@@ -477,7 +477,8 @@ function renderClassCards(classes, container) {
     const teacherName = cls.teacherUsername || "Unassigned";
 
     // Determine Schedule Icon
-    const scheduleIcon = cls.schedule === "Morning" ? "light_mode" : "bedtime";
+    const scheduleIcon =
+      cls.schedule === "Morning" ? "light_mode" : "wb_twilight";
     const scheduleText = cls.schedule === "Morning" ? "AM" : "PM";
 
     // --- FIX: CALCULATE REAL STUDENT COUNT ---
@@ -574,9 +575,8 @@ if (addClassModalBtn) {
   });
 }
 
-// Helper: Load Teachers into Dropdown
+// Helper: Load Teachers into Dropdown (FOR CREATE MODAL)
 function loadTeacherOptions() {
-  // UPDATED ID: createClassTeacher
   const teacherSelect = document.getElementById("createClassTeacher");
   teacherSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
 
@@ -589,7 +589,10 @@ function loadTeacherOptions() {
           const option = document.createElement("option");
           option.value = teacher._id;
           option.textContent = `${teacher.firstname} ${teacher.lastname}`;
-          option.dataset.username = teacher.username;
+
+          // --- FIX: Save the Full Name here instead of the raw username ---
+          option.dataset.username = `${teacher.firstname} ${teacher.lastname}`;
+
           teacherSelect.appendChild(option);
         });
       }
@@ -869,6 +872,10 @@ if (submitNewStudentBtn) {
     const studentID = document.getElementById("addStudentID").value;
     const inviteCode = document.getElementById("addStudentInviteCode").value;
 
+    // --- FIX START: Get the birthdate value ---
+    const birthdate = document.getElementById("addStudentBirthday").value;
+    // --- FIX END ---
+
     if (!firstname || !lastname) {
       alert("Please enter the student's full name.");
       return;
@@ -881,6 +888,10 @@ if (submitNewStudentBtn) {
     formData.append("lastname", lastname);
     formData.append("studentID", studentID);
     formData.append("parentInviteCode", inviteCode);
+
+    // --- FIX START: Add birthdate to the payload ---
+    formData.append("birthdate", birthdate);
+    // --- FIX END ---
 
     if (stuRealInput.files[0]) {
       formData.append("profile-upload", stuRealInput.files[0]);
