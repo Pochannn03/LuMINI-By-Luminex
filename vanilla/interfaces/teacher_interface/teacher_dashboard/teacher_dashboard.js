@@ -573,3 +573,196 @@ function closeAuthModal() {
 
 if (cancelBtn) cancelBtn.addEventListener("click", closeAuthModal);
 if (closeAuthBtn) closeAuthBtn.addEventListener("click", closeAuthModal);
+
+// ==========================================
+// NOTIFICATION SYSTEM (Real Data & Polling)
+// ==========================================
+
+const notifBtn = document.getElementById("notifBtn");
+const notifDropdown = document.getElementById("notifDropdown");
+const notifList = document.getElementById("notifList");
+const notifBadge = document.getElementById("notifBadge");
+const toastContainer = document.getElementById("toastContainer");
+const markReadBtn = document.getElementById("markAllReadBtn"); // The Clear Button
+
+let lastNotifCount = 0; // To track if we need to show a Toast
+
+// 1. SETUP TOGGLES
+if (notifBtn) {
+  notifBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    notifDropdown.classList.toggle("active");
+    if (notifDropdown.classList.contains("active")) {
+      notifBadge.style.display = "none"; // Hide red dot when opened
+    }
+  });
+}
+
+// Close dropdown when clicking outside
+window.addEventListener("click", (e) => {
+  if (
+    notifDropdown &&
+    !notifDropdown.contains(e.target) &&
+    e.target !== notifBtn
+  ) {
+    notifDropdown.classList.remove("active");
+  }
+});
+
+// 2. FETCH NOTIFICATIONS (The Engine)
+function fetchNotifications() {
+  const userString = localStorage.getItem("currentUser");
+  if (!userString) return;
+  const user = JSON.parse(userString);
+
+  fetch("http://localhost:3000/get-notifications", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      role: "teacher",
+      userId: user.id, // Send ID so server knows which teacher this is
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        renderNotifications(data.notifications);
+      }
+    })
+    .catch((err) => console.error("Notif Fetch Error:", err));
+}
+
+// 3. RENDER FUNCTION
+function renderNotifications(items) {
+  notifList.innerHTML = ""; // Clear list
+
+  if (items.length === 0) {
+    notifList.innerHTML = `<div class="empty-state"><p>No new notifications</p></div>`;
+    notifBadge.style.display = "none";
+    lastNotifCount = 0;
+    return;
+  }
+
+  // Show Red Dot if we have items
+  // (Optional logic: only show if count increased)
+  if (items.length > lastNotifCount) {
+    notifBadge.style.display = "block";
+
+    // TRIGGER TOAST for the newest item!
+    const newest = items[0];
+    // Only toast if it's actually fresh (simple check)
+    showToast(newest.type.toUpperCase(), newest.message, newest.type);
+  }
+
+  lastNotifCount = items.length;
+
+  items.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "notif-item unread";
+
+    // Icon Logic
+    let iconName = "notifications";
+    let iconBg = "#e0f2fe";
+    let iconColor = "#3b82f6";
+
+    if (item.type === "warning") {
+      iconName = "directions_car";
+      iconBg = "#fffbeb";
+      iconColor = "#f59e0b";
+    }
+    if (item.type === "danger") {
+      // Used for "Running Late"
+      iconName = "warning";
+      iconBg = "#fef2f2";
+      iconColor = "#ef4444";
+    }
+    if (item.type === "success") {
+      // Used for "Here"
+      iconName = "check_circle";
+      iconBg = "#f0fdf4";
+      iconColor = "#22c55e";
+    }
+
+    // Format Time (Simple)
+    const time = new Date(item.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    div.innerHTML = `
+      <div class="notif-icon-box" style="background:${iconBg}; color:${iconColor};">
+        <span class="material-symbols-outlined" style="font-size:18px">${iconName}</span>
+      </div>
+      <div class="notif-content">
+        <div class="notif-title">${item.message}</div>
+        <div class="notif-time">${time}</div>
+      </div>
+    `;
+    notifList.appendChild(div);
+  });
+}
+
+// 4. CLEAR NOTIFICATIONS ("Mark All Read")
+if (markReadBtn) {
+  markReadBtn.addEventListener("click", () => {
+    const userString = localStorage.getItem("currentUser");
+    const user = JSON.parse(userString);
+
+    fetch("http://localhost:3000/clear-notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "teacher", userId: user.id }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // Clear UI immediately
+          renderNotifications([]);
+        }
+      });
+  });
+}
+
+// 5. START POLLING
+// Add this to your existing DOMContentLoaded or startPolling function
+setInterval(fetchNotifications, 3000); // Check every 3 seconds
+
+// 6. TOAST FUNCTION (Same as before)
+function showToast(title, message, type = "info") {
+  const toast = document.createElement("div");
+  toast.className = `toast-box ${type}`;
+
+  let iconName = "notifications";
+  let iconColor = "#3b82f6";
+
+  if (type === "warning") {
+    iconName = "directions_car";
+    iconColor = "#f59e0b";
+  } // OTW
+  if (type === "danger") {
+    iconName = "warning";
+    iconColor = "#ef4444";
+  } // Late
+  if (type === "success") {
+    iconName = "check_circle";
+    iconColor = "#22c55e";
+  } // Here
+
+  toast.innerHTML = `
+    <span class="material-symbols-outlined" style="color:${iconColor}; font-size: 24px;">${iconName}</span>
+    <div style="flex:1;">
+      <div style="font-weight:600; font-size:14px; color:#1e293b; margin-bottom:2px;">${title}</div>
+      <div style="font-size:12px; color:#64748b; line-height:1.4;">${message}</div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="border:none; background:none; cursor:pointer; color:#94a3b8;">
+      <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    </button>
+  `;
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = "fadeOut 0.5s forwards";
+    setTimeout(() => toast.remove(), 500);
+  }, 5000);
+}

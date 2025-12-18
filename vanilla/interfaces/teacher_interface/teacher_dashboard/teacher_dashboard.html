@@ -31,10 +31,30 @@
         </div>
 
         <div class="header-right">
-          <button class="icon-btn notification-btn">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="notification-badge"></span>
-          </button>
+          <div class="notification-wrapper" style="position: relative">
+            <button id="notifBtn" class="icon-btn notification-btn">
+              <span class="material-symbols-outlined">notifications</span>
+              <span
+                id="notifBadge"
+                class="notification-badge"
+                style="display: none"
+              ></span>
+            </button>
+
+            <div id="notifDropdown" class="notification-dropdown">
+              <div class="dropdown-header">
+                <span>Notifications</span>
+                <button id="markAllReadBtn" class="text-btn">
+                  Mark all read
+                </button>
+              </div>
+              <div id="notifList" class="dropdown-body">
+                <div class="empty-state">
+                  <p>No new notifications</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div class="header-separator"></div>
 
@@ -402,6 +422,8 @@
         </div>
       </div>
     </div>
+
+    <div id="toastContainer" class="toast-container"></div>
     <script src="teacher_dashboard.js"></script>
   </body>
 </html>

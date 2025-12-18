@@ -779,3 +779,170 @@ body {
   color: #2ecc71;
   background: #f0fdf4; /* Optional: Very light green background */
 }
+
+/* =========================================
+   NOTIFICATION SYSTEM STYLES
+   ========================================= */
+
+/* --- 1. DROPDOWN MENU --- */
+.notification-dropdown {
+  position: absolute;
+  top: 60px;
+  right: -10px; /* Aligns with the bell */
+  width: 320px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  display: none; /* Hidden by default */
+  flex-direction: column;
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Toggle Class */
+.notification-dropdown.active {
+  display: flex;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-header {
+  padding: 16px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--primary-blue);
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.text-btn:hover {
+  text-decoration: underline;
+}
+
+.dropdown-body {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Notification Item */
+.notif-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f8fafc;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.notif-item:hover {
+  background: #f8fafc;
+}
+.notif-item.unread {
+  background: #eff6ff; /* Light Blue background for unread */
+}
+
+.notif-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.notif-content {
+  flex: 1;
+}
+.notif-title {
+  font-size: 13px;
+  color: var(--text-dark);
+  font-weight: 500;
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+.notif-time {
+  font-size: 11px;
+  color: var(--text-gray);
+}
+
+.empty-state {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-gray);
+  font-size: 13px;
+}
+
+/* --- 2. TOAST NOTIFICATIONS (Pop-ups) --- */
+.toast-container {
+  position: fixed;
+  top: 90px; /* Below the header */
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none; /* Let clicks pass through empty space */
+}
+
+.toast-box {
+  background: white;
+  width: 300px;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  pointer-events: auto; /* Re-enable clicks on the toast itself */
+  animation: slideInRight 0.3s ease-out forwards;
+  border-left: 4px solid var(--primary-blue); /* Default Info Border */
+}
+
+/* Toast Colors */
+.toast-box.warning {
+  border-left-color: #f59e0b;
+} /* Orange for OTW */
+.toast-box.danger {
+  border-left-color: #ef4444;
+} /* Red for Late */
+.toast-box.success {
+  border-left-color: #2ecc71;
+} /* Green for Here */
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}

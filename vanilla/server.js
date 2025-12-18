@@ -170,10 +170,11 @@ const ClassAttendance = mongoose.model(
 
 // --- NEW: NOTIFICATION SCHEMA ---
 const NotificationSchema = new mongoose.Schema({
-  recipientRole: { type: String, required: true }, // e.g. "admin"
-  message: { type: String, required: true }, // e.g. "New Teacher Registered"
-  type: { type: String, default: "info" }, // "info", "warning", "success"
-  relatedId: String, // ID of the teacher/student involved
+  recipientRole: { type: String, required: true }, // "admin" or "teacher"
+  recipientId: String, // <--- ADD THIS! (Target specific user)
+  message: { type: String, required: true },
+  type: { type: String, default: "info" },
+  relatedId: String,
   isRead: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });
@@ -1328,15 +1329,20 @@ app.post("/update-queue-status", async (req, res) => {
     if (teacherId) {
       let msg = "";
 
+      // --- LOGIC FIX: Context-Aware Name ---
+      // If Drop-off (Morning): Use Student Name (e.g., "Arvin is Here")
+      // If Dismissal (Afternoon): Use Parent Name (e.g., "Jose is Here")
+      const subjectName =
+        mode === "dismissal"
+          ? student.parentUsername || "Guardian"
+          : student.firstname;
+
       // Define messages based on status
       if (status === "otw")
-        msg = `🚗 ${student.firstname} is On The Way (${timeString})`;
+        msg = `🚗 ${subjectName} is On The Way (${timeString})`;
       if (status === "here")
-        msg = `📍 ${student.firstname} is HERE at the gate (${timeString})`;
-
-      // --- FIX: Handle the new status string ---
-      if (status === "running_late")
-        msg = `⏰ ${student.firstname} is Running Late`;
+        msg = `📍 ${subjectName} is HERE at the gate (${timeString})`;
+      if (status === "running_late") msg = `⏰ ${subjectName} is Running Late`;
 
       if (msg) {
         const notif = new Notification({
@@ -1698,13 +1704,25 @@ app.post("/delete-student", async (req, res) => {
   }
 });
 
-// --- NEW: GET NOTIFICATIONS (For Admin) ---
-app.get("/get-notifications", async (req, res) => {
+// --- UPDATED: GET NOTIFICATIONS (Dynamic for Admin or Teacher) ---
+app.post("/get-notifications", async (req, res) => {
+  const { role, userId } = req.body; // We send these from the frontend now
+
   try {
-    // Fetch unread (or all) notifications for admin, newest first
-    const notifs = await Notification.find({ recipientRole: "admin" })
-      .sort({ createdAt: -1 })
-      .limit(20); // Limit to last 20 to keep it fast
+    let query = {};
+
+    if (role === "admin") {
+      // Admin sees all admin alerts
+      query = { recipientRole: "admin" };
+    } else if (role === "teacher") {
+      // Teacher sees alerts meant for them specifically
+      query = { recipientRole: "teacher", recipientId: userId };
+    }
+
+    const notifs = await Notification.find(query)
+      .sort({ createdAt: -1 }) // Newest first
+      .limit(20);
+
     res.json({ success: true, notifications: notifs });
   } catch (error) {
     res
@@ -1713,14 +1731,20 @@ app.get("/get-notifications", async (req, res) => {
   }
 });
 
-// --- NEW: DELETE/CLEAR NOTIFICATIONS ---
+// --- UPDATED: CLEAR NOTIFICATIONS ---
 app.post("/clear-notifications", async (req, res) => {
-  try {
-    // Option A: Delete them permanently
-    await Notification.deleteMany({ recipientRole: "admin" });
+  const { role, userId } = req.body;
 
-    // Option B: Just mark as read (if you want history)
-    // await Notification.updateMany({ recipientRole: "admin" }, { $set: { isRead: true } });
+  try {
+    let query = {};
+    if (role === "admin") {
+      query = { recipientRole: "admin" };
+    } else if (role === "teacher") {
+      query = { recipientRole: "teacher", recipientId: userId };
+    }
+
+    // Delete them all
+    await Notification.deleteMany(query);
 
     res.json({ success: true, message: "Notifications cleared" });
   } catch (error) {
