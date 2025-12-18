@@ -335,9 +335,9 @@ function renderQueue(queueItems, mode) {
     if (item.status === "otw") {
       badgeClass = "badge-otw";
       badgeText = "On the way";
-    } else if (item.status === "late") {
-      badgeClass = "badge-late";
-      badgeText = "Running late";
+    } else if (item.status === "running_late" || item.status === "late") {
+      badgeClass = "badge-late"; // This class is already Red in your CSS
+      badgeText = "Running Late";
     } else if (item.status === "here") {
       badgeClass = "badge-success"; // <--- CHANGED: Now uses the new Green style
       badgeText = "At School";

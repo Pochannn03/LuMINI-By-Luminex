@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   if (btnLate)
-    btnLate.addEventListener("click", () => sendStatusUpdate("late"));
+    btnLate.addEventListener("click", () => sendStatusUpdate("running_late"));
 
   // 5. SCAN BUTTON LOGIC (Real Scanner Implementation)
   const scanBtn = document.getElementById("scanQrBtn");
@@ -224,6 +224,25 @@ function checkIfAlreadyDroppedOff(studentID) {
   })
     .then((res) => res.json())
     .then((data) => {
+      console.log("Status Check:", data);
+
+      const actionRow = document.getElementById("actionButtonsRow");
+      const status = data.status; // 'otw', 'late', 'here', 'present', 'dismissed', 'no_record'
+
+      // --- THE FIX IS HERE ---
+      // We explicitly define which statuses are "Active Drop-off Modes"
+      // These modes KEEP the buttons visible so the parent can update them.
+      const isActiveDropoff =
+        status === "otw" || status === "late" || status === "here";
+
+      // If no record exists, we assume it's the start of the day (Buttons Visible)
+      const showButtons = isActiveDropoff || status === "no_record";
+
+      if (actionRow) {
+        actionRow.style.display = showButtons ? "flex" : "none";
+      }
+
+      renderVisualTracker(status);
       if (data.success) {
         // 1. UPDATE VISUAL TRACKER
         renderVisualTracker(data.status);
@@ -247,7 +266,10 @@ function checkIfAlreadyDroppedOff(studentID) {
 
         // Simple Rule: If Present/Late, show Safe Message.
         // We only hide buttons if we are in Dropoff mode (to avoid hiding pickup buttons if they stay present)
-        const isSafe = data.status === "present" || data.status === "late";
+        const isSafe =
+          data.status === "present" ||
+          data.status === "late" ||
+          data.status === "completed";
         const isDropoffMode =
           (window.currentClassMode || "dropoff") === "dropoff";
 
@@ -403,34 +425,48 @@ function renderVisualTracker(status) {
   const steps = document.querySelectorAll(".tracker-step");
   const badge = document.querySelector(".current-status-badge");
 
-  // Reset all
+  // 1. RESET ALL
   steps.forEach((s) => s.classList.remove("active", "completed"));
 
-  // STANDARD CHECK (Server now guarantees 'present' for morning safety)
-  if (status === "present" || status === "late") {
-    // STATE: LEARNING (Complete)
+  // 2. DEFINE BADGE HELPER
+  const setBadge = (text, bg, border, color) => {
+    if (badge) {
+      badge.innerText = text;
+      badge.style.background = bg;
+      badge.style.borderColor = border;
+      badge.style.color = color;
+    }
+  };
+
+  // 3. STATE MACHINE LOGIC
+  if (status === "completed") {
+    // DISMISSED / HOME
+    steps[0].classList.add("completed");
+    steps[1].classList.add("completed");
+    steps[2].classList.add("active");
+    setBadge("Dismissed", "#eff6ff", "#bfdbfe", "#1e40af");
+  } else if (status === "present" || status === "late") {
+    // LEARNING (Safe at School)
+    // Note: 'late' here refers to Attendance Late, which is SAFE.
     steps[0].classList.add("completed");
     steps[1].classList.add("active");
-
-    if (badge) {
-      badge.innerText = "Learning at School";
-      badge.style.background = "#fffbeb";
-      badge.style.color = "#b45309";
-      badge.style.borderColor = "#fcd34d";
-    }
+    setBadge("Learning at School", "#f0fdf4", "#86efac", "#166534");
+  } else if (status === "running_late") {
+    // --- FIX: RUNNING LATE (Active Queue) ---
+    // Parent is still driving.
+    steps[0].classList.add("active");
+    setBadge("Running Late", "#fef2f2", "#fca5a5", "#dc2626");
   } else {
-    // STATE: ON THE WAY (Default)
+    // DEFAULT (On The Way / Here)
     steps[0].classList.add("active");
 
-    if (badge) {
-      badge.innerText = "On the Way";
-      badge.style.background = "#e0f2fe";
-      badge.style.color = "#0369a1";
-      badge.style.borderColor = "#7dd3fc";
+    if (status === "here") {
+      setBadge("At School (Waiting)", "#fffbeb", "#fcd34d", "#b45309");
+    } else {
+      setBadge("On the Way", "#fefce8", "#fef08a", "#854d0e");
     }
   }
 }
-
 // ================= SCANNER FUNCTIONS =================
 
 function startCamera() {

@@ -1287,8 +1287,7 @@ app.post("/update-student-health", async (req, res) => {
 // R. UPDATE PARENT STATUS
 app.post("/update-queue-status", async (req, res) => {
   const { studentID, mode, status } = req.body;
-
-  const today = getTodayPH(); // <--- FIXED
+  const today = getTodayPH();
 
   const now = new Date();
   const timeString = now.toLocaleTimeString("en-US", {
@@ -1302,8 +1301,12 @@ app.post("/update-queue-status", async (req, res) => {
     if (!student)
       return res.json({ success: false, message: "Student not found" });
 
+    // 1. Find Class & Teacher
     const studentClass = await ClassModel.findOne({ students: studentID });
     const classID = studentClass ? studentClass._id : "Unassigned";
+    const teacherId = studentClass ? studentClass.teacherId : null;
+
+    // 2. Update Queue
     const photoToSave = req.body.parentPhoto || student.profilePhoto;
 
     await QueueModel.findOneAndUpdate(
@@ -1313,13 +1316,40 @@ app.post("/update-queue-status", async (req, res) => {
           studentName: `${student.firstname} ${student.lastname}`,
           parentName: student.parentUsername || "Guardian",
           classID: classID,
-          status: status,
+          status: status, // This will now save as "running_late"
           time: timeString,
           profilePhoto: photoToSave,
         },
       },
       { upsert: true, new: true }
     );
+
+    // 3. SEND NOTIFICATION TO TEACHER
+    if (teacherId) {
+      let msg = "";
+
+      // Define messages based on status
+      if (status === "otw")
+        msg = `🚗 ${student.firstname} is On The Way (${timeString})`;
+      if (status === "here")
+        msg = `📍 ${student.firstname} is HERE at the gate (${timeString})`;
+
+      // --- FIX: Handle the new status string ---
+      if (status === "running_late")
+        msg = `⏰ ${student.firstname} is Running Late`;
+
+      if (msg) {
+        const notif = new Notification({
+          recipientRole: "teacher",
+          recipientId: teacherId,
+          message: msg,
+          type: "info",
+          relatedId: studentID,
+        });
+        await notif.save();
+        console.log(`🔔 Notified Teacher (${teacherId}): ${msg}`);
+      }
+    }
 
     res.json({ success: true, message: "Status Updated!" });
   } catch (error) {

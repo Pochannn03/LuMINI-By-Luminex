@@ -1091,3 +1091,18 @@ body {
   color: #94a3b8;
   font-style: italic;
 }
+
+/* --- ADD THIS NEW CLASS BELOW .text-gray --- */
+.text-red {
+  color: #dc2626; /* Strong Red */
+  font-weight: 600;
+}
+
+/* Ensure the red status button uses the same red */
+.status-option-btn.status-red {
+  border-color: #ef4444;
+  color: #dc2626;
+}
+.status-option-btn.status-red .arrow-icon {
+  color: #dc2626;
+}
