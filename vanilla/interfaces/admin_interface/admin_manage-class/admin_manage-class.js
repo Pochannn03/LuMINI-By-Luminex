@@ -426,7 +426,24 @@ if (submitNewTeacherBtn) {
 
 document.addEventListener("DOMContentLoaded", function () {
   loadTeachersDirectory(); // Existing
-  loadActiveClasses(); // NEW: Load classes on start
+  loadActiveClasses(); // NEW: Load classes on
+
+  // --- NOTIFICATION TOGGLE LOGIC (Copy-Pasted) ---
+  const bellBtn = document.getElementById("bellBtn");
+  const notifDropdown = document.getElementById("notificationDropdown");
+
+  if (bellBtn && notifDropdown) {
+    bellBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      notifDropdown.classList.toggle("active");
+    });
+
+    window.addEventListener("click", (e) => {
+      if (!notifDropdown.contains(e.target) && e.target !== bellBtn) {
+        notifDropdown.classList.remove("active");
+      }
+    });
+  }
 });
 
 function loadActiveClasses() {
@@ -1571,4 +1588,140 @@ if (editPhotoInput && editPhotoPreview) {
       reader.readAsDataURL(e.target.files[0]);
     }
   });
+}
+
+// ==========================================
+// NOTIFICATION SYSTEM LOGIC (Phase 3)
+// ==========================================
+
+let previousNotifCount = 0; // Tracks history to detect NEW items
+let isFirstLoad = true; // Prevents toast spam on page refresh
+
+// 1. Start Polling (Checks every 3 seconds)
+setInterval(fetchNotifications, 3000);
+
+// Also run once immediately on load
+document.addEventListener("DOMContentLoaded", () => {
+  fetchNotifications();
+});
+
+// 2. Fetch Logic
+function fetchNotifications() {
+  fetch("http://localhost:3000/get-notifications")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        updateNotificationUI(data.notifications);
+      }
+    })
+    .catch((err) => console.error("Notif Sync Error:", err));
+}
+
+// 3. UI Update Logic
+function updateNotificationUI(notifs) {
+  const badge = document.getElementById("bellBadge");
+  const list = document.getElementById("notificationList");
+  const count = notifs.length;
+
+  // A. Update Badge
+  if (count > 0) {
+    badge.style.display = "flex";
+    badge.innerText = count > 99 ? "99+" : count;
+  } else {
+    badge.style.display = "none";
+  }
+
+  // B. Check for NEW notifications (Trigger Toast)
+  // We only toast if count INCREASED and it's not the first load
+  if (!isFirstLoad && count > previousNotifCount) {
+    const newest = notifs[0]; // The first one is the newest
+    showToast(newest.message);
+  }
+
+  // Update trackers
+  previousNotifCount = count;
+  isFirstLoad = false;
+
+  // C. Render Dropdown List
+  list.innerHTML = ""; // Clear current list
+
+  if (count === 0) {
+    list.innerHTML = `<p class="empty-notif">No new notifications.</p>`;
+    return;
+  }
+
+  notifs.forEach((n) => {
+    // Calculate relative time (e.g. "Just now")
+    const timeText = getRelativeTime(new Date(n.createdAt));
+
+    const item = document.createElement("div");
+    item.className = "notif-item unread";
+    item.innerHTML = `
+            <div class="notif-icon-box">
+                <span class="material-symbols-outlined">info</span>
+            </div>
+            <div class="notif-content">
+                <h4>System Alert</h4>
+                <p>${n.message}</p>
+                <span class="notif-time">${timeText}</span>
+            </div>
+        `;
+    list.appendChild(item);
+  });
+}
+
+// 4. Toast Logic (Slide In)
+function showToast(message) {
+  const container = document.getElementById("toastContainer");
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+
+  toast.innerHTML = `
+        <span class="material-symbols-outlined toast-icon">notifications_active</span>
+        <div class="toast-body">
+            <h4>New Notification</h4>
+            <p>${message}</p>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    `;
+
+  container.appendChild(toast);
+
+  // Trigger Animation (Wait 10ms for DOM to recognize element)
+  setTimeout(() => {
+    toast.classList.add("show");
+  }, 10);
+
+  // Note: We removed the auto-dismiss timer so it stays until clicked!
+}
+
+// 5. Clear All Logic
+const clearBtn = document.getElementById("clearAllNotifsBtn");
+if (clearBtn) {
+  clearBtn.addEventListener("click", () => {
+    if (!confirm("Clear all notifications?")) return;
+
+    fetch("http://localhost:3000/clear-notifications", { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          fetchNotifications(); // Refresh UI immediately
+        }
+      });
+  });
+}
+
+// Helper: Relative Time
+function getRelativeTime(date) {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  if (diffInSeconds < 86400)
+    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  return date.toLocaleDateString();
 }

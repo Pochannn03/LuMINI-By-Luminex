@@ -58,6 +58,13 @@ const TeacherSchema = new mongoose.Schema({
   lastname: String,
   email: String,
   phone: String,
+  // --- NEW: ADD THESE LINES ---
+  houseUnit: { type: String },
+  street: { type: String },
+  barangay: { type: String },
+  city: { type: String },
+  zipcode: { type: String },
+  // ----------------------------
   role: { type: String, default: "teacher" },
   profilePhoto: String,
   dateJoined: { type: Date, default: Date.now },
@@ -161,6 +168,17 @@ const ClassAttendance = mongoose.model(
   ClassAttendanceSchema
 );
 
+// --- NEW: NOTIFICATION SCHEMA ---
+const NotificationSchema = new mongoose.Schema({
+  recipientRole: { type: String, required: true }, // e.g. "admin"
+  message: { type: String, required: true }, // e.g. "New Teacher Registered"
+  type: { type: String, default: "info" }, // "info", "warning", "success"
+  relatedId: String, // ID of the teacher/student involved
+  isRead: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+});
+const Notification = mongoose.model("Notification", NotificationSchema);
+
 // --- HELPER: ENSURE ATTENDANCE SHEET EXISTS (Race-Condition Proof) ---
 async function getOrInitAttendanceSheet(classId, teacherId, dateString) {
   try {
@@ -240,6 +258,18 @@ app.post(
       };
       const newTeacher = new Teacher(teacherData);
       await newTeacher.save();
+
+      // --- NEW: CREATE NOTIFICATION FOR ADMIN ---
+      const notif = new Notification({
+        recipientRole: "admin",
+        message: `New Teacher Registration: ${req.body.firstname} ${req.body.lastname} (@${req.body.username})`,
+        type: "info",
+        relatedId: newTeacher._id,
+      });
+      await notif.save();
+      console.log("🔔 Notification created for Admin");
+      // ------------------------------------------
+
       res.json({ success: true, message: "Teacher Registered!" });
     } catch (error) {
       console.error(error);
@@ -1635,6 +1665,38 @@ app.post("/delete-student", async (req, res) => {
   } catch (error) {
     console.error("Delete Student Error:", error);
     res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+// --- NEW: GET NOTIFICATIONS (For Admin) ---
+app.get("/get-notifications", async (req, res) => {
+  try {
+    // Fetch unread (or all) notifications for admin, newest first
+    const notifs = await Notification.find({ recipientRole: "admin" })
+      .sort({ createdAt: -1 })
+      .limit(20); // Limit to last 20 to keep it fast
+    res.json({ success: true, notifications: notifs });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Error fetching notifications" });
+  }
+});
+
+// --- NEW: DELETE/CLEAR NOTIFICATIONS ---
+app.post("/clear-notifications", async (req, res) => {
+  try {
+    // Option A: Delete them permanently
+    await Notification.deleteMany({ recipientRole: "admin" });
+
+    // Option B: Just mark as read (if you want history)
+    // await Notification.updateMany({ recipientRole: "admin" }, { $set: { isRead: true } });
+
+    res.json({ success: true, message: "Notifications cleared" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ success: false, message: "Error clearing notifications" });
   }
 });
 
