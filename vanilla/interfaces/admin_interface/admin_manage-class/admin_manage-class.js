@@ -1633,7 +1633,7 @@ function updateNotificationUI(notifs) {
 
   // B. Check for NEW notifications (Trigger Toast)
   // We only toast if count INCREASED and it's not the first load
-  if (!isFirstLoad && count > previousNotifCount) {
+  if (count > previousNotifCount || (isFirstLoad && count > 0)) {
     const newest = notifs[0]; // The first one is the newest
     showToast(newest.message);
   }

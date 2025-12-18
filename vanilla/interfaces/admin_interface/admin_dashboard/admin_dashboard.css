@@ -884,12 +884,13 @@ body {
 /* 2. Toast Styling (Slide-In) */
 .toast-container {
   position: fixed;
-  top: 90px; /* Below header */
+  top: 20px; /* CHANGED: 20px puts it at the very top corner */
   right: 20px;
-  z-index: 2000;
+  z-index: 10000; /* CHANGED: High z-index ensures it's above modals */
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  pointer-events: none;
 }
 
 .toast {

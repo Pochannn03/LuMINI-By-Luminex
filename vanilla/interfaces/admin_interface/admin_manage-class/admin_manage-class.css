@@ -1201,13 +1201,13 @@ body {
 /* 2. Toast Styling (Slide-In) - UPDATED FOR FLOATING EFFECT */
 .toast-container {
   position: fixed;
-  top: 20px; /* Moved up to the very top */
-  right: 20px; /* Stays on the right */
-  z-index: 9999; /* Super high z-index to float over Header & Modals */
+  top: 20px; /* CHANGED: 20px puts it at the very top corner */
+  right: 20px;
+  z-index: 10000; /* CHANGED: High z-index ensures it's above modals */
   display: flex;
   flex-direction: column;
   gap: 12px;
-  pointer-events: none; /* Let clicks pass through the empty container area */
+  pointer-events: none;
 }
 
 .toast {
