@@ -58,6 +58,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
+  // ==========================================
+  // 1. SIDEBAR & MENU LOGIC (Moved here)
+  // ==========================================
+  const openBtn = document.getElementById("burgerIconOpenNav");
+  const navBar = document.getElementById("sideNavBar");
+  const overlay = document.getElementById("navOverlay");
+  const body = document.body;
+
+  if (openBtn) {
+    openBtn.addEventListener("click", () => {
+      const isDesktop = window.innerWidth >= 1024;
+      if (isDesktop) {
+        navBar.classList.toggle("expanded");
+        body.classList.toggle("sidebar-open");
+      } else {
+        navBar.classList.toggle("active");
+        overlay.classList.toggle("active");
+      }
+    });
+  }
+
+  if (overlay) {
+    overlay.addEventListener("click", () => {
+      navBar.classList.remove("active");
+      overlay.classList.remove("active");
+    });
+  }
+
   // --- NEW: ACTIVATE THE MAIN "SAVE ATTENDANCE" BUTTON ---
   const saveBtn = document.getElementById("saveBtn");
   if (saveBtn) {
@@ -683,3 +711,190 @@ function fetchHistoryRecord(dateString) {
       }
     });
 }
+
+// ==========================================
+// NOTIFICATION SYSTEM (Shared Logic)
+// ==========================================
+
+const notifBtn = document.getElementById("notifBtn");
+const notifDropdown = document.getElementById("notifDropdown");
+const notifList = document.getElementById("notifList");
+const notifBadge = document.getElementById("notifBadge");
+const toastContainer = document.getElementById("toastContainer");
+const markReadBtn = document.getElementById("markAllReadBtn");
+
+let lastNotifCount = 0;
+
+// 1. DROPDOWN TOGGLES
+if (notifBtn) {
+  notifBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    notifDropdown.classList.toggle("active");
+    if (notifDropdown.classList.contains("active")) {
+      notifBadge.style.display = "none";
+    }
+  });
+}
+
+window.addEventListener("click", (e) => {
+  if (
+    notifDropdown &&
+    !notifDropdown.contains(e.target) &&
+    e.target !== notifBtn
+  ) {
+    notifDropdown.classList.remove("active");
+  }
+});
+
+// 2. FETCH ENGINE
+function fetchNotifications() {
+  const userString = localStorage.getItem("currentUser");
+  if (!userString) return;
+  const user = JSON.parse(userString);
+
+  fetch("http://localhost:3000/get-notifications", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      role: "teacher",
+      userId: user.id,
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        renderNotifications(data.notifications);
+      }
+    })
+    .catch((err) => console.error("Notif Fetch Error:", err));
+}
+
+// 3. RENDER LOGIC
+function renderNotifications(items) {
+  notifList.innerHTML = "";
+
+  if (items.length === 0) {
+    notifList.innerHTML = `<div class="empty-state"><p>No new notifications</p></div>`;
+    notifBadge.style.display = "none";
+    lastNotifCount = 0;
+    return;
+  }
+
+  // Toast Trigger
+  if (items.length > lastNotifCount) {
+    notifBadge.style.display = "block";
+    const newest = items[0];
+    showToast(newest.type.toUpperCase(), newest.message, newest.type);
+  }
+
+  lastNotifCount = items.length;
+
+  items.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "notif-item unread";
+
+    let iconName = "notifications";
+    let iconBg = "#e0f2fe";
+    let iconColor = "#3b82f6";
+
+    if (item.type === "warning") {
+      iconName = "directions_car";
+      iconBg = "#fffbeb";
+      iconColor = "#f59e0b";
+    }
+    if (item.type === "danger") {
+      iconName = "warning";
+      iconBg = "#fef2f2";
+      iconColor = "#ef4444";
+    }
+    if (item.type === "success") {
+      iconName = "check_circle";
+      iconBg = "#f0fdf4";
+      iconColor = "#22c55e";
+    }
+
+    const time = new Date(item.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    div.innerHTML = `
+      <div class="notif-icon-box" style="background:${iconBg}; color:${iconColor};">
+        <span class="material-symbols-outlined" style="font-size:18px">${iconName}</span>
+      </div>
+      <div class="notif-content">
+        <div class="notif-title">${item.message}</div>
+        <div class="notif-time">${time}</div>
+      </div>
+    `;
+    notifList.appendChild(div);
+  });
+}
+
+// 4. MARK READ
+if (markReadBtn) {
+  markReadBtn.addEventListener("click", () => {
+    const userString = localStorage.getItem("currentUser");
+    const user = JSON.parse(userString);
+
+    fetch("http://localhost:3000/clear-notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "teacher", userId: user.id }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          renderNotifications([]);
+        }
+      });
+  });
+}
+
+// 5. TOAST FUNCTION
+function showToast(title, message, type = "info") {
+  const toast = document.createElement("div");
+  toast.className = `toast-box ${type}`;
+
+  let iconName = "notifications";
+  let iconColor = "#3b82f6";
+
+  if (type === "warning") {
+    iconName = "directions_car";
+    iconColor = "#f59e0b";
+  }
+  if (type === "danger") {
+    iconName = "warning";
+    iconColor = "#ef4444";
+  }
+  if (type === "success") {
+    iconName = "check_circle";
+    iconColor = "#22c55e";
+  }
+
+  toast.innerHTML = `
+    <span class="material-symbols-outlined" style="color:${iconColor}; font-size: 24px;">${iconName}</span>
+    <div style="flex:1;">
+      <div style="font-weight:600; font-size:14px; color:#1e293b; margin-bottom:2px;">${title}</div>
+      <div style="font-size:12px; color:#64748b; line-height:1.4;">${message}</div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="border:none; background:none; cursor:pointer; color:#94a3b8;">
+      <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    </button>
+  `;
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = "fadeOut 0.5s forwards";
+    setTimeout(() => toast.remove(), 500);
+  }, 5000);
+}
+
+// 6. TEST TRIGGER (Run "testNotification()" in console)
+window.testNotification = function () {
+  showToast("Test Alert", "This is a test notification", "success");
+};
+
+// 7. START ENGINE
+setInterval(fetchNotifications, 3000);
