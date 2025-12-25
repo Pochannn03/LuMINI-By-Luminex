@@ -80,6 +80,11 @@ a:hover {
   color: var(--brand-blue);
 }
 
+/* Custom Background */
+.cbackground-gray{
+  background-color: #f8fafc;
+}
+
 /* Links */
 
 .link{
@@ -102,6 +107,13 @@ a:hover {
   text-decoration: none;
   transition: all 0.2s ease;
   cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
 }
 
 .btn-primary {
@@ -127,7 +139,7 @@ a:hover {
   background-color: #f0f8ff;
   text-decoration: none;
   color: var(--brand-blue);
-  transform: translateY(-3px);
+  transform: translateY(-3px) rotate(0.01deg);
 }
 
 /* Cards */
