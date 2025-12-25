@@ -1,10 +1,12 @@
 import { Router } from "express";
-import userRouter from "./parentUsers.js";
+import parentRouter from "./parentUser.js";
 import authRouter from "./auth.js";
+import guardianRouter from "./guardianUser.js";
 
 const router = Router();
 
-router.use(userRouter);
+router.use(parentRouter);
 router.use(authRouter);
+router.use(guardianRouter);
 
 export default router;

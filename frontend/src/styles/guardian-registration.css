@@ -36,57 +36,6 @@
   margin-top: 10px;
 }
 
-/* Button for Guardian Registration */
-
-.button {
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.button:hover {
-  background-color: var(--brand-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.button:active {
-  transform: scale(0.98);
-}
-
-.back-button,
-.next-button {
-  flex: 1;
-  height: 48px;
-  border-radius: 24px;
-  font-weight: 600;
-  font-size: 15px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-button {
-  background-color: transparent;
-  border: 2px solid #e0e0e0;
-  color: #8898aa;
-}
-
-.back-button:hover {
-  border-color: var(--brand-blue);
-  color: var(--brand-blue);
-  background-color: #fff;
-}
-
-.next-button {
-  background-color: var(--brand-blue);
-  border: none;
-  color: var(--white);
-  box-shadow: 0 4px 15px rgba(57, 168, 237, 0.3);
-}
-
-.next-button:hover {
-  background-color: var(--brand-dark);
-  transform: translateY(-2px);
-}
 
 /* Login Link */
 
@@ -138,4 +87,54 @@
   border-color: var(--brand-blue);
   background-color: var(--white);
   box-shadow: 0 0 0 4px rgba(57, 168, 237, 0.1);
+}
+
+/* File Profile Picture Upload */
+
+.file-upload-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 140px;
+  width: 100%;
+  border: 1px solid #e1e1e1;
+  background-color: #f8fafc;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.file-upload-container:hover {
+  border-color: var(--brand-blue);
+  background-color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Remove File Profile Picture */
+
+.remove-file-btn {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  color: white;
+  border: 2px solid white;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20;
+}
+
+.remove-file-btn:hover {
+  background-color: #dc2626;
+  transform: scale(1.1);
 }
