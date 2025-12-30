@@ -5,7 +5,6 @@ import passport from "../config/passport.js";
 const router = Router();
 
 router.post('/api/auth', (req, res, next) => {
-  // We call passport.authenticate with a custom callback function
   passport.authenticate("local", (err, user, info) => {
     
     if (err) {
