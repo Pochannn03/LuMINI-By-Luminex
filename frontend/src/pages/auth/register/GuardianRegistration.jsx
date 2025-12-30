@@ -7,6 +7,9 @@ import '../../../styles/guardian-registration.css'
 export default function GuardianRegistration() {
   const navigate = useNavigate();
 
+  // For Error State //
+  const [errors, setErrors] = useState({});
+
   // For User Profile useState and useRef //
   const [profileImage, setProfileImage] = useState(null); 
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -16,8 +19,8 @@ export default function GuardianRegistration() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // 1. Save file to state (to send later)
       setProfileImage(file);
+      setErrors(prev => ({ ...prev, profileImage: null }));
       
       // 2. Create preview URL
       const reader = new FileReader();
@@ -61,6 +64,58 @@ export default function GuardianRegistration() {
       ...prev,
       [name]: value
     }));
+
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  // Validation Steps //
+  const validateStep = (step) => {
+    let newErrors = {};
+    let isValid = true;
+
+    // Step 0 Validation
+    if (step === 0) {
+      if (!formData.username) newErrors.username = "Username cannot be empty";
+      else if (formData.username.length < 3) newErrors.username = "Username must be at least 3 characters";
+      else if (formData.username.length > 32) newErrors.username = "Username max 32 characters";
+
+      if (!formData.password) newErrors.password = "Password cannot be empty";
+      
+      if (!formData.confirmPassword) newErrors.confirmPassword = "Confirm Password cannot be empty";
+      else if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    // Step 1 Validation //
+    if (step === 1) {
+      if (!profileImage) newErrors.profileImage = "Profile photo is required";
+      if (!formData.firstName) newErrors.firstName = "First Name cannot be empty";
+      if (!formData.lastName) newErrors.lastName = "Last Name cannot be empty";
+      
+      if (!formData.email) newErrors.email = "Email cannot be empty";
+      else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Invalid email format";
+
+      if (!formData.phoneNumber) newErrors.phoneNumber = "Phone Number cannot be empty";
+    }
+
+    // Step 2 Validation //
+    if (step === 2) {
+      if (!formData.relationship) newErrors.relationship = "Relationship is required";
+    }
+
+    // Step 3 Validation //
+    if (step === 3) {
+      if (!formData.houseUnit) newErrors.houseUnit = "House Unit cannot be empty";
+      if (!formData.street) newErrors.street = "Street cannot be empty";
+      if (!formData.barangay) newErrors.barangay = "Brngy/Village cannot be empty";
+      if (!formData.city) newErrors.city = "City cannot be empty";
+      if (!formData.zipCode) newErrors.zipCode = "Zip Code cannot be empty";
+    }
+
+    setErrors(newErrors);
+    isValid = Object.keys(newErrors).length === 0;
+    return isValid;
   };
 
   // Phase of Registration //
@@ -93,7 +148,6 @@ export default function GuardianRegistration() {
     }
   };
 
-    
   const handleSubmitCode = () => {
     if (code.join("").length === 6) {
       setOpacity(0); // Fade out
@@ -108,10 +162,7 @@ export default function GuardianRegistration() {
 
   // Handle Submit Form for Registration //
   const handleSubmitForm = async () => {
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
+    if (!validateStep(3)) return;
 
     // When uploading files, we usually need FormData instead of JSON
     const data = new FormData();
@@ -132,10 +183,9 @@ export default function GuardianRegistration() {
     console.log("Sending Form Data..."); 
 
     try {
-      const response = await axios.post('http://localhost:3000/api/guardian-register', data, {
-        headers: { 'Content-Type': 'multipart/form-data' } // Important for files
+      await axios.post('http://localhost:3000/api/guardian-register', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-      alert("Guardian registered successfully!");
       navigate('/login');
     } catch (error) {
       console.error('Error registering:', error);
@@ -150,17 +200,29 @@ export default function GuardianRegistration() {
   
   // Form Button Logic for Steps //
 const handleNext = () => {
+  const isValid = validateStep(currentStep);
+
+  if (isValid) {
     if (currentStep < 3) {
       setCurrentStep((prev) => prev + 1);
     } else if (currentStep === 3) {
       handleSubmitForm();
     }
-  };
+  }
+};
 
   const handleBack = () => {
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
     }
+  };
+
+  const ErrorMsg = ({ field }) => {
+    return errors[field] ? (
+      <span className="text-red-500 text-[11px] mt-1 ml-1 text-left w-full block">
+        {errors[field]}
+      </span>
+    ) : null;
   };
 
   return (
@@ -169,6 +231,7 @@ const handleNext = () => {
       {phase === 'invitation' && (
         <div className='main-container flex flex-col items-start bg-white p-10 rounded-3xl w-[90%] max-w-[500px] mx-auto my-10 relative z-10 opacity-0 sm:p-[25px]' 
         style={{ opacity: opacity }}>
+
           <h1 className='mb-2.5 text-left'>
             Enter Invitation Code
           </h1>
@@ -185,7 +248,7 @@ const handleNext = () => {
                 maxLength="1"
                 className="code-box"
                 value={data}
-                onChange={e => handleCodeChange(e, index)} // Corrected Event passing
+                onChange={e => handleCodeChange(e, index)}
                 onKeyDown={e => handleCodeKeyDown(e, index)} 
                 onFocus={e => e.target.select()}
               />
@@ -221,6 +284,7 @@ const handleNext = () => {
           </div>
 
           <form className="flex flex-col w-full" id="mainRegistrationForm" action="#" method="POST">
+
             {currentStep === 0 && (
               <div>
                 <p className='border-bottom-custom'>
@@ -241,6 +305,7 @@ const handleNext = () => {
                     value={formData.username}
                     onChange={handleChange}
                   />
+                  <ErrorMsg field="username" />
                 </div>
 
                 <div className='flex flex-col w-full mb-5'>
@@ -258,6 +323,7 @@ const handleNext = () => {
                     value={formData.password}
                     onChange={handleChange}
                   />
+                  <ErrorMsg field="password" />
                 </div>
 
                 <div className='flex flex-col w-full mb-5'>
@@ -275,6 +341,7 @@ const handleNext = () => {
                     value={formData.confirmPassword} 
                     onChange={handleChange}
                   />
+                  <ErrorMsg field="confirmPassword" />
                 </div>
               </div>
             )}
@@ -318,6 +385,7 @@ const handleNext = () => {
                         className='hidden' 
                         onChange={handleImageUpload}
                       />
+                      
                     </div>
 
                     {previewUrl && (
@@ -326,6 +394,7 @@ const handleNext = () => {
                         </button>
                     )}
                   </div>
+                  <ErrorMsg field="profileImage" />
                 </div>
 
                 <div className='flex w-full h-auto gap-4'>
@@ -337,12 +406,13 @@ const handleNext = () => {
                     </label>
                       <input 
                         type="text" 
-                        name="firstName" // Update this
+                        name="firstName"
                         className='registration-input' 
                         placeholder='John' 
-                        value={formData.firstName} // Update this
+                        value={formData.firstName}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="firstName" />
                   </div>
 
                   <div className='flex flex-col w-full mb-5'>
@@ -359,6 +429,7 @@ const handleNext = () => {
                         value={formData.lastName}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="lastName" />
                   </div>
                 </div>
 
@@ -376,6 +447,7 @@ const handleNext = () => {
                       value={formData.email}
                       onChange={handleChange}
                     />
+                    <ErrorMsg field="email" />
                 </div>
 
                 <div className='flex flex-col w-full mb-5'>
@@ -392,6 +464,7 @@ const handleNext = () => {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                     />
+                    <ErrorMsg field="phoneNumber" />
                 </div>
 
               </div>
@@ -442,6 +515,7 @@ const handleNext = () => {
                         value={formData.houseUnit}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="houseUnit" />
                   </div>
 
                   <div className='flex flex-col w-full mb-5'>
@@ -458,6 +532,7 @@ const handleNext = () => {
                         value={formData.street}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="street" />
                   </div>
                 </div>
                 
@@ -476,6 +551,7 @@ const handleNext = () => {
                         value={formData.barangay}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="barangay" />
                   </div>
 
                   <div className='flex flex-col w-full mb-5'>
@@ -492,6 +568,7 @@ const handleNext = () => {
                         value={formData.city}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="city" />
                   </div>
                 </div>
 
@@ -509,6 +586,7 @@ const handleNext = () => {
                         value={formData.zipCode}
                         onChange={handleChange}
                       />
+                      <ErrorMsg field="zipCode" />
                   </div>
 
               </div>
