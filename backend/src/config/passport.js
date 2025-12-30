@@ -1,6 +1,6 @@
 import passport from 'passport'
 import { Strategy } from 'passport-local'
-import { User } from '../schemas/users.js'
+import { User } from '../models/users.js'
 import { comparePassword } from '../utils/passwordUtils.js';
 
 passport.serializeUser((user, done) => {

@@ -7,6 +7,37 @@ import '../../../styles/guardian-registration.css'
 export default function GuardianRegistration() {
   const navigate = useNavigate();
 
+  // For User Profile useState and useRef //
+  const [profileImage, setProfileImage] = useState(null); 
+  const [previewUrl, setPreviewUrl] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // Image Handler //
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // 1. Save file to state (to send later)
+      setProfileImage(file);
+      
+      // 2. Create preview URL
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setPreviewUrl(event.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (e) => {
+    e.stopPropagation(); // Prevent triggering the file input click
+    setProfileImage(null);
+    setPreviewUrl(null);
+    // Reset the input value so selecting the same file works again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   // Form Inputs Placeholder //
   const [formData, setFormData] = useState({
     username: '',
@@ -75,27 +106,35 @@ export default function GuardianRegistration() {
     }
   };
 
+  // Handle Submit Form for Registration //
   const handleSubmitForm = async () => {
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
 
-    const payload = {
-      username: formData.username,
-      password: formData.password,
-      email: formData.email,
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      phone_number: formData.phoneNumber,
-      relationship: formData.relationship,
-      address: `${formData.houseUnit}, ${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.zipCode}`
-    };
+    // When uploading files, we usually need FormData instead of JSON
+    const data = new FormData();
+    data.append('username', formData.username);
+    data.append('password', formData.password);
+    data.append('email', formData.email);
+    data.append('first_name', formData.firstName);
+    data.append('last_name', formData.lastName);
+    data.append('phone_number', formData.phoneNumber);
+    data.append('relationship', formData.relationship);
+    data.append('address', `${formData.houseUnit}, ${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.zipCode}`);
+    
+    // Append the image if it exists
+    if (profileImage) {
+      data.append('profile_photo', profileImage); 
+    }
 
-    console.log("Sending Data:", payload); // Check your console to see what is being sent!
+    console.log("Sending Form Data..."); 
 
     try {
-      const response = await axios.post('http://localhost:3000/api/guardian-register', payload);
+      const response = await axios.post('http://localhost:3000/api/guardian-register', data, {
+        headers: { 'Content-Type': 'multipart/form-data' } // Important for files
+      });
       alert("Guardian registered successfully!");
       navigate('/login');
     } catch (error) {
@@ -252,23 +291,40 @@ const handleNext = () => {
                         *
                       </span>
                   </label>
-                  <div className='relative w-full h-auto'>
-                    <label htmlFor="profileUpload" className='file-upload-container'>
-                      <div className='text-cbrand-blue flex flex-col items-center'>
-                        <svg className='text-cbrand-blue mb-2' width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                          <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
-                        <span className='text-cbrand-blue text-[12px] font-medium'>
-                          Tap to Upload Photo
-                        </span>
-                      </div>
-                      <img id="image-preview" class="cbackground-gray w-full h-full object-contain hidden!" src="" alt="Preview" />
-                      <input type="file" id="profileUpload" name="profileUpload" accept="image/*" className='hidden' />
-                    </label>
-                    <button type='button' id='remove-btn' className='remove-file-btn hidden!'>
-                      ✕
-                    </button>
+
+                  <div className='file-upload-wrapper'>
+                    <div 
+                        className='file-upload-container'
+                        onClick={() => fileInputRef.current.click()} 
+                    >
+                      {!previewUrl && (
+                        <div className='flex flex-col items-center text-cbrand-blue'>
+                          <svg className='text-cbrand-blue mb-2' width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                              <circle cx="12" cy="13" r="4"></circle>
+                            </svg>
+                            <span className='text-[12px] font-medium'>Tap to Upload Photo</span>
+                        </div>
+                      )}
+
+                      {previewUrl && (
+                        <img src={previewUrl} alt="Preview" className="image-preview" />
+                      )}
+
+                      <input 
+                        type="file" 
+                        ref={fileInputRef}
+                        accept="image/*" 
+                        className='hidden' 
+                        onChange={handleImageUpload}
+                      />
+                    </div>
+
+                    {previewUrl && (
+                        <button type='button' onClick={removeImage} className='remove-file-btn'>
+                            ✕
+                        </button>
+                    )}
                   </div>
                 </div>
 
