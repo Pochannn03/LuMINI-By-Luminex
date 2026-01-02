@@ -229,14 +229,14 @@ const handleNext = () => {
       {phase === 'registration' && (
         <div className='main-container flex flex-col items-start bg-white p-10 rounded-3xl w-[90%] max-w-[500px] mx-auto my-10 relative z-10 opacity-0 sm:p-[25px]'
         style={{ opacity: opacity }}>
-          <h1 className='text-left w-full mb-2.5'>
+          <h1 className='text-left w-full mb-2'>
             Create Account
           </h1>
-          <p className='w-full mb-[25px] font-normal text-left'>
+          <p className='w-full mb-4 font-normal text-left'>
             Please fill out the form to create your guardian account.
           </p>
 
-          <div className='inline-block py-1.5 px-3.5 rounded-[50px] mb-[25px]'>
+          <div className='inline-block py-1 px-3.5 rounded-[50px] mb-4'>
             <span className='text-cbrand-blue text-[11px] font-bold uppercase'>Step {currentStep + 1} of 3</span>
           </div>
 
