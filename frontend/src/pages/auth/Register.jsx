@@ -13,7 +13,7 @@ export default function Register(){
 
           <div className="cards-container">
 
-            <Link to={"#"} className="card-wrapper lg:h-40 lg:w-40">
+            <Link to={"/register/parent"} className="card-wrapper lg:h-40 lg:w-40">
               <div className="svg-wrapper">
                 <div className="svg-icon-holder parent-icon">
                 </div>
@@ -29,7 +29,7 @@ export default function Register(){
               <span className="text-cdark text-[15px] font-medium">Guardian</span>
             </Link>
 
-            <Link to={"#"} className="card-wrapper lg:h-40 lg:w-40 ">
+            <Link to={"/register/teacher"} className="card-wrapper lg:h-40 lg:w-40 ">
               <div className="svg-wrapper">
                 <div className="svg-icon-holder teacher-icon">
                 </div>
