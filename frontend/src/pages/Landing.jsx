@@ -21,7 +21,7 @@ export default function Landing() {
 
         <div className="fade-in-up relative flex flex-col-reverse items-center gap-10 mt-10 w-[90%] max-w-[1200px] mx-auto z-2 lg:flex-row lg:justify-between lg:text-left lg:mt-0">
           <div className="text-cdark text-center max-w-[600px] lg:items-start lg:text-left lg:w-1/2">
-            <span className="background-custom text-cbrand-blue inline-block py-[8px] px-[16px] rounded-full text-[12px] font-bold uppercase tracking-wider mb-[24px]">Ver 1.0 Release</span>
+            <span className="background-custom text-cbrand-blue inline-block py-2 px-4 rounded-full text-[12px] font-bold uppercase tracking-wider mb-6">Ver 1.0 Release</span>
 
             <h1 className="text-[36px] text-center font-extrabold leading-tight mb-5 lg:text-[48px] lg:text-start">
               Stay Connected with your School

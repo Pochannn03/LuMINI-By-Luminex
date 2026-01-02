@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/api/parent-register', 
+router.post('/api/teacher-register', 
   upload.single('profile_photo'),
   ...checkSchema(createUserValidationSchema), 
   async (req, res) => {
@@ -42,7 +42,7 @@ router.post('/api/parent-register',
     console.log("Received Valid Data:", data);
 
     data.password = await hashPassword(data.password);
-    data.role = "user";
+    data.role = "admin";
 
     if (req.file) {
       data.profile_picture = req.file.path; 
@@ -51,13 +51,13 @@ router.post('/api/parent-register',
     const newUser = new User(data);
 
     try {
-        const savedUser = await newUser.save();
-        return res.status(201).send({ msg: "Parent registered successfully!", user: savedUser });
+      const savedUser = await newUser.save();
+      return res.status(201).send({ msg: "Parent registered successfully!", user: savedUser });
     } catch (err) {
-        if (req.file) fs.unlinkSync(req.file.path);
-        
-        console.log(err);
-        return res.status(400).send({ msg: "Registration failed", error: err.message });
+      if (req.file) fs.unlinkSync(req.file.path);
+      
+      console.log(err);
+      return res.status(400).send({ msg: "Registration failed", error: err.message });
     }
   }
 );
