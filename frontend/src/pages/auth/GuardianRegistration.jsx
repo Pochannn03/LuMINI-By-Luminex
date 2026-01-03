@@ -255,6 +255,7 @@ const handleNext = () => {
                     label="Username"
                     name="username"
                     type='text'
+                    className=''
                     placeholder="johndoe12"
                     value={formData.username}
                     onChange={handleChange}

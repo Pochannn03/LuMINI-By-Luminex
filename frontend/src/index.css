@@ -1,6 +1,17 @@
 @import "tailwindcss";
 
 :root {
+  /* Primary */
+  --primary-blue: #39a8ed;
+  --primary-dark: #2c8ac4;
+  --admin-dark: #2c3e50;
+
+  /* Accents */
+  --accent-green: #2ecc71;
+  --accent-red: #e74c3c;
+  --accent-purple: #9b59b6;
+  --accent-yellow: #f59e0b;
+
   /* Text Color */
   --brand-blue: #39a8ed;
   --brand-dark: #297aac;
@@ -23,6 +34,11 @@
   /* Shadows */
   --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.08);
   --shadow-hover: 0 10px 25px rgba(57, 168, 237, 0.25);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+
+  /* Borders */
+  --border-color: #e2e8f0;
 
   /* For Border Bottom on Registration  */
   --border-bottom-color: #f0f0f0;
@@ -83,6 +99,11 @@ a:hover {
 /* Custom Background */
 .cbackground-gray{
   background-color: #f8fafc;
+}
+
+/* Custom Border Color*/
+.background-border-color{
+  background-color: var(--border-color);
 }
 
 /* Links */

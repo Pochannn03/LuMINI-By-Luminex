@@ -14,7 +14,7 @@ export default function FormInputRegistration({
 }) {
 
   const inputClassName = `registration-input ${className} ${
-    error ? 'border-red-500 bg-red-50' : ''
+    error ? '!border-red-500 !bg-red-50' : ''
   } ${readOnly ? 'cbackground-gray cursor-not-allowed' : ''}`;
   
   return (

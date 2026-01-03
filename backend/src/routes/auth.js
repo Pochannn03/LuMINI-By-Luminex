@@ -15,8 +15,6 @@ router.post('/api/auth', (req, res, next) => {
       return res.status(401).json({ message: "Invalid Credentials" });
     }
 
-    // 3. Handle Login Success
-    // (When using a custom callback, we must manually call req.logIn)
     req.logIn(user, (err) => {
       if (err) {
         return res.status(500).json({ message: "Session login failed" });
@@ -27,7 +25,7 @@ router.post('/api/auth', (req, res, next) => {
         });
       }
     });
-  })(req, res, next); // <--- We must invoke the function with req, res, next
+  })(req, res, next); 
 });
 
 router.post('/api/auth/logout', (req, res) => {
