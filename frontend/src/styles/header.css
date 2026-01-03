@@ -1,0 +1,45 @@
+.dashboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-header {
+  height: 80px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 28px;
+  z-index: 50;
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-gray);
+  padding: 8px;
+  border-radius: 50%;
+}
+
+.icon-btn:hover {
+  background: #f1f5f9;
+  color: var(--primary-blue);
+}
+
+.notif-badge {
+  background: var(--accent-red);
+}
+
+.profile-avatar {
+  border: 2px solid var(--white);
+  box-shadow: var(--shadow-sm);
+}
