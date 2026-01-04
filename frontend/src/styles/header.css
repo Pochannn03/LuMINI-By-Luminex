@@ -17,8 +17,10 @@
   position: fixed;
   top: 0;
   right: 0;
-  left: 0;
-  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Default for mobile */
+  left: 0; 
+  /* This creates the smooth "move aside" animation */
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
 }
 
 .icon-btn {
@@ -42,4 +44,16 @@
 .profile-avatar {
   border: 2px solid var(--white);
   box-shadow: var(--shadow-sm);
+}
+
+@media (min-width: 1024px) {
+  /* Default desktop: Sidebar is 80px wide */
+  .dashboard-header {
+    left: 80px; 
+  }
+
+  /* When SideNavBar triggers the body class 'sidebar-open' */
+  body.sidebar-open .dashboard-header {
+    left: 260px; /* Moves aside to make room for the 260px sidebar */
+  }
 }
