@@ -1,14 +1,14 @@
 import React from "react";
 import '../../styles/header.css'
 
-export default function DashboardHeader() {
+export default function Header({onToggle}) {
   return (
     // <div className="dashboard-wrapper">
 
       <header className="dashboard-header lg:left-10">
 
         <div className="flex items-center gap-4">
-          <button className="icon-btn">
+          <button className="icon-btn" id="burgerIconOpenNav" onClick={onToggle}>
             <span className="material-symbols-outlined">menu</span>
           </button>
         </div>
@@ -27,7 +27,7 @@ export default function DashboardHeader() {
               src="../../../assets/placeholder_image.jpg" 
               alt="Profile" 
             />
-            <span class="hidden font-semibold text-[14px] lg:block">Administrator</span>
+            <span class="hidden font-semibold text-[14px] lg:block">User</span>
           </div>
         </div>
       </header>
