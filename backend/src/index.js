@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 
 mongoose
-  .connect("mongodb://127.0.0.1/LuMINI")
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to Database"))
   .catch((err) => console.log(`Error ${err}`));
 
