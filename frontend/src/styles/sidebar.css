@@ -1,4 +1,16 @@
-/* --- 1. BASE STYLES (Applies to Mobile by default) --- */
+body.dashboard-mode {
+  font-family: "Poppins", sans-serif;
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.82),
+      rgba(255, 255, 255, 0.92)
+    ),
+    url("../assets/background-lumini.png") !important;
+  background-repeat: repeat !important;
+  background-position: center !important;
+  min-height: 100vh;
+  margin: 0;
+}
+
 .sidebar {
   position: fixed;
   top: 0;
@@ -14,7 +26,6 @@
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
 }
 
-/* IMPORTANT: Move this OUTSIDE of the media query */
 .sidebar.active {
   transform: translateX(0);
 }

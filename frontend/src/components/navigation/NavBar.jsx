@@ -4,7 +4,7 @@ import logo from '../../assets/lumini-logo.png'
 import Header from "./Header";
 import '../../styles/sidebar.css';
 
-export default function SideNavBar() {
+export default function NavBar() {
 
   const [isOpen, setIsOpen] = useState(false);
 
@@ -13,16 +13,24 @@ export default function SideNavBar() {
   };
 
   useEffect(() => {
+    document.body.classList.add("dashboard-mode");
+
     const isDesktop = window.innerWidth >= 1024;  
     if (isDesktop && isOpen) {
       document.body.classList.add("sidebar-open");
     } else {
       document.body.classList.remove("sidebar-open");
     }
+
+    return () => {
+      document.body.classList.remove("dashboard-mode");
+      document.body.classList.remove("sidebar-open");
+    };
   }, [isOpen]);
 
   return (
-    <>
+    <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 lg:pt-20">
+      
     <Header onToggle={toggleMenu} />
 
     <div 
@@ -77,6 +85,6 @@ export default function SideNavBar() {
 
     </aside>
 
-    </>
+    </div>
   );
 }
