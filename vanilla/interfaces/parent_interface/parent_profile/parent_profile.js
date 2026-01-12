@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const userString = localStorage.getItem("currentUser");
   const currentUser = JSON.parse(userString);
 
-  // Redirect if not logged in
   if (!currentUser || currentUser.role !== "parent") {
     window.location.href = "../../../auth/login.html";
     return;
@@ -12,11 +11,10 @@ document.addEventListener("DOMContentLoaded", function () {
   const serverUrl = "http://localhost:3000";
   const fullName = `${currentUser.firstname} ${currentUser.lastname}`;
 
-  // --- 2. POPULATE STATIC PROFILE DATA (Address Logic is here) ---
+  // --- 2. POPULATE STATIC PROFILE DATA ---
   populateProfileData(currentUser, fullName, serverUrl);
 
   // --- 3. FETCH & RENDER DYNAMIC CHILDREN ---
-  // Passing serverUrl so we can load photos correctly
   fetchAndRenderChildren(fullName, serverUrl);
 
   // --- 4. SETUP EVENT LISTENERS ---
@@ -36,7 +34,6 @@ function populateProfileData(currentUser, fullName, serverUrl) {
   const inputPhone = document.getElementById("profilePhone");
   const inputAddress = document.getElementById("profileAddress");
 
-  // Visuals
   if (headerName) headerName.innerText = currentUser.firstname;
   if (headerImg && currentUser.profilePhoto) {
     headerImg.src = serverUrl + currentUser.profilePhoto;
@@ -44,28 +41,22 @@ function populateProfileData(currentUser, fullName, serverUrl) {
   if (mainName) mainName.innerText = fullName;
   if (mainRole)
     mainRole.innerText = `Parent / Guardian • @${currentUser.username}`;
-
-  // Main Profile Picture
   if (mainImage && currentUser.profilePhoto) {
     mainImage.src = serverUrl + currentUser.profilePhoto;
   }
 
-  // Inputs
   if (inputName) inputName.value = fullName;
   if (inputEmail) inputEmail.value = currentUser.email || "N/A";
   if (inputPhone) inputPhone.value = currentUser.phone || "N/A";
 
-  // --- ADDRESS LOGIC ---
   if (inputAddress) {
-    // We filter out any null/undefined/empty fields
     const parts = [
       currentUser.houseUnit,
       currentUser.street,
       currentUser.barangay,
       currentUser.city,
       currentUser.zipcode,
-    ].filter((part) => part && part.trim() !== ""); // Stricter check
-
+    ].filter((part) => part && part.trim() !== "");
     inputAddress.value =
       parts.length > 0 ? parts.join(", ") : "Address not set";
   }
@@ -85,7 +76,6 @@ function fetchAndRenderChildren(parentFullName, serverUrl) {
     .then((response) => response.json())
     .then((data) => {
       if (data.success) {
-        // Pass serverUrl to the render function
         renderChildrenList(data.children, childrenListContainer, serverUrl);
       } else {
         childrenListContainer.innerHTML = `<p style="color: red; padding: 10px;">${data.message}</p>`;
@@ -97,7 +87,6 @@ function fetchAndRenderChildren(parentFullName, serverUrl) {
     });
 }
 
-// UPDATED: Now accepts serverUrl to fix the image path
 function renderChildrenList(children, container, serverUrl) {
   container.innerHTML = "";
 
@@ -110,11 +99,9 @@ function renderChildrenList(children, container, serverUrl) {
     const childItem = document.createElement("div");
     childItem.className = "child-item";
 
-    const grade = child.gradeLevel || "Grade N/A";
-    const section = child.section || "Section N/A";
+    const grade = child.gradeLevel || "Unassigned";
+    const section = child.section || "Unassigned";
 
-    // --- FIX: DYNAMIC PHOTO LOGIC ---
-    // If child has a photo, append serverUrl. If not, use placeholder.
     const photoSrc = child.profilePhoto
       ? serverUrl + child.profilePhoto
       : "../../../assets/placeholder_image.jpg";
@@ -125,21 +112,83 @@ function renderChildrenList(children, container, serverUrl) {
             <span class="child-name">${child.firstname} ${child.lastname}</span>
             <span class="child-grade">${grade} - ${section}</span>
         </div>
+        
         <button class="icon-action-btn edit-child-btn">
             <span class="material-symbols-outlined">edit</span>
         </button>
-        `;
+    `;
+
+    // --- NEW: Direct Click Listener for this specific child ---
+    const editBtn = childItem.querySelector(".edit-child-btn");
+    editBtn.addEventListener("click", () => {
+      openStudentModal(child, serverUrl);
+    });
 
     container.appendChild(childItem);
   });
-
-  attachModalTriggers();
 }
 
-// ... (Rest of your Event Listeners & Modal functions stay the same) ...
+// --- UPDATED: Populates Modal with Real Data ---
+let currentEditingChildID = null; // Global variable to track who we are editing
+
+function openStudentModal(child, serverUrl) {
+  currentEditingChildID = child.studentID; // Save ID for saving later
+
+  // 1. Get Elements
+  const modalImg = document.getElementById("modalStudentImage");
+  const modalBody = document.querySelector(".modal-body");
+
+  // Select all inputs generally first (for the original fields)
+  const allInputs = modalBody.querySelectorAll("input");
+
+  // Mapping the original fields (Indices 0-3 based on your HTML order)
+  const nameInput = allInputs[0];
+  const bdayInput = allInputs[1];
+  const idInput = allInputs[2];
+  const gradeInput = allInputs[3];
+
+  // --- NEW: Select the Teacher Inputs by ID ---
+  const teacherNameInput = document.getElementById("modalTeacherName");
+  const teacherEmailInput = document.getElementById("modalTeacherEmail");
+  const teacherPhoneInput = document.getElementById("modalTeacherPhone");
+
+  const textareas = modalBody.querySelectorAll("textarea"); // [0] Allergies, [1] Medical
+
+  // 2. Populate Image
+  modalImg.src = child.profilePhoto
+    ? serverUrl + child.profilePhoto
+    : "../../../assets/placeholder_image.jpg";
+
+  // 3. Populate Student Info (Existing)
+  nameInput.value = `${child.firstname} ${child.lastname}`;
+  bdayInput.value = child.birthdate || "Not set";
+  idInput.value = child.studentID || "N/A";
+  gradeInput.value = `${child.gradeLevel || "Unassigned"} - ${
+    child.section || ""
+  }`;
+
+  // 4. --- NEW: Populate Teacher Info ---
+  // We check if the 'teacherInfo' object exists (from our server update)
+  if (child.teacherInfo) {
+    teacherNameInput.value = child.teacherInfo.name;
+    teacherEmailInput.value = child.teacherInfo.email;
+    teacherPhoneInput.value = child.teacherInfo.phone;
+  } else {
+    // Fallback if no teacher assigned yet
+    teacherNameInput.value = "Unassigned";
+    teacherEmailInput.value = "N/A";
+    teacherPhoneInput.value = "N/A";
+  }
+
+  // 5. Populate Editable Health Fields
+  textareas[0].value = child.allergies || "";
+  textareas[1].value = child.medicalHistory || "";
+
+  // 6. Open the Modal
+  openModal();
+}
+
 function setupEventListeners() {
-  // ... copy your existing setupEventListeners code here ...
-  // (I kept the rest standard to save space, but ensure you include the modal logic below this)
   const saveBtn = document.getElementById("saveProfileBtn");
   if (saveBtn) {
     saveBtn.addEventListener("click", function () {
@@ -149,7 +198,6 @@ function setupEventListeners() {
       saveBtn.style.background = "#2ecc71";
       saveBtn.style.borderColor = "#2ecc71";
       saveBtn.style.color = "#fff";
-
       setTimeout(() => {
         saveBtn.innerText = originalText;
         saveBtn.style.background = "";
@@ -159,7 +207,7 @@ function setupEventListeners() {
     });
   }
 
-  // Modal Closes/Saves
+  // Modal Controls
   const modalOverlay = document.getElementById("studentModal");
   const closeModalBtn = document.getElementById("closeModalBtn");
   const cancelModalBtn = document.getElementById("cancelModalBtn");
@@ -167,20 +215,52 @@ function setupEventListeners() {
 
   if (closeModalBtn) closeModalBtn.addEventListener("click", closeModal);
   if (cancelModalBtn) cancelModalBtn.addEventListener("click", closeModal);
+
   if (modalOverlay) {
     modalOverlay.addEventListener("click", (e) => {
       if (e.target === modalOverlay) closeModal();
     });
   }
 
+  // --- NEW: SAVE BUTTON LOGIC ---
   if (saveModalBtn) {
     saveModalBtn.addEventListener("click", function () {
+      if (!currentEditingChildID) return;
+
       saveModalBtn.innerText = "Saving...";
-      setTimeout(() => {
-        saveModalBtn.innerText = "Save Details";
-        closeModal();
-        alert("Student details updated successfully (Simulation).");
-      }, 800);
+
+      // Grab values from textareas
+      const modalBody = document.querySelector(".modal-body");
+      const textareas = modalBody.querySelectorAll("textarea");
+      const allergiesVal = textareas[0].value;
+      const medicalVal = textareas[1].value;
+
+      fetch("http://localhost:3000/update-student-health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentID: currentEditingChildID,
+          allergies: allergiesVal,
+          medicalHistory: medicalVal,
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          saveModalBtn.innerText = "Save Details";
+          if (data.success) {
+            alert("✅ Health details updated!");
+            closeModal();
+            // Optional: Reload children to refresh local data
+            // location.reload();
+          } else {
+            alert("Error: " + data.message);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          saveModalBtn.innerText = "Save Details";
+          alert("Server Error");
+        });
     });
   }
 }
@@ -199,12 +279,4 @@ function closeModal() {
     modalOverlay.classList.remove("active");
     document.body.style.overflow = "";
   }
-}
-
-function attachModalTriggers() {
-  const editButtons = document.querySelectorAll(".edit-child-btn");
-  editButtons.forEach((btn) => {
-    btn.removeEventListener("click", openModal);
-    btn.addEventListener("click", openModal);
-  });
 }

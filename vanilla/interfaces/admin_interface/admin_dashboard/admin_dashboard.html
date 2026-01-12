@@ -27,10 +27,31 @@
         </div>
 
         <div class="header-right">
-          <button class="icon-btn notification-btn">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="notification-badge"></span>
-          </button>
+          <div class="notification-wrapper" style="position: relative">
+            <button class="icon-btn notification-btn" id="bellBtn">
+              <span class="material-symbols-outlined">notifications</span>
+              <span
+                class="notification-badge"
+                id="bellBadge"
+                style="display: none"
+                >0</span
+              >
+            </button>
+
+            <div class="notification-dropdown" id="notificationDropdown">
+              <div class="dropdown-header">
+                <h3>Notifications</h3>
+                <button class="text-btn-small" id="clearAllNotifsBtn">
+                  Clear All
+                </button>
+              </div>
+              <div class="dropdown-body" id="notificationList">
+                <p class="empty-notif">No new notifications.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="toastContainer" class="toast-container"></div>
 
           <div class="header-separator"></div>
 
@@ -38,7 +59,7 @@
             <img
               class="profile-avatar"
               id="headerProfileImage"
-              src="../../../assets/placeholder_image.jpg"
+              src="../../../assets/admin_profile.png"
               alt="Profile"
             />
             <span class="user-name" id="headerUserName">Administrator</span>
@@ -70,21 +91,6 @@
             <span class="material-symbols-outlined">school</span>
             <span>Manage Classes</span>
           </a>
-
-          <a href="#" class="nav-item">
-            <span class="material-symbols-outlined">analytics</span>
-            <span>Analytics</span>
-          </a>
-
-          <a href="#" class="nav-item">
-            <span class="material-symbols-outlined">manage_accounts</span>
-            <span>Accounts</span>
-          </a>
-
-          <a href="#" class="nav-item">
-            <span class="material-symbols-outlined">person</span>
-            <span>Profile</span>
-          </a>
         </nav>
 
         <div class="sidebar-footer">
@@ -111,7 +117,7 @@
                   <span class="material-symbols-outlined">groups</span>
                 </div>
                 <div class="stat-info">
-                  <h3>12</h3>
+                  <h3 id="statTotalStudents">--</h3>
                   <p>Total Students</p>
                 </div>
               </div>
@@ -123,7 +129,7 @@
                   >
                 </div>
                 <div class="stat-info">
-                  <h3>8</h3>
+                  <h3 id="statTotalTeachers">--</h3>
                   <p>Active Teachers</p>
                 </div>
               </div>
@@ -133,7 +139,7 @@
                   <span class="material-symbols-outlined">family_restroom</span>
                 </div>
                 <div class="stat-info">
-                  <h3>5</h3>
+                  <h3 id="statTotalParents">--</h3>
                   <p>Parents Registered</p>
                 </div>
               </div>
@@ -253,6 +259,152 @@
         </div>
       </main>
     </div>
+
+    <div class="modal-overlay" id="reviewModal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined header-icon purple-icon"
+              >verified_user</span
+            >
+            <h2 style="font-size: 18px; margin: 0">Review Application</h2>
+          </div>
+        </div>
+
+        <div class="modal-body" style="text-align: center">
+          <img
+            id="reviewPhoto"
+            src=""
+            style="
+              width: 100px;
+              height: 100px;
+              border-radius: 50%;
+              object-fit: cover;
+              margin-bottom: 15px;
+              border: 4px solid #f8fafc;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            "
+          />
+
+          <h3 id="reviewName" style="margin-bottom: 4px; font-size: 20px">
+            --
+          </h3>
+          <p
+            id="reviewUsername"
+            style="
+              color: var(--text-gray);
+              font-size: 14px;
+              margin-bottom: 24px;
+            "
+          >
+            @--
+          </p>
+
+          <div style="text-align: left; margin-bottom: 20px">
+            <h4
+              style="
+                font-size: 13px;
+                color: var(--primary-blue);
+                margin-bottom: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+              "
+            >
+              Contact Information
+            </h4>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="text" id="reviewEmail" class="form-input" readonly />
+            </div>
+            <div style="display: flex; gap: 12px">
+              <div class="form-group" style="flex: 1">
+                <label>Phone Number</label>
+                <input
+                  type="text"
+                  id="reviewPhone"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+              <div class="form-group" style="flex: 1">
+                <label>Date Joined</label>
+                <input
+                  type="text"
+                  id="reviewDate"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: left">
+            <h4
+              style="
+                font-size: 13px;
+                color: var(--primary-blue);
+                margin-bottom: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+              "
+            >
+              Address Details
+            </h4>
+            <div class="form-group">
+              <label>Street Address</label>
+              <input
+                type="text"
+                id="reviewStreet"
+                class="form-input"
+                readonly
+              />
+            </div>
+            <div style="display: flex; gap: 12px">
+              <div class="form-group" style="flex: 1">
+                <label>Barangay</label>
+                <input
+                  type="text"
+                  id="reviewBarangay"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+              <div class="form-group" style="flex: 1">
+                <label>City</label>
+                <input
+                  type="text"
+                  id="reviewCity"
+                  class="form-input"
+                  readonly
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Zip Code</label>
+              <input type="text" id="reviewZip" class="form-input" readonly />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-modal close" id="closeReviewBtn">Close</button>
+          <div style="flex: 1"></div>
+          <button class="btn-modal reject" id="modalRejectBtn">
+            <span class="material-symbols-outlined" style="font-size: 18px"
+              >close</span
+            >
+            Reject
+          </button>
+          <button class="btn-modal approve" id="modalApproveBtn">
+            <span class="material-symbols-outlined" style="font-size: 18px"
+              >check</span
+            >
+            Approve
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="admin_dashboard.js"></script>
   </body>
 </html>

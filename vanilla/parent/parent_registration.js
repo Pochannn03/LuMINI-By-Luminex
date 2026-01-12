@@ -142,9 +142,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   btnForward.addEventListener("click", function (e) {
-    e.preventDefault(); // Safety check
+    e.preventDefault();
 
-    // 1. VALIDATION
+    // 1. GENERIC HTML VALIDATION (Required Fields)
     const currentStepContainer = steps[currentStepIndex];
     const inputs = currentStepContainer.querySelectorAll(
       "input[required], select[required]"
@@ -161,41 +161,147 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!allValid) return;
 
-    // 2. CHECK: LAST STEP?
+    // ============================================================
+    // 2. CUSTOM CONSTRAINTS (Ported from Teacher Registration)
+    // ============================================================
+
+    // --- STEP 1: ACCOUNT SETUP ---
+    if (currentStepIndex === 0) {
+      const password = document.querySelector("input[name='password']").value;
+      const confirm = document.querySelector(
+        "input[name='confirm-password']"
+      ).value;
+
+      // Constraint A: Match
+      if (password !== confirm) {
+        alert("⚠️ Passwords do not match.");
+        document.querySelector("input[name='password']").value = "";
+        document.querySelector("input[name='confirm-password']").value = "";
+        return;
+      }
+
+      // Constraint B: Length (NEW)
+      if (password.length < 6) {
+        alert("⚠️ Password must be at least 6 characters long.");
+        return;
+      }
+    }
+
+    // --- STEP 2: PERSONAL DETAILS ---
+    if (currentStepIndex === 1) {
+      const phoneInput = document.querySelector("input[name='phone']").value;
+
+      // Constraint C: PH Phone Number Format (NEW)
+      // Regex: Starts with '09', followed by exactly 9 digits (total 11)
+      const phPhoneRegex = /^09\d{9}$/;
+
+      if (!phPhoneRegex.test(phoneInput)) {
+        alert(
+          "⛔ Invalid Phone Number.\nFormat should be 11 digits starting with 09 (e.g., 09123456789)."
+        );
+        return; // Stop the user from proceeding
+      }
+    }
+
+    // ============================================================
+    // 3. NAVIGATION & SUBMISSION LOGIC
+    // ============================================================
+
+    // CHECK: IS THIS THE LAST STEP?
     if (currentStepIndex === steps.length - 1) {
-      // --- SUBMIT ---
+      // --- SUBMISSION LOGIC ---
+      const originalText = btnForward.textContent;
+      btnForward.textContent = "Creating...";
+      btnForward.disabled = true;
+
+      // Manual Data Gathering (Because form is a DIV)
       const formData = new FormData();
-      const allInputs = document
-        .getElementById("mainRegistrationForm")
-        .querySelectorAll("input, select");
 
-      allInputs.forEach((input) => {
-        if (input.type === "file") {
-          if (input.files[0]) {
-            formData.append(input.name, input.files[0]);
-          }
-        } else {
-          formData.append(input.name, input.value);
-        }
-      });
+      // Step 1 Data
+      formData.append(
+        "username",
+        document.querySelector("input[name='username']").value
+      );
+      formData.append(
+        "password",
+        document.querySelector("input[name='password']").value
+      );
 
+      // Step 2 Data
+      formData.append(
+        "firstname",
+        document.querySelector("input[name='firstname']").value
+      );
+      formData.append(
+        "lastname",
+        document.querySelector("input[name='lastname']").value
+      );
+      formData.append(
+        "email",
+        document.querySelector("input[name='email']").value
+      );
+      formData.append(
+        "phone",
+        document.querySelector("input[name='phone']").value
+      );
+
+      const fileInput = document.getElementById("profile-upload");
+      if (fileInput.files[0]) {
+        formData.append("profile-upload", fileInput.files[0]);
+      }
+
+      // Step 3 Data
+      formData.append(
+        "relationship",
+        document.querySelector("select[name='relationship']").value
+      );
+      formData.append(
+        "linked_student_id",
+        document.getElementById("linked_student_id").value
+      );
+
+      // Step 4 Data
+      formData.append(
+        "houseUnit",
+        document.querySelector("input[name='house-unit']").value
+      );
+      formData.append(
+        "street",
+        document.querySelector("input[name='street']").value
+      );
+      formData.append(
+        "barangay",
+        document.querySelector("input[name='barangay']").value
+      );
+      formData.append(
+        "city",
+        document.querySelector("input[name='city']").value
+      );
+      formData.append(
+        "zipcode",
+        document.querySelector("input[name='zipcode']").value
+      );
+
+      // SEND TO SERVER
       fetch("http://localhost:3000/register-parent", {
         method: "POST",
         body: formData,
       })
-        .then((response) => response.json())
+        .then((res) => res.json())
         .then((data) => {
           if (data.success) {
-            // 1. NO ALERT HERE. Just redirect immediately.
-            // We add '?status=registered' to the URL to tell the next page what happened.
             window.location.href = "../auth/login.html?status=registered";
           } else {
             alert("❌ Error: " + data.message);
+            btnForward.textContent = originalText;
+            btnForward.disabled = false;
           }
         })
-        .catch((error) => {
-          console.error("Error:", error);
-          alert("❌ Server is offline.");
+        .catch((err) => {
+          console.error(err);
+          alert("❌ Server Connection Error");
+          btnForward.textContent = originalText;
+          btnForward.disabled = false;
         });
     } else {
       // --- NEXT STEP ---

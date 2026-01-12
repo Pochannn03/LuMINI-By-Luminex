@@ -31,10 +31,30 @@
         </div>
 
         <div class="header-right">
-          <button class="icon-btn notification-btn">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="notification-badge"></span>
-          </button>
+          <div class="notification-wrapper" style="position: relative">
+            <button id="notifBtn" class="icon-btn notification-btn">
+              <span class="material-symbols-outlined">notifications</span>
+              <span
+                id="notifBadge"
+                class="notification-badge"
+                style="display: none"
+              ></span>
+            </button>
+
+            <div id="notifDropdown" class="notification-dropdown">
+              <div class="dropdown-header">
+                <span>Notifications</span>
+                <button id="markAllReadBtn" class="text-btn">
+                  Mark all read
+                </button>
+              </div>
+              <div id="notifList" class="dropdown-body">
+                <div class="empty-state">
+                  <p>No new notifications</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div class="header-separator"></div>
 
@@ -102,82 +122,17 @@
                   <span class="material-symbols-outlined header-icon blue-icon"
                     >schedule</span
                   >
-                  <h2>Drop-off and Pickup Queue</h2>
+                  <h2 id="queueTitle">Drop-off Queue</h2>
                 </div>
-                <p class="header-desc">
-                  Shows names of parents/guardians currently in line for
-                  drop-off or pickup.
+                <p class="header-desc">Real-time updates from parents.</p>
+              </div>
+
+              <div class="queue-list-container" id="queueContainer">
+                <p style="padding: 20px; text-align: center; color: #94a3b8">
+                  Loading queue...
                 </p>
               </div>
-
-              <div class="queue-list-container">
-                <div class="queue-item">
-                  <img
-                    src="../../../assets/placeholder_image.jpg"
-                    class="queue-avatar"
-                  />
-                  <div class="queue-info">
-                    <span class="q-name">Shizuka Chen</span>
-                    <span class="q-action">Picking up: Mia Chen</span>
-                    <span class="q-time">9:50 AM</span>
-                  </div>
-                  <span class="badge-pill badge-pending">Pending</span>
-                </div>
-
-                <div class="queue-item">
-                  <img
-                    src="../../../assets/placeholder_image.jpg"
-                    class="queue-avatar"
-                  />
-                  <div class="queue-info">
-                    <span class="q-name">David Lee</span>
-                    <span class="q-action">Picking up: Noah Lee</span>
-                    <span class="q-time">9:55 AM</span>
-                  </div>
-                  <span class="badge-pill badge-pending">Pending</span>
-                </div>
-
-                <div class="queue-item">
-                  <img
-                    src="../../../assets/placeholder_image.jpg"
-                    class="queue-avatar"
-                  />
-                  <div class="queue-info">
-                    <span class="q-name">Jessica Kim</span>
-                    <span class="q-action">Picking up: Olivia Kim</span>
-                    <span class="q-time">9:58 AM</span>
-                  </div>
-                  <span class="badge-pill badge-pending">Pending</span>
-                </div>
-
-                <div class="queue-item">
-                  <img
-                    src="../../../assets/placeholder_image.jpg"
-                    class="queue-avatar"
-                  />
-                  <div class="queue-info">
-                    <span class="q-name">Shizuka Chen</span>
-                    <span class="q-action">Dropping off: Mia Chen</span>
-                    <span class="q-time">9:10 AM</span>
-                  </div>
-                  <span class="badge-pill badge-otw">On the way</span>
-                </div>
-
-                <div class="queue-item">
-                  <img
-                    src="../../../assets/placeholder_image.jpg"
-                    class="queue-avatar"
-                  />
-                  <div class="queue-info">
-                    <span class="q-name">Shizuka Chen</span>
-                    <span class="q-action">Dropping off: Mia Chen</span>
-                    <span class="q-time">9:10 AM</span>
-                  </div>
-                  <span class="badge-pill badge-late">Running late</span>
-                </div>
-              </div>
             </div>
-
             <div class="card emergency-card">
               <div class="emergency-icon">
                 <span class="material-symbols-outlined">e911_emergency</span>
@@ -214,7 +169,7 @@
               </div>
 
               <div class="widget-actions">
-                <button class="btn btn-primary">
+                <button class="btn btn-primary" id="scanGuardianBtn">
                   <span class="material-symbols-outlined"
                     >center_focus_weak</span
                   >
@@ -310,6 +265,165 @@
         </div>
       </div>
     </div>
+
+    <div class="modal-overlay" id="guardianScannerModal">
+      <div class="modal-card" style="max-width: 500px; width: 100%">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined orange-icon"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Guardian Pass</h3>
+          </div>
+          <button class="close-modal-btn" id="closeGuardianScannerBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 0">
+          <div id="guardianReader" style="width: 100%"></div>
+
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              padding: 20px;
+              font-size: 14px;
+            "
+          >
+            Ask the parent to show their Pickup Pass.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="pickupAuthModal">
+      <div class="modal-card" style="max-width: 600px; text-align: center">
+        <div class="modal-header">
+          <h3>Confirm Pickup Authorization</h3>
+          <button class="close-modal-btn" id="closeAuthBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <p style="color: #64748b; margin-bottom: 24px">
+            Verify that the guardian matches the photo below.
+          </p>
+
+          <div
+            style="
+              display: flex;
+              justify-content: center;
+              gap: 30px;
+              margin-bottom: 30px;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <img
+                id="authParentImg"
+                src=""
+                style="
+                  width: 100px;
+                  height: 100px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                  border: 3px solid #f59e0b;
+                "
+              />
+              <div>
+                <span
+                  style="
+                    display: block;
+                    font-size: 12px;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                  "
+                  >Guardian</span
+                >
+                <span
+                  id="authParentName"
+                  style="font-weight: 700; color: #1e293b"
+                  >-</span
+                >
+              </div>
+            </div>
+
+            <div style="width: 1px; background: #e2e8f0"></div>
+
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <img
+                id="authStudentImg"
+                src=""
+                style="
+                  width: 100px;
+                  height: 100px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                  border: 3px solid #3b82f6;
+                "
+              />
+              <div>
+                <span
+                  style="
+                    display: block;
+                    font-size: 12px;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                  "
+                  >Student</span
+                >
+                <span
+                  id="authStudentName"
+                  style="font-weight: 700; color: #1e293b"
+                  >-</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <button
+            id="confirmPickupBtn"
+            class="btn btn-primary"
+            style="background: #22c55e; margin-bottom: 12px"
+          >
+            <span class="material-symbols-outlined">check_circle</span>
+            Authorize Pickup
+          </button>
+
+          <button
+            id="cancelAuthBtn"
+            style="
+              background: none;
+              border: none;
+              color: #ef4444;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            Deny & Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
     <script src="teacher_dashboard.js"></script>
   </body>
 </html>

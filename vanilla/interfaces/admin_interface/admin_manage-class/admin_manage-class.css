@@ -1086,3 +1086,188 @@ body {
   border: 1px solid #e2e8f0;
   margin-bottom: 12px;
 }
+
+/* =========================================
+   NOTIFICATION DROPDOWN & TOAST
+   ========================================= */
+.notification-dropdown {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 320px;
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+}
+
+.notification-dropdown.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-header h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.text-btn-small {
+  background: none;
+  border: none;
+  color: var(--primary-blue);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.text-btn-small:hover {
+  text-decoration: underline;
+}
+
+.dropdown-body {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.empty-notif {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-gray);
+  font-size: 13px;
+}
+
+/* Items */
+.notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+.notif-item:hover {
+  background: #f8fafc;
+}
+.notif-item.unread {
+  background: #eef8ff;
+}
+
+.notif-icon-box {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e0f2fe;
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.notif-content h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: var(--text-dark);
+}
+.notif-content p {
+  font-size: 11px;
+  color: var(--text-gray);
+  margin: 0;
+}
+.notif-time {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-top: 4px;
+  display: block;
+}
+
+/* Toast */
+/* 2. Toast Styling (Slide-In) - UPDATED FOR FLOATING EFFECT */
+.toast-container {
+  position: fixed;
+  top: 20px; /* CHANGED: 20px puts it at the very top corner */
+  right: 20px;
+  z-index: 10000; /* CHANGED: High z-index ensures it's above modals */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.toast {
+  width: 320px;
+  background: white;
+  border-left: 5px solid var(--primary-blue); /* Thicker accent line */
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+
+  /* Stronger Shadow for "Floating" effect */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15), 0 4px 6px rgba(0, 0, 0, 0.05);
+
+  /* Animation: Start off-screen to the RIGHT */
+  transform: translateX(120%);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  pointer-events: all; /* Re-enable clicks on the toast itself */
+  cursor: default;
+}
+
+.toast.show {
+  /* Slide into view (Right to Left) */
+  transform: translateX(0);
+}
+
+.toast-icon {
+  color: var(--primary-blue);
+  font-size: 24px;
+  margin-top: 2px;
+}
+
+.toast-body h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: var(--text-dark);
+}
+
+.toast-body p {
+  font-size: 12px;
+  color: var(--text-gray);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: #cbd5e1;
+  cursor: pointer;
+  margin-left: auto;
+  padding: 4px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.toast-close:hover {
+  color: var(--accent-red);
+  background-color: #fef2f2;
+}

@@ -426,7 +426,24 @@ if (submitNewTeacherBtn) {
 
 document.addEventListener("DOMContentLoaded", function () {
   loadTeachersDirectory(); // Existing
-  loadActiveClasses(); // NEW: Load classes on start
+  loadActiveClasses(); // NEW: Load classes on
+
+  // --- NOTIFICATION TOGGLE LOGIC (Copy-Pasted) ---
+  const bellBtn = document.getElementById("bellBtn");
+  const notifDropdown = document.getElementById("notificationDropdown");
+
+  if (bellBtn && notifDropdown) {
+    bellBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      notifDropdown.classList.toggle("active");
+    });
+
+    window.addEventListener("click", (e) => {
+      if (!notifDropdown.contains(e.target) && e.target !== bellBtn) {
+        notifDropdown.classList.remove("active");
+      }
+    });
+  }
 });
 
 function loadActiveClasses() {
@@ -477,7 +494,8 @@ function renderClassCards(classes, container) {
     const teacherName = cls.teacherUsername || "Unassigned";
 
     // Determine Schedule Icon
-    const scheduleIcon = cls.schedule === "Morning" ? "light_mode" : "bedtime";
+    const scheduleIcon =
+      cls.schedule === "Morning" ? "light_mode" : "wb_twilight";
     const scheduleText = cls.schedule === "Morning" ? "AM" : "PM";
 
     // --- FIX: CALCULATE REAL STUDENT COUNT ---
@@ -574,9 +592,8 @@ if (addClassModalBtn) {
   });
 }
 
-// Helper: Load Teachers into Dropdown
+// Helper: Load Teachers into Dropdown (FOR CREATE MODAL)
 function loadTeacherOptions() {
-  // UPDATED ID: createClassTeacher
   const teacherSelect = document.getElementById("createClassTeacher");
   teacherSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
 
@@ -589,7 +606,10 @@ function loadTeacherOptions() {
           const option = document.createElement("option");
           option.value = teacher._id;
           option.textContent = `${teacher.firstname} ${teacher.lastname}`;
-          option.dataset.username = teacher.username;
+
+          // --- FIX: Save the Full Name here instead of the raw username ---
+          option.dataset.username = `${teacher.firstname} ${teacher.lastname}`;
+
           teacherSelect.appendChild(option);
         });
       }
@@ -869,6 +889,10 @@ if (submitNewStudentBtn) {
     const studentID = document.getElementById("addStudentID").value;
     const inviteCode = document.getElementById("addStudentInviteCode").value;
 
+    // --- FIX START: Get the birthdate value ---
+    const birthdate = document.getElementById("addStudentBirthday").value;
+    // --- FIX END ---
+
     if (!firstname || !lastname) {
       alert("Please enter the student's full name.");
       return;
@@ -881,6 +905,10 @@ if (submitNewStudentBtn) {
     formData.append("lastname", lastname);
     formData.append("studentID", studentID);
     formData.append("parentInviteCode", inviteCode);
+
+    // --- FIX START: Add birthdate to the payload ---
+    formData.append("birthdate", birthdate);
+    // --- FIX END ---
 
     if (stuRealInput.files[0]) {
       formData.append("profile-upload", stuRealInput.files[0]);
@@ -957,6 +985,7 @@ function renderStudentCards(students, container) {
     const gradeDisplay = student.gradeLevel || "Unassigned";
     const idDisplay = student.studentID || "No ID";
 
+    // 1. ADD THE EDIT BUTTON TO THE HTML BELOW
     item.innerHTML = `
         <img src="${photoUrl}" class="queue-avatar" style="object-fit:cover;" />
         <div class="queue-info">
@@ -976,12 +1005,21 @@ function renderStudentCards(students, container) {
             <button class="btn-icon-tool view-student-btn" title="View Profile">
                 <span class="material-symbols-outlined">visibility</span>
             </button>
+            <button class="btn-icon-tool edit-student-btn" title="Edit Profile">
+                <span class="material-symbols-outlined">edit</span>
+            </button>
         </div>
     `;
 
-    // --- ATTACH LISTENER ---
+    // 2. ATTACH LISTENERS
+
+    // View Button
     const viewBtn = item.querySelector(".view-student-btn");
     viewBtn.addEventListener("click", () => openViewStudentModal(student));
+
+    // Edit Button (NEW)
+    const editBtn = item.querySelector(".edit-student-btn");
+    editBtn.addEventListener("click", () => openEditStudentModal(student));
 
     container.appendChild(item);
   });
@@ -1316,7 +1354,12 @@ if (closeEditClassBtn) {
   );
 }
 
+// Variable to store the ID of the student currently being viewed
+let currentViewStudentDbId = null;
+
 function openViewStudentModal(student) {
+  currentViewStudentDbId = student._id; // Save ID for deletion
+
   // 1. Photo
   const photoUrl = student.profilePhoto
     ? "http://localhost:3000" + student.profilePhoto
@@ -1331,6 +1374,21 @@ function openViewStudentModal(student) {
     "viewStudentID"
   ).innerText = `ID: ${student.studentID}`;
 
+  // --- NEW: Birthday & Age ---
+  const bday = student.birthdate
+    ? new Date(student.birthdate).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "Not Set";
+  const age = calculateAge(student.birthdate); // Uses your existing helper function
+
+  document.getElementById("viewStudentBday").innerText = `Born: ${bday}`;
+  document.getElementById("viewStudentAgeBadge").innerText = age
+    ? `Age: ${age}`
+    : "Age: --";
+
   // 3. Class Logic
   const grade = student.gradeLevel || "Unassigned";
   const section = student.section || "";
@@ -1343,6 +1401,327 @@ function openViewStudentModal(student) {
   document.getElementById("viewStudentInvite").value =
     student.parentInviteCode || "N/A";
 
-  // 5. Show Modal
+  // 5. Medical Info
+  document.getElementById("viewStudentAllergies").value =
+    student.allergies || "None known";
+  document.getElementById("viewStudentMedical").value =
+    student.medicalHistory || "None known";
+
+  // 6. Show Modal
   viewStudentModal.classList.add("active");
+}
+
+// --- NEW: Delete Student Logic ---
+const deleteViewStudentBtn = document.getElementById("deleteViewStudentBtn");
+
+if (deleteViewStudentBtn) {
+  deleteViewStudentBtn.addEventListener("click", () => {
+    if (!currentViewStudentDbId) return;
+
+    if (
+      confirm(
+        "Are you sure you want to PERMANENTLY delete this student? This cannot be undone."
+      )
+    ) {
+      deleteViewStudentBtn.innerText = "Deleting...";
+
+      fetch("http://localhost:3000/delete-student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: currentViewStudentDbId }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          deleteViewStudentBtn.innerText = "Delete Student";
+          if (data.success) {
+            alert("🗑️ Student Deleted Successfully.");
+            viewStudentModal.classList.remove("active");
+            loadStudentsDirectory(); // Refresh the list
+            loadActiveClasses(); // Refresh classes (student count changes)
+          } else {
+            alert("Error: " + data.message);
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          deleteViewStudentBtn.innerText = "Delete Student";
+          alert("Server Error");
+        });
+    }
+  });
+}
+
+// ==========================================
+// MISSING LOGIC: EDIT STUDENT & AGE CALC
+// ==========================================
+
+// 1. Age Calculator Utility
+function calculateAge(birthDateString) {
+  if (!birthDateString) return "";
+  const today = new Date();
+  const birthDate = new Date(birthDateString);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const m = today.getMonth() - birthDate.getMonth();
+
+  // Adjust if birthday hasn't occurred yet this year
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+}
+
+// 2. Open Edit Student Modal
+function openEditStudentModal(student) {
+  const modal = document.getElementById("editStudentModal");
+
+  // Populate IDs and Hidden Fields
+  document.getElementById("editStudentDbId").value = student._id;
+  document.getElementById("editStudentID").value = student.studentID;
+
+  // Populate Names
+  document.getElementById("editStudentFirst").value = student.firstname;
+  document.getElementById("editStudentLast").value = student.lastname;
+
+  // Populate Birthday & Auto-Calc Age
+  const bdayInput = document.getElementById("editStudentBirthday");
+  bdayInput.value = student.birthdate || "";
+  document.getElementById("editStudentAge").value = calculateAge(
+    student.birthdate
+  );
+
+  // Populate Photo Preview
+  const photoUrl = student.profilePhoto
+    ? "http://localhost:3000" + student.profilePhoto
+    : "../../../assets/placeholder_image.jpg";
+  document.getElementById("editStudentPreview").src = photoUrl;
+
+  // Show Modal
+  modal.classList.add("active");
+}
+
+// 3. Auto-Calculate Age when Date Changes (For both Add & Edit modals)
+const addBdayInput = document.getElementById("addStudentBirthday");
+const editBdayInput = document.getElementById("editStudentBirthday");
+
+if (addBdayInput) {
+  addBdayInput.addEventListener("change", (e) => {
+    document.getElementById("addStudentAge").value = calculateAge(
+      e.target.value
+    );
+  });
+}
+
+if (editBdayInput) {
+  editBdayInput.addEventListener("change", (e) => {
+    document.getElementById("editStudentAge").value = calculateAge(
+      e.target.value
+    );
+  });
+}
+
+// 4. Save Changes Listener
+const saveStudentBtn = document.getElementById("saveStudentChangesBtn");
+if (saveStudentBtn) {
+  saveStudentBtn.addEventListener("click", () => {
+    const id = document.getElementById("editStudentDbId").value;
+    const firstname = document.getElementById("editStudentFirst").value;
+    const lastname = document.getElementById("editStudentLast").value;
+    const birthdate = document.getElementById("editStudentBirthday").value;
+    const photoInput = document.getElementById("editStudentPhotoInput");
+
+    saveStudentBtn.innerText = "Saving...";
+
+    const formData = new FormData();
+    formData.append("id", id);
+    formData.append("firstname", firstname);
+    formData.append("lastname", lastname);
+    formData.append("birthdate", birthdate);
+
+    if (photoInput.files[0]) {
+      formData.append("profile-upload", photoInput.files[0]);
+    }
+
+    fetch("http://localhost:3000/update-student", {
+      method: "POST",
+      body: formData,
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        saveStudentBtn.innerText = "Save Changes";
+        if (data.success) {
+          alert("✅ Student Updated!");
+          document
+            .getElementById("editStudentModal")
+            .classList.remove("active");
+          loadStudentsDirectory(); // Refresh the list
+        } else {
+          alert("Error: " + data.message);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        saveStudentBtn.innerText = "Save Changes";
+        alert("Server Error");
+      });
+  });
+}
+
+// 5. Close Edit Modal Button
+const closeEditStudentBtn = document.getElementById("closeEditStudentBtn");
+if (closeEditStudentBtn) {
+  closeEditStudentBtn.addEventListener("click", () => {
+    document.getElementById("editStudentModal").classList.remove("active");
+  });
+}
+
+// OPTIONAL: Immediate Preview for Edit Student Photo
+const editPhotoInput = document.getElementById("editStudentPhotoInput");
+const editPhotoPreview = document.getElementById("editStudentPreview");
+
+if (editPhotoInput && editPhotoPreview) {
+  editPhotoInput.addEventListener("change", function (e) {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        editPhotoPreview.src = e.target.result; // Update the image tag instantly
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
+}
+
+// ==========================================
+// NOTIFICATION SYSTEM LOGIC (Phase 3)
+// ==========================================
+
+let previousNotifCount = 0; // Tracks history to detect NEW items
+let isFirstLoad = true; // Prevents toast spam on page refresh
+
+// 1. Start Polling (Checks every 3 seconds)
+setInterval(fetchNotifications, 3000);
+
+// Also run once immediately on load
+document.addEventListener("DOMContentLoaded", () => {
+  fetchNotifications();
+});
+
+// 2. Fetch Logic
+function fetchNotifications() {
+  fetch("http://localhost:3000/get-notifications")
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        updateNotificationUI(data.notifications);
+      }
+    })
+    .catch((err) => console.error("Notif Sync Error:", err));
+}
+
+// 3. UI Update Logic
+function updateNotificationUI(notifs) {
+  const badge = document.getElementById("bellBadge");
+  const list = document.getElementById("notificationList");
+  const count = notifs.length;
+
+  // A. Update Badge
+  if (count > 0) {
+    badge.style.display = "flex";
+    badge.innerText = count > 99 ? "99+" : count;
+  } else {
+    badge.style.display = "none";
+  }
+
+  // B. Check for NEW notifications (Trigger Toast)
+  // We only toast if count INCREASED and it's not the first load
+  if (count > previousNotifCount || (isFirstLoad && count > 0)) {
+    const newest = notifs[0]; // The first one is the newest
+    showToast(newest.message);
+  }
+
+  // Update trackers
+  previousNotifCount = count;
+  isFirstLoad = false;
+
+  // C. Render Dropdown List
+  list.innerHTML = ""; // Clear current list
+
+  if (count === 0) {
+    list.innerHTML = `<p class="empty-notif">No new notifications.</p>`;
+    return;
+  }
+
+  notifs.forEach((n) => {
+    // Calculate relative time (e.g. "Just now")
+    const timeText = getRelativeTime(new Date(n.createdAt));
+
+    const item = document.createElement("div");
+    item.className = "notif-item unread";
+    item.innerHTML = `
+            <div class="notif-icon-box">
+                <span class="material-symbols-outlined">info</span>
+            </div>
+            <div class="notif-content">
+                <h4>System Alert</h4>
+                <p>${n.message}</p>
+                <span class="notif-time">${timeText}</span>
+            </div>
+        `;
+    list.appendChild(item);
+  });
+}
+
+// 4. Toast Logic (Slide In)
+function showToast(message) {
+  const container = document.getElementById("toastContainer");
+
+  const toast = document.createElement("div");
+  toast.className = "toast";
+
+  toast.innerHTML = `
+        <span class="material-symbols-outlined toast-icon">notifications_active</span>
+        <div class="toast-body">
+            <h4>New Notification</h4>
+            <p>${message}</p>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    `;
+
+  container.appendChild(toast);
+
+  // Trigger Animation (Wait 10ms for DOM to recognize element)
+  setTimeout(() => {
+    toast.classList.add("show");
+  }, 10);
+
+  // Note: We removed the auto-dismiss timer so it stays until clicked!
+}
+
+// 5. Clear All Logic
+const clearBtn = document.getElementById("clearAllNotifsBtn");
+if (clearBtn) {
+  clearBtn.addEventListener("click", () => {
+    if (!confirm("Clear all notifications?")) return;
+
+    fetch("http://localhost:3000/clear-notifications", { method: "POST" })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          fetchNotifications(); // Refresh UI immediately
+        }
+      });
+  });
+}
+
+// Helper: Relative Time
+function getRelativeTime(date) {
+  const now = new Date();
+  const diffInSeconds = Math.floor((now - date) / 1000);
+
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} mins ago`;
+  if (diffInSeconds < 86400)
+    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  return date.toLocaleDateString();
 }

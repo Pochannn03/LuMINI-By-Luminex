@@ -29,10 +29,30 @@
           </button>
         </div>
         <div class="header-right">
-          <button class="icon-btn notification-btn">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="notification-badge"></span>
-          </button>
+          <div class="notification-wrapper" style="position: relative">
+            <button id="notifBtn" class="icon-btn notification-btn">
+              <span class="material-symbols-outlined">notifications</span>
+              <span
+                id="notifBadge"
+                class="notification-badge"
+                style="display: none"
+              ></span>
+            </button>
+
+            <div id="notifDropdown" class="notification-dropdown">
+              <div class="dropdown-header">
+                <span>Notifications</span>
+                <button id="markAllReadBtn" class="text-btn">
+                  Mark all read
+                </button>
+              </div>
+              <div id="notifList" class="dropdown-body">
+                <div class="empty-state">
+                  <p>No new notifications</p>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="header-separator"></div>
           <div class="user-profile">
             <img
@@ -83,15 +103,61 @@
 
       <main class="main-content">
         <div class="attendance-container">
+          <div
+            id="simulationControls"
+            class="simulation-bar"
+            style="display: none"
+          >
+            <div class="sim-content">
+              <div class="sim-label">
+                <span class="material-symbols-outlined">tune</span>
+                <span>System Override</span>
+              </div>
+
+              <div id="activeModeDisplay" class="active-mode-pill">
+                <span class="status-dot"></span>
+                <span id="activeModeText">Loading...</span>
+              </div>
+
+              <div class="sim-actions">
+                <div class="custom-select-wrapper sim-select">
+                  <select id="simModeSelect" class="form-input small">
+                    <option value="dropoff">🌅 Drop-off (Morning)</option>
+                    <option value="class">📚 Class In-Session</option>
+                    <option value="dismissal">👋 Dismissal (Afternoon)</option>
+                  </select>
+                  <span class="material-symbols-outlined select-arrow"
+                    >expand_more</span
+                  >
+                </div>
+
+                <button id="setSimModeBtn" class="btn-sim-set">Set Mode</button>
+              </div>
+            </div>
+          </div>
+
           <div class="attendance-header-card">
             <div class="header-top-row">
               <div class="page-title">Attendance Log</div>
               <div class="date-pill">
-                <button class="nav-btn">
+                <button class="nav-btn" id="prevDateBtn">
                   <span class="material-symbols-outlined">chevron_left</span>
                 </button>
-                <span id="dateDisplay" class="date-label">Loading...</span>
-                <button class="nav-btn">
+
+                <span
+                  id="dateDisplay"
+                  class="date-label"
+                  style="cursor: pointer"
+                  >Loading...</span
+                >
+
+                <input
+                  type="date"
+                  id="datePickerHidden"
+                  style="position: absolute; opacity: 0; pointer-events: none"
+                />
+
+                <button class="nav-btn" id="nextDateBtn">
                   <span class="material-symbols-outlined">chevron_right</span>
                 </button>
               </div>
@@ -298,7 +364,127 @@
       </main>
     </div>
 
-    <script src="../teacher_dashboard/teacher_dashboard.js"></script>
+    <div class="modal-overlay" id="studentDetailModal">
+      <div class="modal-card profile-card-modal">
+        <div
+          class="modal-header"
+          style="border-bottom: none; padding-bottom: 0"
+        >
+          <h3 style="opacity: 0">Profile</h3>
+          <button class="close-modal-btn" id="closeDetailBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding-top: 0">
+          <div class="profile-summary">
+            <img
+              src="../../../assets/placeholder_image.jpg"
+              id="detailPhoto"
+              class="detail-avatar"
+            />
+            <div class="detail-text">
+              <h2 id="detailName">Loading...</h2>
+
+              <div class="badges-row">
+                <span class="detail-badge" id="detailID">ID: --</span>
+                <span class="detail-badge" id="detailBday">Born: --</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-separator"></div>
+
+          <div class="detail-section">
+            <div class="section-title">
+              <span class="material-symbols-outlined" style="font-size: 18px"
+                >family_restroom</span
+              >
+              Guardian Information
+            </div>
+
+            <div class="info-grid">
+              <div class="info-group">
+                <label>Parent Name</label>
+                <p id="detailParentName">--</p>
+              </div>
+              <div class="info-group">
+                <label>Contact Number</label>
+                <p id="detailParentPhone" style="color: var(--primary-blue)">
+                  --
+                </p>
+              </div>
+              <div class="info-group full-width">
+                <label>Home Address</label>
+                <p id="detailAddress">--</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-separator"></div>
+
+          <button class="btn-history-action" id="openHistoryBtn">
+            <span class="material-symbols-outlined">history</span>
+            View Pickup History
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="historyModal">
+      <div class="modal-card" style="max-width: 400px">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span
+              class="material-symbols-outlined purple-icon"
+              style="color: #9b59b6"
+              >history</span
+            >
+            <h3>Pickup History</h3>
+          </div>
+          <button class="close-modal-btn" id="closeHistoryModalBtn">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="history-date-nav">
+            <button class="nav-arrow-btn" id="hPrevBtn">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+
+            <div class="date-display-wrapper">
+              <span id="hDateDisplay">Today</span>
+              <input
+                type="date"
+                id="hDatePicker"
+                style="
+                  position: absolute;
+                  opacity: 0;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  cursor: pointer;
+                "
+              />
+            </div>
+
+            <button class="nav-arrow-btn" id="hNextBtn">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+
+          <div id="hResultBox" class="history-result-box">
+            <p style="text-align: center; color: #94a3b8; padding: 20px">
+              Loading...
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
     <script src="teacher_attendance.js"></script>
   </body>
 </html>

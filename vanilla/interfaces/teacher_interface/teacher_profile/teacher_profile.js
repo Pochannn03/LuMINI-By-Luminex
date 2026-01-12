@@ -1,86 +1,74 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // Save Button Logic
-  const saveBtn = document.getElementById("saveProfileBtn");
-
-  if (saveBtn) {
-    saveBtn.addEventListener("click", function () {
-      // In a real app, you would gather form data here
-
-      // Visual feedback
-      const originalText = saveBtn.innerText;
-      saveBtn.innerHTML =
-        'Saved <span class="material-symbols-outlined" style="font-size: 18px;">check</span>';
-      saveBtn.style.background = "#2ecc71"; // Success Green
-
-      setTimeout(() => {
-        saveBtn.innerText = originalText;
-        saveBtn.style.background = ""; // Reset to CSS default
-      }, 2000);
-    });
-  }
-
-  // Camera/Upload Button Logic (Placeholder)
-  const cameraBtn = document.querySelector(".camera-btn");
-  if (cameraBtn) {
-    cameraBtn.addEventListener("click", () => {
-      alert("This would open the file picker to change your profile picture.");
-    });
-  }
-});
-
-document.addEventListener("DOMContentLoaded", function () {
   // 1. GET USER DATA
   const userString = localStorage.getItem("currentUser");
   const currentUser = JSON.parse(userString);
 
-  // 2. SECURITY CHECK
   if (!currentUser || currentUser.role !== "teacher") {
     window.location.href = "../../../auth/login.html";
     return;
   }
 
-  // 3. POPULATE MAIN PROFILE CARD
+  // 2. POPULATE STATIC INFO (From LocalStorage)
+  populateStaticInfo(currentUser);
+
+  // 3. FETCH DYNAMIC STATS (From Server)
+  fetchTeacherStats(currentUser.id);
+
+  // 4. SETUP BUTTONS
+  setupButtons();
+});
+
+function populateStaticInfo(user) {
+  // Header
   const mainName = document.getElementById("profileMainName");
   const mainRole = document.getElementById("profileMainRole");
   const mainImage = document.getElementById("profileImage");
+  const headerUser = document.getElementById("headerUserName");
 
-  if (mainName) {
-    // We currently only have firstname in localStorage
-    mainName.innerText = currentUser.firstname;
+  if (mainName) mainName.innerText = `${user.firstname} ${user.lastname}`;
+  if (headerUser) headerUser.innerText = user.firstname;
+  if (mainRole) mainRole.innerText = `Faculty Member • @${user.username}`;
+
+  if (mainImage && user.profilePhoto) {
+    mainImage.src = "http://localhost:3000" + user.profilePhoto;
   }
 
-  if (mainRole) {
-    mainRole.innerText = `Role: ${currentUser.role.toUpperCase()} • @${
-      currentUser.username
-    }`;
-  }
-
-  if (mainImage && currentUser.profilePhoto) {
-    // Load the image from the server
-    mainImage.src = "http://localhost:3000" + currentUser.profilePhoto;
-  }
-
-  // 4. POPULATE PERSONAL INFORMATION FIELDS
+  // Form Fields
   const inputName = document.getElementById("profileFullName");
   const inputEmail = document.getElementById("profileEmail");
   const inputPhone = document.getElementById("profilePhone");
 
-  if (inputName) {
-    // Combine First + Last Name
-    inputName.value = `${currentUser.firstname} ${currentUser.lastname}`;
-  }
+  if (inputName) inputName.value = `${user.firstname} ${user.lastname}`;
+  if (inputEmail) inputEmail.value = user.email || "N/A";
+  if (inputPhone) inputPhone.value = user.phone || "N/A";
+}
 
-  if (inputEmail) {
-    inputEmail.value = currentUser.email;
-  }
+function fetchTeacherStats(teacherId) {
+  const classInput = document.getElementById("profileClass");
+  const statStudents = document.getElementById("statTotalStudents");
+  const statSections = document.getElementById("statTotalSections");
 
-  if (inputPhone) {
-    inputPhone.value = currentUser.phone;
-  }
+  fetch("http://localhost:3000/get-teacher-stats", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ teacherId: teacherId }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // Update Sections List (e.g. "Sampaguita, Rosas")
+        if (classInput) classInput.value = data.sectionNames;
 
-  // --- BUTTON LOGIC ---
+        // Update Numbers
+        if (statStudents) statStudents.innerText = data.totalStudents;
+        if (statSections) statSections.innerText = data.totalSections;
+      }
+    })
+    .catch((err) => console.error("Stats Error:", err));
+}
 
-  // Sign Out Button
+function setupButtons() {
+  // Sign Out
   const signOutBtn = document.querySelector(".btn-signout");
   if (signOutBtn) {
     signOutBtn.onclick = function () {
@@ -98,7 +86,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const originalText = saveBtn.innerText;
       saveBtn.innerHTML =
         'Saved <span class="material-symbols-outlined" style="font-size: 18px;">check</span>';
-      saveBtn.style.background = "#2ecc71"; // Success Green
+      saveBtn.style.background = "#2ecc71";
       saveBtn.style.borderColor = "#2ecc71";
       saveBtn.style.color = "#fff";
 
@@ -110,4 +98,4 @@ document.addEventListener("DOMContentLoaded", function () {
       }, 2000);
     });
   }
-});
+}

@@ -243,3 +243,526 @@ function stopCameraAndClose() {
     scannerModal.classList.remove("active");
   }
 }
+
+// ==========================================
+// REAL-TIME QUEUE LOGIC
+// ==========================================
+
+// 1. Start Polling when page loads
+document.addEventListener("DOMContentLoaded", () => {
+  // ... your existing init code ...
+
+  // Start the loop
+  startQueuePolling();
+});
+
+let queueInterval;
+
+function startQueuePolling() {
+  // Fetch immediately
+  fetchQueueData();
+
+  // Then fetch every 3 seconds
+  queueInterval = setInterval(fetchQueueData, 3000);
+}
+
+function fetchQueueData() {
+  const userString = localStorage.getItem("currentUser");
+  if (!userString) return;
+  const teacherId = JSON.parse(userString).id;
+
+  // REMOVED: const currentMode = localStorage.getItem...
+  // REMOVED: if (currentMode === "class") return...
+
+  // We trust the Server now. Just ask for data.
+  fetch("http://localhost:3000/get-class-queue", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      teacherId: teacherId,
+      // No need to send 'mode', the server finds it!
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // 1. Get the TRUTH from the server
+        const serverMode = data.currentMode;
+
+        // 2. Update Title UI based on the SERVER mode
+        const titleEl = document.getElementById("queueTitle");
+        if (titleEl) {
+          if (serverMode === "dropoff")
+            titleEl.innerText = "Morning Drop-off Queue";
+          else if (serverMode === "dismissal")
+            titleEl.innerText = "Afternoon Pickup Queue";
+          else titleEl.innerText = "Class In-Session";
+        }
+
+        // 3. Update the Pill (If you added it)
+        if (typeof updateHeaderPill === "function") {
+          updateHeaderPill(serverMode);
+        }
+
+        // 4. Render the Queue
+        renderQueue(data.queue, serverMode);
+      }
+    })
+    .catch((err) => console.error("Queue Polling Error:", err));
+}
+
+function renderQueue(queueItems, mode) {
+  const container = document.getElementById("queueContainer");
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  if (queueItems.length === 0) {
+    const msg =
+      mode === "class" ? "Students are in class." : "No active requests.";
+    container.innerHTML = `<p style="padding: 20px; text-align: center; color: #cbd5e1;">${msg}</p>`;
+    return;
+  }
+
+  queueItems.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "queue-item";
+
+    // Determine Badge Color & Text
+    let badgeClass = "badge-pending"; // default yellow
+    let badgeText = item.status;
+
+    if (item.status === "otw") {
+      badgeClass = "badge-otw";
+      badgeText = "On the way";
+    } else if (item.status === "running_late" || item.status === "late") {
+      badgeClass = "badge-late"; // This class is already Red in your CSS
+      badgeText = "Running Late";
+    } else if (item.status === "here") {
+      badgeClass = "badge-success"; // <--- CHANGED: Now uses the new Green style
+      badgeText = "At School";
+      div.style.borderLeft = "4px solid #2ecc71"; // Visual highlight
+    }
+
+    // Determine Action Text
+    const actionText =
+      mode === "dropoff"
+        ? `Dropping off: ${item.studentName}`
+        : `Picking up: ${item.studentName}`;
+
+    const photoSrc = item.profilePhoto
+      ? "http://localhost:3000" + item.profilePhoto
+      : "../../../assets/placeholder_image.jpg";
+
+    div.innerHTML = `
+            <img src="${photoSrc}" class="queue-avatar" style="object-fit:cover;" />
+            <div class="queue-info">
+                <span class="q-name">${item.parentName}</span>
+                <span class="q-action">${actionText}</span>
+                <span class="q-time">${item.time}</span>
+            </div>
+            <span class="badge-pill ${badgeClass}">${badgeText}</span>
+        `;
+
+    container.appendChild(div);
+  });
+}
+
+// ==========================================
+// GUARDIAN SCANNER LOGIC
+// ==========================================
+
+const guardianModal = document.getElementById("guardianScannerModal");
+const scanGuardianBtn = document.getElementById("scanGuardianBtn");
+const closeGuardianBtn = document.getElementById("closeGuardianScannerBtn");
+let guardianScanner = null; // Separate instance for Guardian Scanner
+
+// 1. OPEN SCANNER
+if (scanGuardianBtn) {
+  scanGuardianBtn.addEventListener("click", () => {
+    if (guardianModal) guardianModal.classList.add("active");
+    startGuardianCamera();
+  });
+}
+
+// 2. CLOSE SCANNER
+if (closeGuardianBtn) {
+  closeGuardianBtn.addEventListener("click", stopGuardianCamera);
+}
+
+// Close on background click
+if (guardianModal) {
+  guardianModal.addEventListener("click", (e) => {
+    if (e.target === guardianModal) stopGuardianCamera();
+  });
+}
+
+// 3. START CAMERA (With Virtual Camera Filter)
+function startGuardianCamera() {
+  // Ensure we are targeting the NEW reader box
+  if (!document.getElementById("guardianReader")) return;
+
+  guardianScanner = new Html5Qrcode("guardianReader");
+
+  Html5Qrcode.getCameras()
+    .then((devices) => {
+      if (devices && devices.length) {
+        // --- SMART SELECTION LOGIC (Reused) ---
+        let cameraId = devices[0].id;
+
+        const realCamera = devices.find((device) => {
+          const label = device.label.toLowerCase();
+          return (
+            (label.includes("integrated") ||
+              label.includes("webcam") ||
+              label.includes("usb") ||
+              label.includes("back")) &&
+            !label.includes("virtual") &&
+            !label.includes("obs")
+          );
+        });
+
+        if (realCamera) {
+          console.log("Guardian Scanner: Using " + realCamera.label);
+          cameraId = realCamera.id;
+        }
+        // --------------------------------------
+
+        const config = {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+        };
+
+        guardianScanner
+          .start(cameraId, config, onGuardianSuccess, (err) => {}) // Fail silently
+          .catch((err) => alert("Camera Error: " + err));
+      } else {
+        alert("No cameras found.");
+      }
+    })
+    .catch((err) => alert("Permission Denied: " + err));
+}
+
+// 4. SCAN SUCCESS (Step 1: Open Review Modal)
+let pendingStudentID = null; // Store ID temporarily for the confirm button
+
+function onGuardianSuccess(decodedText, decodedResult) {
+  if (guardianScanner.isScanning) {
+    guardianScanner.pause();
+  }
+
+  // 1. Format Check
+  if (!decodedText.includes("-PARENT-")) {
+    alert("⛔ WRONG QR CODE.");
+    guardianScanner.resume();
+    return;
+  }
+
+  const userString = localStorage.getItem("currentUser");
+  const teacherId = JSON.parse(userString).id;
+
+  // 2. Verify & Fetch Data
+  fetch("http://localhost:3000/verify-pickup-qr", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ qrString: decodedText, teacherId: teacherId }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        // 3. POPULATE MODAL
+        document.getElementById("authStudentName").innerText =
+          data.student.name;
+        document.getElementById("authParentName").innerText = data.parent.name;
+
+        const sImg = document.getElementById("authStudentImg");
+        const pImg = document.getElementById("authParentImg");
+
+        if (sImg)
+          sImg.src = data.student.photo
+            ? "http://localhost:3000" + data.student.photo
+            : "../../../assets/placeholder_image.jpg";
+        if (pImg)
+          pImg.src = data.parent.photo
+            ? "http://localhost:3000" + data.parent.photo
+            : "../../../assets/placeholder_image.jpg";
+
+        // Store ID for the next step
+        pendingStudentID = data.student.id;
+
+        // 4. SHOW MODAL
+        stopGuardianCamera(); // Close camera
+        document.getElementById("pickupAuthModal").classList.add("active");
+      } else {
+        alert(data.message);
+        guardianScanner.resume();
+      }
+    })
+    .catch((err) => {
+      console.error(err);
+      alert("Connection Error");
+      guardianScanner.resume();
+    });
+}
+
+// 5. STOP CAMERA
+function stopGuardianCamera() {
+  if (guardianScanner) {
+    guardianScanner
+      .stop()
+      .then(() => {
+        guardianScanner.clear();
+        guardianModal.classList.remove("active");
+      })
+      .catch((err) => {
+        console.error("Stop Failed", err);
+        guardianModal.classList.remove("active");
+      });
+  } else {
+    guardianModal.classList.remove("active");
+  }
+}
+
+// ==========================================
+// AUTHORIZATION MODAL LOGIC
+// ==========================================
+
+const authModal = document.getElementById("pickupAuthModal");
+const confirmBtn = document.getElementById("confirmPickupBtn");
+const cancelBtn = document.getElementById("cancelAuthBtn");
+const closeAuthBtn = document.getElementById("closeAuthBtn");
+
+if (confirmBtn) {
+  confirmBtn.addEventListener("click", () => {
+    if (!pendingStudentID) return;
+
+    // CALL SERVER TO CONFIRM
+    fetch("http://localhost:3000/authorize-pickup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ studentID: pendingStudentID }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // 1. Close Modal
+          authModal.classList.remove("active");
+
+          // 2. Show Success Message
+          alert(
+            `✅ SUCCESS!\n${
+              document.getElementById("authStudentName").innerText
+            } has been officially dismissed.`
+          );
+
+          // 3. Refresh Queue (Card should disappear)
+          fetchQueueData();
+        } else {
+          alert("Error authorizing pickup.");
+        }
+      });
+  });
+}
+
+// Cancel Logic
+function closeAuthModal() {
+  authModal.classList.remove("active");
+  pendingStudentID = null;
+}
+
+if (cancelBtn) cancelBtn.addEventListener("click", closeAuthModal);
+if (closeAuthBtn) closeAuthBtn.addEventListener("click", closeAuthModal);
+
+// ==========================================
+// NOTIFICATION SYSTEM (Real Data & Polling)
+// ==========================================
+
+const notifBtn = document.getElementById("notifBtn");
+const notifDropdown = document.getElementById("notifDropdown");
+const notifList = document.getElementById("notifList");
+const notifBadge = document.getElementById("notifBadge");
+const toastContainer = document.getElementById("toastContainer");
+const markReadBtn = document.getElementById("markAllReadBtn"); // The Clear Button
+
+let lastNotifCount = 0; // To track if we need to show a Toast
+
+// 1. SETUP TOGGLES
+if (notifBtn) {
+  notifBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    notifDropdown.classList.toggle("active");
+    if (notifDropdown.classList.contains("active")) {
+      notifBadge.style.display = "none"; // Hide red dot when opened
+    }
+  });
+}
+
+// Close dropdown when clicking outside
+window.addEventListener("click", (e) => {
+  if (
+    notifDropdown &&
+    !notifDropdown.contains(e.target) &&
+    e.target !== notifBtn
+  ) {
+    notifDropdown.classList.remove("active");
+  }
+});
+
+// 2. FETCH NOTIFICATIONS (The Engine)
+function fetchNotifications() {
+  const userString = localStorage.getItem("currentUser");
+  if (!userString) return;
+  const user = JSON.parse(userString);
+
+  fetch("http://localhost:3000/get-notifications", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      role: "teacher",
+      userId: user.id, // Send ID so server knows which teacher this is
+    }),
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      if (data.success) {
+        renderNotifications(data.notifications);
+      }
+    })
+    .catch((err) => console.error("Notif Fetch Error:", err));
+}
+
+// 3. RENDER FUNCTION
+function renderNotifications(items) {
+  notifList.innerHTML = ""; // Clear list
+
+  if (items.length === 0) {
+    notifList.innerHTML = `<div class="empty-state"><p>No new notifications</p></div>`;
+    notifBadge.style.display = "none";
+    lastNotifCount = 0;
+    return;
+  }
+
+  // Show Red Dot if we have items
+  // (Optional logic: only show if count increased)
+  if (items.length > lastNotifCount) {
+    notifBadge.style.display = "block";
+
+    // TRIGGER TOAST for the newest item!
+    const newest = items[0];
+    // Only toast if it's actually fresh (simple check)
+    showToast(newest.type.toUpperCase(), newest.message, newest.type);
+  }
+
+  lastNotifCount = items.length;
+
+  items.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "notif-item unread";
+
+    // Icon Logic
+    let iconName = "notifications";
+    let iconBg = "#e0f2fe";
+    let iconColor = "#3b82f6";
+
+    if (item.type === "warning") {
+      iconName = "directions_car";
+      iconBg = "#fffbeb";
+      iconColor = "#f59e0b";
+    }
+    if (item.type === "danger") {
+      // Used for "Running Late"
+      iconName = "warning";
+      iconBg = "#fef2f2";
+      iconColor = "#ef4444";
+    }
+    if (item.type === "success") {
+      // Used for "Here"
+      iconName = "check_circle";
+      iconBg = "#f0fdf4";
+      iconColor = "#22c55e";
+    }
+
+    // Format Time (Simple)
+    const time = new Date(item.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    div.innerHTML = `
+      <div class="notif-icon-box" style="background:${iconBg}; color:${iconColor};">
+        <span class="material-symbols-outlined" style="font-size:18px">${iconName}</span>
+      </div>
+      <div class="notif-content">
+        <div class="notif-title">${item.message}</div>
+        <div class="notif-time">${time}</div>
+      </div>
+    `;
+    notifList.appendChild(div);
+  });
+}
+
+// 4. CLEAR NOTIFICATIONS ("Mark All Read")
+if (markReadBtn) {
+  markReadBtn.addEventListener("click", () => {
+    const userString = localStorage.getItem("currentUser");
+    const user = JSON.parse(userString);
+
+    fetch("http://localhost:3000/clear-notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "teacher", userId: user.id }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          // Clear UI immediately
+          renderNotifications([]);
+        }
+      });
+  });
+}
+
+// 5. START POLLING
+// Add this to your existing DOMContentLoaded or startPolling function
+setInterval(fetchNotifications, 3000); // Check every 3 seconds
+
+// 6. TOAST FUNCTION (Same as before)
+function showToast(title, message, type = "info") {
+  const toast = document.createElement("div");
+  toast.className = `toast-box ${type}`;
+
+  let iconName = "notifications";
+  let iconColor = "#3b82f6";
+
+  if (type === "warning") {
+    iconName = "directions_car";
+    iconColor = "#f59e0b";
+  } // OTW
+  if (type === "danger") {
+    iconName = "warning";
+    iconColor = "#ef4444";
+  } // Late
+  if (type === "success") {
+    iconName = "check_circle";
+    iconColor = "#22c55e";
+  } // Here
+
+  toast.innerHTML = `
+    <span class="material-symbols-outlined" style="color:${iconColor}; font-size: 24px;">${iconName}</span>
+    <div style="flex:1;">
+      <div style="font-weight:600; font-size:14px; color:#1e293b; margin-bottom:2px;">${title}</div>
+      <div style="font-size:12px; color:#64748b; line-height:1.4;">${message}</div>
+    </div>
+    <button onclick="this.parentElement.remove()" style="border:none; background:none; cursor:pointer; color:#94a3b8;">
+      <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    </button>
+  `;
+
+  toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.animation = "fadeOut 0.5s forwards";
+    setTimeout(() => toast.remove(), 500);
+  }, 5000);
+}
