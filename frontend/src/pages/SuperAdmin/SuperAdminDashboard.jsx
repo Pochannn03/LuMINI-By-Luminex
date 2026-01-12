@@ -6,7 +6,6 @@ export default function SuperAdminDashboard() {
   return (
     <>
       <NavBar />
-      test
     </>
   );
-}
+} 

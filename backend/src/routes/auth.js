@@ -1,7 +1,6 @@
 import { Router } from "express";
 import passport from "../config/passport.js";
 
-
 const router = Router();
 
 router.post('/api/auth', (req, res, next) => {
