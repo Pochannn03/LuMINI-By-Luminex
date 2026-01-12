@@ -5,7 +5,7 @@ import Landing from './pages/Landing';
 import GuardianRegistration from './pages/auth/GuardianRegistration'
 import ParentRegistration from './pages/auth/ParentRegistration';
 import TeacherRegistration from './pages/auth/TeacherRegistration';
-
+import SuperAdminDashbooard from './pages/SuperAdmin/SuperAdminDashboard';
 
 export default function App() {
   return (
@@ -17,7 +17,7 @@ export default function App() {
         <Route path="/register/guardian" element={<GuardianRegistration />} />
         <Route path="/register/parent" element={<ParentRegistration />} />
         <Route path="/register/teacher" element={<TeacherRegistration />} />
-        {/* <Route path="/parent-dashboard" element={<ParentDashboard />} /> */}
+        <Route path="/superadmin/superadmin-dashboard" element={<SuperAdminDashbooard />} />
 
       </Routes>
     </div>
