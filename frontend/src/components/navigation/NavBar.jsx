@@ -29,7 +29,7 @@ export default function NavBar() {
   }, [isOpen]);
 
   return (
-    <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 lg:pt-20">
+    <>
       
     <Header onToggle={toggleMenu} />
 
@@ -85,6 +85,6 @@ export default function NavBar() {
 
     </aside>
 
-    </div>
+    </>
   );
 }

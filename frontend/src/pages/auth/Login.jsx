@@ -22,8 +22,8 @@ export default function Login() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevent page reload
-    setError(''); // Clear previous errors
+    e.preventDefault();
+    setError(''); 
 
     if (!formData.username.trim() && !formData.password.trim()) {
       setError("Please enter both username and password.");
@@ -51,7 +51,7 @@ export default function Login() {
         const userRole = data.user.role;
 
         if (userRole === "superadmin") {
-          navigate('/superadmin/superadmin-dashboard');
+          navigate('/superadmin/dashboard');
         } else if (userRole === "admin") {
           navigate('/Admin/AdminDashboard');
         } else {
