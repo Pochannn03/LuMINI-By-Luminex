@@ -17,8 +17,7 @@ export default function App() {
         <Route path="/register/guardian" element={<GuardianRegistration />} />
         <Route path="/register/parent" element={<ParentRegistration />} />
         <Route path="/register/teacher" element={<TeacherRegistration />} />
-        <Route path="/superadmin/superadmin-dashboard" element={<SuperAdminDashbooard />} />
-
+        <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
       </Routes>
     </div>
   );
