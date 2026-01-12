@@ -9,14 +9,17 @@
     <link rel="stylesheet" href="parent_registration.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    
     <div class="parent-registration-main-container" id="invitationSection">
       <h1 class="parent-registration-header-text">Enter Invitation Code</h1>
       <p class="parent-registration-description-text">
-        Enter the invitation code provided by your child's teacher to create your account.
+        Enter the invitation code provided by your child's teacher to create
+        your account.
       </p>
 
       <div class="code-inputs-wrapper">
@@ -28,15 +31,24 @@
         <input type="text" class="code-box" maxlength="1" />
       </div>
 
-      <button type="button" class="button next-button" id="submitCodeBtn">Submit</button>
-      
-      <div class="redirect-sign-in-container" style="margin-top:20px; border:none; padding:0;">
-          <p class="label-already-acc">Already have an account?</p>
-          <a href="../auth/login.html" class="login-link">Sign In</a>
+      <button type="button" class="button next-button" id="submitCodeBtn">
+        Submit
+      </button>
+
+      <div
+        class="redirect-sign-in-container"
+        style="margin-top: 20px; border: none; padding: 0"
+      >
+        <p class="label-already-acc">Already have an account?</p>
+        <a href="../auth/login.html" class="login-link">Sign In</a>
       </div>
     </div>
 
-    <div class="parent-registration-main-container" id="registrationSection" style="display: none; opacity: 0;">
+    <div
+      class="parent-registration-main-container"
+      id="registrationSection"
+      style="display: none; opacity: 0"
+    >
       <h1 class="parent-registration-header-text">Create Account</h1>
       <p class="parent-registration-description-text">
         Please fill out the form to create your parent account.
@@ -44,27 +56,54 @@
 
       <div class="step-indicator" id="stepIndicator">Step 1 of 4</div>
 
-      <form class="parent-registration-form" id="mainRegistrationForm" action="#" method="POST">
-        
+      <div class="parent-registration-form" id="mainRegistrationForm">
         <div class="form-step" id="step1">
-          <p class="parent-registration-description-text enlarged-text">Account Setup</p>
+          <p class="parent-registration-description-text enlarged-text">
+            Account Setup
+          </p>
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Username <span class="required">*</span></label>
-            <input type="text" name="username" class="parent-registration-input" placeholder="Sarah123" required />
+            <label class="parent-registration-label"
+              >Username <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              name="username"
+              class="parent-registration-input"
+              placeholder="Sarah123"
+              required
+            />
           </div>
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Password <span class="required">*</span></label>
-            <input type="password" name="password" class="parent-registration-input" placeholder="********" required />
+            <label class="parent-registration-label"
+              >Password <span class="required">*</span></label
+            >
+            <input
+              type="password"
+              name="password"
+              class="parent-registration-input"
+              placeholder="********"
+              required
+            />
           </div>
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Confirm Password <span class="required">*</span></label>
-            <input type="password" name="confirm-password" class="parent-registration-input" placeholder="********" required />
+            <label class="parent-registration-label"
+              >Confirm Password <span class="required">*</span></label
+            >
+            <input
+              type="password"
+              name="confirm-password"
+              class="parent-registration-input"
+              placeholder="********"
+              required
+            />
           </div>
         </div>
 
-        <div class="form-step" id="step2" style="display: none;">
-          <p class="parent-registration-description-text enlarged-text">Parent Information</p>
-          
+        <div class="form-step" id="step2" style="display: none">
+          <p class="parent-registration-description-text enlarged-text">
+            Parent Information
+          </p>
+
           <div class="lbl-input-wrapper">
             <label class="parent-registration-label">
               Profile Photo <span class="required">*</span>
@@ -72,92 +111,238 @@
             <div class="file-upload-wrapper">
               <label for="profile-upload" class="file-upload-container">
                 <div id="default-upload-view">
-                  <svg class="upload-icon-svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                  <svg
+                    class="upload-icon-svg"
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path
+                      d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+                    ></path>
                     <circle cx="12" cy="13" r="4"></circle>
                   </svg>
                   <span class="upload-text">Tap to upload photo</span>
                 </div>
-                <img id="image-preview" class="image-preview hidden" src="" alt="Preview" />
-                <input type="file" id="profile-upload" name="profile-upload" accept="image/*" class="hidden-file-input" onchange="handleFileUpload(this)" required />
+                <img
+                  id="image-preview"
+                  class="image-preview hidden"
+                  src=""
+                  alt="Preview"
+                />
+                <input
+                  type="file"
+                  id="profile-upload"
+                  name="profile-upload"
+                  accept="image/*"
+                  class="hidden-file-input"
+                  onchange="handleFileUpload(this)"
+                  required
+                />
               </label>
-              <button type="button" id="remove-btn" class="remove-file-btn hidden" onclick="removeFile()">✕</button>
+              <button
+                type="button"
+                id="remove-btn"
+                class="remove-file-btn hidden"
+                onclick="removeFile()"
+              >
+                ✕
+              </button>
             </div>
           </div>
 
           <div class="multiple-input-wrapper">
             <div class="lbl-input-wrapper">
-              <label class="parent-registration-label">Firstname <span class="required">*</span></label>
-              <input type="text" name="firstname" class="parent-registration-input" placeholder="Sarah" required />
+              <label class="parent-registration-label"
+                >Firstname <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                name="firstname"
+                class="parent-registration-input"
+                placeholder="Sarah"
+                required
+              />
             </div>
             <div class="lbl-input-wrapper">
-              <label class="parent-registration-label">Lastname <span class="required">*</span></label>
-              <input type="text" name="lastname" class="parent-registration-input" placeholder="Chen" required />
+              <label class="parent-registration-label"
+                >Lastname <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                name="lastname"
+                class="parent-registration-input"
+                placeholder="Chen"
+                required
+              />
             </div>
           </div>
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Email Address <span class="required">*</span></label>
-            <input type="email" name="email" class="parent-registration-input" placeholder="sarah32@gmail.com" required />
+            <label class="parent-registration-label"
+              >Email Address <span class="required">*</span></label
+            >
+            <input
+              type="email"
+              name="email"
+              class="parent-registration-input"
+              placeholder="sarah32@gmail.com"
+              required
+            />
           </div>
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Phone Number <span class="required">*</span></label>
-            <input type="tel" name="phone" class="parent-registration-input" placeholder="09836734235" required />
+            <label class="parent-registration-label"
+              >Phone Number <span class="required">*</span></label
+            >
+            <input
+              type="tel"
+              name="phone"
+              class="parent-registration-input"
+              placeholder="09836734235"
+              required
+            />
           </div>
         </div>
 
-        <div class="form-step" id="step3" style="display: none;">
-          <p class="parent-registration-description-text enlarged-text">Relationship to the Student</p>
-          
+        <div class="form-step" id="step3" style="display: none">
+          <p class="parent-registration-description-text enlarged-text">
+            Relationship to the Student
+          </p>
+
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Parent <span class="required">*</span></label>
-            <select name="relationship" class="parent-registration-input" required style="appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2087.2c0%205%201.8%209.3%205.4%2013l131.3%20131.3c3.6%203.6%207.9%205.4%2013%205.4s9.3-1.8%2013-5.4L287%20100.2c3.6-3.6%205.4-7.9%205.4-13%200-5-1.8-9.3-5.4-13z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 15px top 50%; background-size: 12px auto;">
-                <option value="" disabled selected>Select Relationship</option>
-                <option value="Mother">Mother</option>
-                <option value="Father">Father</option>
-                <option value="Guardian">Legal Guardian</option>
+            <label class="parent-registration-label"
+              >Parent <span class="required">*</span></label
+            >
+            <select
+              name="relationship"
+              class="parent-registration-input"
+              required
+              style="
+                appearance: none;
+                background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-13%205.4A17.6%2017.6%200%200%200%200%2087.2c0%205%201.8%209.3%205.4%2013l131.3%20131.3c3.6%203.6%207.9%205.4%2013%205.4s9.3-1.8%2013-5.4L287%20100.2c3.6-3.6%205.4-7.9%205.4-13%200-5-1.8-9.3-5.4-13z%22%2F%3E%3C%2Fsvg%3E');
+                background-repeat: no-repeat;
+                background-position: right 15px top 50%;
+                background-size: 12px auto;
+              "
+            >
+              <option value="" disabled selected>Select Relationship</option>
+              <option value="Mother">Mother</option>
+              <option value="Father">Father</option>
+              <option value="Guardian">Legal Guardian</option>
             </select>
           </div>
 
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Child's name <span style="color: var(--brand-blue);">(autofilled)</span></label>
-            <input type="text" name="child_name" class="parent-registration-input" value="Mia Chen" readonly style="background-color: #f8fafc; color: #8898aa; cursor: not-allowed;" />
+            <label class="parent-registration-label">
+              Child's name
+              <span style="color: var(--brand-blue)">(autofilled)</span>
+            </label>
+
+            <input
+              type="hidden"
+              name="linked_student_id"
+              id="linked_student_id"
+            />
+
+            <input
+              type="text"
+              name="child_name"
+              class="parent-registration-input"
+              placeholder="Waiting for code..."
+              readonly
+              style="
+                background-color: #f8fafc;
+                color: #8898aa;
+                cursor: not-allowed;
+              "
+            />
           </div>
         </div>
 
-        <div class="form-step" id="step4" style="display: none;">
-          <p class="parent-registration-description-text enlarged-text">Address Details</p>
+        <div class="form-step" id="step4" style="display: none">
+          <p class="parent-registration-description-text enlarged-text">
+            Address Details
+          </p>
           <div class="multiple-input-wrapper">
             <div class="lbl-input-wrapper">
-              <label class="parent-registration-label">House Unit <span class="required">*</span></label>
-              <input type="text" name="house-unit" class="parent-registration-input" placeholder="32F" required />
+              <label class="parent-registration-label"
+                >House Unit <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                name="house-unit"
+                class="parent-registration-input"
+                placeholder="32F"
+                required
+              />
             </div>
             <div class="lbl-input-wrapper">
-              <label class="parent-registration-label">Street <span class="required">*</span></label>
-              <input type="text" name="street" class="parent-registration-input" placeholder="Cornelia" required />
+              <label class="parent-registration-label"
+                >Street <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                name="street"
+                class="parent-registration-input"
+                placeholder="Cornelia"
+                required
+              />
             </div>
           </div>
           <div class="multiple-input-wrapper">
             <div class="lbl-input-wrapper">
-              <label class="parent-registration-label">Brgy/Village <span class="required">*</span></label>
-              <input type="text" name="barangay" class="parent-registration-input" placeholder="171" required />
+              <label class="parent-registration-label"
+                >Brgy/Village <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                name="barangay"
+                class="parent-registration-input"
+                placeholder="171"
+                required
+              />
             </div>
             <div class="lbl-input-wrapper">
-              <label class="parent-registration-label">City <span class="required">*</span></label>
-              <input type="text" name="city" class="parent-registration-input" placeholder="Biringan City" required />
+              <label class="parent-registration-label"
+                >City <span class="required">*</span></label
+              >
+              <input
+                type="text"
+                name="city"
+                class="parent-registration-input"
+                placeholder="Biringan City"
+                required
+              />
             </div>
           </div>
           <div class="lbl-input-wrapper">
-            <label class="parent-registration-label">Zip Code <span class="required">*</span></label>
-            <input type="text" inputmode="numeric" name="zipcode" class="parent-registration-input" placeholder="1432" required />
+            <label class="parent-registration-label"
+              >Zip Code <span class="required">*</span></label
+            >
+            <input
+              type="text"
+              inputmode="numeric"
+              name="zipcode"
+              class="parent-registration-input"
+              placeholder="1432"
+              required
+            />
           </div>
         </div>
 
         <div class="button-wrapper">
-          <button type="button" class="button back-button" id="backWardBtn">Back</button>
-          <button type="button" class="button next-button" id="frwrdBtn">Next</button>
+          <button type="button" class="button back-button" id="backWardBtn">
+            Back
+          </button>
+          <button type="button" class="button next-button" id="frwrdBtn">
+            Next
+          </button>
         </div>
-
-      </form>
+      </div>
     </div>
     <script src="parent_registration.js"></script>
   </body>
