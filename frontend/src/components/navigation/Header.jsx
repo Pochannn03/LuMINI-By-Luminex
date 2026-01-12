@@ -3,9 +3,8 @@ import '../../styles/header.css'
 
 export default function Header({onToggle}) {
   return (
-    // <div className="dashboard-wrapper">
-
-      <header className="dashboard-header lg:left-10">
+    <>
+      <header className="dashboard-header">
 
         <div className="flex items-center gap-4">
           <button className="icon-btn" id="burgerIconOpenNav" onClick={onToggle}>
@@ -32,6 +31,6 @@ export default function Header({onToggle}) {
         </div>
       </header>
 
-    // </div>
+    </>
   );
 }

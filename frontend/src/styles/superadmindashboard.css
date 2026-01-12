@@ -1,6 +1,49 @@
-.dashboard-wrapper{
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-banner {
+  background: linear-gradient(135deg, var(--admin-dark), #34495e);
+  color: var(--white);
+  padding: 32px;
+  border-radius: 20px;
+  width: 100%;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-md);
+}
+
+.admin-banner h1 {
+  color: var(--white);
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.admin-banner p {
+  color: var(--white);
+  opacity: 0.8;
+  font-size: 14px;
+}
+
+@media (max-width: 768px) {
+  .stats-row {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    scroll-snap-type: x mandatory;
+    gap: 16px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .stats-row::-webkit-scrollbar {
+    display: none;
+  }
+
 }

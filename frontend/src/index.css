@@ -164,6 +164,67 @@ a:hover {
 }
 
 /* Cards */
+.card {
+  background: var(--white);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  transition: transform 0.2s;
+  background: var(--white);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.stat-icon.blue-bg {
+  background: var(--primary-blue);
+}
+.stat-icon.purple-bg {
+  background: var(--accent-purple);
+}
+.stat-icon.orange-bg {
+  background: var(--accent-yellow);
+}
+
+.stat-info h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.stat-info p {
+  font-size: 12px;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.queue-card,
+.action-card {
+  padding: 24px;
+}
 
 .card-wrapper {
   display: flex;
@@ -224,4 +285,12 @@ a:hover {
   
   clip-path: ellipse(90% 100% at 70% 100%);
   z-index: -1;
+}
+
+@media (max-width: 768px) {
+  .stat-card {
+    min-width: 260px;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
 }
