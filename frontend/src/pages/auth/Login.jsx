@@ -48,7 +48,15 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        navigate('/dashboard'); 
+        const userRole = data.user.role;
+
+        if (userRole === "superadmin") {
+          navigate('/superadmin/superadmin-dashboard');
+        } else if (userRole === "admin") {
+          navigate('/Admin/AdminDashboard');
+        } else {
+          navigate('/User/Dashboard'); 
+        }
       } else {
         if (response.status === 401) {
           setError("Invalid Credentials");

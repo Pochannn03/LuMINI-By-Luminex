@@ -16,14 +16,20 @@ router.post('/api/auth', (req, res, next) => {
     }
 
     req.logIn(user, (err) => {
-      if (err) {
-        return res.status(500).json({ message: "Session login failed" });
-      } else {
-        return res.status(200).json({ 
-          message: "Login successful", 
-          user: user 
-        });
-      }
+    if (err) {
+    return res.status(500).json({ message: "Session login failed" });
+  } else {
+    const safeUser = {
+        id: user._id,
+        username: user.username,
+        role: user.role,
+    };
+
+    return res.status(200).json({ 
+      message: "Login successful", 
+      user: safeUser
+    });
+  }
     });
   })(req, res, next); 
 });
