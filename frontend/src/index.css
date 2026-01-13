@@ -116,6 +116,35 @@ a:hover {
   background-color: var(--border-color);
 }
 
+/* Admin Banner */
+.admin-banner {
+  background: linear-gradient(135deg, var(--admin-dark), #34495e);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: 32px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--white);
+}
+
+.admin-banner h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.admin-banner p {
+  color: var(--white);
+  opacity: 0.8;
+  font-size: 15px;
+  margin: 0;
+}
+
 /* Links */
 
 .link{
@@ -203,6 +232,12 @@ a:hover {
   box-shadow: var(--shadow-sm);
   width: 100%;
   height: auto;
+}
+
+.card-footer {
+  margin-top: 24px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 16px;
 }
 
 .stat-card {

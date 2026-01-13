@@ -9,27 +9,6 @@
   }
 }
 
-.admin-banner {
-  background: linear-gradient(135deg, var(--admin-dark), #34495e);
-  color: var(--white);
-  padding: 32px;
-  border-radius: 20px;
-  width: 100%;
-  margin-bottom: 32px;
-  box-shadow: var(--shadow-md);
-}
-
-.admin-banner h1 {
-  color: var(--white);
-  font-size: 24px;
-  margin-bottom: 4px;
-}
-
-.admin-banner p {
-  color: var(--white);
-  opacity: 0.8;
-  font-size: 14px;
-}
 
 /* Shortcut Links Customization */
 

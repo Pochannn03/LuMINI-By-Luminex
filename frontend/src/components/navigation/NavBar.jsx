@@ -63,17 +63,17 @@ export default function NavBar() {
           <span>Manage Classes</span>
         </Link>
 
-        <Link to="#" className="nav-item">
+        <Link to="/superadmin/analytics" className={isActive("/superadmin/analytics")}>
           <span className="material-symbols-outlined">analytics</span>
           <span>Analytics</span>
         </Link>
 
-        <Link to="#" className="nav-item">
+        <Link to="/superadmin/accounts" className={isActive("/superadmin/accounts")}>
           <span className="material-symbols-outlined">manage_accounts</span>
           <span>Accounts</span>
         </Link>
 
-        <Link to="#" className="nav-item">
+        <Link to="/superadmin/profile" className={isActive("/superadmin/profile")}>
           <span className="material-symbols-outlined">person</span>
           <span>Profile</span>
         </Link>
