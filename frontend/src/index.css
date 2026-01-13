@@ -17,6 +17,7 @@
   --brand-dark: #297aac;
   --text-dark: #2c3e50;
   --text-light: #5f6c7b;
+  --text-gray: #7f8c8d;
   --red-text: #ff2525;
   --yellow-text: #ffb300;
   --green: #4ade80;
@@ -42,6 +43,11 @@
 
   /* For Border Bottom on Registration  */
   --border-bottom-color: #f0f0f0;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
 }
 
 body{
@@ -88,6 +94,10 @@ a:hover {
 
 .text-clight{
   color: var(--text-light);
+}
+
+.text-cgray{
+  color: var(--text-gray);
 }
 
 .title{
@@ -163,7 +173,88 @@ a:hover {
   transform: translateY(-3px) rotate(0.01deg);
 }
 
+/* Icons Customization */
+.arrow-icon {
+  color: #cbd5e1;
+  font-size: 20px;
+  transition: color 0.2s;
+}
+
+.arrow-icon:hover {
+  color: var(--primary-blue);
+}
+
+/* Colors for the Icon */
+.blue-icon {
+  color: var(--primary-blue);
+}
+.orange-icon {
+  color: var(--accent-yellow);
+}
+.purple-icon {
+  color: var(--accent-purple);
+}
+
 /* Cards */
+.card {
+  background: var(--white);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  width: 100%;
+  height: auto;
+}
+
+.stat-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.stat-icon.blue-bg {
+  background: var(--primary-blue);
+}
+.stat-icon.purple-bg {
+  background: var(--accent-purple);
+}
+.stat-icon.orange-bg {
+  background: var(--accent-yellow);
+}
+
+.stat-info h3 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 2px;
+}
+
+.stat-info p {
+  font-size: 12px;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.queue-card,
+.action-card {
+  padding: 24px;
+}
 
 .card-wrapper {
   display: flex;
@@ -224,4 +315,12 @@ a:hover {
   
   clip-path: ellipse(90% 100% at 70% 100%);
   z-index: -1;
+}
+
+@media (max-width: 768px) {
+  .stat-card {
+    min-width: 260px;
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
 }

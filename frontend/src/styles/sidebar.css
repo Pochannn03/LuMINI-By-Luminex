@@ -1,8 +1,8 @@
 body.dashboard-mode {
   font-family: "Poppins", sans-serif;
   background: linear-gradient(
-      rgba(255, 255, 255, 0.82),
-      rgba(255, 255, 255, 0.92)
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.96)
     ),
     url("../assets/background-lumini.png") !important;
   background-repeat: repeat !important;
