@@ -31,6 +31,90 @@
   font-size: 14px;
 }
 
+/* Shortcut Links Customization */
+
+.quick-link-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  text-decoration: none;
+  background-color: var(--white);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.quick-link-item:hover {
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 12px rgba(57, 168, 237, 0.1);
+  transform: translateY(-2px);
+  background-color: #f8fafc;
+}
+
+.quick-link-item:hover .arrow-icon {
+  color: var(--primary-blue);
+}
+
+.quick-link-item.danger-link:hover .link-content h3,
+.quick-link-item.danger-link:hover .arrow-icon {
+  color: var(--accent-red);
+}
+
+.quick-link-item.danger-link:hover {
+  border-color: var(--accent-red);
+  background-color: #fff5f5;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.15);
+}
+
+.link-icon-box {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-right: 12px;
+  flex-shrink: 0;
+  background: transparent;
+}
+
+.link-icon-box span {
+  font-size: 28px;
+}
+
+.link-icon-box.icon-blue {
+  color: var(--primary-blue);
+}
+.link-icon-box.icon-red {
+  color: var(--accent-red);
+}
+
+/* Queue Items */
+.queue-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--white);
+  border-bottom: 1px solid #f0f0f0;
+  gap: 16px;
+}
+
+.queue-item:hover {
+  background: #fafafa;
+}
+
+/* Specification for Quick System Activity */
+.success {
+  background: #f0fdf4;
+  color: #22c55e;
+}
+
+.warning {
+  background: #fff1f2;
+  color: #f43f5e;
+}
+
 @media (max-width: 768px) {
   .stats-row {
     display: flex;

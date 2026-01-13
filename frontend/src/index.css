@@ -17,6 +17,7 @@
   --brand-dark: #297aac;
   --text-dark: #2c3e50;
   --text-light: #5f6c7b;
+  --text-gray: #7f8c8d;
   --red-text: #ff2525;
   --yellow-text: #ffb300;
   --green: #4ade80;
@@ -42,6 +43,11 @@
 
   /* For Border Bottom on Registration  */
   --border-bottom-color: #f0f0f0;
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
 }
 
 body{
@@ -88,6 +94,10 @@ a:hover {
 
 .text-clight{
   color: var(--text-light);
+}
+
+.text-cgray{
+  color: var(--text-gray);
 }
 
 .title{
@@ -163,12 +173,36 @@ a:hover {
   transform: translateY(-3px) rotate(0.01deg);
 }
 
+/* Icons Customization */
+.arrow-icon {
+  color: #cbd5e1;
+  font-size: 20px;
+  transition: color 0.2s;
+}
+
+.arrow-icon:hover {
+  color: var(--primary-blue);
+}
+
+/* Colors for the Icon */
+.blue-icon {
+  color: var(--primary-blue);
+}
+.orange-icon {
+  color: var(--accent-yellow);
+}
+.purple-icon {
+  color: var(--accent-purple);
+}
+
 /* Cards */
 .card {
   background: var(--white);
   border-radius: 16px;
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
+  width: 100%;
+  height: auto;
 }
 
 .stat-card {
@@ -178,10 +212,6 @@ a:hover {
   gap: 12px;
   align-items: flex-start;
   transition: transform 0.2s;
-  background: var(--white);
-  border-radius: 16px;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
 }
 
 .stat-card:hover {
