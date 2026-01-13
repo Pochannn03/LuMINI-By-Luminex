@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/lumini-logo.png'
 import Header from "./Header";
 import '../../styles/sidebar.css';
@@ -7,6 +7,7 @@ import '../../styles/sidebar.css';
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -31,6 +32,26 @@ export default function NavBar() {
       document.body.classList.remove("sidebar-open");
     };
   }, [isOpen]);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/logout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        navigate('/login'); 
+      } else {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Error during logout:", error);
+    }
+  };
 
   return (
     <>
@@ -81,10 +102,10 @@ export default function NavBar() {
       </nav>
 
       <div className="sidebar-footer">
-        <Link to="#" className="nav-item logout-btn">
+        <button onClick={handleLogout} className="nav-item logout-btn">
           <span className="material-symbols-outlined">logout</span>
           <span>Sign Out</span>
-        </Link>
+        </button>
       </div>
 
     </aside>
