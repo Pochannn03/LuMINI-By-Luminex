@@ -99,6 +99,9 @@ a:hover {
 .text-cgray{
   color: var(--text-gray);
 }
+.text-cprimary-blue{
+  color: var(--primary-blue);
+}
 
 .title{
   font-family: "Poppins", sans-serif;
