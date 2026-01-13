@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/lumini-logo.png'
 import Header from "./Header";
 import '../../styles/sidebar.css';
 
 export default function NavBar() {
-
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path ? "nav-item active" : "nav-item";
   };
 
   useEffect(() => {
@@ -49,12 +53,12 @@ export default function NavBar() {
 
       <nav className="sidebar-menu">
 
-        <Link to="#" className="nav-item active">
+        <Link to="/superadmin/dashboard" className={isActive("/superadmin/dashboard")}>
           <span className="material-symbols-outlined">dashboard</span>
           <span>Dashboard</span>
         </Link>
 
-        <Link to="#" className="nav-item">
+        <Link to="/superadmin/manage-class" className={isActive("/superadmin/manage-class")}>
           <span className="material-symbols-outlined">school</span>
           <span>Manage Classes</span>
         </Link>
