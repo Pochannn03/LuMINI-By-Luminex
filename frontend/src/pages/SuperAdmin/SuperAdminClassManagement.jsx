@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import '../../styles/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
 
-export default function ClassManagement() {
+export default function SuperAdminClassManagement() {
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
 

@@ -6,14 +6,16 @@ import GuardianRegistration from './pages/auth/GuardianRegistration'
 import ParentRegistration from './pages/auth/ParentRegistration';
 import TeacherRegistration from './pages/auth/TeacherRegistration';
 import SuperAdminDashbooard from './pages/SuperAdmin/SuperAdminDashboard';
-import ClassManagement from './pages/SuperAdmin/ClassManagement';
+import SuperAdminClassManagement from './pages/SuperAdmin/SuperAdminClassManagement';
 
 export default function App() {
   return (
     <div>
       <Routes>
-        {/* Auth & Landing */}
+        {/* Landing */}
         <Route path="/" element={<Landing />} />
+
+        {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register/guardian" element={<GuardianRegistration />} />
@@ -22,7 +24,7 @@ export default function App() {
 
         {/* Admin Routes */}
         <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
-        <Route path="/superadmin/manage-class" element={<ClassManagement />} />
+        <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
       </Routes>
     </div>
   );
