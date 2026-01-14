@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from 'react-router-dom';
-import '../../styles/superadmin-manageclass-modal.css';
+import '../../styles/class-management-add-class-modal.css';
 
-export default function SuperAdminClassManagementModal() {
+export default function ClassManagementModalAddClass() {
   return (
     <>
       {/* No Logic Yet */}
