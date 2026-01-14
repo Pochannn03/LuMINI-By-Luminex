@@ -5,6 +5,7 @@ import '../../styles/superadmin-manageclass-modal.css';
 export default function SuperAdminClassManagementModal() {
   return (
     <>
+      {/* No Logic Yet */}
       <div className="modal-overlay" id="addClassModal">
         <div className="modal-container">
           <div className="modal-header">
