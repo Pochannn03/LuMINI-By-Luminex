@@ -48,7 +48,7 @@ const UserSchema = new mongoose.Schema({
     required: true 
   },
   is_archive: {
-    type: Boolean, 
+    type: String, 
     default: false,
     required: true,
   },

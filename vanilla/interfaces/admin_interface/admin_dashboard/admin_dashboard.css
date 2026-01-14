@@ -1161,7 +1161,7 @@ body {
   overflow: hidden;
   transform: translateY(20px);
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  max-height: 90vh; /* Prevent it from being too tall */
+  max-height: 90vh; 
 }
 
 .modal-overlay.active .modal-container {
@@ -1196,6 +1196,7 @@ body {
   margin-bottom: 16px;
   text-align: left;
 }
+
 .form-group label {
   font-size: 12px;
   font-weight: 600;

@@ -99,6 +99,9 @@ a:hover {
 .text-cgray{
   color: var(--text-gray);
 }
+.text-cprimary-blue{
+  color: var(--primary-blue);
+}
 
 .title{
   font-family: "Poppins", sans-serif;
@@ -200,6 +203,42 @@ a:hover {
   text-decoration: none;
   color: var(--brand-blue);
   transform: translateY(-3px) rotate(0.01deg);
+}
+
+.btn-modal {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-modal.approve {
+  background: #dcfce7;
+  color: #166534;
+}
+.btn-modal.approve:hover {
+  background: #22c55e;
+  color: white;
+}
+.btn-modal.reject {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.btn-modal.reject:hover {
+  background: #ef4444;
+  color: white;
+}
+.btn-modal.close {
+  background: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-dark);
+}
+.btn-modal.close:hover {
+  background: #f1f5f9;
 }
 
 /* Icons Customization */
