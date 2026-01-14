@@ -1,0 +1,15 @@
+.custom-file-upload {
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--bg-light);
+  transition: all 0.2s ease;
+  margin-top: 8px;
+}
+
+.custom-file-upload:hover {
+  border-color: var(--primary-blue);
+  background: #f0f7ff; /* Very pale blue */
+}
