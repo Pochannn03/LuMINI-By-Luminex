@@ -2,7 +2,7 @@ import React from "react";
 import { Link,  } from 'react-router-dom';
 import '../../styles/sidebar.css';
 
-export default function SuperAdminDashbooardModal() {
+export default function DashboardReviewAccModal() {
   return (
     <>
       <div className="modal-overlay">
@@ -24,16 +24,16 @@ export default function SuperAdminDashbooardModal() {
             <h4 className="text-cprimary-blue text-[13px] mb-2.5 font-bold uppercase">Contact Information</h4>
             <div className="flex flex-colflex-1 gap-1.5 mb-4 text-left">
               <label htmlFor="reviewEmail">Email Address</label>
-              <input type="text" id='reviewEmail' className="form-input" /> {/* Email of Teacher's Newly Created Account */}
+              <input type="text" id='reviewEmail' className="form-input-modal" /> {/* Email of Teacher's Newly Created Account */}
             </div>
             <div className="flex gap-3">
               <div className="flex flex-col flex-1 gap-1.5 mb-4 text-left">
                 <label htmlFor="reviewPhone">Phone Number</label>
-                <input type="text" id='reviewPhone' className="form-input" read-only/> {/* Phone Number of Teacher's Newly Created Account */}
+                <input type="text" id='reviewPhone' className="form-input-modal" read-only/> {/* Phone Number of Teacher's Newly Created Account */}
               </div>
               <div className="flex flex-col flex-1 gap-1.5 mb-4 text-left">
                 <label htmlFor="reviewDate">Date Joined</label>
-                <input type="text" id='reviewDate' className="form-input" read-only/> {/* Date joined of Teacher's Newly Created Account */}
+                <input type="text" id='reviewDate' className="form-input-modal" read-only/> {/* Date joined of Teacher's Newly Created Account */}
               </div>
             </div>
           </div>
@@ -44,19 +44,19 @@ export default function SuperAdminDashbooardModal() {
             </h4>
             <div className="flex flex-col flex-1 gap-1.5 mb-4 text-left">
               <label htmlFor="reviewStreet">Street Address</label>
-              <input type="text" id='reviewStreet' className="form-input" read-only/> {/* Street of Teacher's Newly Created Account */}
+              <input type="text" id='reviewStreet' className="form-input-modal" read-only/> {/* Street of Teacher's Newly Created Account */}
             </div>
             <div className="flex flex-col flex-1 gap-1.5 mb-4 text-left">
               <label htmlFor="reviewBarangay">Barangay</label>
-              <input type="text" id='reviewBarangay' className="form-input" read-only/> {/* Street of Teacher's Newly Created Account */}
+              <input type="text" id='reviewBarangay' className="form-input-modal" read-only/> {/* Street of Teacher's Newly Created Account */}
             </div>
             <div className="flex flex-col flex-1 gap-1.5 mb-4 text-left">
               <label htmlFor="reviewCity">City</label>
-              <input type="text" id='reviewCity' className="form-input" read-only/> {/* Street of Teacher's Newly Created Account */}
+              <input type="text" id='reviewCity' className="form-input-modal" read-only/> {/* Street of Teacher's Newly Created Account */}
             </div>
             <div className="flex flex-col flex-1 gap-1.5 mb-4 text-left">
               <label htmlFor="reviewZip">Zip Code</label>
-              <input type="text" id='reviewZip' className="form-input" read-only/> {/* Street of Teacher's Newly Created Account */}
+              <input type="text" id='reviewZip' className="form-input-modal" read-only/> {/* Street of Teacher's Newly Created Account */}
             </div>
           </div>
         </div>
