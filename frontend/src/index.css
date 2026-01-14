@@ -61,6 +61,8 @@ body{
   background-position: center;
 }
 
+/* Custom Fonts/Text */ 
+
 h1 {
   color: var(--text-dark);
   font-size: 28px;
