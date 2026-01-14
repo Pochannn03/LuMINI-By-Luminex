@@ -102,6 +102,13 @@ export default function SuperAdminClassManagementModal() {
               </div>
             </div>
 
+            <div className="modal-footer">
+              <button class="btn-cancel" id="closeAddModalBtn">Cancel</button>
+              <button class="btn-save" id="submitCreateClassBtn">
+                Create Class
+              </button>
+            </div>
+
           </div>
         </div>
       </div>

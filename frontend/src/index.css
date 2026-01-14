@@ -241,6 +241,39 @@ a:hover {
   background: #f1f5f9;
 }
 
+.btn-cancel {
+  flex: 1;
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: 1px solid var(--accent-green);
+  background: var(--white);
+  color: var(--accent-green);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #f0fdf4;
+}
+
+.btn-save {
+  flex: 1;
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  background: var(--accent-green);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-save:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.25);
+}
+
 /* Icons Customization */
 .arrow-icon {
   color: #cbd5e1;
