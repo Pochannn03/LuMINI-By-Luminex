@@ -33,7 +33,8 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                   <span class="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
                 </div>
 
-                  {/* this div has hidden js logic will be back soon named "hidden" on vanilla*/}
+                {/* this div has hidden js logic will be back soon named "hidden" on vanilla*/}
+                {/* Bug on JPG image */}
                 <div class="flex justify-between items-center p-[5px]" id="uploadSelectedView">
                   <div className="flex items-center gap-2.5">
                     <span class="material-symbols-outlined blue-icon"
