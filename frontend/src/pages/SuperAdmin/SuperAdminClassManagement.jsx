@@ -1,9 +1,12 @@
-import React from "react";
+import React, {useState} from "react";
 import { Link } from 'react-router-dom';
 import '../../styles/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
+import ClassManageAddTeacherModal from "../../components/modals/superadmin/ClassManageAddTeacherModal";
 
 export default function SuperAdminClassManagement() {
+  const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
+
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
 
@@ -56,11 +59,12 @@ export default function SuperAdminClassManagement() {
                   <p className="text-cgray p-[15px]">Loading Teachers...</p> {/* Data where teachers will be shown */}
                 </div>
 
-                <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addTeacherBtn">
+                <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addTeacherBtn" onClick={() => setIsTeacherModalOpen(true)}>
                   <span className="material-symbols-outlined">person_add</span>
                   Add Teacher
                 </button>
               </div>
+              
 
               <div className="card queue-card">
                 <div className="mb-6">
@@ -93,7 +97,12 @@ export default function SuperAdminClassManagement() {
         </main>
       
       {/* For Modal of Adding Classes, Students and Teachers */}
-
+      <ClassManageAddTeacherModal 
+        isOpen={isTeacherModalOpen} 
+        onClose={() => setIsTeacherModalOpen(false)} 
+      />
     </div>
+
+    
   );
 }
