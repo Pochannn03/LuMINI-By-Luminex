@@ -64,15 +64,15 @@
 }
 
 .parent-icon { 
-  background-image: url("../assets/parent.svg"); 
+  background-image: url("../../assets/parent.svg"); 
 }
 
 .guardian-icon {
-  background-image: url("../assets/guardian.svg"); 
+  background-image: url("../../assets/guardian.svg"); 
 }
 
 .teacher-icon {
-  background-image: url("../assets/teacher.svg"); 
+  background-image: url("../../assets/teacher.svg"); 
 }
 
 .login-link {

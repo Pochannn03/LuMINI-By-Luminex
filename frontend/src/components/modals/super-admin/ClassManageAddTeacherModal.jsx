@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from 'react-router-dom';
-import '../../../styles/class-manage-add-teacher-modal.css';
+import '../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
 
 export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
   if (!isOpen) return null;
