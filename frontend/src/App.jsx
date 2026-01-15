@@ -5,8 +5,8 @@ import Landing from './pages/Landing';
 import GuardianRegistration from './pages/auth/GuardianRegistration'
 import ParentRegistration from './pages/auth/ParentRegistration';
 import TeacherRegistration from './pages/auth/TeacherRegistration';
-import SuperAdminDashbooard from './pages/SuperAdmin/SuperAdminDashboard';
-import SuperAdminClassManagement from './pages/SuperAdmin/SuperAdminClassManagement';
+import SuperAdminDashbooard from './pages/super-admin/SuperAdminDashboard';
+import SuperAdminClassManagement from './pages/super-admin/SuperAdminClassManagement';
 
 export default function App() {
   return (

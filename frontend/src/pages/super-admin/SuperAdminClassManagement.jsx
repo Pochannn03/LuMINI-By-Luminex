@@ -1,8 +1,8 @@
 import React, {useState} from "react";
 import { Link } from 'react-router-dom';
-import '../../styles/class-management.css';
+import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
-import ClassManageAddTeacherModal from "../../components/modals/superadmin/ClassManageAddTeacherModal";
+import ClassManageAddTeacherModal from "../../components/modals/super-admin/ClassManageAddTeacherModal";
 
 export default function SuperAdminClassManagement() {
   const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
