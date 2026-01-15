@@ -5,7 +5,7 @@ import '../../styles/super-admin/class-manage-modal/class-management-add-class-m
 export default function ClassManageEditStudentModal() {
   return (
     <>
-      {/* No Logic Yet */}
+      {/* No Logic Yet soon to be implemented */}
       <div className="modal-overlay" id="editStudentModal">
         <div className="modal-container">
           <div className="modal-header">
