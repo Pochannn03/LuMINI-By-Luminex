@@ -40,11 +40,17 @@ export default function ClassManageEditStudentModal() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
+              <label htmlFor="editStudentID">Student ID (Locked)</label>
+              <input type="text" id="editStudentID" class="form-input-modal bg-[#f1f5f9]" readonly />
+            </div>  
+          </div>
 
-            </div>
-
-          </div> {/* modal-body */}
-
+          <div className="modal-footer">
+            <button class="btn-cancel" id="closeEditStudentBtn">Cancel</button>
+            <button class="btn-save" id="saveStudentChangesBtn">
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </>
