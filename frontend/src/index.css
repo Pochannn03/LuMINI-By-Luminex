@@ -276,6 +276,56 @@ a:hover {
   box-shadow: 0 4px 12px rgba(46, 204, 113, 0.25);
 }
 
+.btn-danger {
+  flex: 1;
+  height: 48px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  background: var(--accent-red);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  /* Disabled State */
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Enabled State (Added via JS) */
+.btn-danger.enabled {
+  opacity: 1;
+  pointer-events: all;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
+}
+
+.btn-danger.enabled:hover {
+  filter: brightness(1.1);
+}
+
+.btn-icon-tool {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: transparent;
+  color: var(--text-gray);
+}
+
+.btn-icon-tool:hover {
+  background: #e0f2fe;
+  color: var(--primary-blue);
+}
+.btn-icon-tool.delete:hover {
+  background: #fee2e2;
+  color: var(--accent-red);
+}
+
 /* Icons Customization */
 .arrow-icon {
   color: #cbd5e1;

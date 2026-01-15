@@ -18,7 +18,7 @@ export default function ClassManageAddTeacherModal() {
 
           <div className="modal-body">
             <div className="flex flex-col gap-2">
-              <label>Student Photo</label>
+              <label className="text-cgray text-[13px] font-medium">Student Photo</label>
               <input type="file" id="addStudentPhoto" accept="image/*" hidden />
               <div className="custom-file-upload" id="studentPhotoTrigger">
                 <div className="text-cdark mt-2 mb-1 font-medium" id="stuUploadInitial">
@@ -41,7 +41,7 @@ export default function ClassManageAddTeacherModal() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label>Full Name</label>
+              <label className="text-cgray text-[13px] font-medium">Full Name</label>
                 <div className="flex gap-2.5">
                   <input type="text" id="addStudentFirst" placeholder="First Name" class="form-input-modal"
                   />
@@ -51,7 +51,7 @@ export default function ClassManageAddTeacherModal() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label>Birthdate & Age</label>
+              <label className="text-cgray text-[13px] font-medium">Birthdate & Age</label>
                 <div className="flex gap-2.5">
                   <input type="date" id="addStudentBirthday" class="form-input-modal flex flex-2" />
                   <input type="text" id="addStudentAge" class="form-input-modal flex flex-1 text-center cursor-not-allowed" placeholder="Age" readonly />
@@ -59,7 +59,7 @@ export default function ClassManageAddTeacherModal() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label>Student ID (Auto-generated)</label>
+              <label className="text-cgray text-[13px] font-medium">Student ID (Auto-generated)</label>
                 <input type="text" id="addStudentID" class="form-input-modal text-cgray cursor-not-allowed" readonly placeholder="Generating..." />
             </div>
 
@@ -70,7 +70,7 @@ export default function ClassManageAddTeacherModal() {
 
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center mb-1">
-                <label className="mb-0">Invitation Code</label>
+                <label className="text-cgray text-[13px] font-medium mb-0">Invitation Code</label>
                   <button type="button" id="refreshInviteCodeBtn" className="text-cprimary-blue bg-none flex items-center border-none cursor-pointer gap-1 text-[12px] font-semibold"
                   >
                     <span class="material-symbols-outlined text-[16px]">refresh</span>

@@ -20,7 +20,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
 
           <div className="modal-body">
             <div className="flex flex-col gap-2">
-              <label htmlFor="addTeacherPhoto">Profile Photo</label>
+              <label htmlFor="addTeacherPhoto" className="text-cgray text-[13px] font-medium">Profile Photo</label>
               <input type="file" id="addTeacherPhoto" accept="image/*" hidden />
             
               <div class="custom-file-upload" id="photoUploadTrigger">
@@ -52,7 +52,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="">Full Name</label>
+              <label htmlFor="" className="text-cgray text-[13px] font-medium">Full Name</label>
               <div className="flex gap-2.5">
                 <input type="text" id="addTeacherFirst" placeholder="First Name" className="form-input-modal" />
                 <input type="text" id="addTeacherLast" placeholder="Last Name" className="form-input-modal" />
@@ -60,7 +60,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="">Contact Info</label>
+              <label htmlFor="" className="text-cgray text-[13px] font-medium">Contact Info</label>
               <input type="email" id="addTeacherEmail" className="form-input-modal" placeholder="Email"/>
               <input type="text" id="addTeacherPhone" className="form-input-modal mt-2" placeholder="Phone Number" />
             </div>
@@ -71,12 +71,12 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="">Username</label>
+              <label htmlFor="" className="text-cgray text-[13px] font-medium">Username</label>
               <input type="text" id="addTeacherUsername" className="form-input-modal" placeholder="e.g. Teacher_Moka"/>
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="">Password</label>
+              <label htmlFor="" className="text-cgray text-[13px] font-medium">Password</label>
               <input type="password" id="addTeacherPassword" className="form-input-modal" placeholder="Initial Password"/>
             </div>
           </div>
