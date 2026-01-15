@@ -19,7 +19,7 @@ export default function ClassManageModalAddClass() {
 
           <div className="modal-body">
             <div className="flex flex-col gap-2">
-              <label htmlFor="createClassGrade">Grade Level</label>
+              <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Grade Level</label>
               <div className="relative">
                 <select name="form-input-modal" id="createClassGrade">
                   <option value="" disabled selected>Select Grade Level</option>
@@ -31,7 +31,7 @@ export default function ClassManageModalAddClass() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="createClassGrade">Class Schedule</label>
+              <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Class Schedule</label>
               <div class="relative">
                 <select class="form-input" id="createClassSchedule">
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select Schedule</option>
@@ -47,7 +47,7 @@ export default function ClassManageModalAddClass() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label>Max Capacity</label>
+              <label className="text-cgray text-[13px] font-medium">Max Capacity</label>
               <inpu type="number" 
               id="createClassCapacity" 
               placeholder="e.g. 30" 
@@ -55,7 +55,7 @@ export default function ClassManageModalAddClass() {
             </div>
             
             <div className="flex flex-col gap-2">
-              <label>Description</label>
+              <label className="text-cgray text-[13px] font-medium">Description</label>
               <textarea
                 id="createClassDesc"
                 class="form-input-modal leading-normal h-[100px] resize-none"
@@ -64,7 +64,7 @@ export default function ClassManageModalAddClass() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label>Assign Teacher</label>
+              <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
               <div class="relative">
                 <select class="form-input-modal" id="createClassTeacher">
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select a Teacher</option>

@@ -40,7 +40,7 @@ export default function ClassManageEditStudentModal() {
             </div>
 
             <div className="flex flex-col items-center gap-2">
-              <label htmlFor="editStudentID">Student ID (Locked)</label>
+              <label htmlFor="editStudentID" className="text-cgray text-[13px] font-medium">Student ID (Locked)</label>
               <input type="text" id="editStudentID" class="form-input-modal bg-[#f1f5f9]" readonly />
             </div>  
           </div>

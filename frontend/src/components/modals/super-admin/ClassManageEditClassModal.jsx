@@ -18,7 +18,7 @@ export default function ClassManageEditClassModal() {
               <input type="hidden" id="editClassId_Hidden" />
 
               <div className="flex flex-col gap-2">
-                <label>Grade Level</label>
+                <label className="text-cgray text-[13px] font-medium">Grade Level</label>
                 <div className="relative">
                   <select className="form-input-modal" id="editClassGrade">
                     <option className="appearance-none cursor-pointer" value="Kindergarten">Kindergarten</option>
@@ -29,13 +29,13 @@ export default function ClassManageEditClassModal() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label>Section Name</label>
+                <label className="text-cgray text-[13px] font-medium">Section Name</label>
                   <input type="text" id="editClassSection" className="form-input-modal" placeholder="e.g. Sunflower" autocomplete="off"
                   />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label>Class Schedule</label>
+                <label className="text-cgray text-[13px] font-medium">Class Schedule</label>
                 <div class="relative">
                   <select class="form-input-modal" id="editClassSchedule">
                     <option className="appearance-none cursor-pointer" value="Morning">
@@ -50,18 +50,18 @@ export default function ClassManageEditClassModal() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label>Max Capacity</label>
+                <label className="text-cgray text-[13px] font-medium">Max Capacity</label>
                 <input type="number" id="editClassCapacity" placeholder="e.g. 30" className="form-input-modal" />
               </div>
 
               <div className="flex flex-col gap-2">
-                <label>Description</label>
+                <label className="text-cgray text-[13px] font-medium">Description</label>
                 <textarea type="number" id="editClassDesc" placeholder="e.g. 30" className="form-input-modal resize-none h-[100px] leading-normal" ></textarea>
               </div>
 
               {/* Needs a logic for options css due to data will be on server/database which will be looped inside */}
               <div className="flex flex-col gap-2">
-                <label>Assign Teacher</label>
+                <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
                 <div className="relative">
                   <select className="form-input-modal" id="editClassTeacher">
                     <option value="" disabled selected>Select a Teacher</option>
@@ -71,7 +71,7 @@ export default function ClassManageEditClassModal() {
               </div>
 
               <div className="flex flex-col gap-2 mt-2.5">
-                <label>Manage Students</label>
+                <label className="text-cgray text-[13px] font-medium">Manage Students</label>
                   <div className="flex items-center justify-between bg-[#f8fafc] p-4 border border-slate-200 rounded-xl">
                     <div className="flex items-center gap-2.5">
                       <div className="text-cprimary-blue bg-[#e0f2fe] w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-[18px]">
