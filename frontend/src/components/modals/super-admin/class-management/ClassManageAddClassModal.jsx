@@ -97,7 +97,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                   <button
                     type="button"
                     id="openEnrollmentModalBtn"
-                    className="btn bg-white border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs"
+                    className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs"
                     >
                     Select Students
                   </button>
