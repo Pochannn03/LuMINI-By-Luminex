@@ -11,7 +11,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
-              <span class="material-symbols-outlined header-icon blue-icon"
+              <span className="material-symbols-outlined blue-icon text-[24px]"
                 >person_add</span
               >
               <h2 className="text-cdark text-[18px] font-bold">Add New Teacher</h2>
@@ -23,28 +23,27 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
               <label htmlFor="addTeacherPhoto" className="text-cgray text-[13px] font-medium">Profile Photo</label>
               <input type="file" id="addTeacherPhoto" accept="image/*" hidden />
             
-              <div class="custom-file-upload" id="photoUploadTrigger">
+              <div className="custom-file-upload" id="photoUploadTrigger">
                 <div id="uploadInitialView">
                   <span
-                    class="material-symbols-outlined blue-icon text-[32px]"
-                    >cloud_upload</span
-                  >
+                    className="material-symbols-outlined blue-icon text-[32px]"
+                    >cloud_upload</span>
                   <p className="text-cdark font-medium mt-2 mb-1 mx-0">Click to upload profile photo</p>
-                  <span class="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
+                  <span className="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
                 </div>
 
                 {/* this div has hidden js logic will be back soon named "hidden" on vanilla*/}
                 {/* Bug on JPG image */}
-                <div class="flex justify-between items-center p-[5px]" id="uploadSelectedView">
+                <div className="flex justify-between items-center p-[5px]" id="uploadSelectedView">
                   <div className="flex items-center gap-2.5">
-                    <span class="material-symbols-outlined blue-icon"
+                    <span className="material-symbols-outlined blue-icon"
                       >image</span
                     >
-                    <span class="text-cdark font-medium max-w-[250px] truncate" id="selectedFileName"
+                    <span className="text-cdark font-medium max-w-[250px] truncate" id="selectedFileName"
                       >filename.jpg</span
                     >
                   </div>
-                  <span class="material-symbols-outlined text-cgray text-[16px]"
+                  <span className="material-symbols-outlined text-cgray text-[16px]"
                     >alt_route</span
                   >
                 </div>
@@ -66,7 +65,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
             </div>
 
             <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
-              <span class="material-symbols-outlined blue-icon">lock</span>
+              <span className="material-symbols-outlined blue-icon">lock</span>
               <h3 className="text-cdark font-semibold text-[16px]">Login Credentials</h3>
             </div>
 
@@ -81,9 +80,9 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
             </div>
           </div>
 
-          <div class="modal-footer">
-            <button class="btn-cancel" onClick={onClose}>Cancel</button>
-            <button class="btn-save" id="submitNewTeacherBtn">
+          <div className="modal-footer">
+            <button className="btn-cancel" onClick={onClose}>Cancel</button>
+            <button className="btn-save" id="submitNewTeacherBtn">
               Create Account
             </button>
           </div>

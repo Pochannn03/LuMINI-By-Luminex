@@ -2,10 +2,15 @@ import React, {useState} from "react";
 import { Link } from 'react-router-dom';
 import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
+import ClassManageAddClassModal from "../../components/modals/super-admin/class-management/ClassManageAddClassModal";
 import ClassManageAddTeacherModal from "../../components/modals/super-admin/class-management/ClassManageAddTeacherModal";
+import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
+
 
 export default function SuperAdminClassManagement() {
-  const [isTeacherModalOpen, setIsTeacherModalOpen] = useState(false);
+  const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
+  const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -36,7 +41,7 @@ export default function SuperAdminClassManagement() {
                 </div>
 
                 <div className="border-ctop mt-6 pt-4">
-                  <button className="btn btn-outline gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addClassBtn">
+                  <button className="btn btn-outline gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addClassBtn" onClick={() => setIsAddClassModalOpen(true)}>
                     <span className="material-symbols-outlined">add</span>
                     Add New Class
                   </button>
@@ -59,7 +64,7 @@ export default function SuperAdminClassManagement() {
                   <p className="text-cgray p-[15px]">Loading Teachers...</p> {/* Data where teachers will be shown */}
                 </div>
 
-                <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addTeacherBtn" onClick={() => setIsTeacherModalOpen(true)}>
+                <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addTeacherBtn" onClick={() => setIsAddTeacherModalOpen(true)}>
                   <span className="material-symbols-outlined">person_add</span>
                   Add Teacher
                 </button>
@@ -86,7 +91,7 @@ export default function SuperAdminClassManagement() {
                 </div>
 
                 <div className="">
-                  <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="btnAddStudentMain">
+                  <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="btnAddStudentMain" onClick={() => setIsAddStudentModalOpen(true)}>
                     <span className="material-symbols-outlined">person_add</span>
                     Add Student
                   </button>
@@ -97,10 +102,19 @@ export default function SuperAdminClassManagement() {
         </main>
       
       {/* For Modal of Adding Classes, Students and Teachers */}
-      <ClassManageAddTeacherModal 
-        isOpen={isTeacherModalOpen} 
-        onClose={() => setIsTeacherModalOpen(false)} 
+      <ClassManageAddClassModal 
+        isOpen={isAddClassModalOpen} 
+        onClose={() => setIsAddClassModalOpen(false)} 
       />
+      <ClassManageAddTeacherModal 
+        isOpen={isAddTeacherModalOpen} 
+        onClose={() => setIsAddTeacherModalOpen(false)} 
+      />
+      <ClassManageAddStudentModal 
+        isOpen={isAddStudentModalOpen} 
+        onClose={() => setIsAddStudentModalOpen(false)} 
+      />
+      
     </div>
 
     
