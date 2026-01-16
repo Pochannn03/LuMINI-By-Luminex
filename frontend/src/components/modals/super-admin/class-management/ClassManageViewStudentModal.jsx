@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from 'react-router-dom';
 
-export default function ClassManageViewStudentProfileModal() {
+export default function ClassManageViewStudentModal() {
   return (
     <>
       {/* No Logic Yet soon to be implemented */}
