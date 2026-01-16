@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from 'react-router-dom';
-import '../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
+import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
 export default function ClassManageAddTeacherModal() {
   return (

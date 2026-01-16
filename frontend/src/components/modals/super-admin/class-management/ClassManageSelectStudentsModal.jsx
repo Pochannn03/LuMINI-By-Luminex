@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from 'react-router-dom';
-import '../../styles/super-admin/class-manage-modal/class-management-select-students-modal.css';
+import '../../../../styles/super-admin/class-manage-modal/class-management-select-students-modal.css';
 
 export default function ClassManageEditStudentModal() {
   return (
