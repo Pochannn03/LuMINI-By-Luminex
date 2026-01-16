@@ -347,6 +347,9 @@ a:hover {
 .purple-icon {
   color: var(--accent-purple);
 }
+.red-icon {
+  color: var(--accent-red);
+}
 
 /* Cards */
 .card {
