@@ -1,18 +1,19 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/lumini-logo.png' 
+import { useAuth } from '../../context/AuthProvider';
 import '../../styles/auth/login.css'
 
 
 export default function Login() {
+  const [error, setError] = useState('');
+  const navigate = useNavigate(); 
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
-  
-  const [error, setError] = useState('');
-  const navigate = useNavigate(); 
 
   const handleChange = (e) => {
     setFormData({
@@ -49,11 +50,11 @@ export default function Login() {
       const data = await response.json();
 
       if (response.ok) {
-        const userRole = data.user.role;
+        login(data.user);
 
-        if (userRole === "superadmin") {
+        if (data.user.role === "superadmin") {
           navigate('/superadmin/dashboard');
-        } else if (userRole === "admin") {
+        } else if (data.user.role === "admin") {
           navigate('/admin/dashboard');
         } else {
           navigate('/User/Dashboard'); 

@@ -33,6 +33,19 @@ router.post('/api/auth', (req, res, next) => {
   })(req, res, next); 
 });
 
+router.get('/api/auth/session', (req, res) => {
+  if (req.isAuthenticated() && req.user) {
+    const safeUser = {
+      id: req.user._id,
+      username: req.user.username,
+      role: req.user.role,
+    };
+    return res.status(200).json({ isAuthenticated: true, user: safeUser });
+  } else {
+    return res.status(200).json({ isAuthenticated: false, user: null });
+  }
+});
+
 router.post('/api/auth/logout', (req, res) => {
     req.logout((err) => {
     if (err) {
