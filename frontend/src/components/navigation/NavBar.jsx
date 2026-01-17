@@ -49,7 +49,7 @@ export default function NavBar() {
     {
       label: "Attendance",
       path: "/admin/attendance",
-      icon: "school",
+      icon: "punch_clock",
       allowedRoles: ["admin"]
     },
     /* User (Parent/Guardian) */
