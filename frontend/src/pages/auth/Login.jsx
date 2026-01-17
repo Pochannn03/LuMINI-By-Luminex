@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/lumini-logo.png' 
-import '../../styles/login.css'
+import '../../styles/auth/login.css'
 
 
 export default function Login() {
@@ -54,7 +54,7 @@ export default function Login() {
         if (userRole === "superadmin") {
           navigate('/superadmin/dashboard');
         } else if (userRole === "admin") {
-          navigate('/Admin/AdminDashboard');
+          navigate('/admin/dashboard');
         } else {
           navigate('/User/Dashboard'); 
         }

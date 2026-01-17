@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from 'react-router-dom';
-import '../../styles/superadmindashboard.css';
+import '../../styles/super-admin/super-admin-dashboard.css';
 import NavBar from "../../components/navigation/NavBar";
 
 export default function SuperAdminDashboard() {
@@ -10,7 +10,7 @@ export default function SuperAdminDashboard() {
       <NavBar />
 
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
-        <section className="admin-banner">
+        <section className="superadmin-banner">
           <div>
             <h1>System Overview</h1>
             <p>Here is what's happening across the school today.</p>
