@@ -14,6 +14,7 @@ export default function NavBar() {
   const { user, logout } = useAuth(); 
 
   const NAV_ITEMS = [
+    /* Super Admin */
     {
       label: "Dashboard",
       path: "/superadmin/dashboard",
@@ -21,35 +22,44 @@ export default function NavBar() {
       allowedRoles: ["superadmin"]
     },
     {
+      label: "Manage Classes",
+      path: "/superadmin/manage-class",
+      icon: "school",
+      allowedRoles: ["superadmin"]
+    },
+        {
+      label: "Analytics",
+      path: "/superadmin/analytics",
+      icon: "analytics",
+      allowedRoles: ["superadmin"]
+    },
+        {
+      label: "Accounts",
+      path: "/superadmin/accounts",
+      icon: "manage_accounts",
+      allowedRoles: ["superadmin"]
+    },
+    /* Admin (Teacher) */
+    {
       label: "Dashboard",
       path: "/admin/dashboard",
       icon: "dashboard",
       allowedRoles: ["admin"]
     },
     {
-      label: "My Dashboard",
+      label: "Attendance",
+      path: "/admin/attendance",
+      icon: "school",
+      allowedRoles: ["admin"]
+    },
+    /* User (Parent/Guardian) */
+        {
+      label: "Dashboard",
       path: "/dashboard",
       icon: "dashboard",
       allowedRoles: ["user"]
     },
-    {
-      label: "Manage Classes",
-      path: "/superadmin/manage-class",
-      icon: "school",
-      allowedRoles: ["superadmin"]
-    },
-    {
-      label: "Analytics",
-      path: "/superadmin/analytics",
-      icon: "analytics",
-      allowedRoles: ["superadmin", "admin"]
-    },
-    {
-      label: "Accounts",
-      path: "/superadmin/accounts",
-      icon: "manage_accounts",
-      allowedRoles: ["superadmin"]
-    },
+    /* All Access */
     {
       label: "Profile",
       path: "/profile",
