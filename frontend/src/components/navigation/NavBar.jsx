@@ -2,12 +2,69 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/lumini-logo.png'
 import Header from "./Header";
+import { useAuth } from "../../context/AuthProvider"; 
 import '../../styles/sidebar.css';
 
 export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // 1. Get 'logout' from context too
+  const { user, logout } = useAuth(); 
+
+  const NAV_ITEMS = [
+    {
+      label: "Dashboard",
+      path: "/superadmin/dashboard",
+      icon: "dashboard",
+      allowedRoles: ["superadmin"]
+    },
+    {
+      label: "Dashboard",
+      path: "/admin/dashboard",
+      icon: "dashboard",
+      allowedRoles: ["admin"]
+    },
+    {
+      label: "My Dashboard",
+      path: "/dashboard",
+      icon: "dashboard",
+      allowedRoles: ["user"]
+    },
+    {
+      label: "Manage Classes",
+      path: "/superadmin/manage-class",
+      icon: "school",
+      allowedRoles: ["superadmin"]
+    },
+    {
+      label: "Analytics",
+      path: "/superadmin/analytics",
+      icon: "analytics",
+      allowedRoles: ["superadmin", "admin"]
+    },
+    {
+      label: "Accounts",
+      path: "/superadmin/accounts",
+      icon: "manage_accounts",
+      allowedRoles: ["superadmin"]
+    },
+    {
+      label: "Profile",
+      path: "/profile",
+      icon: "person",
+      allowedRoles: ["superadmin", "admin", "user"] 
+    },
+  ];
+
+  console.log("1. Raw User Object:", user);
+  const currentRole = user ? user.role : 'guest';
+  console.log("2. Detected Role:", currentRole);
+
+  const visibleNavItems = NAV_ITEMS.filter(item => 
+    item.allowedRoles.includes(currentRole)
+  );
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -33,83 +90,43 @@ export default function NavBar() {
     };
   }, [isOpen]);
 
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/api/auth/logout', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-      });
-
-      if (response.ok) {
-        navigate('/login'); 
-      } else {
-        console.error("Logout failed");
-      }
-    } catch (error) {
-      console.error("Error during logout:", error);
-    }
-  };
-
   return (
     <>
-      
-    <Header onToggle={toggleMenu} />
+      <Header onToggle={toggleMenu} />
 
-    <div 
+      <div 
         className={`nav-overlay ${isOpen ? 'active' : ''}`} 
         onClick={() => setIsOpen(false)}
       >
-    </div>
-
-    <aside className={`sidebar ${isOpen ? 'expanded active' : ''}`}
-        id="sideNavBar"
-    >
-
-      <div className="border-bottom flex shrink-0 items-center justify-center h-20 ">
-        <img src={logo} alt="Lumini" className="sidebar-logo"></img>
       </div>
 
-      <nav className="sidebar-menu">
+      <aside className={`sidebar ${isOpen ? 'expanded active' : ''}`} id="sideNavBar">
 
-        <Link to="/superadmin/dashboard" className={isActive("/superadmin/dashboard")}>
-          <span className="material-symbols-outlined">dashboard</span>
-          <span>Dashboard</span>
-        </Link>
+        <div className="border-bottom flex shrink-0 items-center justify-center h-20 ">
+          <img src={logo} alt="Lumini" className="sidebar-logo"></img>
+        </div>
 
-        <Link to="/superadmin/manage-class" className={isActive("/superadmin/manage-class")}>
-          <span className="material-symbols-outlined">school</span>
-          <span>Manage Classes</span>
-        </Link>
+        <nav className="sidebar-menu">
+          {visibleNavItems.map((item) => (
+            <Link 
+              key={item.path} 
+              to={item.path} 
+              className={isActive(item.path)}
+            >
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
 
-        <Link to="/superadmin/analytics" className={isActive("/superadmin/analytics")}>
-          <span className="material-symbols-outlined">analytics</span>
-          <span>Analytics</span>
-        </Link>
+        <div className="sidebar-footer">
+          <button onClick={() => { logout(); navigate('/login'); }} className="nav-item logout-btn">
+            <span className="material-symbols-outlined">logout</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
 
-        <Link to="/superadmin/accounts" className={isActive("/superadmin/accounts")}>
-          <span className="material-symbols-outlined">manage_accounts</span>
-          <span>Accounts</span>
-        </Link>
-
-        <Link to="/superadmin/profile" className={isActive("/superadmin/profile")}>
-          <span className="material-symbols-outlined">person</span>
-          <span>Profile</span>
-        </Link>
-
-      </nav>
-
-      <div className="sidebar-footer">
-        <button onClick={handleLogout} className="nav-item logout-btn">
-          <span className="material-symbols-outlined">logout</span>
-          <span>Sign Out</span>
-        </button>
-      </div>
-
-    </aside>
-
+      </aside>
     </>
   );
 }

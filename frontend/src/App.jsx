@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import AuthProvider from './context/AuthProvider';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import Landing from './pages/Landing';
@@ -13,7 +14,8 @@ import AdminDashboard from './pages/admin-teacher/AdminDashboard';
 export default function App() {
   return (
     <div>
-      <Routes>
+      <AuthProvider>
+        <Routes>
         {/* Landing */}
         <Route path="/" element={<Landing />} />
 
@@ -31,6 +33,7 @@ export default function App() {
         {/* Admin (Teacher) Routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
+      </AuthProvider>
     </div>
   );
 }
