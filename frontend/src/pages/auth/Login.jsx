@@ -53,7 +53,7 @@ export default function Login() {
         if (userRole === "superadmin") {
           navigate('/superadmin/dashboard');
         } else if (userRole === "admin") {
-          navigate('/Admin/AdminDashboard');
+          navigate('/admin/dashboard');
         } else {
           navigate('/User/Dashboard'); 
         }

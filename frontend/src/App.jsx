@@ -7,6 +7,8 @@ import ParentRegistration from './pages/auth/ParentRegistration';
 import TeacherRegistration from './pages/auth/TeacherRegistration';
 import SuperAdminDashbooard from './pages/super-admin/SuperAdminDashboard';
 import SuperAdminClassManagement from './pages/super-admin/SuperAdminClassManagement';
+import AdminDashboard from './pages/admin-teacher/AdminDashboard';
+
 
 export default function App() {
   return (
@@ -22,9 +24,12 @@ export default function App() {
         <Route path="/register/parent" element={<ParentRegistration />} />
         <Route path="/register/teacher" element={<TeacherRegistration />} />
 
-        {/* Admin Routes */}
+        {/* Super Admin Routes */}
         <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
         <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
+
+        {/* Admin (Teacher) Routes */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
       </Routes>
     </div>
   );

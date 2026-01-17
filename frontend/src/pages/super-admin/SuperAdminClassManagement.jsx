@@ -18,7 +18,7 @@ export default function SuperAdminClassManagement() {
       <NavBar />
 
         <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
-          <div className="admin-banner">
+          <div className="superadmin-banner">
             <h1>Class Management</h1>
             <p>Manage your classes, faculty, and student body.</p>
           </div>

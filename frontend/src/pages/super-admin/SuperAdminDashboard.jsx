@@ -10,7 +10,7 @@ export default function SuperAdminDashboard() {
       <NavBar />
 
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
-        <section className="admin-banner">
+        <section className="superadmin-banner">
           <div>
             <h1>System Overview</h1>
             <p>Here is what's happening across the school today.</p>

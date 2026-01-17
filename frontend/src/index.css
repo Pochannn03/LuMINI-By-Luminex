@@ -40,6 +40,7 @@
 
   /* Borders */
   --border-color: #e2e8f0;
+  --border-color-dark: #0f172a;
 
   /* For Border Bottom on Registration  */
   --border-bottom-color: #f0f0f0;
@@ -121,8 +122,8 @@ a:hover {
   background-color: var(--border-color);
 }
 
-/* Admin Banner */
-.admin-banner {
+/* Super Admin Banner */
+.superadmin-banner {
   background: linear-gradient(135deg, var(--admin-dark), #34495e);
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 32px;
@@ -133,6 +134,32 @@ a:hover {
   margin-left: auto;
   margin-right: auto;
   color: var(--white);
+}
+
+.superadmin-banner h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.superadmin-banner p {
+  color: var(--white);
+  opacity: 0.8;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Admin Banner */
+
+.admin-banner {
+  background: linear-gradient(135deg, var(--primary-blue), #25ccf7);
+  color: var(--white);
+  padding: 32px;
+  border-radius: 20px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-md);
 }
 
 .admin-banner h1 {
@@ -196,15 +223,16 @@ a:hover {
 
 .btn-outline {
   background-color: transparent;
-  color: var(--brand-blue);
-  border: 2px solid var(--brand-blue);
+  border: 2px solid var(--border-color-dark);
+  color: var(--text-dark);
 }
 
 .btn-outline:hover {
-  background-color: #f0f8ff;
   text-decoration: none;
-  color: var(--brand-blue);
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
   transform: translateY(-3px) rotate(0.01deg);
+  outline-offset: 2px;
 }
 
 .btn-modal {
@@ -361,6 +389,38 @@ a:hover {
   height: auto;
 }
 
+
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+
+  height: 140px;
+  width: 130px;
+
+  background-color: var(--bg-gray);
+  border: 2px solid transparent;
+  border-radius: 24px;
+  
+  text-decoration: none;
+  transition: all 0.25s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-wrapper:hover {
+  transform: translateY(-8px);
+  background-color: var(--white);
+  border-color: var(--brand-blue);
+  box-shadow: var(--shadow-hover);
+}
+
+.card-wrapper:active {
+  transform: scale(0.96);
+}
+
 .card-footer {
   margin-top: 24px;
   border-top: 1px solid #f0f0f0;
@@ -415,40 +475,37 @@ a:hover {
 
 .queue-card,
 .action-card {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
   padding: 24px;
 }
 
-.card-wrapper {
+.emergency-card {
+  padding: 24px;
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-
-  height: 140px;
-  width: 130px;
-
-  background-color: var(--bg-gray);
-  border: 2px solid transparent;
-  border-radius: 24px;
-  
-  text-decoration: none;
-  transition: all 0.25s ease;
+  gap: 16px;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
+  transition: transform 0.2s;
 }
 
-.card-wrapper:hover {
-  transform: translateY(-8px);
-  background-color: var(--white);
-  border-color: var(--brand-blue);
-  box-shadow: var(--shadow-hover);
+.emergency-card:hover {
+  transform: translateY(-2px);
 }
 
-.card-wrapper:active {
-  transform: scale(0.96);
+.emergency-card-wrapper {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-
 
 /* Wave */
 
