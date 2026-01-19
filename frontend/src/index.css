@@ -622,7 +622,7 @@ a:hover {
   box-shadow: 0 0 0 3px rgba(57, 168, 237, 0.1);
 }
 
-
+/* Mobile Screen Resolution */
 @media (max-width: 768px) {
   .stat-card {
     min-width: 260px;

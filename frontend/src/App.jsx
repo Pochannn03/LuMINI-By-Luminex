@@ -9,6 +9,7 @@ import TeacherRegistration from './pages/auth/TeacherRegistration';
 import SuperAdminDashbooard from './pages/super-admin/SuperAdminDashboard';
 import SuperAdminClassManagement from './pages/super-admin/SuperAdminClassManagement';
 import AdminDashboard from './pages/admin-teacher/AdminDashboard';
+import AdminAttendance from './pages/admin-teacher/AdminAttendance'
 
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
 
         {/* Admin (Teacher) Routes */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/attendance" element={<AdminAttendance />} />
       </Routes>
       </AuthProvider>
     </div>
