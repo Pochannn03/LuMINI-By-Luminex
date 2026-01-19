@@ -66,6 +66,7 @@ a.nav-item {
   padding: 6px 6px 6px 16px;
   border-radius: 50px;
 }
+
 .date-label {
   font-size: 13px;
   font-weight: 600;
@@ -339,13 +340,16 @@ a.nav-item {
     gap: 16px;
     margin-bottom: 16px;
   }
+
   .date-pill {
     width: 100%;
     justify-content: space-between;
   }
+
   .header-stats-row {
     flex-direction: column;
   }
+
   .save-btn {
     width: 100%;
     justify-content: center;
@@ -408,6 +412,7 @@ a.nav-item {
     width: 100%;
     display: flex;
   }
+  
   .segment-opt {
     flex: 1;
     justify-content: center;
