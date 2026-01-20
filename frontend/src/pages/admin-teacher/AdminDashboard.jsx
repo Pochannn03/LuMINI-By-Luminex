@@ -11,8 +11,8 @@ export default function SuperAdminDashboard() {
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
         <section className="admin-banner">
           <div>
-            <h1>Welcome Back!</h1>
-            <p>Ready for your next class?</p>
+            <h1 className="text-[28px]! font-bold text-[white]! mb-2 tracking-[-0.5px]">Welcome Back!</h1>
+            <p className="text-[white]! opacity-80 text-[15px]! m-0">Ready for your next class?</p>
           </div>
         </section>
 

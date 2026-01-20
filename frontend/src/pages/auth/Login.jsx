@@ -57,7 +57,7 @@ export default function Login() {
         } else if (data.user.role === "admin") {
           navigate('/admin/dashboard');
         } else {
-          navigate('/User/Dashboard'); 
+          navigate('/dashboard'); 
         }
       } else {
         if (response.status === 401) {
