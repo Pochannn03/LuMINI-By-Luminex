@@ -1,0 +1,207 @@
+/* Trackers/Status of Parent */
+.tracker-step {
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  cursor: default;
+}
+
+/* Tracker State: Completed */
+.tracker-step.completed .step-circle {
+  background: var(--primary-blue);
+  border-color: var(--primary-blue);
+  color: white;
+}
+.tracker-step.completed .step-label {
+  color: var(--primary-blue);
+}
+
+/* Tracker State: Active */
+.tracker-step.active .step-circle {
+  background: white;
+  border: 3px solid var(--accent-yellow);
+  color: var(--accent-yellow);
+  width: 44px;
+  height: 44px;
+  margin-top: -2px;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+
+.tracker-step.active .step-label {
+  color: var(--accent-yellow);
+  font-weight: 700;
+}
+
+/* Tracker's Icon */
+.step-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid #b0bec5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b0bec5;
+  transition: all 0.3s ease;
+}
+
+/* Quick Actions */
+
+.quick-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.quick-action-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px;
+  background: var(--white);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.quick-action-item:hover {
+  background: #f8fafc;
+  border-color: var(--primary-blue);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.quick-action-item .qa-icon {
+  width: 40px;
+  height: 40px;
+  justify-content: flex-start;
+  color: var(--primary-blue);
+}
+
+.quick-action-item .qa-icon span {
+  font-size: 28px;
+}
+
+.quick-action-item .qa-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qa-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.qa-desc {
+  font-size: 12px;
+  color: var(--text-gray);
+}
+.quick-action-item .arrow {
+  color: #cbd5e1;
+  font-size: 20px;
+  margin-left: 8px;
+}
+
+.quick-action-item:hover .arrow {
+  color: var(--primary-blue);
+  font-size: 20px;
+  margin-left: 8px;
+}
+
+/* Danger Variant (Emergency) */
+.quick-action-item.danger-item {
+  border: 1px solid var(--accent-red);
+}
+.quick-action-item.danger-item .qa-icon {
+  color: var(--accent-red);
+}
+.quick-action-item.danger-item .qa-title {
+  color: var(--accent-red);
+  font-weight: 700;
+}
+.quick-action-item.danger-item .arrow {
+  color: var(--accent-red);
+}
+.quick-action-item.danger-item:hover {
+  background: #fff5f5;
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.15);
+}
+
+/* Status Actions */
+
+.status-options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.status-option-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 16px 20px;
+  background: var(--white);
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.status-option-btn:hover {
+  background: #f9f9f9;
+  transform: translateY(-2px);
+}
+
+/* Status Color Variants */
+.status-option-btn.status-blue {
+  border-color: var(--primary-blue);
+  color: var(--primary-blue);
+}
+.status-option-btn.status-blue .arrow-icon {
+  color: var(--primary-blue);
+}
+.status-option-btn.status-blue:hover {
+  background: #eff6ff;
+}
+
+.status-option-btn.status-green {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+.status-option-btn.status-green .arrow-icon {
+  color: var(--accent-green);
+}
+.status-option-btn.status-green:hover {
+  background: #f0fdf4;
+}
+
+.status-option-btn.status-red {
+  border-color: var(--accent-red);
+  color: #ef4444;
+}
+.status-option-btn.status-red .arrow-icon {
+  color: #ef4444;
+}
+.status-option-btn.status-red:hover {
+  background: #fef2f2;
+}
+
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

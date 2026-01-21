@@ -768,6 +768,7 @@ body {
   transition: all 0.2s ease;
   text-align: left;
 }
+
 .quick-action-item:hover {
   background: #f8fafc;
   border-color: var(--primary-blue);
@@ -777,20 +778,21 @@ body {
 .quick-action-item .qa-icon {
   width: 40px;
   height: 40px;
-  display: flex;
-  align-items: center;
   justify-content: flex-start;
   color: var(--primary-blue);
 }
+
 .quick-action-item .qa-icon span {
   font-size: 28px;
 }
-.quick-action-item .qa-content {
+
+.quick-action-item .qa-title {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .qa-title {
   font-size: 15px;
   font-weight: 600;

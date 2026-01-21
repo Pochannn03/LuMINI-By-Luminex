@@ -360,6 +360,9 @@ a:hover {
 .red-icon {
   color: var(--accent-red);
 }
+.yellow-icon {
+  color: var(--accent-yellow);
+}
 
 /* Cards */
 .card {
@@ -370,7 +373,6 @@ a:hover {
   width: 100%;
   height: auto;
 }
-
 
 .card-wrapper {
   display: flex;

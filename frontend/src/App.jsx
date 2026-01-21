@@ -10,7 +10,7 @@ import SuperAdminDashbooard from './pages/super-admin/SuperAdminDashboard';
 import SuperAdminClassManagement from './pages/super-admin/SuperAdminClassManagement';
 import AdminDashboard from './pages/admin-teacher/AdminDashboard';
 import AdminAttendance from './pages/admin-teacher/AdminAttendance'
-import Dashboard from './pages/users/parent/Dashboard';
+import ParentDashboard from './pages/users/parent/ParentDashboard';
 
 
 export default function App() {
@@ -38,7 +38,7 @@ export default function App() {
           <Route path="/admin/attendance" element={<AdminAttendance />} />
 
           {/* User (Parent/Guardian) Routes */}
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<ParentDashboard />} />
 
         </Routes>
       </AuthProvider>
