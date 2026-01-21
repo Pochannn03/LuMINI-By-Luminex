@@ -122,6 +122,7 @@ a:hover {
   background-color: var(--border-color);
 }
 
+/* Banners */
 /* Super Admin Banner */
 .superadmin-banner {
   background: linear-gradient(135deg, var(--admin-dark), #34495e);
@@ -136,21 +137,6 @@ a:hover {
   color: var(--white);
 }
 
-.superadmin-banner h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--white);
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
-}
-
-.superadmin-banner p {
-  color: var(--white);
-  opacity: 0.8;
-  font-size: 15px;
-  margin: 0;
-}
-
 /* Admin Banner */
 
 .admin-banner {
@@ -162,19 +148,15 @@ a:hover {
   box-shadow: var(--shadow-md);
 }
 
-.admin-banner h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--white);
-  margin-bottom: 8px;
-  letter-spacing: -0.5px;
-}
+/* User Banner */
 
-.admin-banner p {
+.welcome-banner {
+  background: linear-gradient(135deg, var(--primary-blue), #25ccf7);
   color: var(--white);
-  opacity: 0.8;
-  font-size: 15px;
-  margin: 0;
+  padding: 32px;
+  border-radius: 20px;
+  margin-bottom: 32px;
+  box-shadow: var(--shadow-md);
 }
 
 /* Links */
@@ -378,6 +360,9 @@ a:hover {
 .red-icon {
   color: var(--accent-red);
 }
+.yellow-icon {
+  color: var(--accent-yellow);
+}
 
 /* Cards */
 .card {
@@ -388,7 +373,6 @@ a:hover {
   width: 100%;
   height: auto;
 }
-
 
 .card-wrapper {
   display: flex;
