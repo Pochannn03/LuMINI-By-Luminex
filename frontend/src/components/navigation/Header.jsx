@@ -26,7 +26,7 @@ export default function Header({onToggle}) {
               src="../../../assets/placeholder_image.jpg" 
               alt="Profile" 
             />
-            <span class="hidden font-semibold text-[14px] lg:block">User</span>
+            <span className="hidden font-semibold text-[14px] lg:block">User</span>
           </div>
         </div>
       </header>

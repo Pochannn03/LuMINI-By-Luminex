@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
@@ -96,11 +95,13 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
 
     try {
       const response = await axios.post('http://localhost:3000/api/createStudent', data, {
-        headers: { "Content-Type": "multipart/form-data" } 
+        headers: { "Content-Type": "multipart/form-data" },
+        body: JSON.stringify(formData),
       });
 
       alert("Student created successfully!");
       onClose();
+      const data = response.data;
 
     } catch (error) {
       console.error("Network Error:", error);

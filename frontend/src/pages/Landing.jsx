@@ -45,7 +45,7 @@ export default function Landing() {
       </header>
 
       <section className="py-20 bg-white text-center">
-        <div classNaame="w-[90%] max-w-[1200px] mx-auto">
+        <div className="w-[90%] max-w-[1200px] mx-auto">
           <div>
             <h2 className="text-cbrand-blue font-extrabold text-[28px] mb-2.5">
               What we do for you
@@ -57,7 +57,7 @@ export default function Landing() {
 
           <div className="grid grid-cols-1 gap-8 w-11/12 max-w-6xl mx-auto lg:grid-cols-3">
             <div className="feature-card">
-              <div class="text-[40px] mb-5">🛡️</div>
+              <div className="text-[40px] mb-5">🛡️</div>
                 <h3 className=".text-cdark font-bold text-[14px] mb-2.5">
                   Secure Identity
                 </h3>
@@ -66,7 +66,7 @@ export default function Landing() {
                 </p>
             </div>
             <div className="feature-card">
-              <div class="text-[40px] mb-5">⚡</div>
+              <div className="text-[40px] mb-5">⚡</div>
                 <h3 className=".text-cdark font-bold text-[14px] mb-2.5">
                   Fast Check-in
                 </h3>
@@ -75,7 +75,7 @@ export default function Landing() {
                 </p>
             </div>
             <div className="feature-card">
-              <div class="text-[40px] mb-5">📱</div>
+              <div className="text-[40px] mb-5">📱</div>
                 <h3 className=".text-cdark font-bold text-[14px] mb-2.5">
                   Real-time Updates
                 </h3>

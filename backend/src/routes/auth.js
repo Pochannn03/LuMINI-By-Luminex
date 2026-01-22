@@ -7,6 +7,7 @@ router.post('/api/auth', (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     
     if (err) {
+      console.error("Passport Error:", err);
       return res.status(500).json({ message: "Server error" });
     }
 
@@ -16,6 +17,7 @@ router.post('/api/auth', (req, res, next) => {
 
     req.logIn(user, (err) => {
     if (err) {
+      console.error("Login Session Error:", err);
     return res.status(500).json({ message: "Session login failed" });
   } else {
     const safeUser = {

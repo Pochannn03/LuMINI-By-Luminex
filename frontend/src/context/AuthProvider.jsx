@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext(null);
 
@@ -9,14 +10,11 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     const checkSession = async () => {
     try {
-      const response = await fetch('http://localhost:3000/api/auth/session', {
-        method: 'GET',
-        credentials: 'include', 
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
+      const response = await axios.get('http://localhost:3000/api/auth/session', {
+          withCredentials: true 
+        });
+
+      const data = response.data;
       
       if (data.isAuthenticated) {
         console.log("✅ User verified:", data.user);
@@ -37,17 +35,14 @@ export default function AuthProvider({ children }) {
 }, []);
 
   const login = (userData) => {
+    console.log("⚡ LOGIN FUNCTION CALLED with:", userData);
     setUser(userData);
   };
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:3000/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      await axios.post('http://localhost:3000/api/auth/logout', {}, {
+        withCredentials: true
       });
       setUser(null);
     } catch (error) {
