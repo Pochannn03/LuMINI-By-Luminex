@@ -19,8 +19,8 @@ export default function SuperAdminClassManagement() {
 
         <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
           <div className="superadmin-banner">
-            <h1>Class Management</h1>
-            <p>Manage your classes, faculty, and student body.</p>
+            <h1 className="text-[white]! text-[28px]! font-bold mb-2 tracking-[-0.5px]">Class Management</h1>
+            <p className="text-[white]! opacity-80 text-[15px]! m-0">Manage your classes, faculty, and student body.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
