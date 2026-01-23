@@ -32,7 +32,7 @@ export default function GuardianRegistration() {
     lastName: '',     
     email: '',
     phoneNumber: '',  
-    relationship: null, 
+    relationship: 'Teacher', 
     houseUnit: '',
     street: '',
     barangay: '',

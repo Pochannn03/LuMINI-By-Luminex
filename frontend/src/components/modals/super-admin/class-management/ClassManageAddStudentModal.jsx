@@ -176,7 +176,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                   {!previewUrl ? (
                     <div className="text-cdark mt-2 mb-1 font-medium text-center" id="stuUploadInitial">
                       <span className="material-symbols-outlined blue-icon text-[32px]">face</span>
-                      <p className="text-cdark font-medium mt-2 mx-0 mb-1">Click to upload photo</p>
+                      <p className="text-cdark! font-medium! mt-2 mx-0 mb-1">Click to upload photo</p>
+                      <span className="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
                     </div>
                   ) : (
                     <div className="flex justify-between items-center p-[5px]" id="stuUploadSelected">
