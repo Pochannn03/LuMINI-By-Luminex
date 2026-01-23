@@ -481,7 +481,7 @@ const handleNext = () => {
               </div>
             )}
 
-            <div class="flex flex-row w-full mt-2.5  gap-[15px]">
+            <div className="flex flex-row w-full mt-2.5  gap-[15px]">
               <button 
                 type="button" 
                 className="btn btn-outline flex-1 h-12 rounded-3xl font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed" 

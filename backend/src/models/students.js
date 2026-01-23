@@ -4,11 +4,10 @@ const StudentSchema = new mongoose.Schema({
   // 1. IDs
   student_id: {
     type: String,
-    // required: true, <--- Remove this if you generate it inside the pre-save hook
     unique: true,
   },
   user_id: { 
-    type: mongoose.Schema.Types.ObjectId, 
+    type: Number, 
     ref: 'User', 
     default: null 
   },
@@ -33,7 +32,7 @@ const StudentSchema = new mongoose.Schema({
   },
   age: {
     type: Number, // FIX: Changed 'int' to 'Number'
-    required: true, // Calculated automatically, so optional in schema
+    required: false, // Calculated automatically, so optional in schema
   },
   profile_picture: {
     type: String,
@@ -76,7 +75,15 @@ const StudentSchema = new mongoose.Schema({
   updated_by: {
     type: String, 
     default: "System" 
-  },
-});
+  }
+}, {
+    toJSON: { 
+      virtuals: true 
+    }, // Important: Ensure virtuals show up when you query
+    toObject: { 
+      virtuals: true 
+    }
+  }
+);
 
 export const Student = mongoose.model("Student", StudentSchema, "chd.kindergarten_student");
