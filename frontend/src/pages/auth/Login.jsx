@@ -56,8 +56,11 @@ export default function Login() {
         }
         
     } catch (err) {
-      console.error('Error:', err);
-      setError('Server error. Please try again later.');
+        if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message); 
+      } else {
+        setError('Server error. Please try again later.');
+      }
     }
 
   };
