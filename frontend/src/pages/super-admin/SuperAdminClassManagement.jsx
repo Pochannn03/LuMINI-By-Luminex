@@ -19,8 +19,8 @@ export default function SuperAdminClassManagement() {
 
         <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
           <div className="superadmin-banner">
-            <h1>Class Management</h1>
-            <p>Manage your classes, faculty, and student body.</p>
+            <h1 className="text-[white]! text-[28px]! font-bold mb-2 tracking-[-0.5px]">Class Management</h1>
+            <p className="text-[white]! opacity-80 text-[15px]! m-0">Manage your classes, faculty, and student body.</p>
           </div>
 
           <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
@@ -53,7 +53,7 @@ export default function SuperAdminClassManagement() {
               <div className="card queue-card">
                 <div className="mb-6">
                   <div className="flex items-center gap-2.5 mb-2">
-                    <span class="material-symbols-outlined orange-icon text-[24px]">supervised_user_circle
+                    <span className="material-symbols-outlined orange-icon text-[24px]">supervised_user_circle
                     </span>
                     <h2 className="text-cdark text-[18px] font-bold">Teacher's Directory</h2>
                   </div>
@@ -74,7 +74,7 @@ export default function SuperAdminClassManagement() {
               <div className="card queue-card">
                 <div className="mb-6">
                   <div className="flex items-center gap-2.5 mb-2">
-                    <span class="material-symbols-outlined blue-icon text-[24px]"
+                    <span className="material-symbols-outlined blue-icon text-[24px]"
                     >face</span>
                     <h2 className="text-cdark text-[18px] font-bold">Sutdents Directory</h2>
                   </div>

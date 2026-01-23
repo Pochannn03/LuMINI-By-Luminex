@@ -1,50 +1,82 @@
 import mongoose from "mongoose";
 
 const StudentSchema = new mongoose.Schema({
+  // 1. IDs
   student_id: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: String,
+    // required: true, <--- Remove this if you generate it inside the pre-save hook
     unique: true,
   },
-  user_id: {
-    type: mongoose.Schema.Types.String,
+  user_id: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    default: null 
+  },
+  invitation_code: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+  // 2. PERSONAL DETAILS
+  first_name: {
+    type: String,
     required: true,
   },
-  section_id: {
-    type: mongoose.Schema.Types.String,
+  last_name: {
+    type: String,
     required: true,
+  },
+  birthday: {
+    type: Date, // Or Date
+    required: true,
+  },
+  age: {
+    type: Number, // FIX: Changed 'int' to 'Number'
+    required: true, // Calculated automatically, so optional in schema
   },
   profile_picture: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: String,
+    required: false, // Make optional in case they don't upload one
+  },
+
+  // 3. OPTIONAL FIELDS (Fill these later)
+  section_id: {
+    type: String,
+    required: false, // Changed to false
+    default: "Unassigned"
   },
   address: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: String,
+    required: false, // Changed to false
+    default: ""
   },
+  qr_code: {
+    type: String,
+    required: false, // Changed to false
+  },
+
+  // 4. SYSTEM FIELDS
   is_archive: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: Boolean, // Better to use Boolean than String
+    default: false,
   },
   created_at: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: Date,
+    default: Date.now,
   },
   updated_at: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: Date,
+    default: Date.now,
   },
   created_by: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: String, 
+    default: "System"
   },
   updated_by: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+    type: String, 
+    default: "System" 
   },
 });
 
-export const Student = mongoose.model("Student", UserSchema, "chd.kindergarten_student");
-
-
-
+export const Student = mongoose.model("Student", StudentSchema, "chd.kindergarten_student");

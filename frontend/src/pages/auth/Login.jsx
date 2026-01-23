@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../../assets/lumini-logo.png' 
 import { useAuth } from '../../context/AuthProvider';
+import axios from 'axios';
+import logo from '../../assets/lumini-logo.png' 
 import '../../styles/auth/login.css'
 
 
@@ -38,19 +39,13 @@ export default function Login() {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(formData),
+      const response = await axios.post('http://localhost:3000/api/auth', formData, {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true 
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        login(data.user);
+      const data = response.data;
+      login(data.user);
 
         if (data.user.role === "superadmin") {
           navigate('/superadmin/dashboard');
@@ -59,13 +54,7 @@ export default function Login() {
         } else {
           navigate('/dashboard'); 
         }
-      } else {
-        if (response.status === 401) {
-          setError("Invalid Credentials");
-        } else {
-          setError(data.message || 'Login failed');
-        }
-      }
+        
     } catch (err) {
       console.error('Error:', err);
       setError('Server error. Please try again later.');

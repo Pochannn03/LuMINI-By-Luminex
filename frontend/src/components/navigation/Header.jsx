@@ -22,11 +22,11 @@ export default function Header({onToggle}) {
 
           <div className="flex items-center gap-3">
             <img 
-              class="profile-avatar w-10 h-10 rounded-full object-cover " 
+              className="profile-avatar w-10 h-10 rounded-full object-cover " 
               src="../../../assets/placeholder_image.jpg" 
               alt="Profile" 
             />
-            <span class="hidden font-semibold text-[14px] lg:block">User</span>
+            <span className="hidden font-semibold text-[14px] lg:block">User</span>
           </div>
         </div>
       </header>

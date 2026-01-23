@@ -157,7 +157,7 @@ export default function GuardianRegistration() {
   };
   
   // Form Button Logic for Steps //
-const handleNext = () => {
+  const handleNext = () => {
   const isValid = validateStep(currentStep);
 
   if (isValid) {
