@@ -1,8 +1,10 @@
-import React from "react";
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose }) {
+  const [isEnrollStudents, setIsEnrollStudents] = useState(false);
+
   if (!isOpen) return null;
   return (
     <>
@@ -98,6 +100,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                     type="button"
                     id="openEnrollmentModalBtn"
                     className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs"
+                    onClick={() => setIsEnrollStudents(true)}
                     >
                     Select Students
                   </button>
@@ -117,6 +120,11 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
             </div>
         </div>
       </div>
+      
+      <ClassManageSelectStudentModal 
+        isOpen={isEnrollStudents} 
+        onClose={() => setIsEnrollStudents(false)} 
+      />
     </>
   );
 }
