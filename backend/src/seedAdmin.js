@@ -21,6 +21,7 @@ const seedSuperAdmin = async () => {
     const hashedPassword = await bcrypt.hash("LuminiAdmin123!", salt);
 
     const superAdmin = new User({
+      user_id: 1001,
       username: "superadmin",
       password: hashedPassword,
       email: "admin@lumini.edu.ph",
