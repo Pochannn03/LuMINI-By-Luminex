@@ -6,12 +6,10 @@ import { useAuth } from "../../context/AuthProvider";
 import '../../styles/sidebar.css';
 
 export default function NavBar() {
+  const { user, logout } = useAuth(); 
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // 1. Get 'logout' from context too
-  const { user, logout } = useAuth(); 
 
   const NAV_ITEMS = [
     /* Super Admin */
@@ -68,9 +66,7 @@ export default function NavBar() {
     },
   ];
 
-  console.log("1. Raw User Object:", user);
   const currentRole = user ? user.role : 'guest';
-  console.log("2. Detected Role:", currentRole);
 
   const visibleNavItems = NAV_ITEMS.filter(item => 
     item.allowedRoles.includes(currentRole)

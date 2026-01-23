@@ -45,6 +45,7 @@ export default function Login() {
       });
 
       const data = response.data;
+      login(data.user);
 
         if (data.user.role === "superadmin") {
           navigate('/superadmin/dashboard');

@@ -71,51 +71,55 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault(); 
 
-    // 1. Validation
+    // Will have a Custom Validation soon
     if (!formData.firstName || !formData.lastName || !formData.birthdate || !formData.invitationCode) {
       alert("Please fill in all required fields and generate a code.");
       return;
     }
 
     setLoading(true);
-
-    // 2. Create FormData (Required for File Uploads)
       const data = new FormData();
       
-      // Map React State -> Backend Schema Names
       data.append('first_name', formData.firstName);
       data.append('last_name', formData.lastName);
       data.append('birthday', formData.birthdate);
+      data.append('age', formData.age);
       data.append('invitation_code', formData.invitationCode);
 
-      // The backend router expects 'profile_photo'
       if (profileImage) {
         data.append('profile_photo', profileImage);
       }
 
     try {
       const response = await axios.post('http://localhost:3000/api/createStudent', data, {
-        headers: { "Content-Type": "multipart/form-data" },
-        body: JSON.stringify(formData),
+        withCredentials: true
       });
 
       alert("Student created successfully!");
       onClose();
-      const data = response.data;
+
+      const resData = response.data;
+      console.log("Success:", resData);
 
     } catch (error) {
-      console.error("Network Error:", error);
+      // 5. Check the Console for the REAL error
+      console.error("Crash Details:", error);
       
       if (error.response) {
+        // Server responded with 4xx or 5xx
         const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create student";
         
         if (error.response.data.errors) {
-        alert(`Validation Error: ${error.response.data.errors[0].msg}`);
+          alert(`Validation Error: ${error.response.data.errors[0].msg}`);
         } else {
-        alert(`Error: ${errorMsg}`);
+          alert(`Error: ${errorMsg}`);
         }
+      } else if (error.request) {
+        // Server is down or Network blocked
+        alert("Network Error. Is the backend running?");
       } else {
-        alert("Server error. Is the backend running?");
+        // Code bug (like the variable name issue)
+        alert(`Code Error: ${error.message}`); 
       }
     } finally {
       setLoading(false);
@@ -195,6 +199,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                       className="form-input-modal flex flex-2" />
                     <input 
                       type="text"
+                      name="age"
                       value={formData.age}
                       className="form-input-modal flex flex-1 text-center cursor-not-allowed! focus:outline-none" 
                       placeholder={formData.age}
@@ -228,6 +233,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                 </div>
                 <input 
                   type="text" 
+                  name="invitationCode"
                   value={formData.invitationCode} 
                   className="form-input-modal bg-[#f1f5f9] text-cdark tracking-[3px] font-bold text-center text-base cursor-not-allowed! focus:outline-none" readOnly />
                 <p className="text-[11px]! text-slate-400 mt-1">

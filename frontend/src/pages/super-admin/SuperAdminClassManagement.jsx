@@ -53,7 +53,7 @@ export default function SuperAdminClassManagement() {
               <div className="card queue-card">
                 <div className="mb-6">
                   <div className="flex items-center gap-2.5 mb-2">
-                    <span class="material-symbols-outlined orange-icon text-[24px]">supervised_user_circle
+                    <span className="material-symbols-outlined orange-icon text-[24px]">supervised_user_circle
                     </span>
                     <h2 className="text-cdark text-[18px] font-bold">Teacher's Directory</h2>
                   </div>
@@ -74,7 +74,7 @@ export default function SuperAdminClassManagement() {
               <div className="card queue-card">
                 <div className="mb-6">
                   <div className="flex items-center gap-2.5 mb-2">
-                    <span class="material-symbols-outlined blue-icon text-[24px]"
+                    <span className="material-symbols-outlined blue-icon text-[24px]"
                     >face</span>
                     <h2 className="text-cdark text-[18px] font-bold">Sutdents Directory</h2>
                   </div>

@@ -1,17 +1,17 @@
-export const createUserValidationSchema = {
+export const createStudentValidationSchema = {
   first_name: {
     isLength: {
       options: {
         min: 3, 
         max: 32
       },
-      errerMessage: "Username must be at least 3 characters with max of 32 characters"
+      errerMessage: "First Name must be at least 3 characters with max of 32 characters"
     },
     notEmpty: {
-      errorMessage: "Username cannot be empty",
+      errorMessage: "First Name cannot be empty",
     },
     isString: {
-      errorMessage: "Username must be in characters"  
+      errorMessage: "First Name must be in characters"  
     },
   },
   last_name: {
@@ -20,13 +20,28 @@ export const createUserValidationSchema = {
         min: 3, 
         max: 32
       },
-      errerMessage: "Username must be at least 3 characters with max of 32 characters"
+      errerMessage: "Last Name must be at least 3 characters with max of 32 characters"
     },
     notEmpty: {
-      errorMessage: "Username cannot be empty",
+      errorMessage: "Last Name cannot be empty",
     },
     isString: {
-      errorMessage: "Username must be in characters"  
+      errorMessage: "Last Name must be in characters"  
+    },
+  },
+  birthday: {
+    notEmpty: { 
+      errorMessage: "Birthday is required" 
+    },
+  },
+  age: {
+    notEmpty: { 
+      errorMessage: "Age is required" 
+    },
+  },
+  invitation_code: {
+    notEmpty: { 
+      errorMessage: "Invitation code is required" 
     },
   }
 };

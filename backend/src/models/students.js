@@ -1,20 +1,24 @@
 import mongoose from "mongoose";
 
 const StudentSchema = new mongoose.Schema({
+  // 1. IDs
   student_id: {
     type: String,
-    required: true,
+    // required: true, <--- Remove this if you generate it inside the pre-save hook
     unique: true,
   },
-  parent_id: { 
+  user_id: { 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'User', // This tells Mongoose: "This ID belongs to the User collection"
-    default: null // Null initially, because Parent hasn't registered yet
+    ref: 'User', 
+    default: null 
   },
-  section_id: {
+  invitation_code: {
     type: String,
     required: true,
+    unique: true
   },
+
+  // 2. PERSONAL DETAILS
   first_name: {
     type: String,
     required: true,
@@ -24,28 +28,38 @@ const StudentSchema = new mongoose.Schema({
     required: true,
   },
   birthday: {
-    type: String,
+    type: Date, // Or Date
     required: true,
+  },
+  age: {
+    type: Number, // FIX: Changed 'int' to 'Number'
+    required: true, // Calculated automatically, so optional in schema
   },
   profile_picture: {
     type: String,
-    required: true,
+    required: false, // Make optional in case they don't upload one
+  },
+
+  // 3. OPTIONAL FIELDS (Fill these later)
+  section_id: {
+    type: String,
+    required: false, // Changed to false
+    default: "Unassigned"
   },
   address: {
     type: String,
-    required: true,
+    required: false, // Changed to false
+    default: ""
   },
   qr_code: {
     type: String,
-    required: true,
+    required: false, // Changed to false
   },
-  invitation_code: {
-    type: String,
-    required: true,
-  },
+
+  // 4. SYSTEM FIELDS
   is_archive: {
-    type: String,
-    required: true,
+    type: Boolean, // Better to use Boolean than String
+    default: false,
   },
   created_at: {
     type: Date,
@@ -56,12 +70,12 @@ const StudentSchema = new mongoose.Schema({
     default: Date.now,
   },
   created_by: {
-    type: String,
-    required: true,
+    type: String, 
+    default: "System"
   },
   updated_by: {
-    type: String,
-    required: true,
+    type: String, 
+    default: "System" 
   },
 });
 

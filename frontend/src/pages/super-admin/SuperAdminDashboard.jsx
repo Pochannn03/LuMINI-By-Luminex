@@ -23,31 +23,31 @@ export default function SuperAdminDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
             <div className="card stat-card">
               <div className="stat-icon blue-bg">
-                <span class="material-symbols-outlined">groups</span>
+                <span className="material-symbols-outlined">groups</span>
               </div>
-              <div class="stat-info">
+              <div className="stat-info">
                 <h3 id="statTotalStudents">--</h3> {/* This is where the data will be displayed */}
                 <p>Total Students</p>
               </div>
             </div>
 
-              <div class="card stat-card">
-                <div class="stat-icon purple-bg">
-                  <span class="material-symbols-outlined"
+              <div className="card stat-card">
+                <div className="stat-icon purple-bg">
+                  <span className="material-symbols-outlined"
                     >cast_for_education</span
                   >
                 </div>
-                <div class="stat-info">
+                <div className="stat-info">
                   <h3 id="statTotalTeachers">--</h3> {/* This is where the data will be displayed */}
                   <p>Active Teachers</p>
                 </div>
               </div>
 
-              <div class="card stat-card">
-                <div class="stat-icon orange-bg">
-                  <span class="material-symbols-outlined">family_restroom</span>
+              <div className="card stat-card">
+                <div className="stat-icon orange-bg">
+                  <span className="material-symbols-outlined">family_restroom</span>
                 </div>
-                <div class="stat-info">
+                <div className="stat-info">
                   <h3 id="statTotalParents">--</h3> {/* This is where the data will be displayed */}
                   <p>Parents Registered</p>
                 </div>
@@ -84,7 +84,7 @@ export default function SuperAdminDashboard() {
             <div className="flex flex-col gap-3">
               <Link to="#" className="quick-link-item">
                 <div className="link-icon-box icon-blue">
-                    <span class="material-symbols-outlined">manage_accounts</span>
+                    <span className="material-symbols-outlined">manage_accounts</span>
                 </div>
                 <div className="flex flex-col flex-1 gap-0.5">
                   <h3 className="text-cdark text-[15px]! font-semibold! m-0">Manage Classes & Students</h3>
@@ -99,7 +99,7 @@ export default function SuperAdminDashboard() {
               
               <Link to="#" className="quick-link-item">
                 <div className="link-icon-box icon-blue">
-                    <span class="material-symbols-outlined">group</span>
+                    <span className="material-symbols-outlined">group</span>
                 </div>
                 <div className="flex flex-col flex-1 gap-0.5">
                   <h3 className="text-cdark text-[15px]! font-semibold! m-0">Accounts</h3>
@@ -114,7 +114,7 @@ export default function SuperAdminDashboard() {
 
               <Link to="#" className="quick-link-item danger-link">
                 <div className="link-icon-box icon-red">
-                    <span class="material-symbols-outlined">campaign</span>
+                    <span className="material-symbols-outlined">campaign</span>
                 </div>
                 <div className="flex flex-col flex-1 gap-0.5">
                   <h3 className="text-cdark text-[15px]! font-semibold! m-0">System Broadcast</h3>

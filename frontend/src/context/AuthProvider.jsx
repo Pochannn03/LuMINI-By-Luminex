@@ -17,10 +17,8 @@ export default function AuthProvider({ children }) {
       const data = response.data;
       
       if (data.isAuthenticated) {
-        console.log("✅ User verified:", data.user);
         setUser(data.user);
       } else {
-        console.log("❌ No session found (Guest)");
         setUser(null);
       }
     } catch (error) {
@@ -35,7 +33,6 @@ export default function AuthProvider({ children }) {
 }, []);
 
   const login = (userData) => {
-    console.log("⚡ LOGIN FUNCTION CALLED with:", userData);
     setUser(userData);
   };
 

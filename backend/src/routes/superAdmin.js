@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { createStudentValidationSchema } from '../validation/studentValidation.js'
 import { validationResult, matchedData, checkSchema} from "express-validator";
+import { createStudentValidationSchema } from '../validation/studentValidation.js'
 import { Student } from "../models/students.js";
 import multer from "multer";
 import path from "path";
@@ -23,6 +23,8 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + path.extname(file.originalname)); 
   }
 });
+
+const upload = multer({ storage: storage });
 
 router.post('/api/superadminDashboard',  
   (req, res) => {
@@ -51,8 +53,8 @@ router.post('/api/createStudent',
     const newStudent = new Student(data);
 
     try {
-        const savedUser = await newStudent.save();
-        return res.status(201).send({ msg: "Student registered successfully!", user: savedUser });
+        const savedStudent = await newStudent.save();
+        return res.status(201).send({ msg: "Student registered successfully!", user: savedStudent });
     } catch (err) {
         if (req.file) fs.unlinkSync(req.file.path);
         
