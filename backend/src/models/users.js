@@ -78,29 +78,35 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
+
 UserSchema.pre('save', async function() { 
   const doc = this;
 
-  // Only run logic if this is a NEW user
   if (doc.isNew) {
     try {
+      if (!Counter) throw new Error("Counter model is missing");
+
       const counter = await Counter.findByIdAndUpdate(
-        'user_id_seq', // <--- Pass the ID string directly
+        'user_id_seq', 
         { $inc: { seq: 1 } }, 
         { new: true, upsert: true }
       );
 
-      // This will OVERWRITE the '1001' you set in seedAdmin.js
-      // But that's okay! The first counter (1) + 1000 = 1001 anyway.
-      doc.user_id = 1000 + counter.seq;
+      // 2. Assign the ID
+      const newId = 1000 + counter.seq;
+      doc.user_id = newId;
+
+      console.log(`✅ Generated user_id: ${newId}`);
       
     } catch (error) {
-      // In async, simply THROW the error to stop the save
+      // 3. Just THROW the error to stop the save
+      console.error("❌ ID Generation Failed:", error);
       throw error; 
     }
   }
   
-  // No need to call next() -- when the function ends, Mongoose proceeds.
+  // 4. Function ends automatically = Success. (No next() needed)
 });
+
 
 export const User = mongoose.model("User", UserSchema, "mng.user_active");
