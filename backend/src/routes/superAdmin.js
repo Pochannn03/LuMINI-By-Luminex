@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
+import { createUserValidationSchema } from "../validation/userValidation.js";
 import { createStudentValidationSchema } from '../validation/studentValidation.js'
 import { Student } from "../models/students.js";
+import { User } from "../models/users.js";
+import { hashPassword } from "../utils/passwordUtils.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -29,7 +32,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // Student ID Generate Function
-
 const generateStudentId = async () => {
   const currentYear = new Date().getFullYear();
 
@@ -56,8 +58,7 @@ router.post('/api/superadminDashboard',
 
 });
 
-// Create Student Router 
-
+// CREATE STUDENT ROUTER
 router.post('/api/createStudent', 
   upload.single('profile_photo'),
   ...checkSchema(createStudentValidationSchema), 
@@ -105,6 +106,7 @@ router.post('/api/createStudent',
   }
 );
 
+// Getting the Current Student ID for Add Student Modal
 router.get('/api/getStudentIdPreview', async (req, res) => {
   try {
       const previewId = await generateStudentId();
@@ -114,5 +116,42 @@ router.get('/api/getStudentIdPreview', async (req, res) => {
     }
   }
 );
+
+// CREATE TEACHER
+
+router.post('/api/createTeacher',
+  upload.single('profile_photo'),
+  ...checkSchema(createUserValidationSchema),
+  async (req, res) => {
+
+    const result = validationResult(req)
+
+    if (!result.isEmpty()) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).send({ errors: result.array() });
+    }
+
+    const data = matchedData(req);
+    console.log("Received Valid Data:", data);
+    data.password = await hashPassword(data.password);
+    data.role = "admin";
+
+    if (req.file) {
+      data.profile_picture = req.file.path; 
+    }
+
+    const newUser = new User(data);
+
+    try{
+      const savedUser = await newUser.save();
+      return res.status(201).send({ msg: "Parent registered successfully!", user: savedUser });
+    } catch (err) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      
+      console.log(err);
+      return res.status(400).send({ msg: "Registration failed", error: err.message });
+    }
+
+});
 
 export default router;
