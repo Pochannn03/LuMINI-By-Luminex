@@ -32,6 +32,29 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   }, [isOpen]);
 
   useEffect(() => {
+    if (isOpen) {
+      const fetchNextId = async () => {
+        try {
+          setFormData(prev => ({ ...prev, studentId: "Loading..." }));
+          
+          const response = await axios.get('http://localhost:3000/api/getStudentIdPreview', {
+            withCredentials: true
+          });
+
+          setFormData(prev => ({ ...prev, studentId: response.data.student_id }));
+        } catch (err) {
+          console.error("Failed to fetch ID preview", err);
+          setFormData(prev => ({ ...prev, studentId: "Error" }));
+        }
+      };
+
+      fetchNextId();
+    } else {
+      setFormData(prev => ({ ...prev, studentId: "Generating..." }));
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
     if (formData.birthdate) {
       const birthDate = new Date(formData.birthdate);
       const today = new Date();
