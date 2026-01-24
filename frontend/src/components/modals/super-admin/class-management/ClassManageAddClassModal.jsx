@@ -7,9 +7,14 @@ import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class
 export default function ClassManageAddClassModal({ isOpen, onClose }) {
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
   const [teachersList, setTeachersList] = useState([]);
-  const [formData, setFormData] = useState([
-    
-  ]);
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    sectionName: '',
+    classSchedule: '',
+    maxCapacity: '',
+    description: '',
+    assignedTeacher: '',
+  });
 
   useEffect(() => {
     if(isOpen){
@@ -29,8 +34,26 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
       }
   },[isOpen]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    setLoading(true);
+      const data = new FormData();
+      data.append('section_name', formData.sectionName);
+      data.append('maxCapacity', formData.maxCapacity);
+      data.append('description', formData.description);
+      data.append('user_id', formData.assignedTeacher);
+
+      // not yet finished will fetch/axios the backend
+  }
+
   if (!isOpen) return null;
-  return createPortal (
+  return createPortal(
     <>
       {/* No Logic Yet */}
       <div className="modal-overlay active" id="addClassModal" >
@@ -46,14 +69,20 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
           <div className="modal-body">
             <div className="flex flex-col gap-2">
               <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Section Name</label>
-              <input type="text" id="createClassSection" class="form-input-modal" placeholder="e.g. Sunflower" autocomplete="off"
+              <input 
+                type="text" 
+                name="sectionName" 
+                className="form-input-modal" 
+                placeholder="e.g. Sunflower" 
+                autocomplete="off"
+                onChange={handleChange}
               />
             </div>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Class Schedule</label>
               <div className="relative">
-                <select className="form-input-modal appearance-none" id="createClassSchedule">
+                <select className="form-input-modal appearance-none" name="classSchedule" id="createClassSchedule">
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select Schedule</option>
                   <option className="appearance-none cursor-pointer" value="Morning">
                     Morning Session (8:00 AM - 11:30 AM)
@@ -68,25 +97,29 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
 
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Max Capacity</label>
-              <input type="number" 
-              id="createClassCapacity" 
-              placeholder="e.g. 30" 
-              className="form-input-modal"/>
+              <input 
+                type="number" 
+                name="maxCapacity"
+                placeholder="e.g. 30" 
+                className="form-input-modal"
+                onChange={handleChange} 
+                />
             </div>
             
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Description</label>
               <textarea
-                id="createClassDesc"
+                name="description"
                 className="form-input-modal leading-normal h-[100px] resize-none"
                 placeholder="Enter class description..."
+                onChange={handleChange}
               ></textarea>
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
               <div className="relative">
-                <select className="form-input-modal appearance-none" id="createClassTeacher" defaultValue="">
+                <select className="form-input-modal appearance-none" name="assignedTeacher" defaultValue="">
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select a Teacher</option>
                   {teachersList.length > 0 ? (
                     teachersList.map((teacher) => (
@@ -135,8 +168,8 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
 
             <div className="modal-footer">
               <button className="btn-cancel" id="closeAddModalBtn" onClick={onClose}>Cancel</button>
-              <button className="btn-save" id="submitCreateClassBtn">
-                Create Class
+              <button className="btn-save" onClick={handleSubmit} disabled={loading}>
+                {loading ? "Saving..." : "Add Class"}
               </button>
             </div>
         </div>
