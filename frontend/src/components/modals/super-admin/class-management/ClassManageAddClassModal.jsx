@@ -1,12 +1,36 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import axios from 'axios';
 import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose }) {
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
+  const [teachersList, setTeachersList] = useState([]);
+  const [formData, setFormData] = useState([
+    
+  ]);
+
+  useEffect(() => {
+    if(isOpen){
+      const fetchTeachers = async () => {
+        try {
+          const response = await axios.get('http://localhost:3000/api/getTeachers', {
+            withCredentials: true
+          });
+
+          setTeachersList(response.data);
+        } catch (err) {
+          console.error("Failed to fetch teachers preview", err);
+        }
+        }
+
+        fetchTeachers();
+      }
+  },[isOpen]);
 
   if (!isOpen) return null;
-  return (
+  return createPortal (
     <>
       {/* No Logic Yet */}
       <div className="modal-overlay active" id="addClassModal" >
@@ -20,18 +44,6 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
           </div>
 
           <div className="modal-body">
-            <div className="flex flex-col gap-2">
-              <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Grade Level</label>
-              <div className="relative">
-                <select className="form-input-modal appearance-none" id="createClassGrade">
-                  <option value="" disabled selected>Select Grade Level</option>
-                  <option value="Kindergarten">Kindergarten</option>
-                  <option value="Grade 1">Grade 1</option>
-                </select>
-                <span className="material-symbols-outlined select-arrow">expand_more</span>
-              </div>
-            </div>
-
             <div className="flex flex-col gap-2">
               <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Section Name</label>
               <input type="text" id="createClassSection" class="form-input-modal" placeholder="e.g. Sunflower" autocomplete="off"
@@ -74,8 +86,17 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
               <div className="relative">
-                <select className="form-input-modal appearance-none" id="createClassTeacher">
+                <select className="form-input-modal appearance-none" id="createClassTeacher" defaultValue="">
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select a Teacher</option>
+                  {teachersList.length > 0 ? (
+                    teachersList.map((teacher) => (
+                      <option key={teacher.user_id} value={teacher.user_id}>
+                        {teacher.last_name}, {teacher.first_name}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>Loading teachers...</option>
+                  )}
                 </select>
                 <span className="material-symbols-outlined select-arrow">expand_more</span>
               </div>
@@ -125,6 +146,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
         isOpen={isEnrollStudents} 
         onClose={() => setIsEnrollStudents(false)} 
       />
-    </>
+    </>,
+    document.body
   );
 }

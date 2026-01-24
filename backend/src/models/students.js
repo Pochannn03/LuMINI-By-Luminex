@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Counter } from "./counter.js";
 
 const StudentSchema = new mongoose.Schema({
   // 1. IDs
@@ -6,10 +7,15 @@ const StudentSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
-  user_id: { 
+  user_id: [{ 
     type: Number, 
-    ref: 'User', 
-    default: null 
+    ref: 'User' 
+  }],  
+  section_id: {
+    type: Number,
+    required: false, // Changed to false
+    ref: 'Section',
+    default: null
   },
   invitation_code: {
     type: String,
@@ -40,11 +46,6 @@ const StudentSchema = new mongoose.Schema({
   },
 
   // 3. OPTIONAL FIELDS (Fill these later)
-  section_id: {
-    type: String,
-    required: false, // Changed to false
-    default: "Unassigned"
-  },
   address: {
     type: String,
     required: false, // Changed to false
@@ -85,5 +86,42 @@ const StudentSchema = new mongoose.Schema({
     }
   }
 );
+
+StudentSchema.pre('save', async function() {
+  const doc = this;
+
+  if (doc.isNew) {
+    try {
+      const currentYear = new Date().getFullYear();
+      
+      // DYNAMIC COUNTER NAME: "student_id_2025", "student_id_2026"
+      // This automatically resets the count to 1 when a new year starts!
+      const counterName = `student_id_${currentYear}`;
+
+      const counter = await Counter.findByIdAndUpdate(
+        counterName,                
+        { $inc: { seq: 1 } }, 
+        { new: true, upsert: true } // Creates the counter for the new year automatically
+      );
+
+      // Format: YYYY-0001
+      // String(counter.seq).padStart(4, '0') turns 1 into "0001"
+      const sequenceStr = String(counter.seq).padStart(4, '0');
+      doc.student_id = `${currentYear}-${sequenceStr}`; 
+
+      console.log(`✅ Generated student_id: ${doc.student_id}`);
+      
+    } catch (error) {
+      console.error("❌ Student ID Generation Failed:", error);
+    }
+  }
+});
+
+StudentSchema.virtual('user_details', {
+  ref: 'User',           // The Model to use
+  localField: 'user_id', // The field in StudentSchema
+  foreignField: 'user_id', // The field in UserSchema (The Primary Key)
+  justOne: false          // Since one student has only one user account
+});
 
 export const Student = mongoose.model("Student", StudentSchema, "chd.kindergarten_student");

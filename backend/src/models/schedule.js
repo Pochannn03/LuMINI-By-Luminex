@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 const SectionSchema = new mongoose.Schema({
+  
   section_id: {
     type: Number,
     required: true,

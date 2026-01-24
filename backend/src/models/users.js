@@ -78,7 +78,7 @@ const UserSchema = new mongoose.Schema({
   }
 });
 
-
+// Pre-function to Auto Increment the user_id with counter schema
 UserSchema.pre('save', async function() { 
   const doc = this;
 
@@ -104,8 +104,7 @@ UserSchema.pre('save', async function() {
       throw error; 
     }
   }
-  
-  // 4. Function ends automatically = Success. (No next() needed)
+
 });
 
 
