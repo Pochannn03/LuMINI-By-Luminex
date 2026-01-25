@@ -109,7 +109,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                 name="sectionName" 
                 className="form-input-modal" 
                 placeholder="e.g. Sunflower" 
-                autocomplete="off"
+                autoComplete="off"
                 onChange={handleChange}
               />
             </div>
@@ -159,7 +159,6 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                   name="assignedTeacher"
                   value={formData.assignedTeacher} 
                   onChange={handleChange}
-                  defaultValue=""
                   > 
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select a Teacher</option>
                   {teachersList.length > 0 ? (
