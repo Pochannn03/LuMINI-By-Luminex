@@ -22,6 +22,15 @@ const StudentSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  invitation_status: {
+    type: String,
+    enum: ['pending', 'used', 'expired'],
+    default: 'pending'
+  },
+  invitation_used_at: {
+    type: Date,
+    default: null
+  },
 
   // 2. PERSONAL DETAILS
   first_name: {
