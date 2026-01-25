@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
 import { createUserValidationSchema } from "../validation/userValidation.js";
-import { createStudentValidationSchema } from '../validation/studentValidation.js'
+import { createStudentValidationSchema } from '../validation/studentValidation.js';
+import { createClassValidationSchema } from '../validation/classValidation.js';
 import { Student } from "../models/students.js";
 import { User } from "../models/users.js";
+import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';
 import { hashPassword } from "../utils/passwordUtils.js";
 import multer from "multer";
@@ -157,5 +159,29 @@ router.get('/api/getTeachers', async (req, res) => {
     res.status(500).json({ msg: "Server error while fetching teachers" });
   }
 });
+
+// ADD CLASS
+router.post('/api/class-manage/add-class',
+  ...checkSchema(createClassValidationSchema),
+  async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return res.status(400).send({ errors: result.array() });
+    }
+    
+    const data = matchedData(req);
+    
+    const newClass = new Section(data);
+
+    try{
+      const savedClass = await newClass.save();
+      return res.status(201).send({ msg: "Parent registered successfully!", user: savedClass });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).send({ msg: "Registration failed", error: err.message });
+    }
+    
+})
 
 export default router;

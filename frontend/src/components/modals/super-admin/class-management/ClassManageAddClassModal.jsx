@@ -40,17 +40,52 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
   }
 
   const handleSubmit = async (e) => {
+    console.log(formData)
     e.preventDefault();
 
     setLoading(true);
-      const data = new FormData();
-      data.append('section_name', formData.sectionName);
-      data.append('maxCapacity', formData.maxCapacity);
-      data.append('description', formData.description);
-      data.append('user_id', formData.assignedTeacher);
+      const payload = {
+        section_name: formData.sectionName,
+        max_capacity: formData.maxCapacity,
+        description: formData.description,
+        user_id: formData.assignedTeacher,
+      };
 
-      // not yet finished will fetch/axios the backend
-  }
+      try {
+      const response = await axios.post('http://localhost:3000/api/class-manage/add-class', payload, {
+        withCredentials: true
+      });
+
+      alert("Class Created");
+      onClose();
+
+      const resData = response.data;
+      console.log("Success:", resData);
+
+    } catch (error) {
+      // 5. Check the Console for the REAL error
+      console.error("Crash Details:", error);
+      
+      if (error.response) {
+        // Server responded with 4xx or 5xx
+        const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create class";
+        
+        if (error.response.data.errors) {
+          alert(`Validation Error: ${error.response.data.errors[0].msg}`);
+        } else {
+          alert(`Error: ${errorMsg}`);
+        }
+      } else if (error.request) {
+        // Server is down or Network blocked
+        alert("Network Error. Is the backend running?");
+      } else {
+        // Code bug (like the variable name issue)
+        alert(`Code Error: ${error.message}`); 
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
   return createPortal(
@@ -119,7 +154,13 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
               <div className="relative">
-                <select className="form-input-modal appearance-none" name="assignedTeacher" defaultValue="">
+                <select 
+                  className="form-input-modal appearance-none" 
+                  name="assignedTeacher"
+                  value={formData.assignedTeacher} 
+                  onChange={handleChange}
+                  defaultValue=""
+                  > 
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select a Teacher</option>
                   {teachersList.length > 0 ? (
                     teachersList.map((teacher) => (
