@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
@@ -150,7 +151,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   };
 
   if (!isOpen) return null;
-  return (
+  return createPortal(
     <>
       <div className="modal-overlay active" id="addStudentModal">
         <form onSubmit={handleSubmit}>
@@ -275,6 +276,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         </div>
         </form>
       </div>
-    </>
+    </>,
+    document.body
   );
 }

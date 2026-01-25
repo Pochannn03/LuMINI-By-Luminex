@@ -1,3 +1,7 @@
+.index-second-modal {
+  z-index: 1001;
+}
+
 .search-bar-small {
   display: flex;
   align-items: center;

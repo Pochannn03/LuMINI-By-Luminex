@@ -1,9 +1,12 @@
 import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
 import { createUserValidationSchema } from "../validation/userValidation.js";
-import { createStudentValidationSchema } from '../validation/studentValidation.js'
+import { createStudentValidationSchema } from '../validation/studentValidation.js';
+import { createClassValidationSchema } from '../validation/classValidation.js';
 import { Student } from "../models/students.js";
 import { User } from "../models/users.js";
+import { Section } from "../models/sections.js";
+import { Counter } from '../models/counter.js';
 import { hashPassword } from "../utils/passwordUtils.js";
 import multer from "multer";
 import path from "path";
@@ -31,28 +34,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Student ID Generate Function
-const generateStudentId = async () => {
-  const currentYear = new Date().getFullYear();
-
-  const lastStudentId = await Student.findOne({ 
-    student_id: { $regex: `^${currentYear}-` }
-  }).sort({ student_id: -1 });
-
-  let newSequence = 1;
-
-  if (lastStudentId && lastStudentId.student_id) {
-    const lastSequenceStr = lastStudentId.student_id.split('-')[1];
-    const lastSequence = parseInt(lastSequenceStr, 10);
-    
-    if (!isNaN(lastSequence)) {
-      newSequence = lastSequence + 1;
-    }
-  }
-
-  return `${currentYear}-${String(newSequence).padStart(4, '0')}`;
-}
-
 router.post('/api/superadminDashboard',  
   (req, res) => {
 
@@ -73,14 +54,8 @@ router.post('/api/createStudent',
 
     const data = matchedData(req);
     console.log("Received Valid Data:", data);
-    try {
-      data.student_id = await generateStudentId(); 
-    } catch (error) {
-      console.error("ID Generation Error:", error);
-      return res.status(500).send({ msg: "Failed to generate Student ID" });
-    }
-    data.created_by = "SuperAdmin";
-    data.updated_by = "SuperAdmin";
+    data.created_by = "superadmin";
+    data.updated_by = "superadmin";
 
     if (req.file) {
       data.profile_picture = req.file.path; 
@@ -109,13 +84,25 @@ router.post('/api/createStudent',
 // Getting the Current Student ID for Add Student Modal
 router.get('/api/getStudentIdPreview', async (req, res) => {
   try {
-      const previewId = await generateStudentId();
-      res.status(200).json({ student_id: previewId });
-    } catch (err) {
-      res.status(500).json({ msg: "Could not generate preview ID" });
-    }
+    const currentYear = new Date().getFullYear();
+    const counterName = `student_id_${currentYear}`;
+    
+    // 1. Find the current counter for this year (don't update it!)
+    let counter = await Counter.findById(counterName);
+    
+    // 2. Calculate next number (Current Seq + 1)
+    // If counter doesn't exist yet (first student of the year), next is 1.
+    const nextSeq = counter ? counter.seq + 1 : 1;
+    
+    // 3. Format it
+    const previewId = `${currentYear}-${String(nextSeq).padStart(4, '0')}`;
+    
+    res.status(200).json({ student_id: previewId });
+  } catch (err) {
+    console.error("Preview Error:", err);
+    res.status(500).json({ msg: "Could not generate preview ID" });
   }
-);
+});
 
 // CREATE TEACHER
 
@@ -153,5 +140,48 @@ router.post('/api/createTeacher',
     }
 
 });
+
+// Get Teacher's Data to Populate the Select Option
+
+router.get('/api/getTeachers', async (req, res) => {
+
+  try{
+    const teachers = await User.find({ relationship: 'Teacher' })
+                               .select('first_name last_name user_id');
+                               
+    if (!teachers || teachers.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    res.status(200).json(teachers);
+  } catch(err) {
+    console.error("Error fetching teachers:", err);
+    res.status(500).json({ msg: "Server error while fetching teachers" });
+  }
+});
+
+// ADD CLASS
+router.post('/api/class-manage/add-class',
+  ...checkSchema(createClassValidationSchema),
+  async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return res.status(400).send({ errors: result.array() });
+    }
+    
+    const data = matchedData(req);
+    
+    const newClass = new Section(data);
+
+    try{
+      const savedClass = await newClass.save();
+      return res.status(201).send({ msg: "Parent registered successfully!", user: savedClass });
+    } catch (err) {
+      console.log(err);
+      return res.status(400).send({ msg: "Registration failed", error: err.message });
+    }
+    
+})
 
 export default router;

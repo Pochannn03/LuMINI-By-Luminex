@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
 
@@ -99,7 +100,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
 
 
   if (!isOpen) return null;
-  return (
+  return createPortal(
     <>
       {/* No Logic Yet */}
       <div className="modal-overlay active" id="addClassModal">
@@ -215,6 +216,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
           </div>
         </form>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
