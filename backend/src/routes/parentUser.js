@@ -28,6 +28,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// PARENT REGISTRATION 
+// STUDENT CODE VERIFICATION (PHASE I)
 router.post('/api/verify-invitation', async (req, res) => {
   const { code } = req.body;
 
@@ -53,6 +55,7 @@ router.post('/api/verify-invitation', async (req, res) => {
   }
 });
 
+// PARENT REGISTRATION (PHASE II)
 router.post('/api/parent-register', 
   upload.single('profile_photo'),
   ...checkSchema(createUserValidationSchema), 
@@ -110,6 +113,8 @@ router.post('/api/parent-register',
     }
   }
 );
+
+// Checking for User Information under the Student Schema
 
 router.get('/api/user-checking', async (req, res) => {
   try {
