@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthProvider';
 import axios from 'axios';
@@ -9,12 +9,24 @@ import '../../styles/auth/login.css'
 export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate(); 
-  const { login } = useAuth();
+  const { login, user, loading } = useAuth();
 
   const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
+
+  useEffect(() => {
+    if (user && !loading) {
+      if (user.role === "superadmin") {
+        navigate('/superadmin/dashboard', { replace: true });
+      } else if (user.role === "admin") {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, loading, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -64,6 +76,10 @@ export default function Login() {
     }
 
   };
+
+  if (loading) {
+    return <div className="min-h-screen flex justify-center items-center">Loading...</div>; 
+  }
 
   return(
       <div className="min-h-screen w-full relative flex flex-col justify-end md:justify-center md:items-center">
