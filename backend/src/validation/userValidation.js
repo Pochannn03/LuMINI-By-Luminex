@@ -25,6 +25,10 @@ export const createUserValidationSchema = {
       errorMessage: "Password cannot be empty",
     }
   },
+  invitation_code: {
+    notEmpty: { errorMessage: "Code is required" },
+    isLength: { options: { min: 6, max: 6 } }
+  },
   email: {
     notEmpty: {
       errorMessage: "Email cannot be empty",
