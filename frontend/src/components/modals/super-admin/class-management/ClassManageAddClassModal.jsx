@@ -10,7 +10,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     sectionName: '',
-    classSchedule: '',
+    classSchedule: null,
     maxCapacity: '',
     description: '',
     assignedTeacher: '',
@@ -46,6 +46,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
     setLoading(true);
       const payload = {
         section_name: formData.sectionName,
+        class_schedule: formData.classSchedule,
         max_capacity: formData.maxCapacity,
         description: formData.description,
         user_id: formData.assignedTeacher,
@@ -117,7 +118,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
             <div className="flex flex-col gap-2">
               <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Class Schedule</label>
               <div className="relative">
-                <select className="form-input-modal appearance-none" name="classSchedule" id="createClassSchedule">
+                <select className="form-input-modal appearance-none" name="classSchedule" onChange={handleChange} value={formData.classSchedule} defaultValue="">
                   <option className="appearance-none cursor-pointer" value="" disabled selected>Select Schedule</option>
                   <option className="appearance-none cursor-pointer" value="Morning">
                     Morning Session (8:00 AM - 11:30 AM)
