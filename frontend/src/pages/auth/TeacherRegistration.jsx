@@ -37,7 +37,7 @@ export default function GuardianRegistration() {
   // Validation Function //
 
   const validateStep = (step) => {
-    const newErrors = validateRegistrationStep(step, formData, profileImage, 'teacher');
+    const newErrors = validateRegistrationStep(step, formData, profileImage, 'admin');
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -120,17 +120,17 @@ export default function GuardianRegistration() {
   };
   
   // Form Button Logic for Steps //
-const handleNext = () => {
-  const isValid = validateStep(currentStep);
+  const handleNext = () => {
+    const isValid = validateStep(currentStep);
 
-  if (isValid) {
-    if (currentStep < 2) {
-      setCurrentStep((prev) => prev + 1);
-    } else if (currentStep === 2) {
-      handleSubmitForm();
+    if (isValid) {
+      if (currentStep < 2) {
+        setCurrentStep((prev) => prev + 1);
+      } else if (currentStep === 2) {
+        handleSubmitForm();
+      }
     }
-  }
-};
+  };
 
   const handleBack = () => {
     if (currentStep > 0) {

@@ -13,7 +13,6 @@ const RequireAuth = ({ allowedRoles }) => {
         return <Navigate to="/unauthorized" state={{ from: location }} replace />;
     }
 
-    // 3. If not logged in at all, send to login
     return <Navigate to="/login" state={{ from: location }} replace />;
 }
 

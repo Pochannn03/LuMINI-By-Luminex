@@ -1,4 +1,4 @@
-export const validateRegistrationStep = (step, formData, profileImage, role = 'guardian') => {
+export const validateRegistrationStep = (step, formData, profileImage, role = 'user') => {
   const errors = {};
 
   // --- REUSABLE VALIDATION LOGIC ---
@@ -35,12 +35,12 @@ export const validateRegistrationStep = (step, formData, profileImage, role = 'g
   if (step === 0) validateAccount();
   if (step === 1) validatePersonalInfo();
 
-  if (role === 'guardian') {
+  if (role === 'user') {
     if (step === 2) validateRelationship();
     if (step === 3) validateAddress();
   } 
   
-  else if (role === 'teacher') {
+  else if (role === 'admin') {
     if (step === 2) validateAddress();
   }
 
