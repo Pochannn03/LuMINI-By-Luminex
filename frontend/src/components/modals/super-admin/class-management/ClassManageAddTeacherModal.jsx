@@ -167,7 +167,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                   onChange={handleImageChange} 
                 />
               
-                <div className="custom-file-upload cursor-pointer" onClick={() => document.getElementById('addTeacherPhoto').click()}>
+                <div className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} onClick={() => document.getElementById('addTeacherPhoto').click()} >
                   {!previewUrl ? (
                       <div className="text-cdark mt-2 mb-1 font-medium text-center" id="stuUploadInitial">
                         <span className="material-symbols-outlined blue-icon text-[32px]">face</span>
@@ -186,6 +186,11 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                       </div>
                     )}
                 </div>
+                {errors.profileImage && (
+                  <span className="text-red-500 text-[11px] ml-1 mt-1 block text-left">
+                    {errors.profileImage}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
