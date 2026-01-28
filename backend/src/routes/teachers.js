@@ -27,9 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/api/teacher-register', 
-  isAuthenticated,
-  hasRole('admin'),
+router.post('/api/teacher-register',
   upload.single('profile_photo'),
   ...checkSchema(createUserValidationSchema), 
   async (req, res) => {

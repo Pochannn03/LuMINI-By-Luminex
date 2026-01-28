@@ -1,18 +1,18 @@
 import { Router } from "express";
-import authRouter from "./auth.js";
-import teacherRouter from "./teacherAdmin.js"
-import parentRouter from "./parentUser.js";
-import guardianRouter from "./guardianUser.js";
-import superAdmin from "./superAdmin.js";
+import authRoutes from "./auth.js";
+import teacherRoutes from "./teachers.js"
+import parentRoutes from "./parents.js";
+import guardianRoutes from "./guardians.js";
+import classesRoutes from "./classes.js";
 
 
 const router = Router();
 
-router.use(authRouter);
-router.use(teacherRouter);
-router.use(parentRouter);
-router.use(guardianRouter);
-router.use(superAdmin);
+router.use(authRoutes);
+router.use(teacherRoutes);
+router.use(parentRoutes);
+router.use(guardianRoutes);
+router.use(classesRoutes);
 
 
 export default router;
