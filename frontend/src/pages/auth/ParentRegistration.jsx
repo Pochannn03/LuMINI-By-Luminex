@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../../styles/registration.css'
+import '../../styles/auth/registration.css'
 import FormInputRegistration from '../../components/FormInputRegistration';
 import { validateRegistrationStep } from '../../utils/validation';
 
@@ -23,6 +23,9 @@ export default function ParentRegistration() {
   const [profileImage, setProfileImage] = useState(null); 
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Student Name //
+  const [studentInfo, setStudentInfo] = useState(null);
 
   // Form Inputs Placeholder //
   const [formData, setFormData] = useState({
@@ -107,13 +110,25 @@ export default function ParentRegistration() {
     }
   };
 
-  const handleSubmitCode = () => {
-    if (code.join("").length === 6) {
-      setOpacity(0); // Fade out
-      setTimeout(() => {
-        setPhase('registration'); // Switch View
-        setTimeout(() => setOpacity(1), 50); // Fade in
-      }, 300);
+  const handleSubmitCode = async () => {
+  const invitationCode = code.join("");
+    if (invitationCode.length === 6) {
+      try {
+        const response = await axios.post('http://localhost:3000/api/invitations/validate', { 
+          code: invitationCode 
+        });
+
+        setStudentInfo(response.data.fullName);
+        setOpacity(0); 
+        setTimeout(() => {
+          setPhase('registration');
+          setTimeout(() => setOpacity(1), 50);
+        }, 300);
+        
+      } catch (error) {
+        const msg = error.response?.data?.msg || "Invalid or expired code.";
+        alert(msg);
+      }
     } else {
       alert("Please enter a valid 6-character code.");
     }
@@ -127,6 +142,7 @@ export default function ParentRegistration() {
     const data = new FormData();
       data.append('username', formData.username);
       data.append('password', formData.password);
+      data.append('invitation_code', code.join(""));
       data.append('email', formData.email);
       data.append('first_name', formData.firstName);
       data.append('last_name', formData.lastName);
@@ -142,7 +158,7 @@ export default function ParentRegistration() {
     console.log("Sending Form Data..."); 
 
     try {
-      await axios.post('http://localhost:3000/api/parent-register', data, {
+      await axios.post('http://localhost:3000/api/parents', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       navigate('/login');
@@ -418,7 +434,7 @@ const handleNext = () => {
                   <FormInputRegistration
                     label="Child's name"
                     name="childName"
-                    value="Mia Chen"
+                    value={studentInfo ? `${studentInfo}` : "Loading..."}
                     readOnly={true}
                   />
                 </div>
@@ -506,7 +522,7 @@ const handleNext = () => {
               </div>
             )}
 
-            <div class="flex flex-row w-full mt-2.5  gap-[15px]">
+            <div className="flex flex-row w-full mt-2.5  gap-[15px]">
               <button 
                 type="button" 
                 className="btn btn-outline flex-1 h-12 rounded-3xl font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed" 

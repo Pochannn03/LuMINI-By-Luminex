@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Teacher Dashboard</title>
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
     <link rel="stylesheet" href="../../../main.css" />
     <link rel="stylesheet" href="teacher_dashboard.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,48 +23,78 @@
   </head>
   <body>
     <div class="dashboard-wrapper">
-      
       <header class="dashboard-header">
         <div class="header-left">
           <button id="burgerIconOpenNav" class="icon-btn">
             <span class="material-symbols-outlined">menu</span>
           </button>
         </div>
-        
+
         <div class="header-right">
-          <button class="icon-btn notification-btn">
-            <span class="material-symbols-outlined">notifications</span>
-            <span class="notification-badge"></span>
-          </button>
-          
+          <div class="notification-wrapper" style="position: relative">
+            <button id="notifBtn" class="icon-btn notification-btn">
+              <span class="material-symbols-outlined">notifications</span>
+              <span
+                id="notifBadge"
+                class="notification-badge"
+                style="display: none"
+              ></span>
+            </button>
+
+            <div id="notifDropdown" class="notification-dropdown">
+              <div class="dropdown-header">
+                <span>Notifications</span>
+                <button id="markAllReadBtn" class="text-btn">
+                  Mark all read
+                </button>
+              </div>
+              <div id="notifList" class="dropdown-body">
+                <div class="empty-state">
+                  <p>No new notifications</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="header-separator"></div>
-          
+
           <div class="user-profile">
-            <img class="profile-avatar" src="../../../assets/placeholder_image.jpg" alt="Profile" />
-            <span class="user-name">John Doe</span>
+            <img
+              class="profile-avatar"
+              src="../../../assets/placeholder_image.jpg"
+              alt="Profile"
+            />
+            <span class="user-name" id="headerUserName">Teacher</span>
           </div>
         </div>
       </header>
 
       <div class="nav-overlay" id="navOverlay"></div>
-      
+
       <aside class="sidebar" id="sideNavBar">
         <div class="sidebar-header">
-           <img src="../../../assets/lumini-logo.png" alt="Lumini" class="sidebar-logo">
+          <img
+            src="../../../assets/lumini-logo.png"
+            alt="Lumini"
+            class="sidebar-logo"
+          />
         </div>
-        
+
         <nav class="sidebar-menu">
           <a href="teacher_dashboard.html" class="nav-item active">
             <span class="material-symbols-outlined">dashboard</span>
             <span>Dashboard</span>
           </a>
 
-          <a href="../teacher_attendance/teacher_attendance.html" class="nav-item">
+          <a
+            href="../teacher_attendance/teacher_attendance.html"
+            class="nav-item"
+          >
             <span class="material-symbols-outlined">school</span>
             <span>Manage Class</span>
           </a>
 
-          <a href="analytics.html" class="nav-item">
+          <a href="" class="nav-item">
             <span class="material-symbols-outlined">analytics</span>
             <span>Analytics</span>
           </a>
@@ -73,168 +107,325 @@
       </aside>
 
       <main class="main-content">
-        
         <section class="welcome-banner">
           <div>
-            <h1>Welcome Back, John! </h1>
+            <h1 id="welcomeMessage">Welcome Back!</h1>
             <p>Ready for your next class?</p>
           </div>
         </section>
 
         <div class="dashboard-grid">
+          <div class="grid-column-left">
             
-            <div class="grid-column-left">
-                
-                <div class="card queue-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon blue-icon">schedule</span>
-                            <h2>Drop-off and Pickup Queue</h2>
-                        </div>
-                        <p class="header-desc">
-                            Shows names of parents/guardians currently in line for drop-off or pickup.
-                        </p>
-                    </div>
-
-                    <div class="queue-list-container">
-                        
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Shizuka Chen</span>
-                                <span class="q-action">Picking up: Mia Chen</span>
-                                <span class="q-time">9:50 AM</span>
-                            </div>
-                            <span class="badge-pill badge-pending">Pending</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">David Lee</span>
-                                <span class="q-action">Picking up: Noah Lee</span>
-                                <span class="q-time">9:55 AM</span>
-                            </div>
-                            <span class="badge-pill badge-pending">Pending</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Jessica Kim</span>
-                                <span class="q-action">Picking up: Olivia Kim</span>
-                                <span class="q-time">9:58 AM</span>
-                            </div>
-                            <span class="badge-pill badge-pending">Pending</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Shizuka Chen</span>
-                                <span class="q-action">Dropping off: Mia Chen</span>
-                                <span class="q-time">9:10 AM</span>
-                            </div>
-                            <span class="badge-pill badge-otw">On the way</span>
-                        </div>
-
-                        <div class="queue-item">
-                            <img src="../../../assets/placeholder_image.jpg" class="queue-avatar" />
-                            <div class="queue-info">
-                                <span class="q-name">Shizuka Chen</span>
-                                <span class="q-action">Dropping off: Mia Chen</span>
-                                <span class="q-time">9:10 AM</span>
-                            </div>
-                            <span class="badge-pill badge-late">Running late</span>
-                        </div>
-
-                    </div>
+            <div class="card queue-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span class="material-symbols-outlined header-icon blue-icon"
+                    >schedule</span
+                  >
+                  <h2 id="queueTitle">Drop-off Queue</h2>
                 </div>
+                <p class="header-desc">Real-time updates from parents.</p>
+              </div>
 
-                <div class="card emergency-card">
-                    <div class="emergency-icon">
-                        <span class="material-symbols-outlined">e911_emergency</span>
-                    </div>
-                    <div class="emergency-content">
-                        <h3>Emergency Override</h3>
-                        <p>Alert staff and override dismissal process.</p>
-                    </div>
-                    <span class="material-symbols-outlined arrow-icon">arrow_forward</span>
-                 </div>
-
+              <div class="queue-list-container" id="queueContainer">
+                <p style="padding: 20px; text-align: center; color: #94a3b8">
+                  Loading queue...
+                </p>
+              </div>
             </div>
 
-            <div class="grid-column-right">
-                
-                <div class="card action-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon orange-icon">qr_code_scanner</span>
-                            <h2>Guardian QR Verification</h2>
-                        </div>
-                        <p class="header-desc">Scan guardian's QR code for student pickup.</p>
-                    </div>
-                    
-                    <div class="qr-visual-block">
-                        <span class="material-symbols-outlined qr-large-icon">qr_code_2</span>
-                    </div>
-
-                    <div class="widget-actions">
-                        <button class="btn btn-primary">
-                            <span class="material-symbols-outlined">center_focus_weak</span>
-                            Scan Guardian QR Code
-                        </button>
-                        <button class="btn btn-outline">Verify Manually</button>
-                    </div>
-                </div>
-
-                <div class="card action-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon orange-icon">qr_code_2</span>
-                            <h2>Student QR Attendance</h2>
-                        </div>
-                        <p class="header-desc">Initiate scan for daily student attendance.</p>
-                    </div>
-
-                    <div class="widget-actions">
-                        <button class="btn btn-primary">
-                            <span class="material-symbols-outlined">center_focus_weak</span>
-                            Scan Student QR Code
-                        </button>
-                    </div>
-                </div>
-
-                <div class="card announcement-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon purple-icon">campaign</span>
-                            <h2>Class Announcement</h2>
-                        </div>
-                        <p class="header-desc">Post updates to parents.</p>
-                    </div>
-                    
-                    <div class="announcement-box">
-                        <textarea placeholder="Write an announcement..."></textarea>
-                        <div class="announcement-footer">
-                             <div class="attach-options">
-                                 <button class="icon-tool" title="Add Image">
-                                     <span class="material-symbols-outlined">image</span>
-                                 </button>
-                                 <button class="icon-tool" title="Add Link">
-                                     <span class="material-symbols-outlined">link</span>
-                                 </button>
-                             </div>
-                             <button class="btn-post">Post</button>
-                        </div>
-                    </div>
-                </div>
-
+            <div class="card emergency-card">
+              <div class="emergency-icon">
+                <span class="material-symbols-outlined">e911_emergency</span>
+              </div>
+              <div class="emergency-content">
+                <h3>Emergency Override</h3>
+                <p>Alert staff and override dismissal process.</p>
+              </div>
+              <span class="material-symbols-outlined arrow-icon"
+                >arrow_forward</span
+              >
             </div>
+          </div>
+
+          <div class="grid-column-right">
+            <div class="card action-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon orange-icon"
+                    >qr_code_scanner</span
+                  >
+                  <h2>Guardian QR Verification</h2>
+                </div>
+                <p class="header-desc">
+                  Scan guardian's QR code for student pickup.
+                </p>
+              </div>
+
+              <div class="qr-visual-block">
+                <span class="material-symbols-outlined qr-large-icon"
+                  >qr_code_2</span
+                >
+              </div>
+
+              <div class="widget-actions">
+                <button class="btn btn-primary" id="scanGuardianBtn">
+                  <span class="material-symbols-outlined"
+                    >center_focus_weak</span
+                  >
+                  Scan Guardian QR Code
+                </button>
+                <button class="btn btn-outline">Verify Manually</button>
+              </div>
+            </div>
+
+            <div class="card action-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon orange-icon"
+                    >qr_code_2</span
+                  >
+                  <h2>Student QR Attendance</h2>
+                </div>
+                <p class="header-desc">
+                  Initiate scan for daily student attendance.
+                </p>
+              </div>
+
+              <div class="widget-actions">
+                <button class="btn btn-primary" id="startScanBtn">
+                  <span class="material-symbols-outlined"
+                    >center_focus_weak</span
+                  >
+                  Scan Student QR Code
+                </button>
+              </div>
+            </div>
+
+            <div class="card announcement-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon purple-icon"
+                    >campaign</span
+                  >
+                  <h2>Class Announcement</h2>
+                </div>
+                <p class="header-desc">Post updates to parents.</p>
+              </div>
+
+              <div class="announcement-box">
+                <textarea placeholder="Write an announcement..."></textarea>
+                <div class="announcement-footer">
+                  <div class="attach-options">
+                    <button class="icon-tool" title="Add Image">
+                      <span class="material-symbols-outlined">image</span>
+                    </button>
+                    <button class="icon-tool" title="Add Link">
+                      <span class="material-symbols-outlined">link</span>
+                    </button>
+                  </div>
+                  <button class="btn-post">Post</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
       </main>
     </div>
+
+    <div class="modal-overlay" id="qrScannerModal">
+      <div class="modal-card" style="max-width: 500px; width: 100%">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined blue-icon"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Student QR</h3>
+          </div>
+          <button class="close-modal-btn" id="closeScannerBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 0">
+          <div id="reader" style="width: 100%"></div>
+
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              padding: 20px;
+              font-size: 14px;
+            "
+          >
+            Point the camera at a Student ID QR Code.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="guardianScannerModal">
+      <div class="modal-card" style="max-width: 500px; width: 100%">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined orange-icon"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Guardian Pass</h3>
+          </div>
+          <button class="close-modal-btn" id="closeGuardianScannerBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 0">
+          <div id="guardianReader" style="width: 100%"></div>
+
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              padding: 20px;
+              font-size: 14px;
+            "
+          >
+            Ask the parent to show their Pickup Pass.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="pickupAuthModal">
+      <div class="modal-card" style="max-width: 600px; text-align: center">
+        <div class="modal-header">
+          <h3>Confirm Pickup Authorization</h3>
+          <button class="close-modal-btn" id="closeAuthBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <p style="color: #64748b; margin-bottom: 24px">
+            Verify that the guardian matches the photo below.
+          </p>
+
+          <div
+            style="
+              display: flex;
+              justify-content: center;
+              gap: 30px;
+              margin-bottom: 30px;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <img
+                id="authParentImg"
+                src=""
+                style="
+                  width: 100px;
+                  height: 100px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                  border: 3px solid #f59e0b;
+                "
+              />
+              <div>
+                <span
+                  style="
+                    display: block;
+                    font-size: 12px;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                  "
+                  >Guardian</span
+                >
+                <span
+                  id="authParentName"
+                  style="font-weight: 700; color: #1e293b"
+                  >-</span
+                >
+              </div>
+            </div>
+
+            <div style="width: 1px; background: #e2e8f0"></div>
+
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+              "
+            >
+              <img
+                id="authStudentImg"
+                src=""
+                style="
+                  width: 100px;
+                  height: 100px;
+                  border-radius: 50%;
+                  object-fit: cover;
+                  border: 3px solid #3b82f6;
+                "
+              />
+              <div>
+                <span
+                  style="
+                    display: block;
+                    font-size: 12px;
+                    color: #94a3b8;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                  "
+                  >Student</span
+                >
+                <span
+                  id="authStudentName"
+                  style="font-weight: 700; color: #1e293b"
+                  >-</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <button
+            id="confirmPickupBtn"
+            class="btn btn-primary"
+            style="background: #22c55e; margin-bottom: 12px"
+          >
+            <span class="material-symbols-outlined">check_circle</span>
+            Authorize Pickup
+          </button>
+
+          <button
+            id="cancelAuthBtn"
+            style="
+              background: none;
+              border: none;
+              color: #ef4444;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            Deny & Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
     <script src="teacher_dashboard.js"></script>
   </body>
 </html>

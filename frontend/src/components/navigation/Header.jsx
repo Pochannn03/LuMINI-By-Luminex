@@ -1,11 +1,11 @@
 import React from "react";
+import PlaceHolder from '../../assets/placeholder_image.jpg'
 import '../../styles/header.css'
 
 export default function Header({onToggle}) {
   return (
-    // <div className="dashboard-wrapper">
-
-      <header className="dashboard-header lg:left-10">
+    <>
+      <header className="dashboard-header">
 
         <div className="flex items-center gap-4">
           <button className="icon-btn" id="burgerIconOpenNav" onClick={onToggle}>
@@ -23,15 +23,15 @@ export default function Header({onToggle}) {
 
           <div className="flex items-center gap-3">
             <img 
-              class="profile-avatar w-10 h-10 rounded-full object-cover " 
-              src="../../../assets/placeholder_image.jpg" 
+              className="profile-avatar w-10 h-10 rounded-full object-cover " 
+              src={PlaceHolder}
               alt="Profile" 
             />
-            <span class="hidden font-semibold text-[14px] lg:block">User</span>
+            <span className="hidden font-semibold text-[14px] lg:block">User</span>
           </div>
         </div>
       </header>
 
-    // </div>
+    </>
   );
 }

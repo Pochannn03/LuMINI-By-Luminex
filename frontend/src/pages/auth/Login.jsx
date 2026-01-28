@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff } from 'lucide-react'; 
 import '../../styles/login.css';
@@ -8,6 +9,9 @@ import fastBgImage from '../../assets/CheckIns.jpg';
 import updatesBgImage from '../../assets/Updates.jpg';
 
 export default function Login() {
+  const [error, setError] = useState('');
+  const navigate = useNavigate(); 
+  const { login, user, loading } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -49,6 +53,18 @@ export default function Login() {
     return () => clearInterval(interval);
   }, [features.length]);
 
+  useEffect(() => {
+    if (user && !loading) {
+      if (user.role === "superadmin") {
+        navigate('/superadmin/dashboard', { replace: true });
+      } else if (user.role === "admin") {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, loading, navigate]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
     if(error) setError('');
@@ -66,27 +82,32 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3000/api/auth', {
-        method: 'POST',
+      const response = await axios.post('http://localhost:3000/api/auth', formData, {
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        withCredentials: true 
       });
 
-      const data = await response.json();
+      const data = response.data;
+      login(data.user);
 
-      if (response.ok) {
-        const userRole = data.user.role;
-        if (userRole === "superadmin") navigate('/superadmin/dashboard');
-        else if (userRole === "admin") navigate('/Admin/AdminDashboard');
-        else navigate('/User/Dashboard'); 
-      } else {
-        setError(response.status === 401 ? "Invalid Credentials" : data.message || 'Login failed');
-      }
+        if (data.user.role === "superadmin") {
+          navigate('/superadmin/dashboard');
+        } else if (data.user.role === "admin") {
+          navigate('/admin/dashboard');
+        } else {
+          navigate('/dashboard'); 
+        }
+        
     } catch (err) {
-      console.error('Error:', err);
-      setError('Server connection failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+        if (err.response && err.response.data && err.response.data.message) {
+        setError(err.response.data.message); 
+      } else {
+        if (response.status === 401) {
+          setError("Invalid Credentials");
+        } else {
+          setError(data.message || 'Login failed');
+        }
+      }
     }
   };
 

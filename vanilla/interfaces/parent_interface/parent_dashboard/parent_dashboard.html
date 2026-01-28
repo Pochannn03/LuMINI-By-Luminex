@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Parent Dashboard - Lumini</title>
+    <script
+      src="https://unpkg.com/html5-qrcode"
+      type="text/javascript"
+    ></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <link rel="stylesheet" href="../../../main.css" />
     <link rel="stylesheet" href="parent_dashboard.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,43 +24,59 @@
   </head>
   <body>
     <div class="dashboard-wrapper">
-      
       <header class="dashboard-header">
         <div class="header-left">
           <button id="burgerIconOpenNav" class="icon-btn">
             <span class="material-symbols-outlined">menu</span>
           </button>
         </div>
-        
+
         <div class="header-right">
+          <button
+            id="viewPassBtn"
+            class="pass-btn-header"
+            style="display: none"
+          >
+            <span class="material-symbols-outlined">qr_code_2</span>
+            <span>View Pass</span>
+          </button>
           <button class="icon-btn notification-btn">
             <span class="material-symbols-outlined">notifications</span>
             <span class="notification-badge"></span>
           </button>
-          
+
           <div class="header-separator"></div>
-          
+
           <div class="user-profile">
-            <img class="profile-avatar" src="../../../assets/placeholder_image.jpg" alt="Profile" />
-            <span class="user-name">Sarah Chen</span>
+            <img
+              class="profile-avatar"
+              id="headerProfileImage"
+              src="../../../assets/placeholder_image.jpg"
+              alt="Profile"
+            />
+            <span class="user-name" id="headerUserName">Parent</span>
           </div>
         </div>
       </header>
 
       <div class="nav-overlay" id="navOverlay"></div>
-      
+
       <aside class="sidebar" id="sideNavBar">
         <div class="sidebar-header">
-           <img src="../../../assets/lumini-logo.png" alt="Lumini" class="sidebar-logo">
+          <img
+            src="../../../assets/lumini-logo.png"
+            alt="Lumini"
+            class="sidebar-logo"
+          />
         </div>
-        
+
         <nav class="sidebar-menu">
           <a href="parent_dashboard.html" class="nav-item active">
             <span class="material-symbols-outlined">dashboard</span>
             <span>Dashboard</span>
           </a>
 
-          <a href="#" class="nav-item">
+          <a href="#" class="nav-item" id="navPickupHistoryBtn">
             <span class="material-symbols-outlined">history</span>
             <span>Pickup History</span>
           </a>
@@ -64,7 +85,7 @@
             <span class="material-symbols-outlined">manage_accounts</span>
             <span>Manage Guardians</span>
           </a>
-          
+
           <a href="../parent_profile/parent_profile.html" class="nav-item">
             <span class="material-symbols-outlined">person</span>
             <span>Profile</span>
@@ -73,199 +94,439 @@
       </aside>
 
       <main class="main-content">
-        
         <section class="welcome-banner">
           <div>
-            <h1>Good Afternoon, Sarah!</h1>
+            <h1 id="welcomeMessage">Good Afternoon!</h1>
             <p>Here is the daily status for your children.</p>
           </div>
         </section>
 
         <div class="dashboard-grid">
-            
-            <div class="grid-column-left">
-                
-                <div class="card visual-status-card">
-                    
-                    <div class="visual-profile-section">
-                        <div class="avatar-ring">
-                            <img src="../../../assets/placeholder_image.jpg" class="visual-avatar" />
-                        </div>
-                        <h2 class="visual-name">Mia Chen</h2>
-                        <span class="visual-grade">Kindergarten - Class A</span>
-                    </div>
+          <div class="grid-column-left">
+            <div class="card visual-status-card">
+              <div class="visual-profile-section">
+                <div class="avatar-ring">
+                  <img
+                    src="../../../assets/placeholder_image.jpg"
+                    class="visual-avatar"
+                  />
+                </div>
+                <h2 class="visual-name">Mia Chen</h2>
+                <span class="visual-grade">Kindergarten - Class A</span>
+              </div>
 
-                    <div class="status-tracker-container">
-                        <div class="tracker-line"></div>
-                        
-                        <div class="tracker-step completed">
-                            <div class="step-circle">
-                                <span class="material-symbols-outlined">directions_walk</span>
-                            </div>
-                            <span class="step-label">On Way</span>
-                        </div>
+              <div class="status-tracker-container">
+                <div class="tracker-line"></div>
 
-                        <div class="tracker-step active">
-                            <div class="step-circle">
-                                <span class="material-symbols-outlined">school</span>
-                            </div>
-                            <span class="step-label">Learning</span>
-                        </div>
-
-                        <div class="tracker-step">
-                            <div class="step-circle">
-                                <span class="material-symbols-outlined">home</span>
-                            </div>
-                            <span class="step-label">Dismissed</span>
-                        </div>
-                    </div>
-
-                    <div class="current-status-badge">
-                        Learning at School
-                    </div>
+                <div class="tracker-step active">
+                  <div class="step-circle">
+                    <span class="material-symbols-outlined"
+                      >directions_walk</span
+                    >
+                  </div>
+                  <span class="step-label">On Way</span>
                 </div>
 
-                <div class="card action-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon blue-icon">tune</span>
-                            <h2>Quick Actions</h2>
-                        </div>
-                        <p class="header-desc">Access the most important tasks instantly.</p>
-                    </div>
-
-                    <div class="quick-actions-list">
-                        
-                        <button class="quick-action-item">
-                            <div class="qa-icon">
-                                <span class="material-symbols-outlined">group</span>
-                            </div>
-                            <div class="qa-content">
-                                <span class="qa-title">Guardian Management</span>
-                                <span class="qa-desc">Manage authorized guardians for Alice</span>
-                            </div>
-                            <span class="material-symbols-outlined arrow">chevron_right</span>
-                        </button>
-
-                        <button class="quick-action-item">
-                            <div class="qa-icon">
-                                <span class="material-symbols-outlined">history</span>
-                            </div>
-                            <div class="qa-content">
-                                <span class="qa-title">Pickup History</span>
-                                <span class="qa-desc">View past pickups and approvals</span>
-                            </div>
-                            <span class="material-symbols-outlined arrow">chevron_right</span>
-                        </button>
-
-                        <button class="quick-action-item">
-                            <div class="qa-icon">
-                                <span class="material-symbols-outlined">notification_important</span>
-                            </div>
-                            <div class="qa-content">
-                                <span class="qa-title">Report Absence</span>
-                                <span class="qa-desc">Notify school about absence or delay</span>
-                            </div>
-                            <span class="material-symbols-outlined arrow">chevron_right</span>
-                        </button>
-
-                        <button class="quick-action-item danger-item">
-                            <div class="qa-icon">
-                                <span class="material-symbols-outlined">e911_emergency</span>
-                            </div>
-                            <div class="qa-content">
-                                <span class="qa-title">Emergency Override</span>
-                            </div>
-                            <span class="material-symbols-outlined arrow">chevron_right</span>
-                        </button>
-
-                    </div>
+                <div class="tracker-step">
+                  <div class="step-circle">
+                    <span class="material-symbols-outlined">school</span>
+                  </div>
+                  <span class="step-label">Learning</span>
                 </div>
 
+                <div class="tracker-step">
+                  <div class="step-circle">
+                    <span class="material-symbols-outlined">home</span>
+                  </div>
+                  <span class="step-label">Dismissed</span>
+                </div>
+              </div>
+
+              <div class="current-status-badge">Learning at School</div>
             </div>
 
-            <div class="grid-column-right">
-
-                <div class="card initiate-pickup-card">
-                    <div class="pickup-header">
-                        <h2>Initiate Pickup</h2>
-                        <p>Scan the school's entry QR code to begin the pickup process and generate your dynamic pickup pass.</p>
-                    </div>
-                    
-                    <div class="pickup-illustration">
-                        <img src="../../../assets/illustration_scan_qr.png" alt="Scan QR Illustration" />
-                    </div>
-
-                    <button class="btn btn-primary big-scan-btn">
-                        Scan Entry QR
-                    </button>
+            <div class="card action-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span class="material-symbols-outlined header-icon blue-icon"
+                    >tune</span
+                  >
+                  <h2>Quick Actions</h2>
                 </div>
+                <p class="header-desc">
+                  Access the most important tasks instantly.
+                </p>
+              </div>
 
-                <div class="card action-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon yellow-icon">update</span>
-                            <h2>Update Status</h2>
-                        </div>
-                        <p class="header-desc">Keep the school and parents informed about your arrival progress.</p>
-                    </div>
+              <div class="quick-actions-list">
+                <button class="quick-action-item">
+                  <div class="qa-icon">
+                    <span class="material-symbols-outlined">group</span>
+                  </div>
+                  <div class="qa-content">
+                    <span class="qa-title">Guardian Management</span>
+                    <span class="qa-desc"
+                      >Manage authorized guardians for Alice</span
+                    >
+                  </div>
+                  <span class="material-symbols-outlined arrow"
+                    >chevron_right</span
+                  >
+                </button>
 
-                    <div class="status-options-container">
-                        <button class="status-option-btn status-blue">
-                            <span>On the Way</span>
-                            <span class="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span>
-                        </button>
-                        
-                        <button class="status-option-btn status-green">
-                            <span>At School</span>
-                            <span class="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span>
-                        </button>
+                <button class="quick-action-item">
+                  <div class="qa-icon">
+                    <span class="material-symbols-outlined">history</span>
+                  </div>
+                  <div class="qa-content">
+                    <span class="qa-title">Pickup History</span>
+                    <span class="qa-desc">View past pickups and approvals</span>
+                  </div>
+                  <span class="material-symbols-outlined arrow"
+                    >chevron_right</span
+                  >
+                </button>
 
-                        <button class="status-option-btn status-red">
-                            <span>Running late</span>
-                            <span class="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span>
-                        </button>
-                    </div>
-                </div>
+                <button class="quick-action-item">
+                  <div class="qa-icon">
+                    <span class="material-symbols-outlined"
+                      >notification_important</span
+                    >
+                  </div>
+                  <div class="qa-content">
+                    <span class="qa-title">Report Absence</span>
+                    <span class="qa-desc"
+                      >Notify school about absence or delay</span
+                    >
+                  </div>
+                  <span class="material-symbols-outlined arrow"
+                    >chevron_right</span
+                  >
+                </button>
 
-                <div class="card queue-card">
-                    <div class="clean-header">
-                        <div class="header-title-row">
-                            <span class="material-symbols-outlined header-icon purple-icon">notifications_active</span>
-                            <h2>Recent Updates</h2>
-                        </div>
-                    </div>
-
-                    <div class="queue-list-container">
-                        <div class="queue-item">
-                            <div class="icon-box-small warning">
-                                <span class="material-symbols-outlined">campaign</span>
-                            </div>
-                            <div class="queue-info">
-                                <span class="q-name">Early Dismissal</span>
-                                <span class="q-action">Classes end at 1:00 PM today due to faculty meeting.</span>
-                                <span class="q-time">2 hours ago</span>
-                            </div>
-                        </div>
-                        
-                        <div class="queue-item">
-                            <div class="icon-box-small success">
-                                <span class="material-symbols-outlined">event</span>
-                            </div>
-                            <div class="queue-info">
-                                <span class="q-name">Parent-Teacher Conference</span>
-                                <span class="q-action">Schedule posted. Check your calendar.</span>
-                                <span class="q-time">Yesterday</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
+                <button class="quick-action-item danger-item">
+                  <div class="qa-icon">
+                    <span class="material-symbols-outlined"
+                      >e911_emergency</span
+                    >
+                  </div>
+                  <div class="qa-content">
+                    <span class="qa-title">Emergency Override</span>
+                  </div>
+                  <span class="material-symbols-outlined arrow"
+                    >chevron_right</span
+                  >
+                </button>
+              </div>
             </div>
+          </div>
+
+          <div class="grid-column-right">
+            <div class="card initiate-pickup-card">
+              <div class="pickup-header">
+                <h2>Initiate Pickup</h2>
+                <p>
+                  Scan the school's entry QR code to begin the pickup process
+                  and generate your dynamic pickup pass.
+                </p>
+              </div>
+
+              <div class="pickup-illustration">
+                <img
+                  src="../../../assets/scan_hand.png"
+                  alt="Scan QR Illustration"
+                />
+              </div>
+
+              <button class="btn btn-primary big-scan-btn" id="scanQrBtn">
+                Scan Entry QR
+              </button>
+            </div>
+
+            <div class="card action-card" id="dropoffCard">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon yellow-icon"
+                    >update</span
+                  >
+                  <h2>Update Status</h2>
+                </div>
+                <p class="header-desc">
+                  Keep the school and parents informed about your arrival
+                  progress.
+                </p>
+              </div>
+
+              <div class="status-options-container" id="statusButtonsContainer">
+                <button class="status-option-btn status-blue">
+                  <span>On the Way</span>
+                  <span class="material-symbols-outlined arrow-icon"
+                    >keyboard_double_arrow_right</span
+                  >
+                </button>
+
+                <button class="status-option-btn status-green">
+                  <span>At School</span>
+                  <span class="material-symbols-outlined arrow-icon"
+                    >keyboard_double_arrow_right</span
+                  >
+                </button>
+
+                <button class="status-option-btn status-red">
+                  <span>Running late</span>
+                  <span class="material-symbols-outlined arrow-icon"
+                    >keyboard_double_arrow_right</span
+                  >
+                </button>
+              </div>
+
+              <div
+                id="safeMessageContainer"
+                style="display: none; text-align: center; padding: 40px 20px"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-size: 56px; color: #2ecc71; margin-bottom: 16px"
+                  >check_circle</span
+                >
+                <h3 style="color: #2c3e50; font-size: 18px; margin-bottom: 8px">
+                  Safe in Class
+                </h3>
+                <p style="color: #7f8c8d; font-size: 14px">
+                  Attendance has been marked. Updates are now disabled.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="card action-card"
+              id="classModeCard"
+              style="display: none; text-align: center; padding: 40px"
+            >
+              <span
+                class="material-symbols-outlined"
+                style="font-size: 48px; color: #cbd5e1; margin-bottom: 16px"
+                >school</span
+              >
+              <h3 style="font-size: 18px; color: #64748b">Class in Session</h3>
+              <p style="color: #94a3b8; font-size: 13px">
+                Status updates are disabled until dismissal.
+              </p>
+            </div>
+
+            <div class="card queue-card">
+              <div class="clean-header">
+                <div class="header-title-row">
+                  <span
+                    class="material-symbols-outlined header-icon purple-icon"
+                    >notifications_active</span
+                  >
+                  <h2>Recent Updates</h2>
+                </div>
+              </div>
+
+              <div class="queue-list-container">
+                <div class="queue-item">
+                  <div class="icon-box-small warning">
+                    <span class="material-symbols-outlined">campaign</span>
+                  </div>
+                  <div class="queue-info">
+                    <span class="q-name">Early Dismissal</span>
+                    <span class="q-action"
+                      >Classes end at 1:00 PM today due to faculty
+                      meeting.</span
+                    >
+                    <span class="q-time">2 hours ago</span>
+                  </div>
+                </div>
+
+                <div class="queue-item">
+                  <div class="icon-box-small success">
+                    <span class="material-symbols-outlined">event</span>
+                  </div>
+                  <div class="queue-info">
+                    <span class="q-name">Parent-Teacher Conference</span>
+                    <span class="q-action"
+                      >Schedule posted. Check your calendar.</span
+                    >
+                    <span class="q-time">Yesterday</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
       </main>
     </div>
+
+    <div class="modal-overlay" id="qrScannerModal">
+      <div class="modal-card" style="max-width: 500px; width: 100%">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined blue-icon"
+              >qr_code_scanner</span
+            >
+            <h3>Scan Entry QR</h3>
+          </div>
+          <button class="close-modal-btn" id="closeScannerBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body" style="padding: 0">
+          <div id="reader" style="width: 100%"></div>
+
+          <p
+            style="
+              text-align: center;
+              color: #64748b;
+              padding: 20px;
+              font-size: 14px;
+            "
+          >
+            Point your camera at the School Gate QR Code.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="pickupGateModal">
+      <div class="modal-card" style="max-width: 400px; text-align: center">
+        <div class="modal-body" style="padding: 20px 0">
+          <div
+            style="
+              background: #eff6ff;
+              width: 80px;
+              height: 80px;
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 20px auto;
+            "
+          >
+            <span
+              class="material-symbols-outlined"
+              style="font-size: 40px; color: #3b82f6"
+              >security</span
+            >
+          </div>
+
+          <h3 style="color: #1e293b; margin-bottom: 10px">
+            Verification Required
+          </h3>
+          <p
+            style="
+              color: #64748b;
+              font-size: 14px;
+              line-height: 1.6;
+              margin-bottom: 24px;
+            "
+          >
+            To confirm your arrival for pickup, you must scan the
+            <strong>School Entry QR Code</strong> located at the gate.
+          </p>
+
+          <button id="openScannerFromGateBtn" class="btn btn-primary">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            Scan Entry QR
+          </button>
+
+          <button
+            id="cancelGateBtn"
+            style="
+              background: none;
+              border: none;
+              color: #94a3b8;
+              font-size: 13px;
+              margin-top: 16px;
+              cursor: pointer;
+            "
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="pickupPassModal">
+      <div class="modal-card ticket-card">
+        <div class="ticket-header">
+          <h3>Pickup Pass</h3>
+          <button class="close-modal-btn" id="closePassBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="ticket-body">
+          <div class="pass-info">
+            <span class="pass-label">Student</span>
+            <span class="pass-value" id="passStudentName">Loading...</span>
+          </div>
+
+          <div id="generatedQr" class="qr-output-box"></div>
+
+          <div class="timer-box">
+            <span class="material-symbols-outlined">timer</span>
+            <span id="passTimer">10:00</span>
+          </div>
+
+          <p class="ticket-note">
+            Show this to the teacher. <br />
+            Do not share this screen.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="historyModal">
+      <div class="modal-card" style="max-width: 400px">
+        <div class="modal-header">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="material-symbols-outlined purple-icon">history</span>
+            <h3>Pickup History</h3>
+          </div>
+          <button class="close-modal-btn" id="closeHistoryBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="history-date-nav">
+            <button class="nav-arrow-btn" id="histPrevBtn">
+              <span class="material-symbols-outlined">chevron_left</span>
+            </button>
+
+            <div class="date-display-wrapper">
+              <span id="historyDateDisplay">Today</span>
+              <input
+                type="date"
+                id="historyDatePicker"
+                style="
+                  position: absolute;
+                  opacity: 0;
+                  top: 0;
+                  left: 0;
+                  width: 100%;
+                  height: 100%;
+                  cursor: pointer;
+                "
+              />
+            </div>
+
+            <button class="nav-arrow-btn" id="histNextBtn">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </button>
+          </div>
+
+          <div id="historyResultContainer" class="history-result-box">
+            <p style="color: #94a3b8; text-align: center">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script src="parent_dashboard.js"></script>
   </body>
 </html>

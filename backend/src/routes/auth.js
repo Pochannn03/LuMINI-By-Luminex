@@ -7,6 +7,7 @@ router.post('/api/auth', (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     
     if (err) {
+      console.error("Passport Error:", err);
       return res.status(500).json({ message: "Server error" });
     }
 
@@ -16,6 +17,7 @@ router.post('/api/auth', (req, res, next) => {
 
     req.logIn(user, (err) => {
     if (err) {
+      console.error("Login Session Error:", err);
     return res.status(500).json({ message: "Session login failed" });
   } else {
     const safeUser = {
@@ -33,18 +35,33 @@ router.post('/api/auth', (req, res, next) => {
   })(req, res, next); 
 });
 
+router.get('/api/auth/session', (req, res) => {
+  if (req.isAuthenticated() && req.user) {
+    const safeUser = {
+      id: req.user._id,
+      username: req.user.username,
+      role: req.user.role,
+    };
+    return res.status(200).json({ isAuthenticated: true, user: safeUser });
+  } else {
+    return res.status(200).json({ isAuthenticated: false, user: null });
+  }
+});
+
 router.post('/api/auth/logout', (req, res) => {
-    if(!req.user){
-      return res.sendStatus(401)
+    req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ message: "Logout failed" });
     }
 
-    req.logout((err) => {
-      if(err){
-        return res.sendStatus(401);
-      } else {
-        res.send(200);
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Could not destroy session" });
       }
-    })
+      res.clearCookie('connect.sid'); 
+      return res.status(200).json({ message: "Logout successful" });
+    });
+  });
   }
 );
 

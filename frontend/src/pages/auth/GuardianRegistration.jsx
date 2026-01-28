@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../../styles/registration.css'
+import '../../styles/auth/registration.css'
 import FormInputRegistration from '../../components/FormInputRegistration';
 import { validateRegistrationStep } from '../../utils/validation';
 
@@ -157,7 +157,7 @@ export default function GuardianRegistration() {
   };
   
   // Form Button Logic for Steps //
-const handleNext = () => {
+  const handleNext = () => {
   const isValid = validateStep(currentStep);
 
   if (isValid) {

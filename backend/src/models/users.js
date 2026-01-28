@@ -1,12 +1,14 @@
 import mongoose from "mongoose";
-import AutoIncrementFactory from "mongoose-sequence";
-
-// const AutoIncrement = AutoIncrementFactory(mongoose);
+import { Counter } from "./counter.js"
 
 const UserSchema = new mongoose.Schema({
-  // _id: {
-  //   type: Number,
-  // },
+  // ID
+  user_id: {
+    type: Number,
+    unique: true,
+  },
+
+  // Credentials
   username: {
     type: String,
     required: true,
@@ -20,6 +22,8 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+
+  // Personal Information
   first_name: { 
     type: String, 
     required: true 
@@ -43,12 +47,18 @@ const UserSchema = new mongoose.Schema({
     type: String, 
     required: true
   },
+
+  // Roles
   role: { 
     type: String, 
-    required: true 
+    required: true ,
+    enum: ['superadmin', 'admin', 'user'], 
+    default: 'user'
   },
+
+  // Timestamps & Validation
   is_archive: {
-    type: Boolean, 
+    type: String, 
     default: false,
     required: true,
   },
@@ -67,17 +77,35 @@ const UserSchema = new mongoose.Schema({
     type: String, 
   }
 });
-// { 
-//     // This creates 'createdAt' and 'updatedAt' automatically if you prefer
-//     // timestamps: true, 
-    
-//     // Important: Tell Mongoose not to add the default ObjectId
-//     _id: false 
-// });
 
-// Apply the plugin
-// 'id': a unique name for this counter in the database
-// 'inc_field': the field you want to increment (we are overwriting _id)
-// UserSchema.plugin(AutoIncrement, { id: 'user_seq', inc_field: '_id' });
+// Pre-function to Auto Increment the user_id with counter schema
+UserSchema.pre('save', async function() { 
+  const doc = this;
+
+  if (doc.isNew) {
+    try {
+      if (!Counter) throw new Error("Counter model is missing");
+
+      const counter = await Counter.findByIdAndUpdate(
+        'user_id_seq', 
+        { $inc: { seq: 1 } }, 
+        { new: true, upsert: true }
+      );
+
+      // 2. Assign the ID
+      const newId = 1000 + counter.seq;
+      doc.user_id = newId;
+
+      console.log(`✅ Generated user_id: ${newId}`);
+      
+    } catch (error) {
+      // 3. Just THROW the error to stop the save
+      console.error("❌ ID Generation Failed:", error);
+      throw error; 
+    }
+  }
+
+});
+
 
 export const User = mongoose.model("User", UserSchema, "mng.user_active");

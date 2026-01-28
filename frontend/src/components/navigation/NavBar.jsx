@@ -1,15 +1,83 @@
 import React, { useState, useEffect } from "react";
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import logo from '../../assets/lumini-logo.png'
 import Header from "./Header";
+import { useAuth } from "../../context/AuthProvider"; 
 import '../../styles/sidebar.css';
 
 export default function NavBar() {
-
+  const { user, logout } = useAuth(); 
   const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const NAV_ITEMS = [
+    /* Super Admin */
+    {
+      label: "Dashboard",
+      path: "/superadmin/dashboard",
+      icon: "dashboard",
+      allowedRoles: ["superadmin"]
+    },
+    {
+      label: "Manage Classes",
+      path: "/superadmin/manage-class",
+      icon: "school",
+      allowedRoles: ["superadmin"]
+    },
+        {
+      label: "Analytics",
+      path: "/superadmin/analytics",
+      icon: "analytics",
+      allowedRoles: ["superadmin"]
+    },
+        {
+      label: "Accounts",
+      path: "/superadmin/accounts",
+      icon: "manage_accounts",
+      allowedRoles: ["superadmin"]
+    },
+    /* Admin (Teacher) */
+    {
+      label: "Dashboard",
+      path: "/admin/dashboard",
+      icon: "dashboard",
+      allowedRoles: ["admin"]
+    },
+    {
+      label: "Attendance",
+      path: "/admin/attendance",
+      icon: "punch_clock",
+      allowedRoles: ["admin"]
+    },
+    /* User (Parent/Guardian) */
+        {
+      label: "Dashboard",
+      path: "/dashboard",
+      icon: "dashboard",
+      allowedRoles: ["user"]
+    },
+    /* All Access */
+    {
+      label: "Profile",
+      path: "/profile",
+      icon: "person",
+      allowedRoles: ["superadmin", "admin", "user"] 
+    },
+  ];
+
+  const currentRole = user ? user.role : 'guest';
+
+  const visibleNavItems = NAV_ITEMS.filter(item => 
+    item.allowedRoles.includes(currentRole)
+  );
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
+  };
+
+  const isActive = (path) => {
+    return location.pathname === path ? "nav-item active" : "nav-item";
   };
 
   useEffect(() => {
@@ -29,62 +97,42 @@ export default function NavBar() {
   }, [isOpen]);
 
   return (
-    <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 lg:pt-20">
-      
-    <Header onToggle={toggleMenu} />
+    <>
+      <Header onToggle={toggleMenu} />
 
-    <div 
+      <div 
         className={`nav-overlay ${isOpen ? 'active' : ''}`} 
         onClick={() => setIsOpen(false)}
       >
-    </div>
-
-    <aside className={`sidebar ${isOpen ? 'expanded active' : ''}`}
-        id="sideNavBar"
-    >
-
-      <div className="border-bottom flex shrink-0 items-center justify-center h-20 ">
-        <img src={logo} alt="Lumini" className="sidebar-logo"></img>
       </div>
 
-      <nav className="sidebar-menu">
+      <aside className={`sidebar ${isOpen ? 'expanded active' : ''}`} id="sideNavBar">
 
-        <Link to="#" className="nav-item active">
-          <span className="material-symbols-outlined">dashboard</span>
-          <span>Dashboard</span>
-        </Link>
+        <div className="border-bottom flex shrink-0 items-center justify-center h-20 ">
+          <img src={logo} alt="Lumini" className="sidebar-logo"></img>
+        </div>
 
-        <Link to="#" className="nav-item">
-          <span className="material-symbols-outlined">school</span>
-          <span>Manage Classes</span>
-        </Link>
+        <nav className="sidebar-menu">
+          {visibleNavItems.map((item) => (
+            <Link 
+              key={item.path} 
+              to={item.path} 
+              className={isActive(item.path)}
+            >
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
 
-        <Link to="#" className="nav-item">
-          <span className="material-symbols-outlined">analytics</span>
-          <span>Analytics</span>
-        </Link>
+        <div className="sidebar-footer">
+          <button onClick={() => { logout(); navigate('/login'); }} className="nav-item logout-btn">
+            <span className="material-symbols-outlined">logout</span>
+            <span>Sign Out</span>
+          </button>
+        </div>
 
-        <Link to="#" className="nav-item">
-          <span className="material-symbols-outlined">manage_accounts</span>
-          <span>Accounts</span>
-        </Link>
-
-        <Link to="#" className="nav-item">
-          <span className="material-symbols-outlined">person</span>
-          <span>Profile</span>
-        </Link>
-
-      </nav>
-
-      <div className="sidebar-footer">
-        <Link to="#" className="nav-item logout-btn">
-          <span className="material-symbols-outlined">logout</span>
-          <span>Sign Out</span>
-        </Link>
-      </div>
-
-    </aside>
-
-    </div>
+      </aside>
+    </>
   );
 }

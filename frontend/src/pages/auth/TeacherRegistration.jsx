@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../../styles/registration.css'
+import '../../styles/auth/registration.css'
 import FormInputRegistration from '../../components/FormInputRegistration';
 import { validateRegistrationStep } from '../../utils/validation';
 
@@ -32,7 +32,7 @@ export default function GuardianRegistration() {
     lastName: '',     
     email: '',
     phoneNumber: '',  
-    relationship: null, 
+    relationship: 'Teacher', 
     houseUnit: '',
     street: '',
     barangay: '',
@@ -481,7 +481,7 @@ const handleNext = () => {
               </div>
             )}
 
-            <div class="flex flex-row w-full mt-2.5  gap-[15px]">
+            <div className="flex flex-row w-full mt-2.5  gap-[15px]">
               <button 
                 type="button" 
                 className="btn btn-outline flex-1 h-12 rounded-3xl font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed" 

@@ -15,9 +15,20 @@ export const createUserValidationSchema = {
     },
   },
   password: {
+    isLength: {
+      options: {
+        min: 8
+      },
+      errerMessage: "Username must be at least 8 characters"
+    },
     notEmpty: {
       errorMessage: "Password cannot be empty",
     }
+  },
+  invitation_code: {
+    notEmpty: { errorMessage: "Code is required" },
+    optional: true,
+    isLength: { options: { min: 6, max: 6 } }
   },
   email: {
     notEmpty: {
