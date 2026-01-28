@@ -47,7 +47,7 @@ export default function ParentRegistration() {
   // Validation Function //
 
   const validateStep = (step) => {
-    const newErrors = validateRegistrationStep(step, formData, profileImage);
+    const newErrors = validateRegistrationStep(step, formData, profileImage, 'user');
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
