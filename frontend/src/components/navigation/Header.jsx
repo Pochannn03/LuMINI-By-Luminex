@@ -1,4 +1,5 @@
 import React from "react";
+import PlaceHolder from '../../assets/placeholder_image.jpg'
 import '../../styles/header.css'
 
 export default function Header({onToggle}) {
@@ -23,7 +24,7 @@ export default function Header({onToggle}) {
           <div className="flex items-center gap-3">
             <img 
               className="profile-avatar w-10 h-10 rounded-full object-cover " 
-              src="../../../assets/placeholder_image.jpg" 
+              src={PlaceHolder}
               alt="Profile" 
             />
             <span className="hidden font-semibold text-[14px] lg:block">User</span>
