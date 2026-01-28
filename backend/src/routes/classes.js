@@ -35,11 +35,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/api/superadminDashboard',  
-  (req, res) => {
-
-});
-
 // CREATE STUDENT ROUTER
 router.post('/api/students', 
   isAuthenticated,
@@ -145,7 +140,7 @@ router.get('/api/students/invitation',
 
 // CREATE TEACHER
 
-router.post('/api/teachers',
+router.post('/api/teachers/modal',
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),

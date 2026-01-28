@@ -63,7 +63,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
       }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/teachers', data, {
+      const response = await axios.post('http://localhost:3000/api/teachers/modal', data, {
         withCredentials: true
       });
 
