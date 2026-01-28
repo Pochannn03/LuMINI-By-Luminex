@@ -1,42 +1,82 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
 import { useAuth } from '../../context/AuthProvider';
-import axios from 'axios';
-import logo from '../../assets/lumini-logo.png' 
-import '../../styles/auth/login.css'
-
+import { Link, useNavigate } from 'react-router-dom';
+import { User, Lock, Eye, EyeOff } from 'lucide-react'; 
+import axios from "axios";
+import secureBgImage from '../../assets/Secure.jpg'; 
+import fastBgImage from '../../assets/CheckIns.jpg';  
+import updatesBgImage from '../../assets/Updates.jpg';
+import '../../styles/auth/login.css'; 
 
 export default function Login() {
+  const { login, user, loading } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate(); 
-  const { login } = useAuth();
-
-  const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState({
     username: '',
     password: ''
   });
 
+  // --- SLIDER STATE & LOGIC ---
+  const [featureIndex, setFeatureIndex] = useState(0);
+
+  const features = [
+    {
+      id: "secure",
+      title: "Secure Identity",
+      text: "Ensure only authorized guardians can pick up students with strict verification protocols.",
+      bgImage: secureBgImage, 
+    },
+    {
+      id: "fast",
+      title: "Fast Check-in",
+      text: "QR code integration allows for instant attendance logging, reducing wait times.",
+      bgImage: fastBgImage,
+    },
+    {
+      id: "updates",
+      title: "Real-time Updates",
+      text: "Parents get notified instantly via SMS or App notification the moment their child arrives.",
+      bgImage: updatesBgImage,
+    }
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFeatureIndex((prev) => (prev + 1) % features.length);
+    }, 5000); 
+    return () => clearInterval(interval);
+  }, [features.length]);
+
+  useEffect(() => {
+    if (user && !loading) {
+      if (user.role === "superadmin") {
+        navigate('/superadmin/dashboard', { replace: true });
+      } else if (user.role === "admin") {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [user, loading, navigate]);
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.id]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.id]: e.target.value });
+    if(error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); 
+    setError('');
 
-    if (!formData.username.trim() && !formData.password.trim()) {
-      setError("Please enter both username and password.");
-      return;
-    } else if (!formData.username.trim()) {
-      setError("Please enter your username.");
-      return;
-    } else if (!formData.password.trim()){
-      setError("Please enter your password.");
+    if (!formData.username.trim() || !formData.password.trim()) {
+      setError("Please fill in all fields.");
       return;
     }
+
+    setIsLoading(true);
 
     try {
       const response = await axios.post('http://localhost:3000/api/auth', formData, {
@@ -54,80 +94,178 @@ export default function Login() {
         } else {
           navigate('/dashboard'); 
         }
-        
+
     } catch (err) {
         if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message); 
-      } else {
-        setError('Server error. Please try again later.');
+        setIsLoading(false)
       }
     }
-
   };
 
-  return(
-      <div className="min-h-screen w-full relative flex flex-col justify-end md:justify-center md:items-center">
-
-        <div className="absolute top-0 left-0 w-full h-1/4 flex justify-center items-center pointer-events-none md:hidden">
-          <img src={logo} alt="Lumini" className="mobile-logo md:block w-[60px] h-[60px] mx-auto mb-5 object-contain"/>
-        </div>
-
-        <div className="sign-in-form-container">
-          <div className="w-[50px] h-1.5 mb-[30px] rounded-[10px] md:hidden"></div>
-
-        <div className="sign-in-form-wrapper">
-          <h1 className="after-word text-center w-full">
-            Sign In
-          </h1>
-
-          {error && (
-            <div className="text-red-500 text-sm text-center mb-4 mt-4">
-              {error}
+  return (
+    <div className="flex flex-col lg:flex-row h-screen w-full bg-white font-poppins overflow-hidden">
+      
+      {/* ---------------- TOP/LEFT SECTION: SLIDER ---------------- */}
+      <div 
+        className="
+          w-full h-[40vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out
+          justify-start 
+          lg:h-full lg:w-1/2 lg:justify-center
+          bg-size-[180%] lg:bg-cover
+        "
+        style={{
+          backgroundImage: `url(${features[featureIndex].bgImage})`,
+          backgroundPosition: 'center'
+        }}
+      >
+        {/* Content Wrapper */}
+        <div className="
+            relative z-10 w-full max-w-xl pb-12 
+            pl-10 pr-8 text-left 
+            lg:px-16 lg:text-center lg:pb-0
+        ">
+            
+            <h3 className="text-3xl lg:text-5xl font-extrabold text-[#2c3e50] mb-3 lg:mb-6 transition-all duration-500 tracking-tight">
+                {features[featureIndex].title}
+            </h3>
+            
+            <p className="
+                text-[#2c3e50] text-sm lg:text-xl leading-relaxed font-semibold transition-all duration-500 max-w-sm
+                mx-0 
+                lg:mx-auto
+            ">
+                {features[featureIndex].text}
+            </p>
+            
+            <div className="
+                flex gap-2.5 mt-6 
+                justify-start 
+                lg:mt-12 lg:justify-center
+            ">
+              {features.map((_, idx) => (
+                <button 
+                  key={idx} 
+                  onClick={() => setFeatureIndex(idx)}
+                  className={`h-2 lg:h-2.5 rounded-full transition-all duration-500 ease-in-out shadow-sm ${
+                    idx === featureIndex 
+                    ? `w-8 lg:w-12 bg-(--brand-blue)` 
+                    : 'w-2 lg:w-2.5 bg-gray-400 hover:bg-gray-600'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
             </div>
-          )}
+        </div>
+      </div>
 
-          <form className="flex flex-col w-full mt-5" onSubmit={handleSubmit} >
-            <label htmlFor="username" className="sr-only">
-              Username
-            </label>
-              <input type="text" id="username" className="input-field" placeholder="Enter your username" value={formData.username} onChange={handleChange} />
+      {/* ---------------- BOTTOM/RIGHT SECTION: FORM ---------------- */}
+      <div className="
+        w-full flex-1 bg-white 
+        rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] -mt-8 relative z-20 
+        lg:w-1/2 lg:h-full lg:rounded-none lg:shadow-none lg:mt-0 lg:flex lg:flex-col lg:justify-center
+        overflow-y-auto lg:overflow-hidden
+      ">
+        
+        {/* Inner Content */}
+        <div className="w-full max-w-md lg:max-w-xl mx-auto px-8 pt-10 pb-12 lg:p-16 lg:flex lg:flex-col lg:justify-center min-h-full">
+            
+            {/* Header */}
+            <div className="mb-8 lg:mb-12 text-left">
+              <h2 className="text-3xl lg:text-5xl font-extrabold text-[#2c3e50] mb-2 lg:mb-4 tracking-tight">Sign In</h2>
+              <p className="text-gray-500 text-base lg:text-xl">Welcome back! Please enter your details.</p>
+            </div>
 
-            <label htmlFor="password" className="sr-only">
-              Pasasword
-            </label>
-              <input type="password" id="password" className="input-field" placeholder="Enter your password" value={formData.password} onChange={handleChange} />
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2 animate-shake">
+                <span className="font-bold">!</span> {error}
+              </div>
+            )}
 
-            <div className="flex justify-between items-center w-full px-2 py-0 mb-6 text-[13px]">
-              <div className="flex items-center gap-2">
-                <input type="checkbox" id="remember-me" className="remember-me-checkbox"/>
-                <label htmlFor="remember-me" className="remember-me-lbl">Remember me</label>
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-8 flex-col justify-start">
+              
+              {/* Username */}
+              <div className="space-y-2 mt-12 lg:mt-2">
+                <label htmlFor="username" className="text-sm lg:text-base font-semibold text-gray-700 ml-1">Username</label>
+                <div className="relative group">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-(--brand-blue) transition-colors">
+                    <User size={22} />
+                  </div>
+                  <input 
+                    type="text" 
+                    id="username" 
+                    className="w-full h-[50px] lg:h-16 pl-14 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
+                    placeholder="Enter your username"
+                    value={formData.username} 
+                    onChange={handleChange} 
+                  />
+                </div>
               </div>
 
-                {/* Forgot password doesn't have interface yet remain # don't have Router*/}
-                <a href="#" className="text-cbrand-blue no-underline font-medium" >Forgot Password</a>
-            </div>
+              {/* Password */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center ml-1">
+                  <label htmlFor="password" className="text-sm lg:text-base font-semibold text-gray-700">Password</label>
+                </div>
+                <div className="relative group">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text---brand-blue) transition-colors">
+                    <Lock size={22} />
+                  </div>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    id="password" 
+                    className="w-full h-[50px] lg:h-16 pl-14 pr-14 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
+                    placeholder="••••••••"
+                    value={formData.password} 
+                    onChange={handleChange} 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                  </button>
+                </div>
+              </div>
 
-            <button type="submit" className="btn btn-primary w-full border-0 rounded-[27px] no-underline h-[52px] py-0 px-8 text-[16px] font-medium">
-              Sign in
-            </button>
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="remember-me" className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"/>
+                  <label htmlFor="remember-me" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
+                </div>
+                <a href="#" className="text-sm lg:text-base font-semibold text-(--brand-blue)]hover:text-blue-600 transition-colors">
+                  Forgot Password?
+                </a>
+              </div>
 
-            <div className="flex items-center w-full my-6 mx-0">
-              <div className="grow h-px bg-[#eee]"></div>
-              <p className="text-clight my-0 mx-4 text-center text-[14px]">or</p>
-              <div className="grow h-px bg-[#eee]"></div>
-            </div>
+              {/* Submit Button */}
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full h-[50px] lg:h-16 bg-(--brand-blue) hover:bg-[#2c8ac4] text-white rounded-2xl font-bold text-lg lg:text-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer"
+              >
+                {isLoading ? (
+                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
+            </form>
 
-            <div className="text-clight text-center text-[13px] mb-1.5">
-              Don't have an account?
-            </div>
-
-            <Link to="/register" className="btn btn-outline mt-4 h-[52px] py-0 px-8 rounded-[27px] text-[16px] font-medium">Sign Up</Link>
-
-          </form>
-
-
+            {/* Register Link */}
+            <p className="mt-8 lg:mt-10 text-center text-sm lg:text-lg text-gray-500">
+              New to LuMINI?{" "}
+              <Link to="/register" className="font-semibold text-(--brand-blue) hover:text-blue-700 transition-colors">
+                Create an Account
+              </Link>
+            </p>
+        </div>
       </div>
+
     </div>
-  </div>
-  )
+  );
 }

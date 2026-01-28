@@ -24,6 +24,9 @@ export default function GuardianRegistration() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
 
+  // Student Name //
+  const [studentInfo, setStudentInfo] = useState(null);
+
   // Form Inputs Placeholder //
   const [formData, setFormData] = useState({
     username: '',
@@ -44,7 +47,7 @@ export default function GuardianRegistration() {
   // Validation Function //
 
   const validateStep = (step) => {
-    const newErrors = validateRegistrationStep(step, formData, profileImage, 'guardian');
+    const newErrors = validateRegistrationStep(step, formData, profileImage, 'user');
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

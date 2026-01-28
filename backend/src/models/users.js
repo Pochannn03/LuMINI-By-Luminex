@@ -59,7 +59,7 @@ const UserSchema = new mongoose.Schema({
   // Timestamps & Validation
   is_archive: {
     type: String, 
-    default: false,
+    default: true,
     required: true,
   },
   created_at: {

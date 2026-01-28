@@ -7,6 +7,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [loadingCode, setLoadingCode] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -38,7 +39,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         try {
           setFormData(prev => ({ ...prev, studentId: "Loading..." }));
           
-          const response = await axios.get('http://localhost:3000/api/getStudentIdPreview', {
+          const response = await axios.get('http://localhost:3000/api/students/id', {
             withCredentials: true
           });
 
@@ -68,15 +69,25 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     }
   }, [formData.birthdate]);
 
-  const generateCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
-    let result = '';
+  const generateCode = async () => {
+    setLoadingCode(true);
+    try {
+      const response = await axios.get('http://localhost:3000/api/students/invitation', {
+        withCredentials: true
+      });
 
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+      // Update state with the code from the server
+      setFormData((prev) => ({ 
+        ...prev, 
+        invitationCode: response.data.code 
+      }));
+
+    } catch (error) {
+      console.error("Error generating code:", error);
+      alert("Failed to generate code. Please try again.");
+    } finally {
+      setLoadingCode(false);
     }
-
-    setFormData((prev) => ({ ...prev, invitationCode: result }));
   };
 
   const handleChange = (e) => {
@@ -115,7 +126,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/createStudent', data, {
+      const response = await axios.post('http://localhost:3000/api/students', data, {
         withCredentials: true
       });
 
@@ -252,8 +263,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                   <label className="text-cgray text-[13px] font-medium mb-0">Invitation Code</label>
                     <button type="button" onClick={generateCode} className="text-cprimary-blue bg-none flex items-center border-none cursor-pointer gap-1 text-[12px] font-semibold"
                     >
-                      <span className="material-symbols-outlined text-[16px]">refresh</span>
-                      Generate New
+                      <span className="material-symbols-outlined text-[16px]">{loadingCode ? 'progress_activity' : 'refresh'}</span>
+                      {loadingCode ? 'Loading...' : 'Generate New'}
                     </button>
                 </div>
                 <input 

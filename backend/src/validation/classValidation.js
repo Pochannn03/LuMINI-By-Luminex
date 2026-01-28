@@ -39,5 +39,9 @@ export const createClassValidationSchema = {
     notEmpty: { 
       errorMessage: "Assigned Teacher is required" 
     },
+    isInt: {
+      errorMessage: "Assigned Teacher ID must be a valid number" 
+    },
+    toInt: true 
   },
 };
