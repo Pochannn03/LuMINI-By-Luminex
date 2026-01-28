@@ -46,24 +46,29 @@
   --border-bottom-color: #f0f0f0;
 }
 
-* {
-  box-sizing: border-box;
+body {
+  margin: 0;
   font-family: "Poppins", sans-serif;
+  background-color: #f8fafc;
+  /* REMOVE the background-image from here! */
 }
 
-body{
-  font-family: "Poppins", sans-serif;
-  background: linear-gradient(
-      rgba(255, 255, 255, 0.82),
-      rgba(255, 255, 255, 0.92)
-    ),
+/* 1. The Top "Doodle" Background */
+.hero-bg {
+  background-color: #ffffff;
+  background-image: 
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.95)),
     url("assets/background-lumini.png");
   background-repeat: repeat;
-  background-position: center;
+  background-position: center top;
 }
 
-/* Custom Fonts/Text */ 
-
+/* 2. The Bottom "Tech Dot" Background */
+.tech-bg {
+  background-color: #f8fafc;
+  background-image: radial-gradient(#e2e8f0 1.5px, transparent 1.5px);
+  background-size: 24px 24px; /* Size of the grid */
+}
 h1 {
   color: var(--text-dark);
   font-size: 28px;
@@ -519,6 +524,31 @@ a:hover {
   clip-path: ellipse(90% 100% at 70% 100%);
   z-index: -1;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Global Page Entrance Animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-enter {
+  /* This ensures the animation runs once when the element appears */
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Optional: Utility delays if you want items to cascade in */
+.delay-100 { animation-delay: 0.1s; opacity: 0; animation-fill-mode: forwards;}
+.delay-200 { animation-delay: 0.2s; opacity: 0; animation-fill-mode: forwards;}
 
 /* Modals */
 

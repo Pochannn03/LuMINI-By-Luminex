@@ -1,39 +1,17 @@
-.after-word::after {
-  content: "Welcome Back";
-  display: block;
-  font-size: 15px;
-  color: var(--text-light);
-  font-weight: 400;
-  margin-top: 4px;
+/* Background gradient for the left panel */
+.bg-login-gradient {
+  background: linear-gradient(135deg, var(--brand-blue) 0%, var(--brand-dark) 100%);
 }
 
-.mobile-logo {
-  width: 120px; 
-  height: auto;
-  opacity: 0;
-  animation: floatIn 0.8s ease-out forwards;
+/* Error Shake Animation */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
 }
 
-.sign-in-form-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  
-  background-color: var(--white);
-  
-  position: relative;
-  width: 100%;
-  height: auto;
-  min-height: 70%; 
-  padding-top: 15px; 
-  
-  padding-bottom: 70px; 
-  
-  border-radius: 40px 40px 0 0;
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.08);
-  z-index: 10;
-  
-  animation: slideUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
 }
 
 .sign-in-form-wrapper {
@@ -128,3 +106,29 @@
 
 }
 
+
+/* Smooth auto-fill styles for Chrome to match design */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px #f9fafb inset !important;
+    -webkit-text-fill-color: #374151 !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Subtle Fade-In-Up Animation */
+@keyframes subtleFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px); /* Starts slightly lower */
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);    /* Glides gently into place */
+  }
+}
+
+.animate-elastic {
+  animation: subtleFadeIn 0.8s ease-out forwards;
+}
