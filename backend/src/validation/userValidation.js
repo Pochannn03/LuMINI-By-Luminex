@@ -27,6 +27,7 @@ export const createUserValidationSchema = {
   },
   invitation_code: {
     notEmpty: { errorMessage: "Code is required" },
+    optional: true,
     isLength: { options: { min: 6, max: 6 } }
   },
   email: {

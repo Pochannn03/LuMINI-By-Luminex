@@ -1,7 +1,9 @@
 import { Routes, Route } from 'react-router-dom';
+import RequireAuth from './components/RequireAuth';
+import Landing from './pages/Landing';
+import Unauthorized from './pages/Unauthorized';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
-import Landing from './pages/Landing';
 import GuardianRegistration from './pages/auth/GuardianRegistration'
 import ParentRegistration from './pages/auth/ParentRegistration';
 import TeacherRegistration from './pages/auth/TeacherRegistration';
@@ -17,8 +19,9 @@ export default function App() {
     <div>
       <Routes>
         
-        {/* Landing */}
+        {/* Landing && Unauthorized */}
         <Route path="/" element={<Landing />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
@@ -28,15 +31,21 @@ export default function App() {
         <Route path="/register/teacher" element={<TeacherRegistration />} />
 
         {/* Super Admin Routes */}
-        <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
-        <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
+        <Route element={<RequireAuth allowedRoles={['superadmin']} />}>
+          <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
+          <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
+        </Route>
 
         {/* Admin (Teacher) Routes */}
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/attendance" element={<AdminAttendance />} />
+        <Route element={<RequireAuth allowedRoles={['admin']} />}>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/attendance" element={<AdminAttendance />} />
+        </Route>
 
         {/* User (Parent/Guardian) Routes */}
-        <Route path="/dashboard" element={<ParentDashboard />} />
+        <Route element={<RequireAuth allowedRoles={['user']} />}>
+          <Route path="/dashboard" element={<ParentDashboard />} />
+        </Route>
 
       </Routes>
     </div>

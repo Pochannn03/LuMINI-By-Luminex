@@ -28,7 +28,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/api/verify-invitation', async (req, res) => {
+// PARENT REGISTRATION 
+// STUDENT CODE VERIFICATION (PHASE I)
+router.post('/api/verify-invitation',
+  isAuthenticated,
+  hasRole('user'),
+  async (req, res) => {
   const { code } = req.body;
 
   try {
@@ -53,7 +58,10 @@ router.post('/api/verify-invitation', async (req, res) => {
   }
 });
 
-router.post('/api/parent-register', 
+// PARENT REGISTRATION (PHASE II)
+router.post('/api/parent-register',
+  isAuthenticated,
+  hasRole('user'),
   upload.single('profile_photo'),
   ...checkSchema(createUserValidationSchema), 
   async (req, res) => {
@@ -111,7 +119,12 @@ router.post('/api/parent-register',
   }
 );
 
-router.get('/api/user-checking', async (req, res) => {
+// Checking for User Information under the Student Schema
+
+router.get('/api/user-checking',
+  isAuthenticated,
+  hasRole('user'),
+  async (req, res) => {
   try {
     // Populate the VIRTUAL name 'user_details', not the field name 'user_id'
     const studentWithParent = await Student.findOne({ student_id: "2026-0001" })

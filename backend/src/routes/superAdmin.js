@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
+import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { createUserValidationSchema } from "../validation/userValidation.js";
 import { createStudentValidationSchema } from '../validation/studentValidation.js';
 import { createClassValidationSchema } from '../validation/classValidation.js';
@@ -41,6 +42,8 @@ router.post('/api/superadminDashboard',
 
 // CREATE STUDENT ROUTER
 router.post('/api/createStudent', 
+  isAuthenticated,
+  hasRole('superadmin'),
   upload.single('profile_photo'),
   ...checkSchema(createStudentValidationSchema), 
   async (req, res) => {
@@ -82,7 +85,10 @@ router.post('/api/createStudent',
 );
 
 // Getting the Current Student ID for Add Student Modal
-router.get('/api/getStudentIdPreview', async (req, res) => {
+router.get('/api/getStudentIdPreview',
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
     const counterName = `student_id_${currentYear}`;
@@ -107,6 +113,8 @@ router.get('/api/getStudentIdPreview', async (req, res) => {
 // CREATE TEACHER
 
 router.post('/api/createTeacher',
+  isAuthenticated,
+  hasRole('superadmin'),
   upload.single('profile_photo'),
   ...checkSchema(createUserValidationSchema),
   async (req, res) => {
@@ -143,7 +151,10 @@ router.post('/api/createTeacher',
 
 // Get Teacher's Data to Populate the Select Option
 
-router.get('/api/getTeachers', async (req, res) => {
+router.get('/api/getTeachers',
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
 
   try{
     const teachers = await User.find({ relationship: 'Teacher' })
@@ -162,6 +173,8 @@ router.get('/api/getTeachers', async (req, res) => {
 
 // ADD CLASS
 router.post('/api/class-manage/add-class',
+  isAuthenticated,
+  hasRole('superadmin'),
   ...checkSchema(createClassValidationSchema),
   async (req, res) => {
     const result = validationResult(req);
