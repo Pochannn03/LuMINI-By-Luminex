@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { createUserValidationSchema } from '../validation/userValidation.js'
-import { query, validationResult, body, matchedData, checkSchema} from "express-validator";
+import { validationResult, matchedData, checkSchema} from "express-validator";
 import { User } from "../models/users.js";
 import { hashPassword } from "../utils/passwordUtils.js";
 import multer from "multer";

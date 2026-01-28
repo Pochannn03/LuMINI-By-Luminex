@@ -7,15 +7,9 @@ import { validateRegistrationStep } from '../../utils/validation';
 
 export default function GuardianRegistration() {
   const navigate = useNavigate();
-
-  // Phase & Steps States //
-  const [phase, setPhase] = useState('invitation');
   const [currentStep, setCurrentStep] = useState(0);
-  const [opacity, setOpacity] = useState(1);
-  const [code, setCode] = useState(Array(6).fill(""));
   
   // Refs & State for Errors //
-  const inputRefs = useRef([]); 
   const [errors, setErrors] = useState({});
   
   // Profile Image State //
@@ -43,7 +37,7 @@ export default function GuardianRegistration() {
   // Validation Function //
 
   const validateStep = (step) => {
-    const newErrors = validateRegistrationStep(step, formData, profileImage, 'teacher');
+    const newErrors = validateRegistrationStep(step, formData, profileImage, 'admin');
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -88,36 +82,6 @@ export default function GuardianRegistration() {
     }
   };
   
-  // 6 Digit Code Handler //
-  const handleCodeChange = (e, index) => {
-    const value = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode); 
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1].focus();
-    }
-  };
-
-  const handleCodeKeyDown = (e, index) => {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      inputRefs.current[index - 1].focus();
-    }
-  };
-
-  const handleSubmitCode = () => {
-    if (code.join("").length === 6) {
-      setOpacity(0); // Fade out
-      setTimeout(() => {
-        setPhase('registration'); // Switch View
-        setTimeout(() => setOpacity(1), 50); // Fade in
-      }, 300);
-    } else {
-      alert("Please enter a valid 6-character code.");
-    }
-  };
-
   // Handle Submit Form for Registration //
   const handleSubmitForm = async () => {
     if (!validateStep(2)) return;
@@ -156,17 +120,17 @@ export default function GuardianRegistration() {
   };
   
   // Form Button Logic for Steps //
-const handleNext = () => {
-  const isValid = validateStep(currentStep);
+  const handleNext = () => {
+    const isValid = validateStep(currentStep);
 
-  if (isValid) {
-    if (currentStep < 2) {
-      setCurrentStep((prev) => prev + 1);
-    } else if (currentStep === 2) {
-      handleSubmitForm();
+    if (isValid) {
+      if (currentStep < 2) {
+        setCurrentStep((prev) => prev + 1);
+      } else if (currentStep === 2) {
+        handleSubmitForm();
+      }
     }
-  }
-};
+  };
 
   const handleBack = () => {
     if (currentStep > 0) {
@@ -184,51 +148,8 @@ const handleNext = () => {
 
   return (
     <div className="wave min-h-screen w-full flex justify-center items-center p-5">
-      
-      {phase === 'invitation' && (
-        <div className='main-container flex flex-col items-start bg-white p-10 rounded-3xl w-[90%] max-w-[500px] mx-auto my-10 relative z-10 opacity-0 sm:p-[25px]' 
-        style={{ opacity: opacity }}>
 
-          <h1 className='mb-2.5 text-left'>
-            Enter Invitation Code
-          </h1>
-          <p className='text-clight text-left text-[14px]'>
-            Enter the invitation code provided by your child's teacher to create your account.
-          </p>
-
-          <div className='code-inputs-wrapper flex justify-between gap-2 w-full my-[30px] mb-0 sm:gap-[5px]'>
-            {code.map((data, index) => (
-              <input
-                key={index}
-                ref={el => inputRefs.current[index] = el}
-                type="text"
-                maxLength="1"
-                className="code-box"
-                value={data}
-                onChange={e => handleCodeChange(e, index)}
-                onKeyDown={e => handleCodeKeyDown(e, index)} 
-                onFocus={e => e.target.select()}
-              />
-            ))}
-          </div>
-
-          <button type='submit' className='btn btn-primary button flex flex-none justify-center items-center w-full h-12 border-none mt-7 rounded-[30px]' id='submitCodeBtn' onClick={handleSubmitCode}>
-            Submit
-          </button>
-
-          <div className='flex flex-row justify-center items-center mt-[15px] border-none p-0 gap-1.5 w-full'>
-            <span className='text-clight text-[14px]'>
-              Already have an account?
-            </span>
-            <Link to='/login' className='login-link whitespace-nowrap'>Sign In</Link>
-          </div>
-        </div>
-        )
-      }
-
-      {phase === 'registration' && (
-        <div className='main-container flex flex-col items-start bg-white p-10 rounded-3xl w-[90%] max-w-[500px] mx-auto my-10 relative z-10 opacity-0 sm:p-[25px]'
-        style={{ opacity: opacity }}>
+        <div className='main-container flex flex-col items-start bg-white p-10 rounded-3xl w-[90%] max-w-[500px] mx-auto my-10 relative z-10 opacity-0 sm:p-[25px]'>
           <h1 className='text-left w-full mb-2'>
             Create Account
           </h1>
@@ -501,7 +422,6 @@ const handleNext = () => {
           
         </div>
         )
-      }
 
     </div>
   );

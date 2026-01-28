@@ -21,11 +21,13 @@ export default function FormInputRegistration({
     <div className='flex flex-col w-full mb-1'>
     
       {/* The Label */}
-      <label htmlFor={name} className='text-cdark text-[13px] font-semibold mb-2'>
-        {label}
-        {required && <span className='text-cbrand-blue ml-1 text-[12px]'>*</span>}
-        {readOnly && <span className='text-cbrand-blue ml-1 text-[12px]'>(autofilled)</span>}
-      </label>
+      {label && (
+        <label htmlFor={name} className='text-cdark text-[13px] font-semibold mb-2'>
+          {label}
+          {required && <span className='text-cbrand-blue ml-1 text-[12px]'>*</span>}
+          {readOnly && <span className='text-cbrand-blue ml-1 text-[12px]'>(autofilled)</span>}
+        </label>
+      )}
 
       {/* The Input Box */}
       <input

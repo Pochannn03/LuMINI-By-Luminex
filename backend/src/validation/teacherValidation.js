@@ -1,4 +1,4 @@
-export const createUserValidationSchema = {
+export const createTeacherValidationSchema = {
   username: {
     isLength: {
       options: {
@@ -24,11 +24,6 @@ export const createUserValidationSchema = {
     notEmpty: {
       errorMessage: "Password cannot be empty",
     }
-  },
-  invitation_code: {
-    notEmpty: { errorMessage: "Code is required" },
-    optional: true,
-    isLength: { options: { min: 6, max: 6 } }
   },
   email: {
     notEmpty: {

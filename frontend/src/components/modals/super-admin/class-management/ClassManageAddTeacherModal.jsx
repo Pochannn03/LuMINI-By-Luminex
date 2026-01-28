@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import { validateRegistrationStep } from '../../../../utils/teacherModalValidation';
+import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
 
 export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
   // HOOKS/STATES
+  const [errors, setErrors] = useState({});
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -23,10 +26,42 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
     zipCode: null,
   })
 
+  // VALIDATION
+  const validateStep = () => {
+    const newErrors = validateRegistrationStep(formData, profileImage);
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // ONCLOSE ACTION
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      password: '',
+      firstName: '', 
+      lastName: '',     
+      email: '',
+      phoneNumber: '',  
+      relationship: 'Teacher', 
+      houseUnit: '',
+      street: '',
+      barangay: '',
+      city: '',
+      zipCode: '',
+    });
+    setProfileImage(null);
+    setPreviewUrl(null);
+    setErrors({});
+  };
+
+
   // HANDLERS
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleImageChange = (e) => {
@@ -35,15 +70,20 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
       setProfileImage(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
+
+    if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+  };
+
+  const handleCloseModal = () => {
+    resetForm();
+    onClose();
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
 
-    // Will have a Custom Validation soon
-    if (!formData.firstName || !formData.lastName || !formData.username || !formData.password || !formData.email || !formData.phoneNumber) {
-      alert("Please fill in all required fields and generate a code.");
-      return;
+    if (!validateStep()) {
+      return; 
     }
 
     setLoading(true);
@@ -68,10 +108,11 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
       });
 
       alert("Teacher created successfully!");
-      onClose();
+      handleCloseModal();
 
       const resData = response.data;
       console.log("Success:", resData);
+      
 
     } catch (error) {
       // 5. Check the Console for the REAL error
@@ -124,7 +165,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                   accept="image/*"
                   hidden
                   onChange={handleImageChange} 
-                  />
+                />
               
                 <div className="custom-file-upload cursor-pointer" onClick={() => document.getElementById('addTeacherPhoto').click()}>
                   {!previewUrl ? (
@@ -150,35 +191,50 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
               <div className="flex flex-col gap-2">
                 <label htmlFor="" className="text-cgray text-[13px] font-medium">Full Name</label>
                 <div className="flex gap-2.5">
-                  <input 
-                    type="text" 
+                  <FormInputRegistration
                     name="firstName"
-                    onChange={handleChange} 
-                    placeholder="First Name" 
-                    className="form-input-modal" />
-                  <input 
-                    type="text" 
+                    type="text"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    error={errors.firstName}
+                    required={true}
+                    placeholder="First Name"
+                    className="form-input-modal"
+                  />
+                  <FormInputRegistration
                     name="lastName"
-                    onChange={handleChange} 
-                    placeholder="Last Name" 
-                    className="form-input-modal" />
+                    type="text"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    error={errors.lastName}
+                    required={true}
+                    placeholder="Last Name"
+                  />
                 </div>
               </div>
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="" className="text-cgray text-[13px] font-medium">Contact Info</label>
-                <input 
-                  type="email" 
+                <FormInputRegistration
                   name="email"
-                  onChange={handleChange} 
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  error={errors.email}
+                  required={true}
                   className="form-input-modal" 
-                  placeholder="Email"/>
-                <input 
-                  type="text" 
+                  placeholder="Johndoe@gmail.com"
+                />
+                <FormInputRegistration
                   name="phoneNumber"
-                  onChange={handleChange} 
-                  className="form-input-modal mt-2" 
-                  placeholder="Phone Number" />
+                  type="text"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  error={errors.phoneNumber}
+                  required={true}
+                  className="form-input-modal" 
+                  placeholder="09*********"
+                />
               </div>
 
               <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
@@ -188,27 +244,35 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="" className="text-cgray text-[13px] font-medium">Username</label>
-                <input 
-                  type="text" 
+                <FormInputRegistration
                   name="username"
-                  onChange={handleChange} 
+                  type="text"
+                  value={formData.username}
+                  onChange={handleChange}
+                  error={errors.username}
+                  required={true}
                   className="form-input-modal" 
-                  placeholder="e.g. Teacher_Moka"/>
+                  placeholder="Username"
+                />
               </div>
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="" className="text-cgray text-[13px] font-medium">Password</label>
-                <input 
-                  type="password" 
+                <FormInputRegistration
                   name="password"
+                  type="password"
+                  value={formData.password}
                   onChange={handleChange}
-                  className="form-input-modal"
-                  placeholder="Initial Password"/>
+                  error={errors.password}
+                  required={true}
+                  className="form-input-modal" 
+                  placeholder="Password"
+                />
               </div>
             </div>
 
             <div className="modal-footer">
-              <button className="btn-cancel" onClick={onClose}>Cancel</button>
+              <button className="btn-cancel" onClick={handleCloseModal}>Cancel</button>
               <button className="btn-save" onClick={handleSubmit} disabled={loading}>
                 {loading ? "Saving..." : "Register Teacher"}
               </button>
