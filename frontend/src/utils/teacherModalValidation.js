@@ -1,24 +1,39 @@
+import { 
+  checkUsername, 
+  checkPassword, 
+  checkName, 
+  checkEmail, 
+  checkPhone,
+  checkFile
+} from './validationRules';
+
+// We keep the function name 'validateRegistrationStep' because that is what your Modal imports
 export const validateRegistrationStep = (formData, profileImage) => {
   const errors = {};
 
-  const validateAccount = () => {
-    if (!formData.username) errors.username = "Username is required";
-    if (!formData.password) errors.password = "Password is required";
-    else if (formData.password.length < 8) errors.password = "Password must be at least 8 characters";
-  };
+  // 1. Account Credentials
+  const usernameError = checkUsername(formData.username);
+  if (usernameError) errors.username = usernameError;
 
-  const validatePersonalInfo = () => {
-    if (!formData.firstName) errors.firstName = "First name is required";
-    if (!formData.lastName) errors.lastName = "Last name is required";
-    if (!formData.email) errors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = "Invalid email format";
-    if (!formData.phoneNumber) errors.phoneNumber = "Phone number is required";
+  const passwordError = checkPassword(formData.password);
+  if (passwordError) errors.password = passwordError;
 
-    if (!profileImage) errors.profileImage = "Profile photo is required";
-  };
+  // 2. Personal Information
+  const firstNameError = checkName(formData.firstName, "First name");
+  if (firstNameError) errors.firstName = firstNameError;
 
-  validateAccount();
-  validatePersonalInfo();
+  const lastNameError = checkName(formData.lastName, "Last name");
+  if (lastNameError) errors.lastName = lastNameError;
+
+  const emailError = checkEmail(formData.email);
+  if (emailError) errors.email = emailError;
+
+  const phoneError = checkPhone(formData.phoneNumber);
+  if (phoneError) errors.phoneNumber = phoneError;
+
+  // 3. Profile Image
+  const imageError = checkFile(profileImage, "Profile photo");
+  if (imageError) errors.profileImage = imageError;
 
   return errors;
 };
