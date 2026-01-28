@@ -70,3 +70,11 @@ export const checkDate = (date, label = "Date") => {
 
   return null;
 };
+
+export const checkNumber = (value, label) => {
+  
+  if (!value) return `${label} is required`;
+  if (isNaN(value) || Number(value) <= 0) return `${label} must be a valid number`;
+
+  return null;
+};

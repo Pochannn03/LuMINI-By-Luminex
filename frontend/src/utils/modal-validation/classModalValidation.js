@@ -1,27 +1,28 @@
-import { 
-  checkName, 
-  checkDate,
-  checkFile
-} from '../validationRules';
+// utils/modal-validation/classModalValidation.js
+import { checkName, checkAddressField, checkNumber } from '../validationRules';
 
-// We keep the function name 'validateRegistrationStep' because that is what your Modal imports
-export const validateClassRegistrationStep = (formData, profileImage) => {
+export const validateClassRegistrationStep = (formData) => {
   const errors = {};
 
-  // 1. Personal Information
-  const firstNameError = checkName(formData.firstName, "First name");
-  if (firstNameError) errors.firstName = firstNameError;
+  // 1. Section Name
+  const nameError = checkName(formData.sectionName, "Section Name");
+  if (nameError) errors.sectionName = nameError;
 
-  const lastNameError = checkName(formData.lastName, "Last name");
-  if (lastNameError) errors.lastName = lastNameError;
+  // 2. Class Schedule (Dropdown)
+  // We use checkAddressField because it checks if the value is not empty/null
+  const scheduleError = checkAddressField(formData.classSchedule, "Class Schedule");
+  if (scheduleError) errors.classSchedule = scheduleError;
 
-  // 2. Date of Birth
-  const dateError = checkDate(formData.birthdate, "Birthdate");
-  if (dateError) errors.birthdate = dateError;
+  // 3. Max Capacity (Number)
+  const capacityError = checkNumber(formData.maxCapacity, "Max Capacity");
+  if (capacityError) errors.maxCapacity = capacityError;
 
-  // 3. Profile Image
-  const imageError = checkFile(profileImage, "Profile photo");
-  if (imageError) errors.profileImage = imageError;
+  // 4. Assigned Teacher (Dropdown)
+  const teacherError = checkAddressField(formData.assignedTeacher, "Teacher assignment");
+  if (teacherError) errors.assignedTeacher = teacherError;
+
+  // Description is usually optional, so we skip it. 
+  // If you want it required, add: checkAddressField(formData.description, "Description")
 
   return errors;
 };
