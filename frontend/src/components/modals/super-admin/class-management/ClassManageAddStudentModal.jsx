@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { validateClassRegistrationStep } from '../../../../utils/modal-validation/classModalValidation';
+import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
@@ -8,6 +10,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingCode, setLoadingCode] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,6 +20,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     invitationCode: '',
   })
 
+  // USE EFFECTS
   useEffect(() => {
     if (!isOpen) {
       setFormData({
@@ -93,22 +97,58 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
+  // HELPERS REMOVING THE DATAS AFTER USER/CLOSED MODAL
+  const resetForm = () => {
+    setFormData({
+      firstName: '',
+      lastName: '',
+      birthdate: '',
+      age: '',
+      studentId: 'Generating...', 
+      invitationCode: '',
+    });
+    setProfileImage(null);
+    setPreviewUrl(null);
+    setErrors({});
+  };
+
+  const handleCloseModal = () => {
+    resetForm();
+    onClose();
+  };
+
+  // VALIDATION
+  const validateStep = () => {
+    const newErrors = validateClassRegistrationStep(formData, profileImage);
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // HANDLERS
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       setProfileImage(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
+
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
 
-    // Will have a Custom Validation soon
-    if (!formData.firstName || !formData.lastName || !formData.birthdate || !formData.invitationCode) {
-      alert("Please fill in all required fields and generate a code.");
+    if (!validateStep()) {
+      return;
+    }
+
+    if (!formData.invitationCode) {
+      alert("Please generate an invitation code.");
       return;
     }
 
@@ -131,7 +171,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       });
 
       alert("Student created successfully!");
-      onClose();
+      handleCloseModal();
 
       const resData = response.data;
       console.log("Success:", resData);
@@ -141,7 +181,6 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       console.error("Crash Details:", error);
       
       if (error.response) {
-        // Server responded with 4xx or 5xx
         const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create student";
         
         if (error.response.data.errors) {
@@ -182,7 +221,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                   id="addStudentPhoto" 
                   accept="image/*" 
                   hidden 
-                  onChange={handleImageChange} // Connected handler
+                  onChange={handleImageChange}
                 />
                 <div className="custom-file-upload cursor-pointer" onClick={() => document.getElementById('addStudentPhoto').click()}>
                   {!previewUrl ? (
@@ -208,18 +247,20 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
               <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-medium">Full Name</label>
                   <div className="flex gap-2.5">
-                    <input 
-                      type="text" 
+                    <FormInputRegistration 
                       name="firstName" 
+                      value={formData.firstName}
                       onChange={handleChange} 
                       placeholder="First Name" 
+                      error={errors.firstName} // Pass Error
                       className="form-input-modal"
                     />
-                    <input 
-                      type="text" 
+                    <FormInputRegistration 
                       name="lastName" 
+                      value={formData.lastName}
                       onChange={handleChange} 
                       placeholder="Last Name" 
+                      error={errors.lastName} // Pass Error
                       className="form-input-modal"
                     />
                   </div>
@@ -228,11 +269,18 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
               <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-medium">Birthdate & Age</label>
                   <div className="flex gap-2.5">
-                    <input 
-                      type="date"
-                      name="birthdate"
-                      onChange={handleChange} 
-                      className="form-input-modal flex flex-2" />
+                    <div className="flex flex-col">
+                      <input 
+                        type="date"
+                        name="birthdate"
+                        value={formData.birthdate}
+                        onChange={handleChange} 
+                        className={`form-input-modal w-full ${errors.birthdate ? 'border-red-500! bg-red-50' : ''}`} 
+                      />
+                      {errors.birthdate && (
+                         <span className="text-red-500 text-[11px] ml-1 mt-1">{errors.birthdate}</span>
+                      )}
+                    </div>
                     <input 
                       type="text"
                       name="age"
@@ -279,7 +327,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-cancel" id="closeAddStudentBtn" onClick={onClose}>Cancel</button>
+              <button className="btn-cancel" onClick={handleCloseModal}>Cancel</button>
               <button className="btn-save" onClick={handleSubmit} disabled={loading}>
                 {loading ? "Saving..." : "Register Student"}
               </button>

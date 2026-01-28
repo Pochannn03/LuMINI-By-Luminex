@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from 'axios';
 import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
+import FormInputRegistration from '../../../FormInputRegistration';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose }) {

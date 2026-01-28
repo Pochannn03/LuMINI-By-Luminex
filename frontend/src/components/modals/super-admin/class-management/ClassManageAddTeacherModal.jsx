@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
-import { validateRegistrationStep } from '../../../../utils/teacherModalValidation';
+import { validateRegistrationStep } from '../../../../utils/modal-validation/teacherModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
@@ -158,7 +158,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
 
             <div className="modal-body">
               <div className="flex flex-col gap-2">
-                <label htmlFor="addTeacherPhoto" className="text-cgray text-[13px] font-medium">Profile Photo</label>
+                <label className="text-cgray text-[13px] font-medium">Profile Photo</label>
                 <input 
                   type="file" 
                   id="addTeacherPhoto" 
