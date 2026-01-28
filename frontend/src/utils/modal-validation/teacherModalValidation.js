@@ -5,7 +5,7 @@ import {
   checkEmail, 
   checkPhone,
   checkFile
-} from './validationRules';
+} from '../validationRules';
 
 // We keep the function name 'validateRegistrationStep' because that is what your Modal imports
 export const validateRegistrationStep = (formData, profileImage) => {

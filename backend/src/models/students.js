@@ -49,6 +49,10 @@ const StudentSchema = new mongoose.Schema({
     type: Number, // FIX: Changed 'int' to 'Number'
     required: false, // Calculated automatically, so optional in schema
   },
+  description: {
+    type: String, 
+    required: false,
+  },
   profile_picture: {
     type: String,
     required: false, // Make optional in case they don't upload one
