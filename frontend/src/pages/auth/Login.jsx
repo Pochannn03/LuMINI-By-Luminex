@@ -1,26 +1,23 @@
 import React, { useState, useEffect } from "react";
-import React, { useState, useEffect } from "react";
+import { useAuth } from '../../context/AuthProvider';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff } from 'lucide-react'; 
-import '../../styles/login.css';
-
+import axios from "axios";
 import secureBgImage from '../../assets/Secure.jpg'; 
 import fastBgImage from '../../assets/CheckIns.jpg';  
 import updatesBgImage from '../../assets/Updates.jpg';
+import '../../styles/auth/login.css'; 
 
 export default function Login() {
-  const [error, setError] = useState('');
-  const navigate = useNavigate(); 
   const { login, user, loading } = useAuth();
-  const [formData, setFormData] = useState({
-    username: '',
-    password: ''
-  });
-  
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate(); 
+    const [formData, setFormData] = useState({
+    username: '',
+    password: ''
+  });
 
   // --- SLIDER STATE & LOGIC ---
   const [featureIndex, setFeatureIndex] = useState(0);
@@ -97,16 +94,11 @@ export default function Login() {
         } else {
           navigate('/dashboard'); 
         }
-        
+
     } catch (err) {
         if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message); 
-      } else {
-        if (response.status === 401) {
-          setError("Invalid Credentials");
-        } else {
-          setError(data.message || 'Login failed');
-        }
+        setIsLoading(false)
       }
     }
   };
@@ -120,7 +112,7 @@ export default function Login() {
           w-full h-[40vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out
           justify-start 
           lg:h-full lg:w-1/2 lg:justify-center
-          bg-[length:180%] lg:bg-cover
+          bg-size-[180%] lg:bg-cover
         "
         style={{
           backgroundImage: `url(${features[featureIndex].bgImage})`,
@@ -157,7 +149,7 @@ export default function Login() {
                   onClick={() => setFeatureIndex(idx)}
                   className={`h-2 lg:h-2.5 rounded-full transition-all duration-500 ease-in-out shadow-sm ${
                     idx === featureIndex 
-                    ? `w-8 lg:w-12 bg-[var(--brand-blue)]` 
+                    ? `w-8 lg:w-12 bg-(--brand-blue)` 
                     : 'w-2 lg:w-2.5 bg-gray-400 hover:bg-gray-600'
                   }`}
                   aria-label={`Go to slide ${idx + 1}`}
@@ -195,16 +187,16 @@ export default function Login() {
             <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-8 flex-col justify-start">
               
               {/* Username */}
-              <div className="space-y-2">
+              <div className="space-y-2 mt-12 lg:mt-2">
                 <label htmlFor="username" className="text-sm lg:text-base font-semibold text-gray-700 ml-1">Username</label>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--brand-blue)] transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-(--brand-blue) transition-colors">
                     <User size={22} />
                   </div>
                   <input 
                     type="text" 
                     id="username" 
-                    className="w-full h-[50px] lg:h-[64px] pl-14 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
+                    className="w-full h-[50px] lg:h-16 pl-14 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
                     placeholder="Enter your username"
                     value={formData.username} 
                     onChange={handleChange} 
@@ -218,13 +210,13 @@ export default function Login() {
                   <label htmlFor="password" className="text-sm lg:text-base font-semibold text-gray-700">Password</label>
                 </div>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-[var(--brand-blue)] transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text---brand-blue) transition-colors">
                     <Lock size={22} />
                   </div>
                   <input 
                     type={showPassword ? "text" : "password"} 
                     id="password" 
-                    className="w-full h-[50px] lg:h-[64px] pl-14 pr-14 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
+                    className="w-full h-[50px] lg:h-16 pl-14 pr-14 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
                     placeholder="••••••••"
                     value={formData.password} 
                     onChange={handleChange} 
@@ -242,10 +234,10 @@ export default function Login() {
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="remember-me" className="w-4 h-4 lg:w-5 lg:h-5 rounded text-[var(--brand-blue)] focus:ring-[var(--brand-blue)] border-gray-300"/>
+                  <input type="checkbox" id="remember-me" className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"/>
                   <label htmlFor="remember-me" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
                 </div>
-                <a href="#" className="text-sm lg:text-base font-semibold text-[var(--brand-blue)] hover:text-blue-600 transition-colors">
+                <a href="#" className="text-sm lg:text-base font-semibold text-(--brand-blue)]hover:text-blue-600 transition-colors">
                   Forgot Password?
                 </a>
               </div>
@@ -254,7 +246,7 @@ export default function Login() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full h-[50px] lg:h-[64px] bg-[var(--brand-blue)] hover:bg-[#2c8ac4] text-white rounded-2xl font-bold text-lg lg:text-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4"
+                className="w-full h-[50px] lg:h-16 bg-(--brand-blue) hover:bg-[#2c8ac4] text-white rounded-2xl font-bold text-lg lg:text-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer"
               >
                 {isLoading ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -267,7 +259,7 @@ export default function Login() {
             {/* Register Link */}
             <p className="mt-8 lg:mt-10 text-center text-sm lg:text-lg text-gray-500">
               New to LuMINI?{" "}
-              <Link to="/register" className="font-semibold text-[var(--brand-blue)] hover:text-blue-700 transition-colors">
+              <Link to="/register" className="font-semibold text-(--brand-blue) hover:text-blue-700 transition-colors">
                 Create an Account
               </Link>
             </p>

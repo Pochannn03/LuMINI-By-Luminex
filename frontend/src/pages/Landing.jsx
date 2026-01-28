@@ -34,14 +34,14 @@ export default function Landing() {
             <a href="#features" className="text-sm font-semibold text-clight hover:text-cbrand-blue transition-colors">Features</a>
             <a href="#about" className="text-sm font-semibold text-clight hover:text-cbrand-blue transition-colors">About</a>
             <a href="#contact" className="text-sm font-semibold text-clight hover:text-cbrand-blue transition-colors">Contact</a>
-            <Link to="/login" className="ml-4 px-5 py-2 rounded-full bg-white/50 border border-blue-100 text-cbrand-blue font-bold text-sm hover:bg-blue-50 transition-colors">
+            <Link to="/login" className="btn btn-primary ml-4 px-5 py-2 rounded-full bg-white/50 border border-blue-100 text-cbrand-blue font-bold text-sm hover:bg-blue-50 transition-colors">
               Sign In
             </Link>
           </div>
 
           {/* 3. MOBILE MENU BUTTON (Visible only on mobile) */}
           <button 
-            className="md:hidden text-cdark p-2"
+            className="md:hidden text-cdark p-2 cursor-pointer"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X /> : <Menu />}
@@ -75,7 +75,7 @@ export default function Landing() {
             </a>
             <Link 
               to="/login" 
-              className="mt-2 w-full btn btn-primary py-3 rounded-xl text-center"
+              className="btn btn-primary mt-2 w-full py-3 rounded-xl text-center block"
               onClick={() => setIsMenuOpen(false)}
             >
               Sign In
