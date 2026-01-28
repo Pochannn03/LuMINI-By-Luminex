@@ -10,6 +10,11 @@ const SectionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  class_schedule: {
+  type: String,
+  required: true, 
+  default: "Not Specified"
+  },
   max_capacity: {
     type: Number,
     required: true,

@@ -14,6 +14,14 @@ export const createClassValidationSchema = {
       errorMessage: "Class name must be in characters"  
     },
   },
+  class_schedule: {
+    optional: { 
+      options: { 
+        nullable: true, 
+        checkFalsy: true 
+      } 
+    },
+  },
   max_capacity: {
     notEmpty: {
       errorMessage: "Max Number cannot be empty",
