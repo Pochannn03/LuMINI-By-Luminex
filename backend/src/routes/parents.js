@@ -30,9 +30,7 @@ const upload = multer({ storage: storage });
 
 // PARENT REGISTRATION 
 // STUDENT CODE VERIFICATION (PHASE I)
-router.post('/api/verify-invitation',
-  isAuthenticated,
-  hasRole('user'),
+router.post('/api/invitations/validate',
   async (req, res) => {
   const { code } = req.body;
 
@@ -59,9 +57,7 @@ router.post('/api/verify-invitation',
 });
 
 // PARENT REGISTRATION (PHASE II)
-router.post('/api/parent-register',
-  isAuthenticated,
-  hasRole('user'),
+router.post('/api/parents',
   upload.single('profile_photo'),
   ...checkSchema(createUserValidationSchema), 
   async (req, res) => {
@@ -122,8 +118,6 @@ router.post('/api/parent-register',
 // Checking for User Information under the Student Schema
 
 router.get('/api/user-checking',
-  isAuthenticated,
-  hasRole('user'),
   async (req, res) => {
   try {
     // Populate the VIRTUAL name 'user_details', not the field name 'user_id'

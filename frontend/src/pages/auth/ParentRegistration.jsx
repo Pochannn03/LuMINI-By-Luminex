@@ -114,7 +114,7 @@ export default function ParentRegistration() {
   const invitationCode = code.join("");
     if (invitationCode.length === 6) {
       try {
-        const response = await axios.post('http://localhost:3000/api/verify-invitation', { 
+        const response = await axios.post('http://localhost:3000/api/invitations/validate', { 
           code: invitationCode 
         });
 
@@ -158,7 +158,7 @@ export default function ParentRegistration() {
     console.log("Sending Form Data..."); 
 
     try {
-      await axios.post('http://localhost:3000/api/parent-register', data, {
+      await axios.post('http://localhost:3000/api/parents', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       navigate('/login');

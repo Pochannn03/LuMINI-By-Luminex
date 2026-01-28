@@ -38,7 +38,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         try {
           setFormData(prev => ({ ...prev, studentId: "Loading..." }));
           
-          const response = await axios.get('http://localhost:3000/api/getStudentIdPreview', {
+          const response = await axios.get('http://localhost:3000/api/students', {
             withCredentials: true
           });
 
@@ -115,7 +115,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/createStudent', data, {
+      const response = await axios.post('http://localhost:3000/api/students', data, {
         withCredentials: true
       });
 

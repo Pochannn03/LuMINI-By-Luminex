@@ -20,7 +20,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
     if(isOpen){
       const fetchTeachers = async () => {
         try {
-          const response = await axios.get('http://localhost:3000/api/getTeachers', {
+          const response = await axios.get('http://localhost:3000/api/teachers', {
             withCredentials: true
           });
 
@@ -52,7 +52,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
       };
 
       try {
-      const response = await axios.post('http://localhost:3000/api/class-manage/add-class', payload, {
+      const response = await axios.post('http://localhost:3000/api/sections', payload, {
         withCredentials: true
       });
 

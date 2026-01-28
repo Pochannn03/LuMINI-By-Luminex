@@ -41,7 +41,7 @@ router.post('/api/superadminDashboard',
 });
 
 // CREATE STUDENT ROUTER
-router.post('/api/createStudent', 
+router.post('/api/students', 
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),
@@ -85,7 +85,7 @@ router.post('/api/createStudent',
 );
 
 // Getting the Current Student ID for Add Student Modal
-router.get('/api/getStudentIdPreview',
+router.get('/api/students',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
@@ -112,7 +112,7 @@ router.get('/api/getStudentIdPreview',
 
 // CREATE TEACHER
 
-router.post('/api/createTeacher',
+router.post('/api/teachers',
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),
@@ -151,7 +151,7 @@ router.post('/api/createTeacher',
 
 // Get Teacher's Data to Populate the Select Option
 
-router.get('/api/getTeachers',
+router.get('/api/teachers',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
@@ -172,7 +172,7 @@ router.get('/api/getTeachers',
 });
 
 // ADD CLASS
-router.post('/api/class-manage/add-class',
+router.post('/api/sections',
   isAuthenticated,
   hasRole('superadmin'),
   ...checkSchema(createClassValidationSchema),
@@ -189,7 +189,7 @@ router.post('/api/class-manage/add-class',
 
     try{
       const savedClass = await newClass.save();
-      return res.status(201).send({ msg: "Parent registered successfully!", user: savedClass });
+      return res.status(201).send({ msg: "Class created successfully!", user: savedClass });
     } catch (err) {
       console.log(err);
       return res.status(400).send({ msg: "Registration failed", error: err.message });
