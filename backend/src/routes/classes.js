@@ -85,7 +85,7 @@ router.post('/api/students',
 );
 
 // Getting the Current Student ID for Add Student Modal
-router.get('/api/students',
+router.get('/api/students/id',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
@@ -108,6 +108,39 @@ router.get('/api/students',
     console.error("Preview Error:", err);
     res.status(500).json({ msg: "Could not generate preview ID" });
   }
+});
+
+router.get('/api/students/invitation', 
+  isAuthenticated, 
+  hasRole('superadmin', 'teacher', 'admin'), // Adjust roles as needed
+  async (req, res) => {
+    try {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
+      let code = '';
+      let isUnique = false;
+
+      // Keep generating until we find a unique one
+      while (!isUnique) {
+        code = '';
+        // Generate random 6-char string
+        for (let i = 0; i < 6; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        // Check Database for duplicates
+        const existingStudent = await Student.findOne({ invitation_code: code });
+        
+        // If no student has this code, it's unique!
+        if (!existingStudent) {
+          isUnique = true;
+        }
+      }
+      return res.status(200).json({ code });
+
+    } catch (err) {
+      console.error("Code Generation Error:", err);
+      return res.status(500).json({ msg: "Failed to generate code" });
+    }
 });
 
 // CREATE TEACHER
