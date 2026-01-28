@@ -141,7 +141,7 @@ export default function GuardianRegistration() {
     console.log("Sending Form Data..."); 
 
     try {
-      await axios.post('http://localhost:3000/api/teacher-register', data, {
+      await axios.post('http://localhost:3000/api/teachers', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       navigate('/login');
