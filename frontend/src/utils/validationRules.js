@@ -50,3 +50,23 @@ export const checkFile = (file, label = "File") => {
   if (!file) return `${label} is required`;
   return null;
 };
+
+export const checkDate = (date, label = "Date") => {
+  // 1. Required Check
+  if (!date) return `${label} is required`;
+
+  // 2. Validity Check (Invalid Date string)
+  const selectedDate = new Date(date);
+  if (isNaN(selectedDate.getTime())) return `Invalid ${label}`;
+
+  // 3. Future Check (Crucial for Birthdates)
+  const today = new Date();
+  // Reset time to ensure we compare only the date part
+  today.setHours(0, 0, 0, 0);
+
+  if (selectedDate > today) {
+    return `${label} cannot be in the future`;
+  }
+
+  return null;
+};
