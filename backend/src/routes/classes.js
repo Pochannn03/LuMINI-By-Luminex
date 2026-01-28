@@ -4,6 +4,7 @@ import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { createUserValidationSchema } from "../validation/userValidation.js";
 import { createStudentValidationSchema } from '../validation/studentValidation.js';
 import { createClassValidationSchema } from '../validation/classValidation.js';
+import { createTeacherValidationSchema } from '../validation/teacherValidation.js'
 import { Student } from "../models/students.js";
 import { User } from "../models/users.js";
 import { Section } from "../models/sections.js";
@@ -107,7 +108,7 @@ router.get('/api/students/id',
 
 router.get('/api/students/invitation', 
   isAuthenticated, 
-  hasRole('superadmin', 'teacher', 'admin'), // Adjust roles as needed
+  hasRole('superadmin'),
   async (req, res) => {
     try {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
@@ -144,7 +145,7 @@ router.post('/api/teachers/modal',
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),
-  ...checkSchema(createUserValidationSchema),
+  ...checkSchema(createTeacherValidationSchema),
   async (req, res) => {
 
     const result = validationResult(req)
@@ -158,6 +159,7 @@ router.post('/api/teachers/modal',
     console.log("Received Valid Data:", data);
     data.password = await hashPassword(data.password);
     data.role = "admin";
+    data.is_archive = false;
 
     if (req.file) {
       data.profile_picture = req.file.path; 
