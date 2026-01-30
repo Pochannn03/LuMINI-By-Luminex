@@ -100,7 +100,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
       <div className="modal-overlay active" id="editStudentModal">
         <div className="modal-container">
           <div className="modal-header">
-            <div class="flex items-center gap-2.5 mb-2">
+            <div className="flex items-center gap-2.5 mb-2">
               <span className="material-symbols-outlined blue-icon text-[24px]" >edit_square</span>
               <h2 className="text-cdark text-[18px] font-bold">Edit Class Details</h2>
             </div>
