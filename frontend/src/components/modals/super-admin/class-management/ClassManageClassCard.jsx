@@ -44,7 +44,7 @@ export default function ClassCard({ cls, onEdit, onDelete }) {
         <button className="text-cgray w-8 h-8 rounded-lg border-none cursor-pointer flex items-center justify-center transition-all duration-200 bg-transparent hover:bg-[#e0f2fe] hover:text-(--primary-blue)" title="Edit" onClick={() => onEdit(cls)}>
           <span className="material-symbols-outlined">edit</span>
         </button>
-        <button className="w-8 h-8 rounded-lg border-none cursor-pointer flex items-center justify-center transition-all duration-200 bg-transparent hover:text-(--accent-red) hover:bg-[#fee2e2]" title="Delete" onClick={() => onDelete(cls.id)}>
+        <button className="w-8 h-8 rounded-lg border-none cursor-pointer flex items-center justify-center transition-all duration-200 bg-transparent hover:text-(--accent-red) hover:bg-[#fee2e2]" title="Delete" onClick={() => onDelete(cls)}>
           <span className="material-symbols-outlined">delete</span>
         </button>
       </div>

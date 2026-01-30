@@ -6,6 +6,7 @@ import NavBar from "../../components/navigation/NavBar";
 import ClassManageClassCard from "../../components/modals/super-admin/class-management/ClassManageClassCard"
 import ClassManageAddClassModal from "../../components/modals/super-admin/class-management/ClassManageAddClassModal";
 import ClassManageEditClassModal from "../../components/modals/super-admin/class-management/ClassManageEditClassModal";
+import ClassManageDeleteClassModal from "../../components/modals/super-admin/class-management/ClassManageDeleteClassModal";
 import ClassManageAddTeacherModal from "../../components/modals/super-admin/class-management/ClassManageAddTeacherModal";
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 
@@ -16,8 +17,9 @@ export default function SuperAdminClassManagement() {
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
 
-    // EDIT MODAL STATES
+    // EDIT & DELETE MODAL STATES
   const [isEditClassModalOpen, setIsEditClassModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // DATA STATES -- CLASSES -- 
   const [classes, setClasses] = useState([]);
@@ -49,12 +51,17 @@ export default function SuperAdminClassManagement() {
     fetchClasses();
   }, []);
 
-  // FOR EDIT AND DELETE THE CLASSES WILL IMPLEMENT SOON
+  // FOR EDIT AND DELETE HANDLERS
   const handleEditClass = (classData) => {
     setSelectedClass(classData);
     setIsEditClassModalOpen(true);
     
     console.log("Selected Class for Edit:", classData); 
+  };
+
+  const handleDeleteClick = (classData) => {
+    setSelectedClass(classData); // Reuse the same state variable for selection
+    setIsDeleteModalOpen(true);
   };
 
   // const handleDeleteClass = async (id) => {
@@ -113,7 +120,7 @@ export default function SuperAdminClassManagement() {
                       key={cls._id || cls.id} // MongoDB usually uses _id
                       cls={cls}
                       onEdit={handleEditClass}
-                      // onDelete={handleDeleteClass}
+                      onDelete={handleDeleteClick}
                     />
                   ))}
                 </div>
@@ -184,15 +191,24 @@ export default function SuperAdminClassManagement() {
         isOpen={isAddClassModalOpen} 
         onClose={() => setIsAddClassModalOpen(false)}
       />
-      <ClassManageEditClassModal 
-        isOpen={isEditClassModalOpen}
-        onClose={() => {
-          setIsEditClassModalOpen(false);
-          setSelectedClass(null); // Clear selection on close
-        }}
-        classData={selectedClass} // Pass the data to fill the form
-        onSuccess={fetchClasses}  // Refresh the list after editing
-      />
+        <ClassManageEditClassModal 
+          isOpen={isEditClassModalOpen}
+          onClose={() => {
+            setIsEditClassModalOpen(false);
+            setSelectedClass(null);
+          }}
+          classData={selectedClass}
+          onSuccess={fetchClasses}
+        />
+        <ClassManageDeleteClassModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => {
+            setIsDeleteModalOpen(false);
+            setSelectedClass(null);
+          }}
+          classData={selectedClass}
+          onSuccess={fetchClasses} // Refresh list after delete
+        />
       <ClassManageAddTeacherModal 
         isOpen={isAddTeacherModalOpen} 
         onClose={() => setIsAddTeacherModalOpen(false)} 

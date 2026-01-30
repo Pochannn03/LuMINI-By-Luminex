@@ -1,11 +1,49 @@
-import React from "react";
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+import axios from 'axios';
+import { createPortal } from "react-dom";
+import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css'; // Reusing styles
 
-export default function ClassManageDeleteClassModal() {
-  return (
+export default function ClassManageDeleteClassModal({ isOpen, onClose, classData, onSuccess }) {
+
+  const [confirmationInput, setConfirmationInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  // Reset input when modal opens/closes
+  const handleClose = () => {
+    setConfirmationInput("");
+    onClose();
+  };
+
+  const handleDelete = async () => {
+    if (confirmationInput !== "Confirm") {
+      alert("Please type 'Confirm' to proceed.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Assuming your backend delete route matches your Edit route pattern
+      await axios.delete(`http://localhost:3000/api/sections/${classData._id}`, {
+        withCredentials: true
+      });
+
+      alert("Class deleted successfully.");
+      if (onSuccess) onSuccess(); // Refresh list
+      handleClose();
+
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete class. Check console.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen || !classData) return null;
+
+  return createPortal(
     <>
-      {/* No Logic Yet soon to be implemented */}
-      <div className="modal-overlay" id="editStudentModal">
+      <div className="modal-overlay active" id="editStudentModal">
         <div className="modal-container">
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
@@ -23,7 +61,12 @@ export default function ClassManageDeleteClassModal() {
 
             <div className="flex flex-col gap-2">
               <label htmlFor="" className="text-cgray text-[13px] font-medium"> Type "Confirm to proceed"</label>
-              <input type="text" id="deleteClassConfirmationInput" className="form-input-modal" placeholder="Type 'Confirm'"
+              <input 
+                type="text" 
+                className="form-input-modal border-red-300 focus:border-red-500" 
+                placeholder="Type 'Confirm'"
+                value={confirmationInput}
+                onChange={(e) => setConfirmationInput(e.target.value)}
               />
             </div>
 
@@ -31,13 +74,19 @@ export default function ClassManageDeleteClassModal() {
           </div>
 
           <div class="modal-footer">
-            <button class="btn-cancel" id="cancelDeleteTeacherBtn">Cancel</button>
-            <button class="btn-danger" id="confirmDeleteTeacherBtn">
-              Save Changes
+            <button className="btn-cancel" onClick={handleClose}>Cancel</button>
+            <button 
+              className="btn-danger bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-sm font-semibold"
+              onClick={handleDelete}
+              disabled={loading || confirmationInput !== "Confirm"}
+              style={{ opacity: confirmationInput !== "Confirm" ? 0.5 : 1 }}
+            >
+              {loading ? "Deleting..." : "Delete Class"}
             </button>
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
