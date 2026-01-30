@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { validateClassRegistrationStep } from '../../../../utils/modal-validation/classModalValidation';
+import { validateStudentRegistrationStep } from '../../../../utils/modal-validation/studentModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
@@ -123,7 +123,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
 
   // VALIDATION
   const validateStep = () => {
-    const newErrors = validateClassRegistrationStep(formData, profileImage);
+    const newErrors = validateStudentRegistrationStep(formData, profileImage);
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { validateClassRegistrationStep } from '../../../../utils/modal-validation/classModalValidation';
+import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
-import FormInputRegistration from '../../../FormInputRegistration';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose }) {
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
   const [teachersList, setTeachersList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     sectionName: '',
-    classSchedule: null,
+    classSchedule: '',
     maxCapacity: '',
     description: '',
     assignedTeacher: '',
@@ -35,14 +37,48 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
       }
   },[isOpen]);
 
+  // HELPERS
+  const resetForm = () => {
+    setFormData({
+      sectionName: '',
+      classSchedule: null,
+      maxCapacity: '',
+      description: '',
+      assignedTeacher: '',
+    });
+    setErrors({});
+  };
+
+  const handleCloseModal = () => {
+    resetForm();
+    onClose();
+  };
+
+  // VALIDATION
+  const validateStep = () => {
+    const newErrors = validateClassRegistrationStep(formData);
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // HANDLERS
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-  }
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     console.log(formData)
     e.preventDefault();
+
+    if (!validateStep()) {
+      return;
+    }
 
     setLoading(true);
       const payload = {
@@ -58,8 +94,8 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
         withCredentials: true
       });
 
-      alert("Class Created");
-      onClose();
+      alert("Class created successfully!");
+      handleCloseModal();
 
       const resData = response.data;
       console.log("Success:", resData);
@@ -106,14 +142,14 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
           <div className="modal-body">
             <div className="flex flex-col gap-2">
               <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Section Name</label>
-              <input 
-                type="text" 
-                name="sectionName" 
-                className="form-input-modal" 
-                placeholder="e.g. Sunflower" 
-                autoComplete="off"
-                onChange={handleChange}
-              />
+              <FormInputRegistration 
+                 name="sectionName"
+                 value={formData.sectionName}
+                 onChange={handleChange}
+                 placeholder="e.g. Sunflower"
+                 error={errors.sectionName}
+                 className="form-input-modal"
+               />
             </div>
 
             <div className="flex flex-col gap-2">
@@ -130,17 +166,20 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                 </select>
                 <span className="material-symbols-outlined select-arrow">expand_more</span>
               </div>
+              {errors.classSchedule && <span className="text-red-500 text-[11px] ml-1">{errors.classSchedule}</span>}
             </div>
 
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Max Capacity</label>
-              <input 
-                type="number" 
-                name="maxCapacity"
-                placeholder="e.g. 30" 
-                className="form-input-modal"
-                onChange={handleChange} 
-                />
+              <FormInputRegistration 
+                 name="maxCapacity"
+                 type="number"
+                 value={formData.maxCapacity}
+                 onChange={handleChange}
+                 placeholder="e.g. 30"
+                 error={errors.maxCapacity}
+                 className="form-input-modal"
+               />
             </div>
             
             <div className="flex flex-col gap-2">
@@ -150,6 +189,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                 className="form-input-modal leading-normal h-[100px] resize-none"
                 placeholder="Enter class description..."
                 onChange={handleChange}
+                value={formData.description}
               ></textarea>
             </div>
 
@@ -175,6 +215,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                 </select>
                 <span className="material-symbols-outlined select-arrow">expand_more</span>
               </div>
+              {errors.assignedTeacher && <span className="text-red-500 text-[11px] ml-1">{errors.assignedTeacher}</span>}
             </div>
 
             <div className="flex flex-col gap-2 mt-2.5">
@@ -209,7 +250,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
           </div>
 
             <div className="modal-footer">
-              <button className="btn-cancel" id="closeAddModalBtn" onClick={onClose}>Cancel</button>
+              <button className="btn-cancel" type="button" onClick={handleCloseModal}>Cancel</button>
               <button className="btn-save" onClick={handleSubmit} disabled={loading}>
                 {loading ? "Saving..." : "Add Class"}
               </button>

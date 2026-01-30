@@ -5,8 +5,8 @@ import { createUserValidationSchema } from "../validation/userValidation.js";
 import { createStudentValidationSchema } from '../validation/studentValidation.js';
 import { createClassValidationSchema } from '../validation/classValidation.js';
 import { createTeacherValidationSchema } from '../validation/teacherValidation.js'
-import { Student } from "../models/students.js";
 import { User } from "../models/users.js";
+import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';
 import { hashPassword } from "../utils/passwordUtils.js";
@@ -80,7 +80,7 @@ router.post('/api/students',
   }
 );
 
-// Getting the Current Student ID for Add Student Modal
+// GET CURRENT STUDENT ID 
 router.get('/api/students/id',
   isAuthenticated,
   hasRole('superadmin'),
@@ -179,8 +179,7 @@ router.post('/api/teachers/modal',
 
 });
 
-// Get Teacher's Data to Populate the Select Option
-
+// GET TEACHER'S DATA 
 router.get('/api/teachers',
   isAuthenticated,
   hasRole('superadmin'),
@@ -226,5 +225,28 @@ router.post('/api/sections',
     }
     
 })
+
+router.get('/api/sections',
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+
+    try {
+      const classes = await Section.find()
+                                   .select('section_name class_schedule max_capacity description user_id')
+                                   .populate('user_details', 'first_name last_name');
+
+      if (!classes || classes.length === 0) {
+        return res.status(200).json({ success: true, classes: [] });
+      }
+
+      res.status(200).json({ success: true, classes });
+    } catch (err) {
+      console.error("Error fetching classes:", err);
+      res.status(500).json({ msg: "Server error while fetching classes" });
+    }
+});
+
+
 
 export default router;

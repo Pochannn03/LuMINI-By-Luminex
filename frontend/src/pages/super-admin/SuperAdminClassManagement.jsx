@@ -1,16 +1,66 @@
-import React, {useState} from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
+import ClassManageClassCard from "../../components/modals/super-admin/class-management/ClassManageClassCard"
 import ClassManageAddClassModal from "../../components/modals/super-admin/class-management/ClassManageAddClassModal";
 import ClassManageAddTeacherModal from "../../components/modals/super-admin/class-management/ClassManageAddTeacherModal";
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 
 
 export default function SuperAdminClassManagement() {
+  // MODAL STATES
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+
+  // DATA STATES -- CLASSES -- 
+  const [classes, setClasses] = useState([]);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+
+  // FUNCTION FETCH/AXIOS GETTING THE CLASSES
+  const fetchClasses = async () => {
+    try {
+      setLoadingClasses(true);
+      // Adjust URL to your actual backend endpoint
+      const response = await axios.get('http://localhost:3000/api/sections', { 
+        withCredentials: true 
+      });
+
+      if (response.data.success) {
+        setClasses(response.data.classes);
+      }
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClasses();
+  }, []);
+
+  // FOR EDIT AND DELETE THE CLASSES WILL IMPLEMENT SOON
+  // const handleEditClass = (cls) => {
+  //   console.log("Edit requested for", cls);
+  //   // Logic to open Edit Modal goes here
+  // };
+
+  // const handleDeleteClass = async (id) => {
+  //   if(!window.confirm("Are you sure you want to delete this class?")) return;
+
+  //   try {
+  //     // Optimistic update: Remove from UI immediately
+  //     setClasses(prev => prev.filter(c => (c._id || c.id) !== id));
+      
+  //     await axios.delete(`http://localhost:3000/delete-class/${id}`, { withCredentials: true });
+  //   } catch (error) {
+  //     alert("Failed to delete class");
+  //     fetchClasses(); // Revert if failed
+  //   }
+  // };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -36,8 +86,27 @@ export default function SuperAdminClassManagement() {
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" id="activeClassesList">
-                  <p className="text-cgray p-[15px]">Loading Classes...</p> {/* Data where classes will be shown */}
+                <div className="flex flex-col gap-2 max-h-[450px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                
+                {/* 1. Loading State */}
+                  {loadingClasses && (
+                    <p className="text-cgray p-[15px]">Loading Classes...</p>
+                  )}
+
+                  {/* 2. Empty State */}
+                  {!loadingClasses && classes.length === 0 && (
+                    <p className="text-cgray p-[15px] text-sm">No active classes found.</p>
+                  )}
+
+                  {/* 3. Render Cards */}
+                  {!loadingClasses && classes.map((cls) => (
+                    <ClassManageClassCard 
+                      key={cls._id || cls.id} // MongoDB usually uses _id
+                      cls={cls}
+                      // onEdit={handleEditClass}
+                      // onDelete={handleDeleteClass}
+                    />
+                  ))}
                 </div>
 
                 <div className="border-ctop mt-6 pt-4">
@@ -76,7 +145,7 @@ export default function SuperAdminClassManagement() {
                   <div className="flex items-center gap-2.5 mb-2">
                     <span className="material-symbols-outlined blue-icon text-[24px]"
                     >face</span>
-                    <h2 className="text-cdark text-[18px] font-bold">Sutdents Directory</h2>
+                    <h2 className="text-cdark text-[18px] font-bold">Students Directory</h2>
                   </div>
                   <p className="text-cgray leading-noirmal text-[14px]!">Currently Enrolled students.</p>
                 </div>
