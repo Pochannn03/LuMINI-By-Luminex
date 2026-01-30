@@ -5,19 +5,26 @@ import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
 import ClassManageClassCard from "../../components/modals/super-admin/class-management/ClassManageClassCard"
 import ClassManageAddClassModal from "../../components/modals/super-admin/class-management/ClassManageAddClassModal";
+import ClassManageEditClassModal from "../../components/modals/super-admin/class-management/ClassManageEditClassModal";
 import ClassManageAddTeacherModal from "../../components/modals/super-admin/class-management/ClassManageAddTeacherModal";
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 
 
 export default function SuperAdminClassManagement() {
-  // MODAL STATES
+  // ADD MODAL STATES
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
 
+    // EDIT MODAL STATES
+  const [isEditClassModalOpen, setIsEditClassModalOpen] = useState(false);
+
   // DATA STATES -- CLASSES -- 
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
+
+  // CLASS STATE (SELECTED SECTION)
+  const [selectedClass, setSelectedClass] = useState(null);
 
   // FUNCTION FETCH/AXIOS GETTING THE CLASSES
   const fetchClasses = async () => {
@@ -43,10 +50,12 @@ export default function SuperAdminClassManagement() {
   }, []);
 
   // FOR EDIT AND DELETE THE CLASSES WILL IMPLEMENT SOON
-  // const handleEditClass = (cls) => {
-  //   console.log("Edit requested for", cls);
-  //   // Logic to open Edit Modal goes here
-  // };
+  const handleEditClass = (classData) => {
+    setSelectedClass(classData);
+    setIsEditClassModalOpen(true);
+    
+    console.log("Selected Class for Edit:", classData); 
+  };
 
   // const handleDeleteClass = async (id) => {
   //   if(!window.confirm("Are you sure you want to delete this class?")) return;
@@ -103,7 +112,7 @@ export default function SuperAdminClassManagement() {
                     <ClassManageClassCard 
                       key={cls._id || cls.id} // MongoDB usually uses _id
                       cls={cls}
-                      // onEdit={handleEditClass}
+                      onEdit={handleEditClass}
                       // onDelete={handleDeleteClass}
                     />
                   ))}
@@ -173,7 +182,16 @@ export default function SuperAdminClassManagement() {
       {/* For Modal of Adding Classes, Students and Teachers */}
       <ClassManageAddClassModal 
         isOpen={isAddClassModalOpen} 
-        onClose={() => setIsAddClassModalOpen(false)} 
+        onClose={() => setIsAddClassModalOpen(false)}
+      />
+      <ClassManageEditClassModal 
+        isOpen={isEditClassModalOpen}
+        onClose={() => {
+          setIsEditClassModalOpen(false);
+          setSelectedClass(null); // Clear selection on close
+        }}
+        classData={selectedClass} // Pass the data to fill the form
+        onSuccess={fetchClasses}  // Refresh the list after editing
       />
       <ClassManageAddTeacherModal 
         isOpen={isAddTeacherModalOpen} 
