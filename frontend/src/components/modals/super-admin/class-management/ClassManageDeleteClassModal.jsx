@@ -4,7 +4,6 @@ import { createPortal } from "react-dom";
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css'; // Reusing styles
 
 export default function ClassManageDeleteClassModal({ isOpen, onClose, classData, onSuccess }) {
-
   const [confirmationInput, setConfirmationInput] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,20 +14,19 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
   };
 
   const handleDelete = async () => {
-    if (confirmationInput !== "Confirm") {
+    if (confirmationInput.trim() !== "Confirm") {
       alert("Please type 'Confirm' to proceed.");
       return;
     }
 
     setLoading(true);
     try {
-      // Assuming your backend delete route matches your Edit route pattern
       await axios.delete(`http://localhost:3000/api/sections/${classData._id}`, {
         withCredentials: true
       });
 
       alert("Class deleted successfully.");
-      if (onSuccess) onSuccess(); // Refresh list
+      if (onSuccess) onSuccess(); 
       handleClose();
 
     } catch (error) {
@@ -38,6 +36,8 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
       setLoading(false);
     }
   };
+
+  const isConfirmed = confirmationInput.trim() === "Confirm";
 
   if (!isOpen || !classData) return null;
 
@@ -73,13 +73,17 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
             <input type="hidden" id="deleteTeacherId" />
           </div>
 
-          <div class="modal-footer">
+          <div className="modal-footer">
             <button className="btn-cancel" onClick={handleClose}>Cancel</button>
             <button 
-              className="btn-danger bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-sm font-semibold"
+              className="btn-danger bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
               onClick={handleDelete}
-              disabled={loading || confirmationInput !== "Confirm"}
-              style={{ opacity: confirmationInput !== "Confirm" ? 0.5 : 1 }}
+              disabled={loading || !isConfirmed}
+              style={{ 
+                opacity: !isConfirmed ? 0.5 : 1,
+                pointerEvents: !isConfirmed ? 'none' : 'auto',
+                cursor: !isConfirmed ? 'not-allowed' : 'pointer'
+              }}
             >
               {loading ? "Deleting..." : "Delete Class"}
             </button>

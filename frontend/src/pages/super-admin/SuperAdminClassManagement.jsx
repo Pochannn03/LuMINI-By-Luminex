@@ -117,7 +117,7 @@ export default function SuperAdminClassManagement() {
                   {/* 3. Render Cards */}
                   {!loadingClasses && classes.map((cls) => (
                     <ClassManageClassCard 
-                      key={cls._id || cls.id} // MongoDB usually uses _id
+                      key={cls._id || cls.user_id} // MongoDB usually uses _id
                       cls={cls}
                       onEdit={handleEditClass}
                       onDelete={handleDeleteClick}
@@ -207,7 +207,7 @@ export default function SuperAdminClassManagement() {
             setSelectedClass(null);
           }}
           classData={selectedClass}
-          onSuccess={fetchClasses} // Refresh list after delete
+          onSuccess={fetchClasses}
         />
       <ClassManageAddTeacherModal 
         isOpen={isAddTeacherModalOpen} 

@@ -200,7 +200,28 @@ router.get('/api/teachers',
   }
 });
 
-// ADD CLASS
+// CLASSES
+router.get('/api/sections',
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+
+    try {
+      const classes = await Section.find()
+                                   .select('section_name class_schedule max_capacity description user_id')
+                                   .populate('user_details', 'first_name last_name');
+
+      if (!classes || classes.length === 0) {
+        return res.status(200).json({ success: true, classes: [] });
+      }
+
+      res.status(200).json({ success: true, classes });
+    } catch (err) {
+      console.error("Error fetching classes:", err);
+      res.status(500).json({ msg: "Server error while fetching classes" });
+    }
+});
+
 router.post('/api/sections',
   isAuthenticated,
   hasRole('superadmin'),
@@ -226,27 +247,37 @@ router.post('/api/sections',
     
 })
 
-router.get('/api/sections',
+router.delete('/api/sections/:id',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
-
     try {
-      const classes = await Section.find()
-                                   .select('section_name class_schedule max_capacity description user_id')
-                                   .populate('user_details', 'first_name last_name');
+      const sectionId = req.params.id;
+      const deletedSection = await Section.findByIdAndDelete(sectionId);
 
-      if (!classes || classes.length === 0) {
-        return res.status(200).json({ success: true, classes: [] });
+      if (!deletedSection) {
+        return res.status(404).json({ success: false, msg: "Class not found" });
       }
 
-      res.status(200).json({ success: true, classes });
+      // 3. (Optional) If you need to "Disconnect" the teacher specifically
+      // If your User model has an array of classes, you would pull it here.
+      // If your relationship is only stored in Section (user_id field), 
+      // then deleting the Section is enough! // WILL THINK ABOUT THIS
+      
+      console.log(`Deleted section: ${deletedSection.section_name}`);
+
+      res.status(200).json({ success: true, msg: "Class deleted successfully" });
+
     } catch (err) {
-      console.error("Error fetching classes:", err);
-      res.status(500).json({ msg: "Server error while fetching classes" });
+      console.error("Error deleting class:", err);
+
+      if (err.kind === 'ObjectId') {
+         return res.status(404).json({ success: false, msg: "Class not found" });
+      }
+
+      res.status(500).json({ success: false, msg: "Server error" });
     }
 });
-
 
 
 export default router;
