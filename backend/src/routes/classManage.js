@@ -247,7 +247,7 @@ router.post('/api/sections',
     
 })
 
-router.delete('/api/sections/:id',
+router.delete('/api/sections/:id', // WILL CHANGE INTO PUT FOR is_archive TO BE SET TRUE
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
@@ -276,6 +276,50 @@ router.delete('/api/sections/:id',
       }
 
       res.status(500).json({ success: false, msg: "Server error" });
+    }
+});
+
+router.put('/api/sections/:id',
+  isAuthenticated,
+  hasRole('superadmin'),
+  ...checkSchema(createClassValidationSchema),
+  async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return res.status(400).send({ errors: result.array() });
+    }
+    
+    const sectionId = req.params.id;
+    const data = matchedData(req);
+    
+    const newClass = new Section(data);
+
+    try {
+      // 3. The "Magic" Update Command
+      // findByIdAndUpdate(id, updateData, options)
+      const updatedClass = await Section.findByIdAndUpdate(
+        sectionId, 
+        data, 
+        { 
+          new: true,           // Return the UPDATED document (not the old one)
+          runValidators: true  // Make sure rules (like required fields) are still checked
+        }
+      ).populate('user_details', 'first_name last_name'); // Optional: Return teacher info immediately
+
+      if (!updatedClass) {
+        return res.status(404).json({ success: false, msg: "Class not found" });
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Class updated successfully!", 
+        class: updatedClass 
+      });
+
+    } catch (err) {
+      console.error("Update Error:", err);
+      return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
     }
 });
 
