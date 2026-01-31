@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function ClassCard({ cls, onEdit, onDelete }) {
+export default function ClassManageClassCard({ cls, onEdit, onDelete }) {
   const isMorning = cls.class_schedule === "Morning";
   const scheduleIcon = isMorning ? "light_mode" : "wb_twilight";
   const scheduleText = isMorning ? "AM" : "PM";

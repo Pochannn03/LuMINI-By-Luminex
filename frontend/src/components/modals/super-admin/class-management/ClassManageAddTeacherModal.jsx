@@ -139,8 +139,8 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
     }
   };
 
-
   if (!isOpen) return null;
+  
   return createPortal(
     <>
       {/* No Logic Yet */}

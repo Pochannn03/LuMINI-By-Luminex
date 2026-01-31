@@ -15,6 +15,12 @@ export const createTeacherValidationSchema = {
     },
   },
   password: {
+    optional: { 
+      options: { 
+        nullable: true, 
+        checkFalsy: true 
+      } 
+    },
     isLength: {
       options: {
         min: 8
