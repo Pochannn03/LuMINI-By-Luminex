@@ -27,11 +27,15 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
             withCredentials: true
           });
 
-          setTeachersList(response.data);
+          if (response.data.success) {
+            setTeachersList(response.data.teachers); 
+          } else {
+            setTeachersList([]);
+          }
         } catch (err) {
           console.error("Failed to fetch teachers preview", err);
         }
-        }
+      }
 
         fetchTeachers();
       }

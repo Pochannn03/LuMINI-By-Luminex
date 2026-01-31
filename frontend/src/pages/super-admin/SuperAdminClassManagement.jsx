@@ -1,38 +1,45 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
 import ClassManageClassCard from "../../components/modals/super-admin/class-management/ClassManageClassCard"
+import ClassManageTeacherCard from "../../components/modals/super-admin/class-management/ClassManageTeacherCard"
 import ClassManageAddClassModal from "../../components/modals/super-admin/class-management/ClassManageAddClassModal";
 import ClassManageEditClassModal from "../../components/modals/super-admin/class-management/ClassManageEditClassModal";
 import ClassManageDeleteClassModal from "../../components/modals/super-admin/class-management/ClassManageDeleteClassModal";
 import ClassManageAddTeacherModal from "../../components/modals/super-admin/class-management/ClassManageAddTeacherModal";
+import ClassManageEditTeacherModal from "../../components/modals/super-admin/class-management/ClassManageEditTeacherModal";
+import ClassManageDeleteTeacherModal from "../../components/modals/super-admin/class-management/ClassManageDeleteTeacherModal";
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 
 
 export default function SuperAdminClassManagement() {
-  // ADD MODAL STATES
+  // ADD MODAL STATES 
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
 
-    // EDIT & DELETE MODAL STATES
+  // EDIT & DELETE MODAL STATES
   const [isEditClassModalOpen, setIsEditClassModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletClassModalOpen, setisDeletClassModalOpen] = useState(false);
+  const [isEditTeacherModalOpen, setIsEditTeacherModalOpen] = useState(false);
+  const [isDeleteTeacherModalOpen, setIsDeleteTeacherModalOpen] = useState(false);
 
-  // DATA STATES -- CLASSES -- 
+  // DATA STATES
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
+  const [teachers, setTeachers] = useState([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
 
-  // CLASS STATE (SELECTED SECTION)
+  // DATA SELECTION
   const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedTeacher, setSelectedTeacher] = useState(null);
 
   // FUNCTION FETCH/AXIOS GETTING THE CLASSES
-  const fetchClasses = async () => {
+  const fetchClasses = useCallback(async () => {
     try {
       setLoadingClasses(true);
-      // Adjust URL to your actual backend endpoint
       const response = await axios.get('http://localhost:3000/api/sections', { 
         withCredentials: true 
       });
@@ -45,38 +52,56 @@ export default function SuperAdminClassManagement() {
     } finally {
       setLoadingClasses(false);
     }
-  };
+  }, []); 
 
   useEffect(() => {
     fetchClasses();
-  }, []);
+  }, [fetchClasses]); 
 
-  // FOR EDIT AND DELETE HANDLERS
+  // FUNCTION FETCH/AXIOS GETTING THE TEACHERS
+ const fetchTeachers = useCallback(async () => {
+    try {
+      setLoadingTeachers(true);
+      const response = await axios.get('http://localhost:3000/api/teachers', { 
+        withCredentials: true 
+      });
+
+      if (response.data.success) {
+        setTeachers(response.data.teachers);
+      }
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+    } finally {
+      setLoadingTeachers(false);
+    }
+  }, []); 
+
+  useEffect(() => {
+    fetchTeachers();
+  }, [fetchTeachers]); 
+
+  // FOR EDIT AND DELETE HANDLERS 
+  // --CLASSES--
   const handleEditClass = (classData) => {
     setSelectedClass(classData);
     setIsEditClassModalOpen(true);
-    
-    console.log("Selected Class for Edit:", classData); 
   };
 
-  const handleDeleteClick = (classData) => {
+  const handleDeleteClass = (classData) => {
     setSelectedClass(classData); // Reuse the same state variable for selection
-    setIsDeleteModalOpen(true);
+    setisDeletClassModalOpen(true);
   };
 
-  // const handleDeleteClass = async (id) => {
-  //   if(!window.confirm("Are you sure you want to delete this class?")) return;
+  // --TEACHERS--
+  const handleEditTeacher = (teacherData) => {
+    setSelectedTeacher(teacherData);
+    setIsEditTeacherModalOpen(true); // <--- Opens the Teacher modal
+  };
 
-  //   try {
-  //     // Optimistic update: Remove from UI immediately
-  //     setClasses(prev => prev.filter(c => (c._id || c.id) !== id));
-      
-  //     await axios.delete(`http://localhost:3000/delete-class/${id}`, { withCredentials: true });
-  //   } catch (error) {
-  //     alert("Failed to delete class");
-  //     fetchClasses(); // Revert if failed
-  //   }
-  // };
+  const handleDeleteTeacher = (teacherData) => {
+    setSelectedTeacher(teacherData); // Reuse the same state variable for selection
+    setIsDeleteTeacherModalOpen(true);
+  };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -102,7 +127,7 @@ export default function SuperAdminClassManagement() {
                   </p>
                 </div>
 
-                <div className="flex flex-col gap-2 max-h-[450px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 
                 {/* 1. Loading State */}
                   {loadingClasses && (
@@ -117,10 +142,10 @@ export default function SuperAdminClassManagement() {
                   {/* 3. Render Cards */}
                   {!loadingClasses && classes.map((cls) => (
                     <ClassManageClassCard 
-                      key={cls._id || cls.user_id} // MongoDB usually uses _id
+                      key={cls._id || cls.section_id} // MongoDB usually uses _id
                       cls={cls}
                       onEdit={handleEditClass}
-                      onDelete={handleDeleteClick}
+                      onDelete={handleDeleteClass}
                     />
                   ))}
                 </div>
@@ -145,8 +170,26 @@ export default function SuperAdminClassManagement() {
                   <p className="text-cgray leading-normal text-[14px]!">Faculty members and advisers.</p>
                 </div>
 
-                <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" id="teachersDirectoryList">
-                  <p className="text-cgray p-[15px]">Loading Teachers...</p> {/* Data where teachers will be shown */}
+                <div className="flex flex-col gap-2 max-h-80 overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                {/* 1. Loading State */}
+                  {loadingTeachers && (
+                    <p className="text-cgray p-[15px]">Loading Teachers...</p>
+                  )}
+
+                  {/* 2. Empty State */}
+                  {!loadingTeachers && teachers.length === 0 && (
+                    <p className="text-cgray p-[15px] text-sm">No Teacher found.</p>
+                  )}
+
+                  {/* 3. Render Cards */}
+                  {!loadingTeachers && teachers.map((tch) => (
+                    <ClassManageTeacherCard 
+                      key={tch._id || tch.user_id} 
+                      tch={tch}
+                      onEdit={handleEditTeacher}
+                      onDelete={handleDeleteTeacher}
+                    />
+                  ))}
                 </div>
 
                 <button className="btn btn-primary gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addTeacherBtn" onClick={() => setIsAddTeacherModalOpen(true)}>
@@ -155,7 +198,6 @@ export default function SuperAdminClassManagement() {
                 </button>
               </div>
               
-
               <div className="card queue-card">
                 <div className="mb-6">
                   <div className="flex items-center gap-2.5 mb-2">
@@ -186,7 +228,8 @@ export default function SuperAdminClassManagement() {
           </div>
         </main>
       
-      {/* For Modal of Adding Classes, Students and Teachers */}
+      {/* For Modal of Adding Classes, Students and Teachers */}\
+      {/* CLASSES */}
       <ClassManageAddClassModal 
         isOpen={isAddClassModalOpen} 
         onClose={() => setIsAddClassModalOpen(false)}
@@ -201,18 +244,40 @@ export default function SuperAdminClassManagement() {
           onSuccess={fetchClasses}
         />
         <ClassManageDeleteClassModal
-          isOpen={isDeleteModalOpen}
+          isOpen={isDeletClassModalOpen}
           onClose={() => {
-            setIsDeleteModalOpen(false);
+            setisDeletClassModalOpen(false);
             setSelectedClass(null);
           }}
           classData={selectedClass}
           onSuccess={fetchClasses}
         />
+
+      {/* TEACHERS */}
       <ClassManageAddTeacherModal 
         isOpen={isAddTeacherModalOpen} 
         onClose={() => setIsAddTeacherModalOpen(false)} 
       />
+        <ClassManageEditTeacherModal 
+          isOpen={isEditTeacherModalOpen}
+          onClose={() => {
+            setIsEditTeacherModalOpen(false);
+            setSelectedTeacher(null);
+          }}
+          teacherData={selectedTeacher}
+          onSuccess={fetchTeachers} 
+        />
+        <ClassManageDeleteTeacherModal
+          isOpen={isDeleteTeacherModalOpen}
+          onClose={() => {
+            setIsDeleteTeacherModalOpen(false);
+            setSelectedTeacher(null);
+          }}
+          teacherData={selectedTeacher}
+          onSuccess={fetchTeachers}
+        />
+
+      {/* STUDENTS */}
       <ClassManageAddStudentModal 
         isOpen={isAddStudentModalOpen} 
         onClose={() => setIsAddStudentModalOpen(false)} 

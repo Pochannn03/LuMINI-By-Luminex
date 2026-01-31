@@ -25,7 +25,13 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
   useEffect(() => {
     if (isOpen) {
       axios.get('http://localhost:3000/api/teachers', { withCredentials: true })
-        .then(res => setTeachersList(res.data))
+        .then(res => {
+          if (res.data && res.data.success) {
+            setTeachersList(res.data.teachers); 
+          } else {
+            setTeachersList([]);
+          }
+        })
         .catch(err => console.error("Failed to load teachers", err));
     }
   }, [isOpen]);
@@ -93,7 +99,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !classData) return null;
 
   return createPortal(
     <>

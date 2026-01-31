@@ -10,6 +10,7 @@ import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';
 import { hashPassword } from "../utils/passwordUtils.js";
+import bcrypt from 'bcrypt';
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -139,8 +140,30 @@ router.get('/api/students/invitation',
     }
 });
 
-// CREATE TEACHER
 
+// TEACHERS
+// GET TEACHER'S DATA 
+router.get('/api/teachers',
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+
+  try{
+    const teachers = await User.find({ relationship: 'Teacher', is_archive: false })
+                               
+    if (!teachers || teachers.length === 0) {
+      return res.status(200).json({ success: true, teachers: [] });
+    }
+
+    res.status(200).json({ success: true, teachers });
+
+  } catch(err) {
+    console.error("Error fetching teachers:", err);
+    res.status(500).json({ msg: "Server error while fetching teachers" });
+  }
+});
+
+// CREATE TEACHER
 router.post('/api/teachers/modal',
   isAuthenticated,
   hasRole('superadmin'),
@@ -176,28 +199,99 @@ router.post('/api/teachers/modal',
       console.log(err);
       return res.status(400).send({ msg: "Registration failed", error: err.message });
     }
-
 });
 
-// GET TEACHER'S DATA 
-router.get('/api/teachers',
+// UPDATE/EDIT TEACHER
+router.put('/api/teacher/:id',
+  isAuthenticated,
+  hasRole('superadmin'),
+  upload.single('profile_photo'),
+  ...checkSchema(createTeacherValidationSchema),
+  async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      return res.status(400).send({ errors: result.array() });
+    }
+    
+    const userId = req.params.id;
+    const updateData = {
+        ...req.body
+    };
+    
+    if (req.file) {
+        updateData.profile_picture = req.file.path; 
+    }
+
+    if (updateData.password) {
+        try {
+            const salt = await bcrypt.genSalt(10);
+            updateData.password = await bcrypt.hash(updateData.password, salt);
+        } catch (hashError) {
+            return res.status(500).json({ success: false, msg: "Error hashing password" });
+        }
+    } else {
+        delete updateData.password;
+    }
+
+    try {
+      const updatedUser = await User.findByIdAndUpdate(
+        userId, 
+        updateData, 
+        { 
+          new: true,           
+          runValidators: true  
+        }
+      )
+
+      if (!updatedUser) {
+        return res.status(404).json({ success: false, msg: "Class not found" });
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Class updated successfully!", 
+        class: updatedUser 
+      });
+
+    } catch (err) {
+      console.error("Update Error:", err);
+      return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
+    }
+})
+
+// DELETE (is_archive: true) TEACHER
+router.put('/api/teacher/archive/:id', 
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
+    const userId = req.params.id;
 
-  try{
-    const teachers = await User.find({ relationship: 'Teacher' })
-                               .select('first_name last_name user_id');
-                               
-    if (!teachers || teachers.length === 0) {
-      return res.status(200).json([]);
+    try {
+      // Update is_archive to "true" (String) to match your DB schema
+      // If you change your schema to Boolean later, remove the quotes around true
+      const archivedUser = await User.findByIdAndUpdate(
+        userId, 
+        { is_archive: true }, 
+        { new: true } // Returns the updated document
+      );
+
+      if (!archivedUser) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
+
+      console.log(`Teacher archived: ${archivedUser.username}`);
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Teacher archived successfully.", 
+        user: archivedUser 
+      });
+
+    } catch (err) {
+      console.error("Archive Error:", err);
+      return res.status(500).json({ success: false, msg: "Failed to archive teacher", error: err.message });
     }
-
-    res.status(200).json(teachers);
-  } catch(err) {
-    console.error("Error fetching teachers:", err);
-    res.status(500).json({ msg: "Server error while fetching teachers" });
-  }
 });
 
 // CLASSES
@@ -207,7 +301,7 @@ router.get('/api/sections',
   async (req, res) => {
 
     try {
-      const classes = await Section.find()
+      const classes = await Section.find({ is_archive: false })
                                    .select('section_name class_schedule max_capacity description user_id')
                                    .populate('user_details', 'first_name last_name');
 
@@ -234,7 +328,6 @@ router.post('/api/sections',
     }
     
     const data = matchedData(req);
-    
     const newClass = new Section(data);
 
     try{
@@ -292,8 +385,6 @@ router.put('/api/sections/:id',
     
     const sectionId = req.params.id;
     const data = matchedData(req);
-    
-    const newClass = new Section(data);
 
     try {
       // 3. The "Magic" Update Command
