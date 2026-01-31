@@ -5,6 +5,7 @@ import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
 import ClassManageClassCard from "../../components/modals/super-admin/class-management/ClassManageClassCard"
 import ClassManageTeacherCard from "../../components/modals/super-admin/class-management/ClassManageTeacherCard"
+import ClassManageStudentCard from "../../components/modals/super-admin/class-management/ClassManageStudentCard"
 import ClassManageAddClassModal from "../../components/modals/super-admin/class-management/ClassManageAddClassModal";
 import ClassManageEditClassModal from "../../components/modals/super-admin/class-management/ClassManageEditClassModal";
 import ClassManageDeleteClassModal from "../../components/modals/super-admin/class-management/ClassManageDeleteClassModal";
@@ -25,16 +26,21 @@ export default function SuperAdminClassManagement() {
   const [isDeletClassModalOpen, setisDeletClassModalOpen] = useState(false);
   const [isEditTeacherModalOpen, setIsEditTeacherModalOpen] = useState(false);
   const [isDeleteTeacherModalOpen, setIsDeleteTeacherModalOpen] = useState(false);
+  // const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
+  // const [isDeleteStudentModalOpen, setIsDeleteStudentModalOpen] = useState(false);
 
   // DATA STATES
   const [classes, setClasses] = useState([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [teachers, setTeachers] = useState([]);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
+  const [students, setStudents] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
 
   // DATA SELECTION
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
+  // const [selectedStudent, setSelectedStudent] = useState(null);
 
   // FUNCTION FETCH/AXIOS GETTING THE CLASSES
   const fetchClasses = useCallback(async () => {
@@ -80,6 +86,28 @@ export default function SuperAdminClassManagement() {
     fetchTeachers();
   }, [fetchTeachers]); 
 
+  // FUNCTION FETCH/AXIOS GETTING THE STUDENTS
+ const fetchStudents = useCallback(async () => {
+    try {
+      setLoadingStudents(true);
+      const response = await axios.get('http://localhost:3000/api/students', { 
+        withCredentials: true 
+      });
+
+      if (response.data.success) {
+        setStudents(response.data.students);
+      }
+    } catch (error) {
+      console.error("Error fetching teachers:", error);
+    } finally {
+      setLoadingStudents(false);
+    }
+  }, []); 
+
+  useEffect(() => {
+    fetchStudents();
+  }, [fetchStudents]); 
+
   // FOR EDIT AND DELETE HANDLERS 
   // --CLASSES--
   const handleEditClass = (classData) => {
@@ -88,20 +116,31 @@ export default function SuperAdminClassManagement() {
   };
 
   const handleDeleteClass = (classData) => {
-    setSelectedClass(classData); // Reuse the same state variable for selection
+    setSelectedClass(classData); 
     setisDeletClassModalOpen(true);
   };
 
   // --TEACHERS--
   const handleEditTeacher = (teacherData) => {
     setSelectedTeacher(teacherData);
-    setIsEditTeacherModalOpen(true); // <--- Opens the Teacher modal
+    setIsEditTeacherModalOpen(true); 
   };
 
   const handleDeleteTeacher = (teacherData) => {
-    setSelectedTeacher(teacherData); // Reuse the same state variable for selection
+    setSelectedTeacher(teacherData); 
     setIsDeleteTeacherModalOpen(true);
   };
+
+  // --STUDENTS--
+  // const handleEditStudent = (studentData) => {
+  //   setSelectedStudent(studentData);
+  //   setIsEditStudnetModalOpen(true); 
+  // };
+
+  // const handleDeleteStudent = (studentData) => {
+  //   setSelectedStudent(studentData); 
+  //   setIsEditStudnetModalOpen(true);
+  // };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -142,7 +181,7 @@ export default function SuperAdminClassManagement() {
                   {/* 3. Render Cards */}
                   {!loadingClasses && classes.map((cls) => (
                     <ClassManageClassCard 
-                      key={cls._id || cls.section_id} // MongoDB usually uses _id
+                      key={cls._id || cls.section_id} 
                       cls={cls}
                       onEdit={handleEditClass}
                       onDelete={handleDeleteClass}
@@ -214,7 +253,25 @@ export default function SuperAdminClassManagement() {
                 </div>
 
                 <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden" id="teachersDirectoryList">
-                  <p className="text-cgray p-[15px]">Loading Teachers...</p> {/* Data where teachers will be shown */}
+                   {/* 1. Loading State */}
+                  {loadingStudents && (
+                    <p className="text-cgray p-[15px]">Loading Students...</p>
+                  )}
+
+                  {/* 2. Empty State */}
+                  {!loadingStudents && students.length === 0 && (
+                    <p className="text-cgray p-[15px] text-sm">No active students found.</p>
+                  )}
+
+                  {/* 3. Render Cards */}
+                  {!loadingStudents && students.map((std) => (
+                    <ClassManageStudentCard
+                      key={std._id || std.section_id} 
+                      std={std}
+                      onEdit={handleEditClass}
+                      onDelete={handleDeleteClass}
+                    />
+                  ))}
                 </div>
 
                 <div className="">
