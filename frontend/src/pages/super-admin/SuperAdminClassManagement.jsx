@@ -13,6 +13,8 @@ import ClassManageAddTeacherModal from "../../components/modals/super-admin/clas
 import ClassManageEditTeacherModal from "../../components/modals/super-admin/class-management/ClassManageEditTeacherModal";
 import ClassManageDeleteTeacherModal from "../../components/modals/super-admin/class-management/ClassManageDeleteTeacherModal";
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
+import ClassManageViewStudentModal from "../../components/modals/super-admin/class-management/ClassManageViewStudentModal";
+import ClassManageEditStudentModal from "../../components/modals/super-admin/class-management/ClassManageEditStudentModal";
 
 
 export default function SuperAdminClassManagement() {
@@ -26,8 +28,8 @@ export default function SuperAdminClassManagement() {
   const [isDeletClassModalOpen, setisDeletClassModalOpen] = useState(false);
   const [isEditTeacherModalOpen, setIsEditTeacherModalOpen] = useState(false);
   const [isDeleteTeacherModalOpen, setIsDeleteTeacherModalOpen] = useState(false);
-  // const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
-  // const [isDeleteStudentModalOpen, setIsDeleteStudentModalOpen] = useState(false);
+  const [isViewStudentModalOpen, setIsViewStudentModalOpen] = useState(false);
+  const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
 
   // DATA STATES
   const [classes, setClasses] = useState([]);
@@ -40,7 +42,7 @@ export default function SuperAdminClassManagement() {
   // DATA SELECTION
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
-  // const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   // FUNCTION FETCH/AXIOS GETTING THE CLASSES
   const fetchClasses = useCallback(async () => {
@@ -106,7 +108,8 @@ export default function SuperAdminClassManagement() {
 
   useEffect(() => {
     fetchStudents();
-  }, [fetchStudents]); 
+  }, [fetchStudents]);
+
 
   // FOR EDIT AND DELETE HANDLERS 
   // --CLASSES--
@@ -132,15 +135,15 @@ export default function SuperAdminClassManagement() {
   };
 
   // --STUDENTS--
-  // const handleEditStudent = (studentData) => {
-  //   setSelectedStudent(studentData);
-  //   setIsEditStudnetModalOpen(true); 
-  // };
+  const handleViewStudent = (studentData) => {
+    setSelectedStudent(studentData);
+    setIsViewStudentModalOpen(true); 
+  };
 
-  // const handleDeleteStudent = (studentData) => {
-  //   setSelectedStudent(studentData); 
-  //   setIsEditStudnetModalOpen(true);
-  // };
+  const handleEditStudent = (studentData) => {
+    setSelectedStudent(studentData); 
+    setIsEditStudentModalOpen(true);
+  };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -268,8 +271,8 @@ export default function SuperAdminClassManagement() {
                     <ClassManageStudentCard
                       key={std._id || std.section_id} 
                       std={std}
-                      onEdit={handleEditClass}
-                      onDelete={handleDeleteClass}
+                      onView={handleViewStudent}
+                      onEdit={handleEditStudent}
                     />
                   ))}
                 </div>
@@ -339,6 +342,23 @@ export default function SuperAdminClassManagement() {
         isOpen={isAddStudentModalOpen} 
         onClose={() => setIsAddStudentModalOpen(false)} 
       />
+        <ClassManageViewStudentModal 
+          isOpen={isViewStudentModalOpen}
+          onClose={() => {
+            setIsViewStudentModalOpen(false);
+            setSelectedStudent(null);
+          }}
+          studentData={selectedStudent}
+        />
+        <ClassManageEditStudentModal 
+          isOpen={isEditStudentModalOpen}
+          onClose={() => {
+            setIsEditStudentModalOpen(false);
+            setSelectedStudent(null);
+          }}
+          studentData={selectedStudent}
+          onSuccess={fetchStudents}
+        />
       
     </div>
 

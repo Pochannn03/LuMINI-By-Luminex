@@ -13,7 +13,6 @@ const StudentSchema = new mongoose.Schema({
   }],  
   section_id: {
     type: Number,
-    required: false, // Changed to false
     ref: 'Section',
     default: null
   },
@@ -135,6 +134,13 @@ StudentSchema.virtual('user_details', {
   localField: 'user_id', // The field in StudentSchema
   foreignField: 'user_id', // The field in UserSchema (The Primary Key)
   justOne: false          // Since one student has only one user account
+});
+
+StudentSchema.virtual('section_details', {
+  ref: 'Section',           // The Model to use
+  localField: 'section_id', // The field in StudentSchema
+  foreignField: 'section_id', // The field in UserSchema (The Primary Key)
+  justOne: true          // Since one student has only one user account
 });
 
 export const Student = mongoose.model("Student", StudentSchema, "chd.kindergarten_student");
