@@ -45,6 +45,8 @@ router.get('/api/students',
   async (req, res) => {
     try{
     const students = await Student.find({ is_archive: false })
+                                  .populate('section_details')
+                                  .populate('user_details');
                                
     if (!students || students.length === 0) {
       return res.status(200).json({ success: true, students: [] });

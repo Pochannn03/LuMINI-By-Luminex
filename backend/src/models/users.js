@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { Counter } from "./counter.js"
 
 const UserSchema = new mongoose.Schema({
-  // ID
+  // ID (MONGODB Object ID)
   user_id: {
     type: Number,
     unique: true,

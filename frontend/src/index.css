@@ -301,22 +301,12 @@ a:hover {
   color: white;
   cursor: pointer;
   transition: all 0.2s;
-
-  /* Disabled State */
-  opacity: 0.5;
-  pointer-events: none;
 }
 
-/* Enabled State (Added via JS) */
-.btn-danger.enabled {
-  opacity: 1;
-  pointer-events: all;
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
-}
-
-.btn-danger.enabled:hover {
+.btn-danger:hover {
   filter: brightness(1.1);
 }
+
 
 .btn-icon-tool {
   width: 32px;
@@ -336,6 +326,7 @@ a:hover {
   background: #e0f2fe;
   color: var(--primary-blue);
 }
+
 .btn-icon-tool.delete:hover {
   background: #fee2e2;
   color: var(--accent-red);
@@ -617,7 +608,7 @@ html {
 
 .form-input-modal {
   width: 100%;
-  padding: 12px;
+  padding: 12px 16px;
   border-radius: 10px;
   border: 1px solid var(--border-color);
   background: #fff;
