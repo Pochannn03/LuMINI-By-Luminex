@@ -5,8 +5,8 @@ export default function ClassManageClassCard({ cls, onEdit, onDelete }) {
   const scheduleIcon = isMorning ? "light_mode" : "wb_twilight";
   const scheduleText = isMorning ? "AM" : "PM";
 
-  const studentCount = cls.students ? cls.students.length : 0;
-  const capacity = cls.maxCapacity || 30;
+  const studentCount = cls.student_id ? cls.student_id.length : 0;
+  const capacity = cls.max_capacity || 30;
   const teacherName = cls.user_details 
     ? `${cls.user_details.first_name} ${cls.user_details.last_name}` 
     : "Unassigned";
@@ -35,7 +35,7 @@ export default function ClassManageClassCard({ cls, onEdit, onDelete }) {
           </div>
           <div className="text-cgray flex items-center gap-1.5 text-[12px] font-medium">
             <span className="material-symbols-outlined text-[16px] text-[#b0bec5]">groups</span>
-            <span>{studentCount} / {capacity} Students</span> {/* WILL WORK ON IT ONCE FIXED ON POPULATE STUDENT */}
+            <span>{studentCount} / {capacity} Students</span>
           </div>
         </div>
       </div>

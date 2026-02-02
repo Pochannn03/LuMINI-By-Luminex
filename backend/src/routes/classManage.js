@@ -406,8 +406,9 @@ router.get('/api/sections',
 
     try {
       const classes = await Section.find({ is_archive: false })
-                                   .select('section_name class_schedule max_capacity description user_id')
-                                   .populate('user_details', 'first_name last_name');
+                                   .select('section_name class_schedule max_capacity description user_id student_id')
+                                   .populate('user_details', 'first_name last_name')
+                                   .populate('student_details');
 
       if (!classes || classes.length === 0) {
         return res.status(200).json({ success: true, classes: [] });
