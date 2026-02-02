@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import axios from 'axios';
 import { createPortal } from "react-dom";
-import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css'; // Reusing styles
 
-export default function ClassManageDeleteTeacherModal({ isOpen, onClose, teacherData, onSuccess }) {
+export default function ClassManageDeleteStudentModal({ isOpen, onClose, studentData, onSuccess }) {
   const [confirmationInput, setConfirmationInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  if (!isOpen || !teacherData) return null;
+  if (!isOpen || !studentData) return null;
 
   const handleClose = () => {
     setConfirmationInput("");
@@ -22,25 +21,25 @@ export default function ClassManageDeleteTeacherModal({ isOpen, onClose, teacher
 
     setLoading(true);
     try {
-      // Assuming Teachers are in the 'users' collection
-      await axios.put(`http://localhost:3000/api/student/archive/${teacherData._id}`, {}, {
+      // 1. Updated URL to match Backend
+      await axios.put(`http://localhost:3000/api/students/archive/${studentData._id}`, {}, {
         withCredentials: true
       });
 
-      alert("Teacher account deleted successfully.");
+      alert("Student deleted successfully.");
       if (onSuccess) onSuccess(); 
       handleClose();
 
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Failed to delete teacher. Check console.");
+      alert("Failed to delete student. Check console.");
     } finally {
       setLoading(false);
     }
   };
 
   const isConfirmed = confirmationInput.trim() === "Confirm";
-  const teacherName = `${teacherData.first_name} ${teacherData.last_name}`;
+  const studentName = `${studentData.first_name || ''} ${studentData.last_name || ''}`;
 
   return createPortal(
     <>
@@ -50,13 +49,13 @@ export default function ClassManageDeleteTeacherModal({ isOpen, onClose, teacher
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
               <span class="material-symbols-outlined red-icon text-[24px]">warning</span>
-              <h2 className="text-cdark text-[18px] font-bold">Delete Teacher Account</h2>
+              <h2 className="text-cdark text-[18px] font-bold">Delete Student</h2>
             </div>
           </div>
 
           <div className="modal-body">
             <p className="text-cgray text-[14px] leading-normal">
-              Are you sure you want to delete this <strong>{teacherName}</strong>? This action will
+              Are you sure you want to delete this <strong>{studentName}</strong>? This action will
               remove their profile and access immediately.
             </p>
             <strong>This cannot be undone.</strong>
@@ -87,7 +86,7 @@ export default function ClassManageDeleteTeacherModal({ isOpen, onClose, teacher
                 cursor: !isConfirmed ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? "Deleting..." : "Delete Teacher"}
+              {loading ? "Deleting..." : "Delete Student"}
             </button>
           </div>
         </div>

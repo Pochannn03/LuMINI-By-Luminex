@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import ClassManageDeleteStudentModal from './ClassManageDeleteStudentModal';
 
-export default function ClassManageViewStudentModal({ isOpen, onClose, studentData }) {
-
-  if(!isOpen) return null;
+export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess, studentData }) {
+  const [isOpenDeleteStudentModal, setIsOpenDeleteStudentModal] = useState(false);
 
   const std = studentData || {};
   const fullName = `${std.first_name || ''} ${std.last_name || ''}`;
@@ -26,6 +26,12 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, studentDa
       parentName = `${parentUser.first_name} ${parentUser.last_name}`;
     }
   }
+
+  const handleDeleteClick = () => {
+    setIsOpenDeleteStudentModal(true);
+  };
+
+  if(!isOpen) return null;
 
   return createPortal(
     <>
@@ -111,7 +117,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, studentDa
           </div>
           
           <div className="modal-footer flex flex-row justify-between">
-            <button className="btn-danger text-red-600 border-none" id="deleteViewStudentBtn">
+            <button className="btn-danger text-red-600 border-none" onClick={handleDeleteClick}>
               Delete Student
             </button>
             <button className="btn-cancel" onClick={onClose}>
@@ -120,6 +126,17 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, studentDa
           </div>
         </div>
       </div>
+      
+      <ClassManageDeleteStudentModal
+        isOpen={isOpenDeleteStudentModal}
+        onClose={() => setIsOpenDeleteStudentModal(false)}
+        studentData={std} 
+        onSuccess={() => {
+            if(onSuccess) onSuccess();
+            onClose();
+        }}
+      />
+
     </>,
     document.body
   );
