@@ -374,12 +374,10 @@ router.put('/api/teacher/archive/:id',
     const userId = req.params.id;
 
     try {
-      // Update is_archive to "true" (String) to match your DB schema
-      // If you change your schema to Boolean later, remove the quotes around true
       const archivedUser = await User.findByIdAndUpdate(
         userId, 
         { is_archive: true }, 
-        { new: true } // Returns the updated document
+        { new: true }
       );
 
       if (!archivedUser) {
@@ -443,28 +441,27 @@ router.post('/api/sections',
       console.log(err);
       return res.status(400).send({ msg: "Registration failed", error: err.message });
     }
-    
+
 })
 
-router.delete('/api/sections/:id', // WILL CHANGE INTO PUT FOR is_archive TO BE SET TRUE
+router.put('/api/sections/archive/:id',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
+
     try {
       const sectionId = req.params.id;
-      const deletedSection = await Section.findByIdAndDelete(sectionId);
+      const deletedSection = await Section.findByIdAndUpdate(
+        sectionId,
+        { is_archive: true }, 
+        { new: true }
+      );
 
       if (!deletedSection) {
         return res.status(404).json({ success: false, msg: "Class not found" });
       }
 
-      // 3. (Optional) If you need to "Disconnect" the teacher specifically
-      // If your User model has an array of classes, you would pull it here.
-      // If your relationship is only stored in Section (user_id field), 
-      // then deleting the Section is enough! // WILL THINK ABOUT THIS
-      
-      console.log(`Deleted section: ${deletedSection.section_name}`);
-
+      console.log(`Archived section: ${deletedSection.section_name}`);
       res.status(200).json({ success: true, msg: "Class deleted successfully" });
 
     } catch (err) {
