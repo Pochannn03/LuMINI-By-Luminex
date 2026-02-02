@@ -7,8 +7,10 @@ import ClassManageSelectStudentModal from '../class-management/ClassManageSelect
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose }) {
+  const [teachersList, setTeachersList] = useState([]);  
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
-  const [teachersList, setTeachersList] = useState([]);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
@@ -76,6 +78,11 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
     }
   };
 
+  const handleConfirmSelection = (ids) => {
+    setSelectedStudentIds(ids);
+    setIsEnrollStudents(false); // Close the modal
+  };
+
   const handleSubmit = async (e) => {
     console.log(formData)
     e.preventDefault();
@@ -91,6 +98,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
         max_capacity: formData.maxCapacity,
         description: formData.description,
         user_id: formData.assignedTeacher,
+        student_id: selectedStudentIds,
       };
 
       try {
@@ -232,7 +240,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-cdark font-bold text-[14px]"
-                      id="enrollmentSummaryCount">0 Selected</span>
+                      id="enrollmentSummaryCount">{selectedStudentIds.length} Selected</span>
                     <span className="text-cgray text-[11px]">Capacity Limit applies</span>
                   </div>
                 </div>
@@ -263,8 +271,11 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
       </div>
       
       <ClassManageSelectStudentModal 
-        isOpen={isEnrollStudents} 
-        onClose={() => setIsEnrollStudents(false)} 
+        isOpen={isEnrollStudents}
+        onClose={() => setIsEnrollStudents(false)}
+        maxCapacity={formData.maxCapacity}
+        onSave={handleConfirmSelection}
+        initialSelected={selectedStudentIds}
       />
     </>,
     document.body

@@ -335,6 +335,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         </div>
         </form>
       </div>
+
+      
     </>,
     document.body
   );
