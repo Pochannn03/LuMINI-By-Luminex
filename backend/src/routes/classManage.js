@@ -130,6 +130,7 @@ router.get('/api/students/id',
   }
 });
 
+// GET STUDENT INVITATION CODE FOR PARENTS
 router.get('/api/students/invitation', 
   isAuthenticated, 
   hasRole('superadmin'),
@@ -162,6 +163,37 @@ router.get('/api/students/invitation',
       return res.status(500).json({ msg: "Failed to generate code" });
     }
 });
+
+router.put('/api/students/archive/:id',
+  isAuthenticated, 
+  hasRole('superadmin'),
+  async (req, res) => {
+    const studentId = req.params.id;
+
+    try {
+      const archivedStudent = await Student.findByIdAndUpdate(
+        studentId, 
+        { is_archive: true }, 
+        { new: true, runValidators: true }
+      );
+
+      if (!archivedStudent) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
+
+      console.log(`Student archived: ${archivedStudent.username}`);
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Student archived successfully.", 
+        user: archivedStudent 
+      });
+
+    } catch (err) {
+      console.error("Archive Error:", err);
+      return res.status(500).json({ success: false, msg: "Failed to archive Student", error: err.message });
+    }
+})
 
 
 // TEACHERS
