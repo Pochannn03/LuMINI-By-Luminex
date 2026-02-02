@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from 'axios';
 import { createPortal } from "react-dom";
-import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css'; // Reusing styles
+import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css'; 
 
 export default function ClassManageDeleteClassModal({ isOpen, onClose, classData, onSuccess }) {
   const [confirmationInput, setConfirmationInput] = useState("");
@@ -21,7 +21,7 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
 
     setLoading(true);
     try {
-      await axios.delete(`http://localhost:3000/api/sections/${classData._id}`, {
+      await axios.put(`http://localhost:3000/api/sections/archive/${classData._id}`, {}, {
         withCredentials: true
       });
 
