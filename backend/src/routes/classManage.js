@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
-import { createUserValidationSchema } from "../validation/userValidation.js";
+// import { createUserValidationSchema } from "../validation/userValidation.js";
 import { createStudentValidationSchema } from '../validation/studentValidation.js';
+import { updateStudentValidationSchema } from '../validation/editStudentValidation.js';
 import { createClassValidationSchema } from '../validation/classValidation.js';
 import { createTeacherValidationSchema } from '../validation/teacherValidation.js'
 import { User } from "../models/users.js";
@@ -164,6 +165,56 @@ router.get('/api/students/invitation',
     }
 });
 
+// EDIT STUDENT
+router.put('/api/students/:id',
+  isAuthenticated, 
+  hasRole('superadmin'),
+  upload.single('profile_photo'),
+  ...checkSchema(updateStudentValidationSchema),
+  async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      console.log("Validation Errors:", result.array());
+      return res.status(400).send({ errors: result.array() });
+    }
+    
+    const studentId = req.params.id;
+    const updateData = {
+        ...req.body
+    };
+    
+    if (req.file) {
+        updateData.profile_picture = req.file.path; 
+    }
+
+    try {
+      const updatedStudent = await Student.findByIdAndUpdate(
+        studentId, 
+        updateData, 
+        { 
+          new: true,           
+          runValidators: true  
+        }
+      )
+
+      if (!updatedStudent) {
+        return res.status(404).json({ success: false, msg: "Class not found" });
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Class updated successfully!", 
+        class: updatedStudent 
+      });
+
+    } catch (err) {
+      console.error("Update Error:", err);
+      return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
+    }
+})
+
+// ARCHIVING STUDENT 
 router.put('/api/students/archive/:id',
   isAuthenticated, 
   hasRole('superadmin'),

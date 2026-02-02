@@ -214,7 +214,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                 type="text" 
                 value={formData.studentId} 
                 readOnly
-                className="form-input-modal w-full bg-[#f1f5f9] text-cgray cursor-not-allowed focus:outline-none "
+                className="form-input-modal w-full bg-[#f1f5f9] text-cgray focus:outline-none cursor-not-allowed!"
               />
             </div>  
           </div>
