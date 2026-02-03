@@ -20,7 +20,7 @@ export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapa
       const fetchStudents = async () => {
         setLoading(true);
         try {
-          const response = await axios.get('http://localhost:3000/api/students', { withCredentials: true });
+          const response = await axios.get('http://localhost:3000/api/students/unenrolled', { withCredentials: true });
           if (response.data.success) {
             setStudentList(response.data.students || []); 
           }

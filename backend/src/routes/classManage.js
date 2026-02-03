@@ -61,6 +61,32 @@ router.get('/api/students',
   }
 })
 
+router.get('/api/students/unenrolled', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  upload.single('profile_photo'),
+  async (req, res) => {
+    try{
+      const students = await Student.find({
+        $or: [
+          { section_id: null },
+          { section_id: { $exists: false } }
+        ],
+        is_archive: false
+      });
+                               
+    if (!students || students.length === 0) {
+      return res.status(200).json({ success: true, students: [] });
+    }
+
+    res.status(200).json({ success: true, students });
+
+  } catch(err) {
+    console.error("Error fetching students:", err);
+    res.status(500).json({ msg: "Server error while fetching students" });
+  }
+})
+
 // CREATE STUDENT
 router.post('/api/students', 
   isAuthenticated,

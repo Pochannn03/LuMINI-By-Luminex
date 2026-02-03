@@ -76,7 +76,7 @@ SectionSchema.pre('save', async function() {
         { new: true, upsert: true }
       );
 
-      doc.section_id = counter.seq - 1;
+      doc.section_id = counter.seq;
 
       // Use doc.section_id instead of newId
       console.log(`✅ Generated section_id: ${doc.section_id}`);
