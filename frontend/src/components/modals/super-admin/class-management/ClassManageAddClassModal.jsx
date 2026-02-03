@@ -80,7 +80,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
 
   const handleConfirmSelection = (ids) => {
     setSelectedStudentIds(ids);
-    setIsEnrollStudents(false); // Close the modal
+    setIsEnrollStudents(false); 
   };
 
   const handleSubmit = async (e) => {
