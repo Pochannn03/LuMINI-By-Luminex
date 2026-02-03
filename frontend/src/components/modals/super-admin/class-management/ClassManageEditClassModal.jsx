@@ -49,6 +49,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         assignedTeacher: classData.user_details ? classData.user_details.user_id : (classData.user_id || ''),
         studentIds: classData.students || [] 
       });
+      setSelectedStudentIds(classData.student_id || []);
       setErrors({});
     }
   }, [classData, isOpen]);
@@ -238,6 +239,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         maxCapacity={formData.maxCapacity}
         onSave={handleConfirmSelection}
         initialSelected={selectedStudentIds}
+        sectionId={classData?.section_id ?? classData?.sectionId}
       />
 
     </>,

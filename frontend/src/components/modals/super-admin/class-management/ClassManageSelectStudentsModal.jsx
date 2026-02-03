@@ -4,7 +4,7 @@ import axios from 'axios';
 import "../../../../styles/super-admin/class-manage-modal/class-manage-select-students-modal.css";
 import ClassManageAddStudentCard from "./ClassManageAddStudentCard";
 
-export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapacity, onSave, initialSelected }) {
+export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapacity, onSave, initialSelected, sectionId}) {
   const [studentList, setStudentList] = useState([]);
   const [selectedIds, setSelectedIds] = useState(initialSelected || []);
   const [loading, setLoading] = useState(false);
@@ -20,7 +20,13 @@ export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapa
       const fetchStudents = async () => {
         setLoading(true);
         try {
-          const response = await axios.get('http://localhost:3000/api/students', { withCredentials: true });
+          const idToPass = (sectionId !== undefined && sectionId !== null) ? sectionId : '';
+          
+          const response = await axios.get(
+            `http://localhost:3000/api/students/available?editingSectionId=${idToPass}`, 
+            { withCredentials: true }
+          );
+          
           if (response.data.success) {
             setStudentList(response.data.students || []); 
           }
@@ -32,21 +38,19 @@ export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapa
       };
       fetchStudents();
     }
-  }, [isOpen]);
+  }, [isOpen, sectionId]);
 
   const handleToggle = (id) => {
     setSelectedIds(prev => {
-      const isAlreadySelected = prev.includes(id);
-      
-      // If adding a new one, check if we've hit the limit
-      if (!isAlreadySelected && maxCapacity && prev.length >= parseInt(maxCapacity)) {
-        alert(`Limit reached! This class only allows ${maxCapacity} students.`);
-        return prev;
+      if (prev.includes(id)) {
+        return prev.filter(item => item !== id);
+      } else {
+        if (maxCapacity && prev.length >= parseInt(maxCapacity)) {
+          alert(`Limit reached! Max capacity is ${maxCapacity}.`);
+          return prev;
+        }
+        return [...prev, id];
       }
-
-      return isAlreadySelected 
-        ? prev.filter(item => item !== id) 
-        : [...prev, id];
     });
   };
 
@@ -85,7 +89,7 @@ export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapa
                     key={student._id}
                     student={student}
                     isSelected={selectedIds.includes(student.student_id)}
-                    onToggle={handleToggle}
+                    onToggle={() => handleToggle(student.student_id)}
                   />
                 ))
               )}
