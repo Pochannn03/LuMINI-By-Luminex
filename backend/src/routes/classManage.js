@@ -437,7 +437,16 @@ router.post('/api/sections',
 
     try{
       const savedClass = await newClass.save();
-      return res.status(201).send({ msg: "Class created successfully!", user: savedClass });
+      if (data.student_id && data.student_id.length > 0) {
+        await Student.updateMany(
+          { student_id: { $in: data.student_id } },
+          { $set: { section_id: newClass.section_id } }
+        );
+      }
+      return res.status(201).send({ 
+        msg: "Section created and students enrolled successfully", 
+        user: savedClass 
+      });
     } catch (err) {
       console.log(err);
       return res.status(400).send({ msg: "Registration failed", error: err.message });

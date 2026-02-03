@@ -33,7 +33,7 @@ const SectionSchema = new mongoose.Schema({
     ref: 'Student' 
   }], 
   is_archive: {
-    type: String,
+    type: Boolean,
     default: false,
   },
   created_at: {
