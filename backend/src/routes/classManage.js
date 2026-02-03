@@ -61,31 +61,38 @@ router.get('/api/students',
   }
 })
 
-router.get('/api/students/unenrolled', 
-  isAuthenticated,
-  hasRole('superadmin'),
-  upload.single('profile_photo'),
+router.get('/api/students/available', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
   async (req, res) => {
-    try{
-      const students = await Student.find({
-        $or: [
-          { section_id: null },
-          { section_id: { $exists: false } }
-        ],
-        is_archive: false
-      });
-                               
-    if (!students || students.length === 0) {
-      return res.status(200).json({ success: true, students: [] });
+  try {
+    const { editingSectionId } = req.query;
+
+    const sectionIdNum = (editingSectionId !== undefined && editingSectionId !== '') 
+      ? Number(editingSectionId) 
+      : null;
+
+    const query = {
+      is_archive: false,
+      $or: [
+        { section_id: null },
+        { section_id: { $exists: false } }
+      ]
+    };
+
+    if (sectionIdNum !== null && !isNaN(sectionIdNum)) {
+      query.$or.push({ section_id: sectionIdNum });
     }
 
-    res.status(200).json({ success: true, students });
+    const students = await Student.find(query);
 
-  } catch(err) {
-    console.error("Error fetching students:", err);
-    res.status(500).json({ msg: "Server error while fetching students" });
+    res.status(200).json({ success: true, students });
+  } catch (err) {
+    console.error("Fetch available students error:", err);
+    res.status(500).json({ success: false });
   }
-})
+});
+
 
 // CREATE STUDENT
 router.post('/api/students', 
@@ -432,7 +439,7 @@ router.get('/api/sections',
 
     try {
       const classes = await Section.find({ is_archive: false })
-                                   .select('section_name class_schedule max_capacity description user_id student_id')
+                                   .select('section_id section_name class_schedule max_capacity description user_id student_id')
                                    .populate('user_details', 'first_name last_name')
                                    .populate('student_details');
 
@@ -526,8 +533,6 @@ router.put('/api/sections/:id',
     const data = matchedData(req);
 
     try {
-      // 3. The "Magic" Update Command
-      // findByIdAndUpdate(id, updateData, options)
       const updatedClass = await Section.findByIdAndUpdate(
         sectionId, 
         data, 
@@ -539,6 +544,29 @@ router.put('/api/sections/:id',
 
       if (!updatedClass) {
         return res.status(404).json({ success: false, msg: "Class not found" });
+      }
+
+      const numericSectionId = updatedClass.section_id;
+      const newStudentList = data.student_id || [];
+
+      // 2. THE "UNCHECK" LOGIC: 
+      // Find students who CURRENTLY have this section_id, 
+      // but are NOT in the new list sent from the frontend.
+      await Student.updateMany(
+        { 
+          section_id: numericSectionId, 
+          student_id: { $nin: newStudentList } 
+        },
+        { $set: { section_id: null } }
+      );
+
+      // 3. THE "ENROLL" LOGIC:
+      // Ensure all students in the new list are updated to have this section_id.
+      if (newStudentList.length > 0) {
+        await Student.updateMany(
+          { student_id: { $in: newStudentList } },
+          { $set: { section_id: numericSectionId } }
+        );
       }
 
       return res.status(200).json({ 
