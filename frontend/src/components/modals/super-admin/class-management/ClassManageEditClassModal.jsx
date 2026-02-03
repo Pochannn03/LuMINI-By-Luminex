@@ -4,12 +4,15 @@ import axios from 'axios';
 import { validateClassRegistrationStep } from '../../../../utils/modal-validation/classModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
+import ClassManageSelectStudentModal from "./ClassManageSelectStudentsModal";
 
 export default function ClassManageEditClassModal({ isOpen, onClose, classData, onSuccess }) {
   // STATES
   const [loading, setLoading] = useState(false);
   const [teachersList, setTeachersList] = useState([]);
   const [errors, setErrors] = useState({});
+  const [isEnrollStudents, setIsEnrollStudents] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   
   // STATE FORM
   const [formData, setFormData] = useState({
@@ -57,6 +60,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     return Object.keys(newErrors).length === 0;
   };
 
+  // HANDLERS
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -64,6 +68,11 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
+  };
+
+  const handleConfirmSelection = (ids) => {
+    setSelectedStudentIds(ids);
+    setIsEnrollStudents(false); 
   };
 
   const handleSubmit = async () => {
@@ -79,7 +88,8 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         class_schedule: formData.classSchedule,
         max_capacity: formData.maxCapacity,
         description: formData.description,
-        user_id: formData.assignedTeacher, 
+        user_id: formData.assignedTeacher,
+        student_id: selectedStudentIds,
       };
 
       // Use the ID from classData to target the update
@@ -201,11 +211,11 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
                         <span className="material-symbols-outlined">groups</span>
                       </div>
                       <div className="flex flex-col">
-                        <span id="editEnrollmentSummaryCount" className="text-cdark font-bold text-[14px]">0 Selected</span>
+                        <span id="editEnrollmentSummaryCount" className="text-cdark font-bold text-[14px]">{selectedStudentIds.length} Selected</span>
                         <span className="text-cgray text-[11px]">Capacity Limit applies</span>
                       </div>
                     </div>
-                    <button type="button" id="openEditEnrollmentModalBtn" className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs">
+                    <button type="button" id="openEditEnrollmentModalBtn" className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs" onClick={() => setIsEnrollStudents(true)}>
                       Edit List
                     </button>
                   </div>
@@ -221,6 +231,15 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
             </div>
         </div>
       </div>
+
+      <ClassManageSelectStudentModal 
+        isOpen={isEnrollStudents}
+        onClose={() => setIsEnrollStudents(false)}
+        maxCapacity={formData.maxCapacity}
+        onSave={handleConfirmSelection}
+        initialSelected={selectedStudentIds}
+      />
+
     </>,
     document.body
   );
