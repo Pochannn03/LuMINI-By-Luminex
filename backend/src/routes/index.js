@@ -5,7 +5,7 @@ import parentRoutes from "./parents.js";
 import guardianRoutes from "./guardians.js";
 import studentRoutes from "./students.js";
 import classesRoutes from "./classes.js";
-import superAdminDashboardRoutes from "./superAdminDashboard.js";
+import suersRoutes from "./users.js";
 
 const router = Router();
 
@@ -15,7 +15,7 @@ router.use(parentRoutes);
 router.use(guardianRoutes);
 router.use(studentRoutes);
 router.use(classesRoutes);
-router.use(superAdminDashboardRoutes);
+router.use(suersRoutes);
 
 
 export default router;
