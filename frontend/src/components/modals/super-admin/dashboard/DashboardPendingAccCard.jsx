@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
+import { DashboardReviewAccModal } from './DashboardReviewAccModal';
 
 export function DashboardPendingAccCard({ tch }) {
+  const [viewPendingAccModal, setViewPendingAccModal] = useState(false);
 
   const photoUrl = tch.profile_picture 
     ? `http://localhost:3000/${tch.profile_picture}` 
@@ -37,6 +39,7 @@ export function DashboardPendingAccCard({ tch }) {
             <button 
               className="btn-icon-tool h-12! w-12!" 
               title="Review Details"
+              onClick={() => setViewPendingAccModal(true)}
             >
                 <span className="material-symbols-outlined text-[24px]!">visibility</span>
             </button>
@@ -57,7 +60,14 @@ export function DashboardPendingAccCard({ tch }) {
               </span>
             </button>
         </div>
-    </div>
+      </div>
+
+      <DashboardReviewAccModal
+        onView={viewPendingAccModal}
+        isClose={() => setViewPendingAccModal(false)}
+        tch={tch} 
+      />
+
     </>
   );
 }

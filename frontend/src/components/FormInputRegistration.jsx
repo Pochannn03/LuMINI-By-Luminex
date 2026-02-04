@@ -25,7 +25,7 @@ export default function FormInputRegistration({
         <label htmlFor={name} className='text-cdark text-[13px] font-semibold mb-2'>
           {label}
           {required && <span className='text-cbrand-blue ml-1 text-[12px]'>*</span>}
-          {readOnly && <span className='text-cbrand-blue ml-1 text-[12px]'>(autofilled)</span>}
+          {readOnly && <span className='text-cbrand-blue ml-1 text-[12px]'></span>}
         </label>
       )}
 
