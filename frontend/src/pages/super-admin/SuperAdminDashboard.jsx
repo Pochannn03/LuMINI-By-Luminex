@@ -1,9 +1,42 @@
-import React from "react";
+import React, { useState, useEffect} from "react";
+import axios from 'axios'; // Don't forget to import axios
 import { Link } from 'react-router-dom';
 import '../../styles/super-admin/super-admin-dashboard.css';
 import NavBar from "../../components/navigation/NavBar";
 
 export default function SuperAdminDashboard() {
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalParents: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/users', { 
+          withCredentials: true 
+        });
+
+        if (response.data.success) {
+          // 3. Update state with the length of the arrays from backend
+          setStats({
+            totalStudents: response.data.students.length,
+            totalTeachers: response.data.teachers.length,
+            totalParents: response.data.users.length, // 'users' in backend = parents
+            loading: false
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+        setStats(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
 
@@ -26,7 +59,7 @@ export default function SuperAdminDashboard() {
                 <span className="material-symbols-outlined">groups</span>
               </div>
               <div className="stat-info">
-                <h3 id="statTotalStudents">--</h3> {/* This is where the data will be displayed */}
+                <h3 id="statTotalStudents">{stats.loading ? "..." : stats.totalStudents}</h3> {/* This is where the data will be displayed */}
                 <p>Total Students</p>
               </div>
             </div>
@@ -38,7 +71,7 @@ export default function SuperAdminDashboard() {
                   >
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalTeachers">--</h3> {/* This is where the data will be displayed */}
+                  <h3 id="statTotalTeachers">{stats.loading ? "..." : stats.totalTeachers}</h3> {/* This is where the data will be displayed */}
                   <p>Active Teachers</p>
                 </div>
               </div>
@@ -48,8 +81,8 @@ export default function SuperAdminDashboard() {
                   <span className="material-symbols-outlined">family_restroom</span>
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalParents">--</h3> {/* This is where the data will be displayed */}
-                  <p>Parents Registered</p>
+                  <h3 id="statTotalParents">{stats.loading ? "..." : stats.totalParents}</h3> {/* This is where the data will be displayed */}
+                  <p>Parents and Guardians Registered</p>
                 </div>
             </div>
             

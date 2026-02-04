@@ -90,7 +90,8 @@ router.post('/api/parents',
         password: hashedPassword,
         relationship: "Parent",
         role: "user",
-        profile_picture: req.file ? req.file.path : null
+        profile_picture: req.file ? req.file.path : null,
+        is_archive: false
       });
 
       const savedUser = await newUser.save();
