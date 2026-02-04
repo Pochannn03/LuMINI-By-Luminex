@@ -30,11 +30,17 @@ router.get('/api/users',
         is_archive: false,
       })
 
+      const pendingTeachers = await User.find({ 
+        is_archive: true, 
+        relationship: 'Teacher'
+      }).sort({ created_at: -1 });
+
     res.status(200).json({ 
       success: true, 
       teachers: teachers || [], 
       users: users || [], 
-      students: students || [] 
+      students: students || [],
+      pending_teachers: pendingTeachers || []
     });
   
     } catch(err) {

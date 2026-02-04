@@ -1,10 +1,13 @@
 import React, { useState, useEffect} from "react";
-import axios from 'axios'; // Don't forget to import axios
 import { Link } from 'react-router-dom';
-import '../../styles/super-admin/super-admin-dashboard.css';
+import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
+import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
+import '../../styles/super-admin/super-admin-dashboard.css';
 
 export default function SuperAdminDashboard() {
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
+  const [pendingTeachers, setPendingTeachers] = useState([]); 
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -26,10 +29,13 @@ export default function SuperAdminDashboard() {
             totalParents: response.data.users.length,
             loading: false
           });
+          setPendingTeachers(response.data.pending_teachers || []);
+          setLoadingTeachers(false);
         }
       } catch (error) {
         console.error("Error fetching stats:", error);
         setStats(prev => ({ ...prev, loading: false }));
+        setLoadingTeachers(false);
       }
     };
 
@@ -93,7 +99,24 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-4">
-              <p className="text-cgray p-2.5">Loading Pending Request...</p> {/* Data Pending for Acc Approval here*/}
+              {loadingTeachers && (
+                <p className="text-cgray p-[15px]">Loading Pending Teachers...</p>
+              )}
+
+              {/* 2. Empty State */}
+              {!loadingTeachers && pendingTeachers.length === 0 && (
+                <p className="text-cgray p-[15px] text-sm">No Pending Account Found.</p>
+              )}
+
+              {/* 3. Render Cards */}
+              {!loadingTeachers && pendingTeachers.map((tch) => (
+                <DashboardPendingAccCard 
+                  key={tch._id || tch.user_id} 
+                  tch={tch}
+                  // onEdit={handleEditClass}
+                  // onDelete={handleDeleteClass}
+                />
+              ))}
             </div>
 
           </div>
