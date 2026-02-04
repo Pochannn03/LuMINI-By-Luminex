@@ -126,8 +126,8 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
           <div className="modal-body">
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Section Name</label>
                   <FormInputRegistration 
+                    label="Section Name"
                     name="sectionName"
                     value={formData.sectionName}
                     onChange={handleChange}
@@ -138,7 +138,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Class Schedule</label>
+                <label className="text-cgray text-[13px] font-semibold">Class Schedule</label>
                 <div class="relative">
                   <select 
                     className="form-input-modal appearance-none" 
@@ -159,8 +159,8 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Max Capacity</label>
                 <FormInputRegistration 
+                  label="Max Capacity"
                   name="maxCapacity"
                   type="number"
                   value={formData.maxCapacity}
@@ -172,7 +172,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Description</label>
+                <label className="text-cgray text-[13px] font-semibold">Description</label>
                 <textarea 
                     name="description"
                     value={formData.description}
@@ -184,7 +184,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
 
               {/* Needs a logic for options css due to data will be on server/database which will be looped inside */}
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
+                <label className="text-cgray text-[13px] font-semibold">Assign Teacher</label>
                 <div className="relative">
                   <select 
                     className="form-input-modal appearance-none" 
@@ -205,7 +205,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2 mt-2.5">
-                <label className="text-cgray text-[13px] font-medium">Manage Students</label>
+                <label className="text-cgray text-[13px] font-semibold">Manage Students</label>
                   <div className="flex items-center justify-between bg-[#f8fafc] p-4 border border-slate-200 rounded-xl">
                     <div className="flex items-center gap-2.5">
                       <div className="text-cprimary-blue bg-[#e0f2fe] w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-[18px]">
