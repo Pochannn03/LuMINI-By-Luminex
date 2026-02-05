@@ -28,8 +28,12 @@ const SectionSchema = new mongoose.Schema({
     required: true,
     ref: 'User'
   },
+  student_id: [{ 
+    type: String, 
+    ref: 'Student' 
+  }], 
   is_archive: {
-    type: String,
+    type: Boolean,
     default: false,
   },
   created_at: {
@@ -52,6 +56,13 @@ SectionSchema.virtual('user_details', {
   justOne: true          // Since one student has only one user account
 });
 
+SectionSchema.virtual('student_details', {
+  ref: 'Student',           // Point this to the Student model
+  localField: 'student_id',  // The ["2026-0001", ...] array
+  foreignField: 'student_id',// The matching field in StudentSchema
+  justOne: false             
+});
+
 SectionSchema.pre('save', async function() { 
   const doc = this;
 
@@ -65,7 +76,7 @@ SectionSchema.pre('save', async function() {
         { new: true, upsert: true }
       );
 
-      doc.section_id = counter.seq - 1;
+      doc.section_id = counter.seq;
 
       // Use doc.section_id instead of newId
       console.log(`✅ Generated section_id: ${doc.section_id}`);

@@ -44,4 +44,17 @@ export const createClassValidationSchema = {
     },
     toInt: true 
   },
+  student_id: {
+    isArray: {
+      errorMessage: "Selected students must be an array",
+    },
+    optional: { options: { nullable: true, checkFalsy: true } },
+  },
+  "student_id.*": {
+    isString: true,
+    matches: {
+      options: [/^\d{4}-\d{4}$/],
+      errorMessage: "Each student ID must follow the format YYYY-XXXX"
+    }
+  }
 };

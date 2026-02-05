@@ -223,11 +223,19 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                   hidden 
                   onChange={handleImageChange}
                 />
-                <div className="custom-file-upload cursor-pointer" onClick={() => document.getElementById('addStudentPhoto').click()}>
+
+                <div 
+                  className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} 
+                  onClick={() => document.getElementById('addStudentPhoto').click()}
+                >
                   {!previewUrl ? (
                     <div className="text-cdark mt-2 mb-1 font-medium text-center" id="stuUploadInitial">
-                      <span className="material-symbols-outlined blue-icon text-[32px]">face</span>
-                      <p className="text-cdark! font-medium! mt-2 mx-0 mb-1">Click to upload photo</p>
+                      <span className="material-symbols-outlined blue-icon text-[32px]">
+                        face
+                      </span>
+                      <p className={`${errors.profileImage ? 'text-red-600' : 'text-cdark'} font-medium! mt-2 mx-0 mb-1`}>
+                        Click to upload photo
+                      </p>
                       <span className="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
                     </div>
                   ) : (
@@ -242,6 +250,12 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                     </div>
                   )}
                 </div>
+
+                {errors.profileImage && (
+                  <span className="text-red-500 text-[11px] ml-1 mt-1 font-medium">
+                    {errors.profileImage}
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">
@@ -335,6 +349,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         </div>
         </form>
       </div>
+
+      
     </>,
     document.body
   );

@@ -4,12 +4,15 @@ import axios from 'axios';
 import { validateClassRegistrationStep } from '../../../../utils/modal-validation/classModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
+import ClassManageSelectStudentModal from "./ClassManageSelectStudentsModal";
 
 export default function ClassManageEditClassModal({ isOpen, onClose, classData, onSuccess }) {
   // STATES
   const [loading, setLoading] = useState(false);
   const [teachersList, setTeachersList] = useState([]);
   const [errors, setErrors] = useState({});
+  const [isEnrollStudents, setIsEnrollStudents] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   
   // STATE FORM
   const [formData, setFormData] = useState({
@@ -46,6 +49,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         assignedTeacher: classData.user_details ? classData.user_details.user_id : (classData.user_id || ''),
         studentIds: classData.students || [] 
       });
+      setSelectedStudentIds(classData.student_id || []);
       setErrors({});
     }
   }, [classData, isOpen]);
@@ -57,6 +61,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     return Object.keys(newErrors).length === 0;
   };
 
+  // HANDLERS
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -64,6 +69,11 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }
+  };
+
+  const handleConfirmSelection = (ids) => {
+    setSelectedStudentIds(ids);
+    setIsEnrollStudents(false); 
   };
 
   const handleSubmit = async () => {
@@ -79,7 +89,8 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         class_schedule: formData.classSchedule,
         max_capacity: formData.maxCapacity,
         description: formData.description,
-        user_id: formData.assignedTeacher, 
+        user_id: formData.assignedTeacher,
+        student_id: selectedStudentIds,
       };
 
       // Use the ID from classData to target the update
@@ -115,8 +126,8 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
           <div className="modal-body">
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Section Name</label>
                   <FormInputRegistration 
+                    label="Section Name"
                     name="sectionName"
                     value={formData.sectionName}
                     onChange={handleChange}
@@ -127,7 +138,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Class Schedule</label>
+                <label className="text-cgray text-[13px] font-semibold">Class Schedule</label>
                 <div class="relative">
                   <select 
                     className="form-input-modal appearance-none" 
@@ -148,8 +159,8 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Max Capacity</label>
                 <FormInputRegistration 
+                  label="Max Capacity"
                   name="maxCapacity"
                   type="number"
                   value={formData.maxCapacity}
@@ -161,7 +172,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Description</label>
+                <label className="text-cgray text-[13px] font-semibold">Description</label>
                 <textarea 
                     name="description"
                     value={formData.description}
@@ -173,7 +184,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
 
               {/* Needs a logic for options css due to data will be on server/database which will be looped inside */}
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Assign Teacher</label>
+                <label className="text-cgray text-[13px] font-semibold">Assign Teacher</label>
                 <div className="relative">
                   <select 
                     className="form-input-modal appearance-none" 
@@ -194,18 +205,18 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
               </div>
 
               <div className="flex flex-col gap-2 mt-2.5">
-                <label className="text-cgray text-[13px] font-medium">Manage Students</label>
+                <label className="text-cgray text-[13px] font-semibold">Manage Students</label>
                   <div className="flex items-center justify-between bg-[#f8fafc] p-4 border border-slate-200 rounded-xl">
                     <div className="flex items-center gap-2.5">
                       <div className="text-cprimary-blue bg-[#e0f2fe] w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 text-[18px]">
                         <span className="material-symbols-outlined">groups</span>
                       </div>
                       <div className="flex flex-col">
-                        <span id="editEnrollmentSummaryCount" className="text-cdark font-bold text-[14px]">0 Selected</span>
+                        <span id="editEnrollmentSummaryCount" className="text-cdark font-bold text-[14px]">{selectedStudentIds.length} Selected</span>
                         <span className="text-cgray text-[11px]">Capacity Limit applies</span>
                       </div>
                     </div>
-                    <button type="button" id="openEditEnrollmentModalBtn" className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs">
+                    <button type="button" id="openEditEnrollmentModalBtn" className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs" onClick={() => setIsEnrollStudents(true)}>
                       Edit List
                     </button>
                   </div>
@@ -221,6 +232,16 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
             </div>
         </div>
       </div>
+
+      <ClassManageSelectStudentModal 
+        isOpen={isEnrollStudents}
+        onClose={() => setIsEnrollStudents(false)}
+        maxCapacity={formData.maxCapacity}
+        onSave={handleConfirmSelection}
+        initialSelected={selectedStudentIds}
+        sectionId={classData?.section_id ?? classData?.sectionId}
+      />
+
     </>,
     document.body
   );

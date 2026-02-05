@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import axios from 'axios';
 import { createPortal } from "react-dom";
-import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css'; 
 
-export default function ClassManageDeleteClassModal({ isOpen, onClose, classData, onSuccess }) {
+export default function ClassManageDeleteStudentModal({ isOpen, onClose, studentData, onSuccess }) {
   const [confirmationInput, setConfirmationInput] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Reset input when modal opens/closes
+  if (!isOpen || !studentData) return null;
+
   const handleClose = () => {
     setConfirmationInput("");
     onClose();
@@ -21,59 +21,60 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
 
     setLoading(true);
     try {
-      await axios.put(`http://localhost:3000/api/sections/archive/${classData._id}`, {}, {
+      // 1. Updated URL to match Backend
+      await axios.put(`http://localhost:3000/api/students/archive/${studentData._id}`, {}, {
         withCredentials: true
       });
 
-      alert("Class deleted successfully.");
+      alert("Student deleted successfully.");
       if (onSuccess) onSuccess(); 
       handleClose();
 
     } catch (error) {
       console.error("Delete failed:", error);
-      alert("Failed to delete class. Check console.");
+      alert("Failed to delete student. Check console.");
     } finally {
       setLoading(false);
     }
   };
 
   const isConfirmed = confirmationInput.trim() === "Confirm";
-
-  if (!isOpen || !classData) return null;
+  const studentName = `${studentData.first_name || ''} ${studentData.last_name || ''}`;
 
   return createPortal(
     <>
+      {/* No Logic Yet soon to be implemented */}
       <div className="modal-overlay active" id="editStudentModal">
         <div className="modal-container">
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
               <span class="material-symbols-outlined red-icon text-[24px]">warning</span>
-              <h2 className="text-cdark text-[18px] font-bold">Delete Class</h2>
+              <h2 className="text-cdark text-[18px] font-bold">Delete Student</h2>
             </div>
           </div>
 
           <div className="modal-body">
             <p className="text-cgray text-[14px] leading-normal">
-              Are you sure you want to delete this class? This will remove the
-              class and disconnect the assigned teacher.
+              Are you sure you want to delete this <strong>{studentName}</strong>? This action will
+              remove their profile and access immediately.
             </p>
             <strong>This cannot be undone.</strong>
 
             <div className="flex flex-col gap-2">
               <label htmlFor="" className="text-cgray text-[13px] font-medium"> Type "Confirm to proceed"</label>
-              <input 
-                type="text" 
-                className="form-input-modal border-red-300 focus:border-red-500" 
-                placeholder="Type 'Confirm'"
-                value={confirmationInput}
-                onChange={(e) => setConfirmationInput(e.target.value)}
-              />
+                <input 
+                  type="text" 
+                  className="form-input-modal border-red-300 focus:border-red-500" 
+                  placeholder="Type 'Confirm'"
+                  value={confirmationInput}
+                  onChange={(e) => setConfirmationInput(e.target.value)}
+                />
             </div>
 
             <input type="hidden" id="deleteTeacherId" />
           </div>
 
-          <div className="modal-footer">
+          <div class="modal-footer">
             <button className="btn-cancel" onClick={handleClose}>Cancel</button>
             <button 
               className="btn-danger bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white transition-colors px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer"
@@ -85,7 +86,7 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
                 cursor: !isConfirmed ? 'not-allowed' : 'pointer'
               }}
             >
-              {loading ? "Deleting..." : "Delete Class"}
+              {loading ? "Deleting..." : "Delete Student"}
             </button>
           </div>
         </div>
