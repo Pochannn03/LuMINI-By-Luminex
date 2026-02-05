@@ -287,10 +287,7 @@ export default function SuperAdminClassManagement() {
             </div>
           </div>
         </main>
-<<<<<<< HEAD
-=======
       
->>>>>>> 77d56286c284d225af236df7bef525e34af5b97e
       {/* For Modal of Adding Classes, Students and Teachers */}
       {/* CLASSES */}
       <ClassManageAddClassModal 
