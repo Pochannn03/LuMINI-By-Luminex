@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { validateStudentRegistrationStep } from '../../../../utils/modal-validation/studentModalValidation';
+import { validateStudentRegistrationStep } from '../../../../utils/class-manage-modal/studentModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'

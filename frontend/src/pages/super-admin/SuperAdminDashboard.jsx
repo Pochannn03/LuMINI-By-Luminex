@@ -18,7 +18,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/users', { 
+        const response = await axios.get('http://localhost:3000/api/users/cards', { 
           withCredentials: true 
         });
 
@@ -152,7 +152,7 @@ export default function SuperAdminDashboard() {
                 </div>
               </Link>
               
-              <Link to="#" className="quick-link-item">
+              <Link to="/superadmin/accounts" className="quick-link-item">
                 <div className="link-icon-box icon-blue">
                     <span className="material-symbols-outlined">group</span>
                 </div>

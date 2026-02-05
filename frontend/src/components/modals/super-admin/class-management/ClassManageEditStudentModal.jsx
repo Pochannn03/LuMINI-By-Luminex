@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
-import { validateStudentRegistrationStep } from '../../../../utils/modal-validation/studentModalValidation';
+import { validateStudentRegistrationStep } from '../../../../utils/class-manage-modal/studentModalValidation';
 
 export default function ClassManageEditStudentModal({ isOpen, onClose, studentData, onSuccess }) {
   // HOOKS (useState & useEffect)
