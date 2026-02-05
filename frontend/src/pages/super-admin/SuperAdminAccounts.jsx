@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
-// import axios from 'axios'; 
+import axios from 'axios'; 
 import '../../styles/super-admin/class-management.css'; 
 import NavBar from "../../components/navigation/NavBar";
-
-// Import Modals
 import AccountsEditModal from "../../components/modals/super-admin/accounts/AccountsEditModal";
 import AccountsDeleteModal from "../../components/modals/super-admin/accounts/AccountsDeleteModal";
 
-// --- DUMMY DATA ---
 const DUMMY_ACCOUNTS = [
   {
     _id: "101",
@@ -62,13 +59,18 @@ export default function SuperAdminAccounts() {
   const [roleFilter, setRoleFilter] = useState("All"); 
 
   const fetchAccounts = useCallback(async () => {
+    setLoading(true); // Optional: show loading spinner on refresh
     try {
-      setLoading(true);
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 600));
-      setAccounts(DUMMY_ACCOUNTS);
+      const response = await axios.get('http://localhost:3000/api/users', { 
+        withCredentials: true 
+      });
+
+      if (response.data.success) {
+        // FIX 2: Set ONLY the array of users, not an object
+        setAccounts(response.data.users || []); 
+      }
     } catch (error) {
-      console.error("Error fetching accounts:", error);
+      console.error("Error fetching stats:", error);
     } finally {
       setLoading(false);
     }
@@ -89,8 +91,8 @@ export default function SuperAdminAccounts() {
     setIsDeleteAccountModalOpen(true);
   };
 
-  // HELPER: Get Initials for Avatar
   const getInitials = (name) => {
+    if (!name) return "??";
     return name
       .split(' ')
       .map(n => n[0])
@@ -101,20 +103,30 @@ export default function SuperAdminAccounts() {
 
   // HELPER: Get Badge Color based on Role
   const getRoleBadgeStyle = (role) => {
+    // 1. Safety check
+    if (!role) return 'bg-gray-100 text-gray-700 border-gray-200';
+
+    // 2. Switch on "role" (Remove the '!')
+    // 3. Match the cases to your Schema enum: 'superadmin', 'admin', 'user'
     switch(role) {
-      case 'Admin': return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'Teacher': return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'Student': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Parent': return 'bg-teal-100 text-teal-700 border-teal-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'superadmin': 
+        return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'admin': 
+        return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'user': 
+        return 'bg-blue-100 text-blue-700 border-blue-200';
+      default: 
+        return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
   const filteredAccounts = accounts.filter((acc) => {
-    const matchesRole = roleFilter === "All" || acc.role.toLowerCase() === roleFilter.toLowerCase();
+    const fullName = acc.full_name || `${acc.first_name} ${acc.last_name}`;
+    const matchesRole = roleFilter === "All" || (acc.role && acc.role.toLowerCase() === roleFilter.toLowerCase());
     const matchesSearch = 
-      acc.username?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      acc.full_name?.toLowerCase().includes(searchQuery.toLowerCase());
+      (acc.username && acc.username.toLowerCase().includes(searchQuery.toLowerCase())) || 
+      (fullName && fullName.toLowerCase().includes(searchQuery.toLowerCase()));
+      
     return matchesRole && matchesSearch;
   });
 
@@ -124,7 +136,6 @@ export default function SuperAdminAccounts() {
 
       <main className="flex-1 p-6 animate-[fadeIn_0.4s_ease-out_forwards] overflow-y-auto">
         
-        {/* HEADER */}
         <div className="superadmin-banner mb-6">
           <h1 className="text-[white]! text-[28px]! font-bold mb-2 tracking-[-0.5px]">Accounts Directory</h1>
           <p className="text-[white]! opacity-80 text-[15px]! m-0">View and manage registered users.</p>
@@ -132,7 +143,6 @@ export default function SuperAdminAccounts() {
 
         <div className="flex flex-col gap-6 max-w-[1200px] m-auto">
           
-          {/* SEARCH & FILTER BAR */}
           <div className="card p-4 flex flex-col md:flex-row gap-4 justify-between items-center bg-white sticky top-0 z-10">
             <div className="search-bar-small flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 w-full md:max-w-md">
               <span className="material-symbols-outlined text-gray-400">search</span>
@@ -145,20 +155,17 @@ export default function SuperAdminAccounts() {
               />
             </div>
 
-            {/* ✅ FIXED SELECT DROPDOWN */}
             <div className="relative w-full md:w-auto">
               <select 
                 className="appearance-none w-full md:w-auto bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:border-blue-500 block pl-3 pr-10 py-2.5 outline-none cursor-pointer hover:bg-gray-50 transition-colors"
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
-                <option value="All">All Roles</option>
-                <option value="Admin">Admins</option>
-                <option value="Teacher">Teachers</option>
-                <option value="Student">Students</option>
-                <option value="Parent">Parents</option>
+                <option value="All">All</option>
+                <option value="superadmin">Admins</option>
+                <option value="admin">Teachers</option>
+                <option value="user">Parents & Guardian</option>
               </select>
-              {/* Custom Arrow Icon positioned absolutely */}
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                 <span className="material-symbols-outlined text-[20px]">expand_more</span>
               </div>
@@ -166,7 +173,6 @@ export default function SuperAdminAccounts() {
 
           </div>
 
-          {/* LOADING STATE */}
           {loading && (
             <div className="p-12 text-center text-cgray bg-white rounded-xl border border-gray-100 shadow-sm">
               <span className="material-symbols-outlined animate-spin text-3xl mb-2">sync</span>
@@ -174,7 +180,6 @@ export default function SuperAdminAccounts() {
             </div>
           )}
 
-          {/* EMPTY STATE */}
           {!loading && filteredAccounts.length === 0 && (
             <div className="p-12 text-center text-cgray bg-white rounded-xl border border-gray-100 shadow-sm">
                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">person_off</span>
@@ -182,7 +187,6 @@ export default function SuperAdminAccounts() {
             </div>
           )}
 
-          {/* --- DESKTOP VIEW: STANDARD TABLE --- */}
           {!loading && filteredAccounts.length > 0 && (
             <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <table className="w-full text-left border-collapse">
@@ -196,51 +200,51 @@ export default function SuperAdminAccounts() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {filteredAccounts.map((acc) => (
+                  {filteredAccounts.map((acc) => {
+                    // FIX 5: Create the name variable inside the loop
+                    const displayName = acc.full_name || `${acc.first_name} ${acc.last_name}`;
+                    
+                    return (
                     <tr key={acc._id} className="hover:bg-gray-50 transition-colors group">
-                      
-                      {/* User Column */}
                       <td className="p-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm
-                            ${acc.role === 'Admin' ? 'bg-purple-500 text-white' : 
-                              acc.role === 'Teacher' ? 'bg-orange-500 text-white' : 
-                              acc.role === 'Parent' ? 'bg-teal-500 text-white' : 'bg-blue-500 text-white'}`}>
-                            {getInitials(acc.full_name)}
+                            ${acc.role === 'superadmin' ? 'bg-purple-500 text-white' : 
+                              acc.role === 'admin' ? 'bg-orange-500 text-white' : 
+                              acc.role === 'user' ? 'bg-teal-500 text-white' : 'bg-blue-500 text-white'}`}>
+                            {getInitials(displayName)}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-sm font-semibold text-gray-900">{acc.full_name}</span>
-                            <span className="text-xs text-gray-500">ID: {acc.user_id_number || "N/A"}</span>
+                            {/* FIX 7: Use displayName here */}
+                            <span className="text-sm font-semibold text-gray-900">{displayName}</span>
+                            <span className="text-xs text-gray-500 mt-0.5">ID: {acc.user_id || "N/A"}</span>
                           </div>
                         </div>
                       </td>
 
-                      {/* Role Column */}
                       <td className="p-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadgeStyle(acc.role)}`}>
                           {acc.role}
                         </span>
                       </td>
 
-                      {/* Username Column */}
                       <td className="p-4">
                         <span className="text-sm font-medium text-gray-700">@{acc.username}</span>
                       </td>
 
-                      {/* Status Column */}
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <span className={`w-2 h-2 rounded-full ${acc.is_active ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                          <span className={`text-xs font-medium ${acc.is_active ? 'text-green-700' : 'text-red-700'}`}>
-                            {acc.is_active ? 'Active' : 'Inactive'}
+                           {/* FIX 8: Use !acc.is_archive instead of acc.is_active */}
+                          <span className={`w-2 h-2 rounded-full ${!acc.is_archive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                          <span className={`text-xs font-medium ${!acc.is_archive ? 'text-green-700' : 'text-red-700'}`}>
+                            {!acc.is_archive ? 'Active' : 'Archived'}
                           </span>
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5 pl-4">
+                        {/* <div className="text-[10px] text-gray-400 mt-0.5 pl-4">
                            {acc.last_login ? `Last login: ${new Date(acc.last_login).toLocaleDateString()}` : 'Never logged in'}
-                        </div>
+                        </div> */}
                       </td>
 
-                      {/* Actions Column */}
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
@@ -260,18 +264,16 @@ export default function SuperAdminAccounts() {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
           )}
 
-          {/* --- MOBILE VIEW: CARDS --- */}
           <div className="md:hidden grid grid-cols-1 gap-4">
             {!loading && filteredAccounts.map((acc) => (
               <div key={acc._id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                 
-                {/* Card Top */}
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold 
@@ -288,7 +290,6 @@ export default function SuperAdminAccounts() {
                     </div>
                   </div>
                   
-                  {/* Actions */}
                   <div className="flex gap-1">
                     <button onClick={() => handleEdit(acc)} className="p-1.5 text-gray-400 bg-gray-50 rounded-lg">
                       <span className="material-symbols-outlined text-[18px]">edit</span>
@@ -301,7 +302,6 @@ export default function SuperAdminAccounts() {
 
                 <hr className="border-gray-100 my-3"/>
 
-                {/* Card Details */}
                 <div className="grid grid-cols-2 gap-y-3 text-xs">
                   <div>
                     <span className="block text-gray-400 mb-0.5">Username</span>
@@ -326,7 +326,6 @@ export default function SuperAdminAccounts() {
         </div>
       </main>
 
-      {/* MODALS */}
       <AccountsEditModal 
         isOpen={isEditAccountModalOpen}
         onClose={() => {
@@ -334,7 +333,7 @@ export default function SuperAdminAccounts() {
           setSelectedAccount(null);
         }}
         account={selectedAccount}
-        onSuccess={fetchAccounts}
+        onSuccess={fetchAccounts} 
       />
 
       <AccountsDeleteModal 

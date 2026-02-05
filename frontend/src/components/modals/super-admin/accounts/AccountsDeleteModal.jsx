@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from "react-dom";
 import axios from 'axios';
-// ✅ Import the global styles
 import '../../../../styles/super-admin/class-management.css';
 
 export default function AccountsDeleteModal({ isOpen, onClose, account, onSuccess }) {
@@ -12,9 +11,12 @@ export default function AccountsDeleteModal({ isOpen, onClose, account, onSucces
   const handleDelete = async () => {
     setLoading(true);
     try {
-      await axios.delete(`http://localhost:3000/api/users/${account._id}`, {
-        withCredentials: true
-      });
+      await axios.put(
+        `http://localhost:3000/api/users/archive/${account._id}`, 
+        {},
+        { withCredentials: true }
+      );
+      
       onSuccess();
       onClose();
     } catch (err) {
@@ -71,7 +73,7 @@ export default function AccountsDeleteModal({ isOpen, onClose, account, onSucces
             disabled={loading}
             className="btn-danger"
           >
-            {loading ? 'Deleting...' : 'Yes, Delete'}
+            {loading ? 'Deleting...' : 'Delete'}
           </button>
         </div>
 

@@ -35,7 +35,7 @@ export default function App() {
         <Route element={<RequireAuth allowedRoles={['superadmin']} />}>
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
-          <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} /> {/*route kay accounts*/ }
+          <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
         </Route>
 
         {/* Admin (Teacher) Routes */}

@@ -116,8 +116,7 @@ router.post('/api/parents',
   }
 );
 
-// Checking for User Information under the Student Schema
-
+// Checking for User Information under the Student Schema // EXAMPLE OF GEMINI TO GET THE DETAILS OF ANOTHER SCHEMA UNDER A CERTAIN SCHAME ('.populate')
 router.get('/api/user-checking',
   async (req, res) => {
   try {
