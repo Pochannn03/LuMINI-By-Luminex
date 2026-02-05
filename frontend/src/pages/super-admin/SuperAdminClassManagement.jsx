@@ -287,8 +287,7 @@ export default function SuperAdminClassManagement() {
             </div>
           </div>
         </main>
-      
-      {/* For Modal of Adding Classes, Students and Teachers */}\
+      {/* For Modal of Adding Classes, Students and Teachers */}
       {/* CLASSES */}
       <ClassManageAddClassModal 
         isOpen={isAddClassModalOpen} 

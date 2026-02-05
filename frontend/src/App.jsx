@@ -9,6 +9,7 @@ import ParentRegistration from './pages/auth/ParentRegistration';
 import TeacherRegistration from './pages/auth/TeacherRegistration';
 import SuperAdminDashbooard from './pages/super-admin/SuperAdminDashboard';
 import SuperAdminClassManagement from './pages/super-admin/SuperAdminClassManagement';
+import SuperAdminAccounts from './pages/super-admin/SuperAdminAccounts'; 
 import AdminDashboard from './pages/admin-teacher/AdminDashboard';
 import AdminAttendance from './pages/admin-teacher/AdminAttendance'
 import ParentDashboard from './pages/users/parent/ParentDashboard';
@@ -34,6 +35,7 @@ export default function App() {
         <Route element={<RequireAuth allowedRoles={['superadmin']} />}>
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
+          <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} /> {/*route kay accounts*/ }
         </Route>
 
         {/* Admin (Teacher) Routes */}
