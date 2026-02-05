@@ -57,6 +57,12 @@ export default function NavBar() {
       icon: "dashboard",
       allowedRoles: ["user"],
     },
+    {
+      label: "Profile",
+      path: "/parent/profile", // Use a specific path for clarity
+      icon: "person",
+      allowedRoles: ["user"],
+    },
     /* Teacher Profile */
     {
       label: "Profile",

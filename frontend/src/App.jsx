@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
+import ParentProfile from "./pages/users/parent/ParentProfile";
 
 export default function App() {
   return (
@@ -51,6 +52,7 @@ export default function App() {
         {/* User (Parent/Guardian) Routes */}
         <Route element={<RequireAuth allowedRoles={["user"]} />}>
           <Route path="/dashboard" element={<ParentDashboard />} />
+          <Route path="/parent/profile" element={<ParentProfile />} />
         </Route>
       </Routes>
     </div>
