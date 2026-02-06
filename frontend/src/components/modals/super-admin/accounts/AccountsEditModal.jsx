@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { validateAccountsEditModal } from '../../../../utils/manage-account-modal/accountModalValidation';
+import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-management.css'; 
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
@@ -13,53 +15,46 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
   const [previewUrl, setPreviewUrl] = useState(null);
 
   const [formData, setFormData] = useState({
+    username: '',
+    password: '' ,
     first_name: '',
     last_name: '',
     email: '',
-    username: '',
+    phone_number: '',
     role: '',
-    is_active: true,
-    password: '' 
+    is_active: true
   });
 
   useEffect(() => {
     if (account) {
       setFormData({
+        username: account.username || '',
+        password: '' ,
         first_name: account.first_name || '', 
         last_name: account.last_name || '',
         email: account.email || '',
-        username: account.username || '',
+        phone_number: account.phone_number || '',
         role: account.role || 'Student',
         is_active: !account.is_archive,
-        password: '' 
       });
 
-      // Reset image states
       setProfileImage(null);
       setPreviewUrl(account.profile_picture ? `http://localhost:3000/${account.profile_picture}` : null); 
       setErrors({});
     }
   }, [account]);
 
-  // WILL WORK ON THIS DUE TO EXISTING VALIDATION ON UTILS FOLDER
-  const validateStep = () => {
-    const newErrors = {};
-    if (!formData.first_name) newErrors.first_name = "First name is required";
-    if (!formData.last_name) newErrors.last_name = "Last name is required";
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.username) newErrors.username = "Username is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null })); 
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleStatusChange = (e) => {
-    setFormData((prev) => ({ ...prev, is_active: e.target.value === true }));
+    setFormData((prev) => ({ 
+      ...prev, 
+      is_active: e.target.value === 'true' 
+    }));
   };
 
   const handleImageChange = (e) => {
@@ -68,12 +63,18 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
       setProfileImage(file);
       setPreviewUrl(URL.createObjectURL(file));
     }
-    if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+    if (errors.profile_image) setErrors(prev => ({ ...prev, profile_image: null }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
-    if (!validateStep()) return;
+
+    const validationErrors = validateAccountsEditModal(formData, profileImage);
+
+    if (Object.keys(validationErrors).length > 0) {
+        setErrors(validationErrors);
+        return; // Stop execution
+    }
 
     setLoading(true);
     try {
@@ -86,6 +87,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
       data.append('email', formData.email);
       data.append('username', formData.username);
       data.append('role', formData.role);
+      data.append('phone_number', formData.phone_number);
       
       // 3. Handle the Logic fields
       // Note: FormData converts booleans to strings "true"/"false". 
@@ -100,7 +102,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
       // 5. CRITICAL: Append the File
       // The name 'profile_photo' MUST match your backend: upload.single('profile_photo')
       if (profileImage) {
-        data.append('profile_photo', profileImage);
+        data.append('profile_picture', profileImage);
       }
 
       // 6. Send the FormData object
@@ -124,9 +126,8 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
   
   return createPortal(
     <>
-      <div className="modal-overlay active" onClick={onClose}>
+      <div className="modal-overlay active">
         <form onSubmit={handleSubmit}>
-          {/* ✅ FIX: We keep !max-w-[700px] to override the 400px default in index.css */}
           <div className="modal-container w-full" onClick={(e) => e.stopPropagation()}>
             
             {/* HEADER */}
@@ -144,7 +145,8 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
               <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-medium">Profile Photo</label>
                 <input 
-                  type="file" 
+                  type="file"
+                  name="profile_photo"
                   id="editAccountPhoto" 
                   accept="image/*"
                   hidden
@@ -152,7 +154,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
                 />
               
                 <div 
-                  className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} 
+                  className={`custom-file-upload cursor-pointer ${errors.profile_image ? 'border-red-500! bg-red-50' : ''}`} 
                   onClick={() => document.getElementById('editAccountPhoto').click()} 
                 >
                   {!previewUrl ? (
@@ -184,8 +186,6 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
                       name="role"
                       value={formData.role}
                       onChange={handleChange}
-                      // 2. Add 'appearance-none' to hide default arrow
-                      // 3. Add 'pr-10' to make space for custom arrow
                       className="form-input-modal cursor-pointer outline-none appearance-none pr-10 w-full"
                     >
                       <option value="admin">Teacher</option>
@@ -207,7 +207,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
                       name="is_active"
                       value={formData.is_active.toString()}
                       onChange={handleStatusChange}
-                      className={`form-input-modal cursor-pointer outline-none appearance-none pr-10 w-full font-semibold
+                      className={`form-input-modal cursor-pointer outline-none appearance-none pr-10 w-full
                         ${formData.is_active ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}
                     >
                       <option value="true">Active</option>
@@ -221,64 +221,81 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
                 </div>
               </div>
 
-              {/* Row 2: Full Name & Username */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-cgray text-[13px] font-medium">Full Name</label>
-                  <input
-                    name="full_name"
-                    type="text"
-                    value={formData.full_name}
+                  <FormInputRegistration 
+                    label="First Name"
+                    name="first_name"
+                    value={formData.first_name}
                     onChange={handleChange}
-                    className={`form-input-modal outline-none transition-colors
-                      ${errors.full_name ? 'border-red-500! bg-red-50' : ''}`}
+                    error={errors.first_name}
+                    className="form-input-modal" 
                   />
-                  {errors.full_name && <span className="text-red-500 text-[11px]">{errors.full_name}</span>}
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  <label className="text-cgray text-[13px] font-medium">Username</label>
-                  <input
-                    name="username"
-                    type="text"
-                    value={formData.username}
+                  <FormInputRegistration 
+                    label="Last Name"
+                    name="last_name"
+                    value={formData.last_name}
                     onChange={handleChange}
-                    className={`form-input-modal outline-none transition-colors
-                      ${errors.username ? 'border-red-500! bg-red-50' : ''}`}
+                    error={errors.last_name}
+                    className="form-input-modal"
                   />
-                  {errors.username && <span className="text-red-500 text-[11px]">{errors.username}</span>}
                 </div>
               </div>
 
-              {/* Row 3: Email */}
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Email Address</label>
-                <input
+                <FormInputRegistration 
+                  label="Email Address"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`form-input-modal outline-none transition-colors
-                    ${errors.email ? 'border-red-500! bg-red-50' : ''}`}
+                  error={errors.email}
+                  className="form-input-modal"
                 />
-                {errors.email && <span className="text-red-500 text-[11px]">{errors.email}</span>}
-              </div>
-
-              {/* Row 4: Security / Reset Password */}
-              <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
-                <span className="material-symbols-outlined blue-icon">lock</span>
-                <h3 className="text-cdark font-semibold text-[16px]">Reset Password</h3>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">New Password</label>
-                <input
+                <FormInputRegistration 
+                  label="Phone Number"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  error={errors.phone_number}
+                  className="form-input-modal"
+                />
+              </div>
+
+              {/* Row 4: Security / Reset Password */}
+              
+              <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
+                <span className="material-symbols-outlined blue-icon">lock</span>
+                <h3 className="text-cdark font-semibold text-[16px]">Reset Credentials</h3>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <FormInputRegistration 
+                  label="Username"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  error={errors.username}
+                  className="form-input-modal"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <FormInputRegistration 
+                  label="New Password"
                   name="password"
                   type="password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Leave blank to keep current"
-                  className="form-input-modal outline-none placeholder:text-gray-400"
+                  error={errors.password}
+                  className="form-input-modal"
                 />
               </div>
 
