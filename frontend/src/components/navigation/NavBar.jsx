@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import logo from '../../assets/lumini-logo.png'
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import logo from "../../assets/lumini-logo.png";
 import Header from "./Header";
-import { useAuth } from "../../context/AuthProvider"; 
-import '../../styles/sidebar.css';
+import { useAuth } from "../../context/AuthProvider";
+import "../../styles/sidebar.css";
 
 export default function NavBar() {
-  const { user, logout } = useAuth(); 
+  const { user, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -17,59 +17,65 @@ export default function NavBar() {
       label: "Dashboard",
       path: "/superadmin/dashboard",
       icon: "dashboard",
-      allowedRoles: ["superadmin"]
+      allowedRoles: ["superadmin"],
     },
     {
       label: "Manage Classes",
       path: "/superadmin/manage-class",
       icon: "school",
-      allowedRoles: ["superadmin"]
+      allowedRoles: ["superadmin"],
     },
-        {
+    {
       label: "Analytics",
       path: "/superadmin/analytics",
       icon: "analytics",
-      allowedRoles: ["superadmin"]
+      allowedRoles: ["superadmin"],
     },
-        {
+    {
       label: "Accounts",
       path: "/superadmin/accounts",
       icon: "manage_accounts",
-      allowedRoles: ["superadmin"]
+      allowedRoles: ["superadmin"],
     },
     /* Admin (Teacher) */
     {
       label: "Dashboard",
       path: "/admin/dashboard",
       icon: "dashboard",
-      allowedRoles: ["admin"]
+      allowedRoles: ["admin"],
     },
     {
       label: "Attendance",
       path: "/admin/attendance",
       icon: "punch_clock",
-      allowedRoles: ["admin"]
+      allowedRoles: ["admin"],
     },
     /* User (Parent/Guardian) */
-        {
+    {
       label: "Dashboard",
       path: "/dashboard",
       icon: "dashboard",
-      allowedRoles: ["user"]
+      allowedRoles: ["user"],
     },
-    /* All Access */
     {
       label: "Profile",
-      path: "/profile",
+      path: "/parent/profile", // Use a specific path for clarity
       icon: "person",
-      allowedRoles: ["superadmin", "admin", "user"] 
+      allowedRoles: ["user"],
+    },
+    /* Teacher Profile */
+    {
+      label: "Profile",
+      path: "/admin/profile", // <--- CHANGED from "/profile"
+      icon: "person",
+      allowedRoles: ["admin"], // <--- CHANGED to only show for admins/teachers
     },
   ];
 
-  const currentRole = user ? user.role : 'guest';
+  const currentRole = user ? user.role : "guest";
 
-  const visibleNavItems = NAV_ITEMS.filter(item => 
-    item.allowedRoles.includes(currentRole)
+  const visibleNavItems = NAV_ITEMS.filter((item) =>
+    item.allowedRoles.includes(currentRole),
   );
 
   const toggleMenu = () => {
@@ -83,7 +89,7 @@ export default function NavBar() {
   useEffect(() => {
     document.body.classList.add("dashboard-mode");
 
-    const isDesktop = window.innerWidth >= 1024;  
+    const isDesktop = window.innerWidth >= 1024;
     if (isDesktop && isOpen) {
       document.body.classList.add("sidebar-open");
     } else {
@@ -100,23 +106,24 @@ export default function NavBar() {
     <>
       <Header onToggle={toggleMenu} />
 
-      <div 
-        className={`nav-overlay ${isOpen ? 'active' : ''}`} 
+      <div
+        className={`nav-overlay ${isOpen ? "active" : ""}`}
         onClick={() => setIsOpen(false)}
+      ></div>
+
+      <aside
+        className={`sidebar ${isOpen ? "expanded active" : ""}`}
+        id="sideNavBar"
       >
-      </div>
-
-      <aside className={`sidebar ${isOpen ? 'expanded active' : ''}`} id="sideNavBar">
-
         <div className="border-bottom flex shrink-0 items-center justify-center h-20 ">
           <img src={logo} alt="Lumini" className="sidebar-logo"></img>
         </div>
 
         <nav className="sidebar-menu">
           {visibleNavItems.map((item) => (
-            <Link 
-              key={item.path} 
-              to={item.path} 
+            <Link
+              key={item.path}
+              to={item.path}
               className={isActive(item.path)}
             >
               <span className="material-symbols-outlined">{item.icon}</span>
@@ -126,12 +133,17 @@ export default function NavBar() {
         </nav>
 
         <div className="sidebar-footer">
-          <button onClick={() => { logout(); navigate('/login'); }} className="nav-item logout-btn">
+          <button
+            onClick={() => {
+              logout();
+              navigate("/login");
+            }}
+            className="nav-item logout-btn"
+          >
             <span className="material-symbols-outlined">logout</span>
             <span>Sign Out</span>
           </button>
         </div>
-
       </aside>
     </>
   );
