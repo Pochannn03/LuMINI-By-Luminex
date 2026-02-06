@@ -88,51 +88,6 @@ router.get('/api/students/available',
   }
 });
 
-
-// CREATE STUDENT
-router.post('/api/students', 
-  isAuthenticated,
-  hasRole('superadmin'),
-  upload.single('profile_photo'),
-  ...checkSchema(createStudentValidationSchema), 
-  async (req, res) => {
-
-    const result = validationResult(req);
-
-    if (!result.isEmpty()) {
-      if (req.file) fs.unlinkSync(req.file.path);
-      return res.status(400).send({ errors: result.array() });
-    }
-
-    const data = matchedData(req);
-    console.log("Received Valid Data:", data);
-    data.created_by = "superadmin";
-    data.updated_by = "superadmin";
-
-    if (req.file) {
-      data.profile_picture = req.file.path; 
-    }
-
-    const newStudent = new Student(data);
-
-    try {
-        const savedStudent = await newStudent.save();
-        return res.status(201).send({ msg: "Student registered successfully!", user: savedStudent });
-    } catch (err) {
-        if (req.file) fs.unlinkSync(req.file.path);
-        
-        if (err.code === 11000) {
-          if (err.keyPattern && err.keyPattern.student_id) {
-            return res.status(400).send({ msg: "ID Generation conflict. Please try again." });
-          }
-          return res.status(400).send({ msg: "Duplicate Data: Invitation Code or ID already exists." });
-        }
-        return res.status(400).send({ msg: "Registration failed", error: err.message });
-    }
-
-  }
-);
-
 // GET CURRENT STUDENT ID 
 router.get('/api/students/id',
   isAuthenticated,
@@ -192,6 +147,50 @@ router.get('/api/students/invitation',
       return res.status(500).json({ msg: "Failed to generate code" });
     }
 });
+
+// CREATE STUDENT
+router.post('/api/students', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  upload.single('profile_photo'),
+  ...checkSchema(createStudentValidationSchema), 
+  async (req, res) => {
+
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(400).send({ errors: result.array() });
+    }
+
+    const data = matchedData(req);
+    console.log("Received Valid Data:", data);
+    data.created_by = "superadmin";
+    data.updated_by = "superadmin";
+
+    if (req.file) {
+      data.profile_picture = req.file.path; 
+    }
+
+    const newStudent = new Student(data);
+
+    try {
+        const savedStudent = await newStudent.save();
+        return res.status(201).send({ msg: "Student registered successfully!", user: savedStudent });
+    } catch (err) {
+        if (req.file) fs.unlinkSync(req.file.path);
+        
+        if (err.code === 11000) {
+          if (err.keyPattern && err.keyPattern.student_id) {
+            return res.status(400).send({ msg: "ID Generation conflict. Please try again." });
+          }
+          return res.status(400).send({ msg: "Duplicate Data: Invitation Code or ID already exists." });
+        }
+        return res.status(400).send({ msg: "Registration failed", error: err.message });
+    }
+
+  }
+);
 
 // EDIT STUDENT
 router.put('/api/students/:id',
