@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { validateClassRegistrationStep } from '../../../../utils/modal-validation/classModalValidation';
+import { validateClassRegistrationStep } from '../../../../utils/class-manage-modal/classModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
@@ -80,7 +80,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
 
   const handleConfirmSelection = (ids) => {
     setSelectedStudentIds(ids);
-    setIsEnrollStudents(false); // Close the modal
+    setIsEnrollStudents(false); 
   };
 
   const handleSubmit = async (e) => {

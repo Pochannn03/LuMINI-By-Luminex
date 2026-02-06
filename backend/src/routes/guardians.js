@@ -39,14 +39,20 @@ router.post('/api/guardian-register',
     const data = matchedData(req);
     console.log("Received Valid Text Data:", data);
 
-    data.password = await hashPassword(data.password);
-    data.role = "user";
+    const hashedPassword = await hashPassword(data.password);
+    const newUser = new User({
+        ...data,
+        password: hashedPassword,
+        relationship: "Guardian",
+        role: "user",
+        profile_picture: req.file ? req.file.path : null,
+        is_archive: false
+      });
 
     if (req.file) {
       data.profile_picture = req.file.path; 
     }
 
-    const newUser = new User(data);
 
     try {
         const savedUser = await newUser.save();

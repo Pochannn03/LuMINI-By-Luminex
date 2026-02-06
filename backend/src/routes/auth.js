@@ -18,7 +18,14 @@ router.post("/api/auth", (req, res, next) => {
       if (err) {
         console.error("Login Session Error:", err);
         return res.status(500).json({ message: "Session login failed" });
-      } else {
+      }
+
+      // 3. Force Session Save (The fix we discussed)
+      req.session.save((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Session save failed" });
+        }
+
         const safeUser = {
           id: user._id,
           username: user.username,
@@ -29,7 +36,7 @@ router.post("/api/auth", (req, res, next) => {
           message: "Login successful",
           user: safeUser,
         });
-      }
+      });
     });
   })(req, res, next);
 });

@@ -1,9 +1,47 @@
-import React from "react";
+import React, { useState, useEffect} from "react";
 import { Link } from 'react-router-dom';
-import '../../styles/super-admin/super-admin-dashboard.css';
+import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
+import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
+import '../../styles/super-admin/super-admin-dashboard.css';
 
 export default function SuperAdminDashboard() {
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
+  const [pendingTeachers, setPendingTeachers] = useState([]); 
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalParents: 0,
+    loading: true
+  });
+
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/users/cards', { 
+          withCredentials: true 
+        });
+
+        if (response.data.success) {
+          setStats({
+            totalStudents: response.data.students.length,
+            totalTeachers: response.data.teachers.length,
+            totalParents: response.data.users.length,
+            loading: false
+          });
+          setPendingTeachers(response.data.pending_teachers || []);
+          setLoadingTeachers(false);
+        }
+      } catch (error) {
+        console.error("Error fetching stats:", error);
+        setStats(prev => ({ ...prev, loading: false }));
+        setLoadingTeachers(false);
+      }
+    };
+
+    fetchDashboardStats();
+  }, []);
+
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
 
@@ -26,7 +64,7 @@ export default function SuperAdminDashboard() {
                 <span className="material-symbols-outlined">groups</span>
               </div>
               <div className="stat-info">
-                <h3 id="statTotalStudents">--</h3> {/* This is where the data will be displayed */}
+                <h3 id="statTotalStudents">{stats.loading ? "--" : stats.totalStudents}</h3> {/* This is where the data will be displayed */}
                 <p>Total Students</p>
               </div>
             </div>
@@ -38,7 +76,7 @@ export default function SuperAdminDashboard() {
                   >
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalTeachers">--</h3> {/* This is where the data will be displayed */}
+                  <h3 id="statTotalTeachers">{stats.loading ? "--" : stats.totalTeachers}</h3> {/* This is where the data will be displayed */}
                   <p>Active Teachers</p>
                 </div>
               </div>
@@ -48,8 +86,8 @@ export default function SuperAdminDashboard() {
                   <span className="material-symbols-outlined">family_restroom</span>
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalParents">--</h3> {/* This is where the data will be displayed */}
-                  <p>Parents Registered</p>
+                  <h3 id="statTotalParents">{stats.loading ? "--" : stats.totalParents}</h3> {/* This is where the data will be displayed */}
+                  <p>Parents and Guardians Registered</p>
                 </div>
             </div>
             
@@ -61,7 +99,24 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-4">
-              <p className="text-cgray p-2.5">Loading Pending Request...</p> {/* Data Pending for Acc Approval here*/}
+              {loadingTeachers && (
+                <p className="text-cgray p-[15px]">Loading Pending Teachers...</p>
+              )}
+
+              {/* 2. Empty State */}
+              {!loadingTeachers && pendingTeachers.length === 0 && (
+                <p className="text-cgray p-[15px] text-sm">No Pending Account Found.</p>
+              )}
+
+              {/* 3. Render Cards */}
+              {!loadingTeachers && pendingTeachers.map((tch) => (
+                <DashboardPendingAccCard 
+                  key={tch._id || tch.user_id} 
+                  tch={tch}
+                  // onEdit={handleEditClass}
+                  // onDelete={handleDeleteClass}
+                />
+              ))}
             </div>
 
           </div>
@@ -82,7 +137,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <Link to="#" className="quick-link-item">
+              <Link to="/superadmin/manage-class" className="quick-link-item">
                 <div className="link-icon-box icon-blue">
                     <span className="material-symbols-outlined">manage_accounts</span>
                 </div>
@@ -97,7 +152,7 @@ export default function SuperAdminDashboard() {
                 </div>
               </Link>
               
-              <Link to="#" className="quick-link-item">
+              <Link to="/superadmin/accounts" className="quick-link-item">
                 <div className="link-icon-box icon-blue">
                     <span className="material-symbols-outlined">group</span>
                 </div>

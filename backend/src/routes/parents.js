@@ -100,7 +100,8 @@ router.post(
         relationship: "Parent",
         role: "user",
         // 👇 FIX: Replace backslashes with forward slashes before saving
-        profile_picture: req.file ? req.file.path.replace(/\\/g, "/") : null,
+        profile_picture: req.file ? req.file.path.replace(/\\/g, "/") : null,,
+        is_archive: false
       });
 
       const savedUser = await newUser.save();
@@ -126,8 +127,7 @@ router.post(
   },
 );
 
-// Checking for User Information under the Student Schema
-
+// Checking for User Information under the Student Schema // EXAMPLE OF GEMINI TO GET THE DETAILS OF ANOTHER SCHEMA UNDER A CERTAIN SCHAME ('.populate')
 router.get("/api/user-checking", async (req, res) => {
   try {
     // Populate the VIRTUAL name 'user_details', not the field name 'user_id'

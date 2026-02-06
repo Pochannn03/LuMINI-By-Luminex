@@ -16,20 +16,6 @@ const StudentSchema = new mongoose.Schema({
     ref: 'Section',
     default: null
   },
-  invitation_code: {
-    type: String,
-    required: true,
-    unique: true
-  },
-  invitation_status: {
-    type: String,
-    enum: ['pending', 'used', 'expired'],
-    default: 'pending'
-  },
-  invitation_used_at: {
-    type: Date,
-    default: null
-  },
 
   // 2. PERSONAL DETAILS
   first_name: {
@@ -48,7 +34,11 @@ const StudentSchema = new mongoose.Schema({
     type: Number, // FIX: Changed 'int' to 'Number'
     required: false, // Calculated automatically, so optional in schema
   },
-  description: {
+  allergies: {
+    type: String, 
+    required: false,
+  },
+  medical_history: {
     type: String, 
     required: false,
   },
@@ -69,6 +59,20 @@ const StudentSchema = new mongoose.Schema({
   },
 
   // 4. SYSTEM FIELDS
+    invitation_code: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  invitation_status: {
+    type: String,
+    enum: ['pending', 'used', 'expired'],
+    default: 'pending'
+  },
+  invitation_used_at: {
+    type: Date,
+    default: null
+  },
   is_archive: {
     type: Boolean, // Better to use Boolean than String
     default: false,
