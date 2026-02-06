@@ -16,6 +16,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     lastName: '',
     birthdate: '',
     age: '',
+    allergies: 'None',
+    medical_history: 'None',
     studentId: 'Generating...', 
     invitationCode: '',
   })
@@ -28,6 +30,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         lastName: '',
         birthdate: '',
         age: '',
+        allergies: 'None',
+        medical_history: 'None',
         studentId: 'Generating...', 
         invitationCode: '',
       });
@@ -108,6 +112,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       lastName: '',
       birthdate: '',
       age: '',
+      allergies: 'None',
+      medical_history: 'None',
       studentId: 'Generating...', 
       invitationCode: '',
     });
@@ -159,6 +165,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       data.append('last_name', formData.lastName);
       data.append('birthday', formData.birthdate);
       data.append('age', formData.age);
+      data.append('allergies', formData.allergies)
+      data.append('medical_history', formData.medical_history)
       data.append('invitation_code', formData.invitationCode);
 
       if (profileImage) {
@@ -259,6 +267,16 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
               </div>
 
               <div className="flex flex-col gap-2">
+                <label className="text-cgray text-[13px] font-medium">Student ID (Auto-generated)</label>
+                  <input 
+                    type="text" 
+                    value={formData.studentId}
+                    className="form-input-modal text-cgray cursor-not-allowed! focus:outline-none" 
+                    readOnly 
+                    placeholder="Generating..." />
+              </div>
+
+              <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-medium">Full Name</label>
                   <div className="flex gap-2.5">
                     <FormInputRegistration 
@@ -306,13 +324,29 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Student ID (Auto-generated)</label>
-                  <input 
-                    type="text" 
-                    value={formData.studentId}
-                    className="form-input-modal text-cgray cursor-not-allowed! focus:outline-none" 
-                    readOnly 
-                    placeholder="Generating..." />
+                  <FormInputRegistration
+                    label="Allergies"
+                    name="allergies" 
+                    value={formData.allergies}
+                    onChange={handleChange} 
+                    placeholder="Allergies" 
+                    error={errors.allergies} // Pass Error
+                    className="form-input-modal"
+                  />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <FormInputRegistration
+                  label="Medical History"
+                  name="medical_history"
+                  type="textarea"
+                  value={formData.medical_history}
+                  onChange={handleChange}
+                  placeholder="List any medical history..."
+                  rows={3} 
+                  error={errors.medical_history}
+                  className="form-input-modal"
+                />
               </div>
 
               <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">

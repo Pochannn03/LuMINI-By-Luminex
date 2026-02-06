@@ -39,6 +39,20 @@ export const createStudentValidationSchema = {
       errorMessage: "Age is required" 
     },
   },
+  allergies: {
+    optional: true,
+    isString: {
+      errorMessage: "Allergies must be a string",
+    },
+    trim: true,
+  },
+  medical_history: {
+    optional: true,
+    isString: {
+      errorMessage: "Medical history must be a string",
+    },
+    trim: true,
+  },
   invitation_code: {
     notEmpty: { 
       errorMessage: "Invitation code is required" 
