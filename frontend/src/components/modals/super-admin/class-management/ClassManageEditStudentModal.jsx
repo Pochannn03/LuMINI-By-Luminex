@@ -111,7 +111,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('allergies', formData.allergies);
       data.append('medical_history', formData.medical_history);
 
-
       // Append Image ONLY if a new one was selected
       if (profileImage) {
         data.append('profile_photo', profileImage);
