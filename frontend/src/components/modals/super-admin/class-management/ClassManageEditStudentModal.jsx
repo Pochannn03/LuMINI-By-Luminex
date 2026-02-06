@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
-import { validateStudentRegistrationStep } from '../../../../utils/modal-validation/studentModalValidation';
+import { validateStudentRegistrationStep } from '../../../../utils/class-manage-modal/studentModalValidation';
 
 export default function ClassManageEditStudentModal({ isOpen, onClose, studentData, onSuccess }) {
   // HOOKS (useState & useEffect)
@@ -11,12 +11,14 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
-    firstName: '', 
+    firstName: '',
     lastName: '',
-    birthdate: '', // Validator expects 'birthdate'
+    birthdate: '',
     age: '',
-    studentId: '', 
-    invitationCode: '', // Included to satisfy validator structure if needed
+    allergies: 'None',
+    medical_history: 'None',
+    studentId: 'Generating...', 
+    invitationCode: '',
   });
 
   useEffect(() => {
@@ -28,11 +30,13 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         : "";
 
       setFormData({
+        studentId: std.student_id || 'No ID Assigned',
         firstName: std.first_name || '',
         lastName: std.last_name || '',
         birthdate: formattedBday,
         age: std.age || calculateAge(formattedBday),
-        studentId: std.student_id || 'No ID Assigned',
+        allergies: std.allergies || '',
+        medical_history: std.medical_history || '',
         invitationCode: std.invitation_code || '',
       });
 
@@ -104,6 +108,9 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('last_name', formData.lastName);
       data.append('birthday', formData.birthdate);
       data.append('age', formData.age);
+      data.append('allergies', formData.allergies);
+      data.append('medical_history', formData.medical_history);
+
 
       // Append Image ONLY if a new one was selected
       if (profileImage) {
@@ -161,6 +168,16 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
             </div>
 
             <div className="flex flex-col gap-2">
+              <label htmlFor="editStudentID" className="text-cgray text-[13px] font-medium">Student ID (Locked)</label>
+              <input 
+                type="text" 
+                value={formData.studentId} 
+                readOnly
+                className="form-input-modal w-full bg-[#f1f5f9] text-cgray focus:outline-none cursor-not-allowed!"
+              />
+            </div> 
+
+            <div className="flex flex-col gap-2">
               <label htmlFor="fullName" className="text-cgray text-[13px] font-medium">Full Name</label>
               <div className="flex gap-2.5">
                 <FormInputRegistration
@@ -209,14 +226,31 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="editStudentID" className="text-cgray text-[13px] font-medium">Student ID (Locked)</label>
-              <input 
-                type="text" 
-                value={formData.studentId} 
-                readOnly
-                className="form-input-modal w-full bg-[#f1f5f9] text-cgray focus:outline-none cursor-not-allowed!"
+              <FormInputRegistration
+                label="Allergies"
+                name="allergies" 
+                value={formData.allergies}
+                onChange={handleChange} 
+                placeholder="Allergies" 
+                error={errors.allergies} // Pass Error
+                className="form-input-modal"
               />
-            </div>  
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <FormInputRegistration
+                label="Medical History"
+                name="medical_history"
+                type="textarea"
+                value={formData.medical_history}
+                onChange={handleChange}
+                placeholder="List any medical history..."
+                rows={3} 
+                error={errors.medical_history}
+                className="form-input-modal"
+              />
+            </div>
+ 
           </div>
 
           <div className="modal-footer">

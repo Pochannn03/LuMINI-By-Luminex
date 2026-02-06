@@ -58,9 +58,8 @@ const UserSchema = new mongoose.Schema({
 
   // Timestamps & Validation
   is_archive: {
-    type: String, 
+    type: Boolean, 
     default: true,
-    required: true,
   },
   created_at: {
     type: Date,
@@ -93,7 +92,7 @@ UserSchema.pre('save', async function() {
       );
 
       // 2. Assign the ID
-      const newId = 1000 + counter.seq;
+      const newId = counter.seq;
       doc.user_id = newId;
 
       console.log(`✅ Generated user_id: ${newId}`);

@@ -2,8 +2,9 @@ import React from 'react';
 
 export default function ClassManageAddStudentCard({ student, isSelected, onToggle }) {
 
-  const photoUrl = student.profilePicture || "/default-avatar.png"; 
-  const statusBadge = student.isEnrolled ? 
+  const photoUrl = student.profile_picture || "/default-avatar.png";
+  const isEnrolled = student.section_id !== null && student.section_id !== undefined;
+  const statusBadge = isEnrolled ? 
     <span className="text-[10px] bg-green-100 text-green-600 px-1 rounded">Enrolled</span> : 
     <span className="text-[10px] bg-slate-100 text-slate-500 px-1 rounded">Unassigned</span>;
 
