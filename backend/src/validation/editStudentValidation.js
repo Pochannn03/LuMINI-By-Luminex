@@ -19,14 +19,4 @@ export const updateStudentValidationSchema = {
   age: {
     optional: true,
   },
-  medical_history: {
-    optional: true,
-    isString: {
-      errorMessage: "Medical history must be a string",
-    },
-    trim: true,
-  },
-  invitation_code: {
-    optional: true,
-  }
 };
