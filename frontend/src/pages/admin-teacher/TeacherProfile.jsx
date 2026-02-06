@@ -1,4 +1,5 @@
 // frontend/src/pages/admin-teacher/TeacherProfile.jsx
+// Bitchass
 
 import { useEffect, useState } from "react";
 import axios from "axios";
