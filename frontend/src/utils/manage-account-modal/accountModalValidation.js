@@ -1,26 +1,30 @@
-import { checkName, checkAddressField, checkNumber } from '../validationRules';
+import { checkUsername, checkEmail, checkPhone, checkName, checkPassword } from '../validationRules';
 
-export const validateClassRegistrationStep = (formData) => {
+export const validateAccountsEditModal = (formData) => {
   const errors = {};
 
-  const nameError = checkName(formData.sectionName, "Section Name");
-  if (nameError) errors.sectionName = nameError;
+  const usernameErr = checkUsername(formData.username, "Username");
+  if (usernameErr) errors.username = usernameErr;
 
-  // 2. Class Schedule (Dropdown)
-  // We use checkAddressField because it checks if the value is not empty/null
-  const scheduleError = checkAddressField(formData.classSchedule, "Class Schedule");
-  if (scheduleError) errors.classSchedule = scheduleError;
+  if (formData.password && formData.password.trim() !== "") {
+      const passErr = checkPassword(formData.password);
+      if (passErr) errors.password = passErr;
+  }
 
-  // 3. Max Capacity (Number)
-  const capacityError = checkNumber(formData.maxCapacity, "Max Capacity");
-  if (capacityError) errors.maxCapacity = capacityError;
+  const fNameErr = checkName(formData.first_name, "First name");
+  if (fNameErr) errors.first_name = fNameErr;
 
-  // 4. Assigned Teacher (Dropdown)
-  const teacherError = checkAddressField(formData.assignedTeacher, "Teacher assignment");
-  if (teacherError) errors.assignedTeacher = teacherError;
+  const lNameErr = checkName(formData.last_name, "Last name");
+  if (lNameErr) errors.last_name = lNameErr;
 
-  // Description is usually optional, so we skip it. 
-  // If you want it required, add: checkAddressField(formData.description, "Description")
+  const emailErr = checkEmail(formData.email, "Email");
+  if (emailErr) errors.email = emailErr;
+
+  const phoneErr = checkPhone(formData.phone_number);
+  if (phoneErr) errors.phone_number = phoneErr;
+
+  // const imgErr = checkFile(profileImage, "Profile photo");
+  // if (imgErr) errors.profileImage = imgErr;
 
   return errors;
 };

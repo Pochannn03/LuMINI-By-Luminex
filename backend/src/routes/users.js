@@ -2,8 +2,10 @@ import { Router } from "express";
 import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 // import { Counter } from '../models/counter.js';
+import { editUserValidationSchema } from "../validation/editAccountsValidation.js";
 import { validationResult, body, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
+import { hashPassword } from '../utils/passwordUtils.js';
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -34,12 +36,12 @@ router.get('/api/users',
   async (req, res) => {
     try{
       
-      const users = await User.find();
+      const users = await User.find({ role: { $ne: 'superadmin' } });
 
-    res.status(200).json({ 
-      success: true, 
-      users: users || [], 
-    });
+      res.status(200).json({ 
+        success: true, 
+        users: users || [], 
+      });
   
     } catch(err) {
       console.error("Error fetching students:", err);
@@ -94,7 +96,7 @@ router.put('/api/users/:id',
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),
-  // ...checkSchema(createTeacherValidationSchema),
+  ...checkSchema(editUserValidationSchema),
   async (req, res) => {
     const result = validationResult(req);
 
@@ -111,11 +113,11 @@ router.put('/api/users/:id',
         updateData.profile_picture = req.file.path; 
     }
 
-    if (updateData.password) {
+    if (updateData.password && updateData.password.trim() !== "") {
         try {
-            const salt = await bcrypt.genSalt(10);
-            updateData.password = await bcrypt.hash(updateData.password, salt);
+            updateData.password = await hashPassword(updateData.password);
         } catch (hashError) {
+            console.error("Hash Error:", hashError);
             return res.status(500).json({ success: false, msg: "Error hashing password" });
         }
     } else {
@@ -148,7 +150,7 @@ router.put('/api/users/:id',
     }
 })
 
-// ARCHIVING STUDENT 
+// ARCHIVING AN ACCOUNT 
 router.put('/api/users/archive/:id',
   isAuthenticated, 
   hasRole('superadmin'),

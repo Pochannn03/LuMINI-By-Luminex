@@ -162,7 +162,6 @@ export default function SuperAdminAccounts() {
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
                 <option value="All">All</option>
-                <option value="superadmin">Admins</option>
                 <option value="admin">Teachers</option>
                 <option value="user">Parents & Guardian</option>
               </select>
