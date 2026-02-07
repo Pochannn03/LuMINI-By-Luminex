@@ -5,7 +5,7 @@ import { createStudentValidationSchema } from '../validation/studentValidation.j
 import { updateStudentValidationSchema } from '../validation/editStudentValidation.js';
 // import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
-// import { Section } from "../models/sections.js";
+import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';
 import multer from "multer";
 import path from "path";
@@ -56,6 +56,88 @@ router.get('/api/students',
   }
 })
 
+// EDIT STUDENT
+router.put('/api/students/:id',
+  isAuthenticated, 
+  hasRole('superadmin'),
+  upload.single('profile_photo'),
+  ...checkSchema(updateStudentValidationSchema),
+  async (req, res) => {
+    const result = validationResult(req);
+
+    if (!result.isEmpty()) {
+      console.log("Validation Errors:", result.array());
+      return res.status(400).send({ errors: result.array() });
+    }
+    
+    const studentId = req.params.id;
+    const updateData = {
+        ...req.body
+    };
+    
+    if (req.file) {
+        updateData.profile_picture = req.file.path; 
+    }
+
+    try {
+      const updatedStudent = await Student.findByIdAndUpdate(
+        studentId, 
+        updateData, 
+        { 
+          new: true,           
+          runValidators: true  
+        }
+      )
+
+      if (!updatedStudent) {
+        return res.status(404).json({ success: false, msg: "Class not found" });
+      }
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Class updated successfully!", 
+        class: updatedStudent 
+      });
+
+    } catch (err) {
+      console.error("Update Error:", err);
+      return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
+    }
+})
+
+// ARCHIVING STUDENT 
+router.put('/api/students/archive/:id',
+  isAuthenticated, 
+  hasRole('superadmin'),
+  async (req, res) => {
+    const studentId = req.params.id;
+
+    try {
+      const archivedStudent = await Student.findByIdAndUpdate(
+        studentId, 
+        { is_archive: true }, 
+        { new: true, runValidators: true }
+      );
+
+      if (!archivedStudent) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
+
+      console.log(`Student archived: ${archivedStudent.username}`);
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Student archived successfully.", 
+        user: archivedStudent 
+      });
+
+    } catch (err) {
+      console.error("Archive Error:", err);
+      return res.status(500).json({ success: false, msg: "Failed to archive Student", error: err.message });
+    }
+})
+
+// AVAILABLE STUDENTS TO ASSIGN SECTION
 router.get('/api/students/available', 
   isAuthenticated, 
   hasRole('superadmin'), 
@@ -193,85 +275,41 @@ router.get('/api/students/invitation',
     }
 });
 
-// EDIT STUDENT
-router.put('/api/students/:id',
+// GET TOTAL STUDENTS OF TEACHER
+router.get("/api/students/teacher/totalStudents", 
   isAuthenticated, 
-  hasRole('superadmin'),
-  upload.single('profile_photo'),
-  ...checkSchema(updateStudentValidationSchema),
-  async (req, res) => {
-    const result = validationResult(req);
-
-    if (!result.isEmpty()) {
-      console.log("Validation Errors:", result.array());
-      return res.status(400).send({ errors: result.array() });
-    }
+  hasRole('admin'),
+  async (req, res) => { 
     
-    const studentId = req.params.id;
-    const updateData = {
-        ...req.body
-    };
-    
-    if (req.file) {
-        updateData.profile_picture = req.file.path; 
-    }
-
     try {
-      const updatedStudent = await Student.findByIdAndUpdate(
-        studentId, 
-        updateData, 
-        { 
-          new: true,           
-          runValidators: true  
-        }
-      )
+        // 2. Get the current logged-in teacher's ID
+        // CRITICAL: Ensure this is a Number to match your database schema (user_id: 2)
+        const teacherId = Number(req.user.user_id); 
 
-      if (!updatedStudent) {
-        return res.status(404).json({ success: false, msg: "Class not found" });
-      }
+        // 3. Find ONLY sections where user_id matches the current teacher
+        const sections = await Section.find({ user_id: teacherId });
 
-      return res.status(200).json({ 
-        success: true, 
-        msg: "Class updated successfully!", 
-        class: updatedStudent 
-      });
+        // 4. Calculate Total Sections (Count of documents found)
+        const totalSections = sections.length;
 
-    } catch (err) {
-      console.error("Update Error:", err);
-      return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
+        // 5. Calculate Total Students (Sum of all student_id arrays)
+        const totalStudents = sections.reduce((total, section) => {
+            // Use ?.length to safely handle sections with no students (undefined)
+            return total + (section.student_id?.length || 0);
+        }, 0);
+
+        // 6. Return the data
+        res.status(200).json({
+            success: true,
+            teacherId: teacherId,
+            totalSections: totalSections,
+            totalStudents: totalStudents
+        });
+
+    } catch (error) {
+        console.error("Error fetching teacher totals:", error);
+        res.status(500).json({ error: "Server Error" });
     }
-})
-
-// ARCHIVING STUDENT 
-router.put('/api/students/archive/:id',
-  isAuthenticated, 
-  hasRole('superadmin'),
-  async (req, res) => {
-    const studentId = req.params.id;
-
-    try {
-      const archivedStudent = await Student.findByIdAndUpdate(
-        studentId, 
-        { is_archive: true }, 
-        { new: true, runValidators: true }
-      );
-
-      if (!archivedStudent) {
-        return res.status(404).json({ success: false, msg: "Teacher not found" });
-      }
-
-      console.log(`Student archived: ${archivedStudent.username}`);
-
-      return res.status(200).json({ 
-        success: true, 
-        msg: "Student archived successfully.", 
-        user: archivedStudent 
-      });
-
-    } catch (err) {
-      console.error("Archive Error:", err);
-      return res.status(500).json({ success: false, msg: "Failed to archive Student", error: err.message });
-    }
-})
+});
 
 export default router;

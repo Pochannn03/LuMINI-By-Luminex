@@ -158,7 +158,9 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
 
             <div className="modal-body">
               <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Profile Photo</label>
+                <label className="text-cgray text-[13px] font-medium">Profile Photo<span className='text-cbrand-blue ml-1 text-[12px]'>
+                  *
+                </span></label>
                 <input 
                   type="file" 
                   id="addTeacherPhoto" 
@@ -193,34 +195,36 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                 )}
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label htmlFor="" className="text-cgray text-[13px] font-medium">Full Name</label>
+              <div className="flex flex-col gap-2 mt-2">
                 <div className="flex gap-2.5">
                   <FormInputRegistration
+                    label="First Name"
                     name="firstName"
                     type="text"
                     value={formData.firstName}
                     onChange={handleChange}
                     error={errors.firstName}
                     required={true}
-                    placeholder="First Name"
+                    placeholder="John"
                     className="form-input-modal"
                   />
                   <FormInputRegistration
+                    label="Last Name"
                     name="lastName"
                     type="text"
                     value={formData.lastName}
                     onChange={handleChange}
                     error={errors.lastName}
                     required={true}
-                    placeholder="Last Name"
+                    placeholder="Doe"
+                    className="form-input-modal"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="" className="text-cgray text-[13px] font-medium">Contact Info</label>
                 <FormInputRegistration
+                  label="Email"
                   name="email"
                   type="email"
                   value={formData.email}
@@ -231,6 +235,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                   placeholder="Johndoe@gmail.com"
                 />
                 <FormInputRegistration
+                  label="Phone Number"
                   name="phoneNumber"
                   type="text"
                   value={formData.phoneNumber}
@@ -248,8 +253,8 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="" className="text-cgray text-[13px] font-medium">Username</label>
                 <FormInputRegistration
+                  label="Username"
                   name="username"
                   type="text"
                   value={formData.username}
@@ -262,8 +267,8 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label htmlFor="" className="text-cgray text-[13px] font-medium">Password</label>
                 <FormInputRegistration
+                  label="Password"
                   name="password"
                   type="password"
                   value={formData.password}

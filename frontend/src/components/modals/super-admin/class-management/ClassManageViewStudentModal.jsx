@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import ClassManageDeleteStudentModal from './ClassManageDeleteStudentModal';
+import FormInputRegistration from '../../../FormInputRegistration';
 
 export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess, studentData }) {
   const [isOpenDeleteStudentModal, setIsOpenDeleteStudentModal] = useState(false);
@@ -65,26 +66,41 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
               </div>
 
               <div className="flex flex-col gap-2 mt-4">
-                <label htmlFor="viewStudentClass" className="text-cgray text-[13px] font-medium">Current Class</label>
-                <input type="text" id="viewStudentClass" className="form-input-modal" readOnly value={sectionName} />
+                <FormInputRegistration 
+                  label="Current Class"
+                  name="section_name"
+                  value={sectionName}
+                  readOnly={true}
+                  className="form-input-modal"
+                />
               </div>
 
-              <div className="w-full mt-6 text-left">
+              <div className="w-full mt-4 text-left">
                 <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
                   <span class="material-symbols-outlined text-[#e74c3c]">medical_services</span>
                   <h3 className="text-cdark text-[16px]! font-semibold">Medical Information</h3>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-cgray text-[13px] font-medium mt-4">Allergies</label>
-                  <textarea id="viewStudentAllergies" class="form-input-modal bg-[#fff5f5] text-[#c0392b] resize-none h-[60px]" readOnly
-                  ></textarea>
+                <div className="flex flex-col gap-2 mt-4">
+                  <FormInputRegistration 
+                    label="Allergies"
+                    name="allergies"
+                    value={std.allergies || "None"}
+                    readOnly={true}
+                    className="form-input-modal"
+                  />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="viewStudentMedical" className="text-cgray text-[13px] mt-2 font-medium">Medical History</label>
-                  <textarea id="viewStudentMedical" class="form-input-modal bg-[#fff5f5] text-[#c0392b] resize-none h-[60px]" readOnly
-                  ></textarea>
+                <div className="flex flex-col gap-2 mt-2">
+                  <FormInputRegistration 
+                    label="Medical History"
+                    name="medical_history"
+                    type="textarea"
+                    value={std.medical_history || "None"}
+                    readOnly={true}
+                    row={3}
+                    className="form-input-modal"
+                  />
                 </div>
               </div>
 
@@ -93,20 +109,25 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
                 <h3 className="text-cdark text-[16px] font-semibold">Parent Connection</h3>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label htmlFor="viewStudentParent" className="text-cgray text-[13px] font-medium mt-4">Linked Parent</label>
-                <input 
-                    type="text" 
-                    className="form-input-modal" 
-                    readOnly 
-                    value={parentName}
+              <div className="flex flex-col gap-2 mt-4">
+                <FormInputRegistration 
+                  label="Linked Parent"
+                  name="parent_name"
+                  value={parentName}
+                  readOnly={true}
+                  className="form-input-modal"
                 />
               </div>
 
               <div className="flex flex-col gap-2 mt-2">
-                <label htmlFor="viewStudentInvite" className="text-cgray text-[13px] font-medium">Invitation Code</label>
                 <div className="flex flex-row gap-2">
-                  <input type="text" id="viewStudentInvite" className="form-input-modal font-semibold tracking-[2px] text-center" readOnly value={std.invitation_code} />
+                  <FormInputRegistration 
+                      label="Invitation Code"
+                      name="invitation_code"
+                      value={std.invitation_code || "---"}
+                      readOnly={true}
+                      className="form-input-modal font-semibold tracking-[2px] text-center"
+                  />
                   <button className="btn-icon-tool mt-1.5" title="Copy"
                     onclick="navigator.clipboard.writeText(document.getElementById('viewStudentInvite').value)">
                   <span className="material-symbols-outlined">content_copy</span>

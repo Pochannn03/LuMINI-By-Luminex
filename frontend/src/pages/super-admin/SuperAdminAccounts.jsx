@@ -34,14 +34,17 @@ export default function SuperAdminAccounts() {
       });
 
       if (response.data.success) {
-        setAccounts(response.data.users || []); 
+        // FIX: Ensure it is an array. If not, fallback to empty array.
+        const usersData = Array.isArray(response.data.users) ? response.data.users : [];
+        setAccounts(usersData); 
       }
     } catch (error) {
       console.error("Error fetching accounts:", error);
+      setAccounts([]); // Fallback to empty on error
     } finally {
       setLoading(false);
     }
-  }, []);
+}, []);
 
   // --- FETCH PENDING APPROVALS (Same as Dashboard) ---
   const fetchPendingAccounts = useCallback(async () => {
@@ -115,13 +118,21 @@ export default function SuperAdminAccounts() {
   };
 
   const filteredAccounts = accounts.filter((acc) => {
-    const fullName = acc.full_name || `${acc.first_name} ${acc.last_name}`;
-    const matchesRole = roleFilter === "All" || (acc.role && acc.role.toLowerCase() === roleFilter.toLowerCase());
-    const matchesSearch = 
-      (acc.username && acc.username.toLowerCase().includes(searchQuery.toLowerCase())) || 
-      (fullName && fullName.toLowerCase().includes(searchQuery.toLowerCase()));
+      // 1. Safety Check: Ensure full_name exists, or fallback to empty string
+      const fullName = acc.full_name || `${acc.first_name || ''} ${acc.last_name || ''}`;
       
-    return matchesRole && matchesSearch;
+      // 2. Safety Check: Ensure role exists and is a string before calling toLowerCase
+      const roleString = acc.role ? String(acc.role).toLowerCase() : "";
+      const matchesRole = roleFilter === "All" || roleString === roleFilter.toLowerCase();
+
+      // 3. Safety Check: Ensure username exists
+      const usernameString = acc.username ? String(acc.username).toLowerCase() : "";
+      
+      const matchesSearch = 
+        usernameString.includes(searchQuery.toLowerCase()) || 
+        fullName.toLowerCase().includes(searchQuery.toLowerCase());
+        
+      return matchesRole && matchesSearch;
   });
 
   return (

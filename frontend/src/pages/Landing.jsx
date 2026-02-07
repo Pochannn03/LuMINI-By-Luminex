@@ -225,7 +225,7 @@ export default function Landing() {
            {/* Footer content... */}
            <div className="container mx-auto px-6 text-center">
               <h2 className="text-3xl font-bold text-cdark mb-6">Ready to upgrade?</h2>
-              <a href="#" className="btn btn-primary h-12 px-8 rounded-full mb-16">Contact Support</a>
+              <a href="#" className="btn btn-primary h-12 px-8 rounded-full mb-16 w-fit mx-auto">Contact Support</a>
               <div className="border-t border-gray-100 pt-8 text-sm text-gray-400">
                 <p>© 2026 LuMINI Portal.</p>
               </div>
