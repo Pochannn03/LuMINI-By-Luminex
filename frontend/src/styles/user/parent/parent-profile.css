@@ -1,0 +1,470 @@
+/* frontend/src/styles/user/parent/parent-profile.css */
+
+:root {
+  --primary-blue: #39a8ed;
+  --white: #ffffff;
+  --text-dark: #1e293b;
+  --text-gray: #64748b;
+}
+
+/* GLOBAL CONTAINER */
+.profile-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+  padding-bottom: 40px;
+  animation: fadeIn 0.4s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* HEADER CARD */
+.profile-header-card {
+  background: var(--white);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+.profile-cover {
+  height: 120px;
+  background: linear-gradient(135deg, var(--primary-blue), #25ccf7);
+}
+
+.profile-details-row {
+  padding: 0 32px 32px 32px;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  margin-top: -30px; /* Adjusted overlap */
+}
+
+.avatar-upload-wrapper {
+  position: relative;
+}
+
+.large-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--white);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+  background: var(--white);
+}
+
+.profile-text {
+  flex: 1;
+  margin-bottom: 10px;
+  padding-top: 10px;
+}
+.profile-text h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+.profile-text p {
+  font-size: 14px;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+/* GRID LAYOUT */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+.card-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.header-icon {
+  font-size: 22px;
+  color: var(--primary-blue);
+}
+.card-header p {
+  font-size: 13px;
+  color: var(--text-gray);
+}
+
+/* FORMS */
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.input-wrapper .icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 2;
+}
+.input-wrapper input {
+  width: 100%;
+  padding: 12px 16px 12px 48px !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text-dark);
+  font-family: "Poppins", sans-serif;
+  transition: all 0.2s;
+  outline: none;
+  background: #fff;
+}
+.input-wrapper input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(57, 168, 237, 0.1);
+}
+
+/* LINKED CHILDREN LIST */
+.children-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.child-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.child-item:hover {
+  background: #fff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.child-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.child-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.child-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+.child-grade {
+  font-size: 11px;
+  color: var(--text-gray);
+}
+
+/* BUTTONS (Reused from Teacher) */
+.action-buttons-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.btn {
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-primary {
+  background: var(--primary-blue);
+  color: white;
+  box-shadow: 0 4px 12px rgba(57, 168, 237, 0.3);
+}
+.btn-save {
+  background: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+.btn-cancel {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+.btn-cancel:hover {
+  background: #fee2e2;
+  color: #ef4444;
+  border-color: #fca5a5;
+}
+
+/* MODAL STYLES (Simple Version) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-card {
+  background: #fff;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+.modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.close-modal-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+}
+
+/* =========================================
+   6. MODAL STYLES (Polished)
+   ========================================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  padding: 20px;
+}
+
+.modal-card {
+  background: #fff;
+  width: 100%;
+  max-width: 480px; /* Slightly tighter width */
+  border-radius: 24px; /* More rounded like reference */
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  padding: 24px 28px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0;
+}
+
+.close-modal-btn {
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  color: #94a3b8;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.close-modal-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.modal-body {
+  padding: 24px 28px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* CHANGED: Was 20px -> Now 12px */
+}
+
+/* --- MODAL AVATAR (Blue Border & Size Fix) --- */
+.avatar-edit-center {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px; /* CHANGED: Was 8px -> Now 4px */
+}
+
+.modal-avatar {
+  width: 90px;
+  height: 90px; /* Fixed size */
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--primary-blue); /* THEMED BLUE BORDER */
+  padding: 3px; /* Space between image and border */
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(57, 168, 237, 0.15);
+}
+
+/* --- FORM LAYOUTS --- */
+.form-group label {
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+/* TWO COLUMN ROW (Birthday & ID) */
+.modal-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px; /* CHANGED: Was 20px -> Now 12px */
+}
+
+.modal-separator {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 4px 0; /* CHANGED: Was 8px -> Now 4px */
+  width: 100%;
+}
+
+/* 5. Tweak section title spacing */
+.modal-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  margin-bottom: 0px; /* Ensure no extra push */
+}
+
+/* Textarea */
+.modal-textarea {
+  width: 100%;
+  height: 80px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  resize: none;
+  outline: none;
+  transition: border 0.2s;
+}
+.modal-textarea:focus {
+  border-color: var(--primary-blue);
+}
+
+/* --- FOOTER & BUTTONS --- */
+.modal-footer {
+  padding: 20px 28px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* Override cancel button width for modal */
+.modal-footer .btn {
+  width: auto;
+}
+
+/* Green Save Button (Specific for Modal) */
+.btn-save {
+  background-color: #10b981;
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+.btn-save:hover {
+  background-color: #059669;
+}
