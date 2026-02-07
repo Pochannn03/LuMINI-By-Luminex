@@ -11,14 +11,12 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
-    firstName: '',
+    firstName: '', 
     lastName: '',
-    birthdate: '',
+    birthdate: '', // Validator expects 'birthdate'
     age: '',
-    allergies: 'None',
-    medical_history: 'None',
-    studentId: 'Generating...', 
-    invitationCode: '',
+    studentId: '', 
+    invitationCode: '', // Included to satisfy validator structure if needed
   });
 
   useEffect(() => {
@@ -30,13 +28,11 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         : "";
 
       setFormData({
-        studentId: std.student_id || 'No ID Assigned',
         firstName: std.first_name || '',
         lastName: std.last_name || '',
         birthdate: formattedBday,
         age: std.age || calculateAge(formattedBday),
-        allergies: std.allergies || '',
-        medical_history: std.medical_history || '',
+        studentId: std.student_id || 'No ID Assigned',
         invitationCode: std.invitation_code || '',
       });
 
@@ -111,7 +107,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('allergies', formData.allergies);
       data.append('medical_history', formData.medical_history);
 
-
       // Append Image ONLY if a new one was selected
       if (profileImage) {
         data.append('profile_photo', profileImage);
@@ -168,16 +163,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="editStudentID" className="text-cgray text-[13px] font-medium">Student ID (Locked)</label>
-              <input 
-                type="text" 
-                value={formData.studentId} 
-                readOnly
-                className="form-input-modal w-full bg-[#f1f5f9] text-cgray focus:outline-none cursor-not-allowed!"
-              />
-            </div> 
-
-            <div className="flex flex-col gap-2">
               <label htmlFor="fullName" className="text-cgray text-[13px] font-medium">Full Name</label>
               <div className="flex gap-2.5">
                 <FormInputRegistration
@@ -226,31 +211,14 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
             </div>
 
             <div className="flex flex-col gap-2">
-              <FormInputRegistration
-                label="Allergies"
-                name="allergies" 
-                value={formData.allergies}
-                onChange={handleChange} 
-                placeholder="Allergies" 
-                error={errors.allergies} // Pass Error
-                className="form-input-modal"
+              <label htmlFor="editStudentID" className="text-cgray text-[13px] font-medium">Student ID (Locked)</label>
+              <input 
+                type="text" 
+                value={formData.studentId} 
+                readOnly
+                className="form-input-modal w-full bg-[#f1f5f9] text-cgray focus:outline-none cursor-not-allowed!"
               />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <FormInputRegistration
-                label="Medical History"
-                name="medical_history"
-                type="textarea"
-                value={formData.medical_history}
-                onChange={handleChange}
-                placeholder="List any medical history..."
-                rows={3} 
-                error={errors.medical_history}
-                className="form-input-modal"
-              />
-            </div>
- 
+            </div>  
           </div>
 
           <div className="modal-footer">
