@@ -15,7 +15,8 @@ import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
-import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
+import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
+import PickupHistory from "./pages/users/parent/PickupHistory";
 
 export default function App() {
   return (
@@ -56,6 +57,8 @@ export default function App() {
         <Route element={<RequireAuth allowedRoles={["user"]} />}>
           <Route path="/dashboard" element={<ParentDashboard />} />
           <Route path="/parent/profile" element={<ParentProfile />} />
+          <Route path="/parent/guardians" element={<ManageGuardians />} />
+          <Route path="/parent/history" element={<PickupHistory />} />
         </Route>
       </Routes>
     </div>

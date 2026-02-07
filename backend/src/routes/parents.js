@@ -188,4 +188,33 @@ router.get("/api/parent/children", async (req, res) => {
   }
 });
 
+// GET /api/parent/guardians
+// Description: Get all guardians linked to the parent's students
+router.get("/api/parent/guardians", async (req, res) => {
+  try {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // 1. Find all students linked to this Parent
+    const students = await Student.find({ user_id: req.user.user_id });
+
+    // 2. Extract all User IDs from these students
+    // (This includes the Parent, other Parents, and Guardians)
+    const allLinkedUserIds = students.flatMap((s) => s.user_id);
+
+    // 3. Find 'Guardian' accounts among those IDs (excluding the current parent)
+    const guardians = await User.find({
+      user_id: { $in: allLinkedUserIds },
+      role: "guardian",
+      user_id: { $ne: req.user.user_id }, // Exclude self
+    }).select("-password"); // Don't send passwords back!
+
+    res.status(200).json(guardians);
+  } catch (err) {
+    console.error("Error fetching guardians:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
