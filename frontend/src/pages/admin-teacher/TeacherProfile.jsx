@@ -1,5 +1,3 @@
-// frontend/src/pages/admin-teacher/TeacherProfile.jsx
-
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -8,17 +6,17 @@ import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
 
-const BACKEND_URL = "http://localhost:3000";
-
 export default function TeacherProfile() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [isEditing, setIsEditing] = useState(false);
-
-  // 2. Add State for the Success Modal
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalSections: 0,
+  });
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -34,7 +32,7 @@ export default function TeacherProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/user/profile`, {
+        const response = await axios.get("http://localhost:3000/api/user/profile", {
           withCredentials: true,
         });
         setFormData(response.data);
@@ -56,10 +54,32 @@ export default function TeacherProfile() {
     }));
   };
 
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:3000/api/students/teacher/totalStudents",
+          { withCredentials: true }
+        );
+        
+        if (response.data.success) {
+          setStats({
+            totalStudents: response.data.totalStudents || 0,
+            totalSections: response.data.totalSections || 0,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching teacher stats:", err);
+      }
+    };
+
+    fetchStats(); // <--- 1. CALL THE FUNCTION
+  }, []);
+
   const handleSave = async () => {
     try {
       await axios.put(
-        `${BACKEND_URL}/api/user/profile`,
+        "http://localhost:3000/api/user/profile",
         {
           phone_number: formData.phone_number,
           address: formData.address,
@@ -86,7 +106,7 @@ export default function TeacherProfile() {
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150";
     if (path.startsWith("http")) return path;
-    return `${BACKEND_URL}/${path}`;
+    return "http://localhost:3000/${path}";
   };
 
   if (loading)
@@ -319,7 +339,7 @@ export default function TeacherProfile() {
                       <span className="material-symbols-outlined">groups</span>
                     </div>
                     <div className="stat-text">
-                      <span className="stat-value">--</span>
+                      <span className="stat-value">{stats.totalStudents}</span>
                       <span className="stat-label">Total Students</span>
                     </div>
                   </div>
@@ -328,7 +348,7 @@ export default function TeacherProfile() {
                       <span className="material-symbols-outlined">school</span>
                     </div>
                     <div className="stat-text">
-                      <span className="stat-value">--</span>
+                      <span className="stat-value">{stats.totalSections}</span>
                       <span className="stat-label">Sections</span>
                     </div>
                   </div>
