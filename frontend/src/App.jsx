@@ -15,6 +15,7 @@ import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
+import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 
 export default function App() {
   return (

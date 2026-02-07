@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import "../../../styles/user/parent/parent-profile.css";
 import NavBar from "../../../components/navigation/NavBar";
 import Header from "../../../components/navigation/Header";
-import SuccessModal from "../../../components/modals/SuccessModal";
+import SuccessModal from "../../../components/SuccessModal";
 
 const BACKEND_URL = "http://localhost:3000";
 

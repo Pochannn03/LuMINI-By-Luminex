@@ -1,7 +1,7 @@
 // frontend/src/components/modals/SuccessModal.jsx
 
 import React from "react";
-import "../../styles/success-modal.css"; // We will create this next
+import "../styles/success-modal.css"; // We will create this next
 
 /**
  * REUSABLE SUCCESS MODAL COMPONENT
