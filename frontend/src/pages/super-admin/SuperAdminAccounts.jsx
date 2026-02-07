@@ -1,84 +1,76 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from 'axios'; 
+import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
 import '../../styles/super-admin/class-management.css'; 
 import NavBar from "../../components/navigation/NavBar";
 import AccountsEditModal from "../../components/modals/super-admin/accounts/AccountsEditModal";
 import AccountsDeleteModal from "../../components/modals/super-admin/accounts/AccountsDeleteModal";
-
-const DUMMY_ACCOUNTS = [
-  {
-    _id: "101",
-    role: "Admin",
-    full_name: "Principal Skinner",
-    user_id_number: "ADM-001",
-    username: "principal_skinner",
-    is_active: true,
-    last_login: "2023-10-26T08:30:00.000Z"
-  },
-  {
-    _id: "102",
-    role: "Teacher",
-    full_name: "Edna Krabappel",
-    user_id_number: "TCH-055",
-    username: "ms_krabappel",
-    is_active: true,
-    last_login: "2023-10-25T14:15:00.000Z"
-  },
-  {
-    _id: "104",
-    role: "Student",
-    full_name: "Bart Simpson",
-    user_id_number: "STD-888",
-    username: "el_barto",
-    is_active: false, 
-    last_login: "2023-09-01T09:00:00.000Z"
-  },
-  {
-    _id: "106",
-    role: "Parent",
-    full_name: "Homer Simpson",
-    user_id_number: "PRT-101",
-    username: "mr_plow",
-    is_active: true,
-    last_login: "2023-10-28T18:00:00.000Z"
-  }
-];
 
 export default function SuperAdminAccounts() {
   // MODAL STATES
   const [isEditAccountModalOpen, setIsEditAccountModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
 
-  // DATA STATES
+  // DATA STATES - Main List
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState(null);
+
+  // DATA STATES - Pending Approvals
+  const [pendingTeachers, setPendingTeachers] = useState([]);
+  const [pendingGuardians, setPendingGuardians] = useState([]);
+  const [loadingPending, setLoadingPending] = useState(true);
 
   // FILTER STATES
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All"); 
 
+  // --- FETCH MAIN ACCOUNTS LIST ---
   const fetchAccounts = useCallback(async () => {
-    setLoading(true); // Optional: show loading spinner on refresh
+    setLoading(true); 
     try {
       const response = await axios.get('http://localhost:3000/api/users', { 
         withCredentials: true 
       });
 
       if (response.data.success) {
-        // FIX 2: Set ONLY the array of users, not an object
         setAccounts(response.data.users || []); 
       }
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      console.error("Error fetching accounts:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // --- FETCH PENDING APPROVALS (Same as Dashboard) ---
+  const fetchPendingAccounts = useCallback(async () => {
+    setLoadingPending(true);
+    try {
+      const response = await axios.get('http://localhost:3000/api/users/cards', { 
+        withCredentials: true 
+      });
+
+      if (response.data.success) {
+        // Assuming your API returns pending_teachers and pending_users (or pending_guardians)
+        setPendingTeachers(response.data.pending_teachers || []);
+        
+        // Check your API response structure. I am mapping 'pending_users' to guardians here
+        // based on your dashboard logic where 'users' = Parents.
+        setPendingGuardians(response.data.pending_users || []); 
+      }
+    } catch (error) {
+      console.error("Error fetching pending stats:", error);
+    } finally {
+      setLoadingPending(false);
+    }
+  }, []);
+
+  // Initial Data Load
   useEffect(() => {
     fetchAccounts();
-  }, [fetchAccounts]);
+    fetchPendingAccounts();
+  }, [fetchAccounts, fetchPendingAccounts]);
 
   // HANDLERS
   const handleEdit = (account) => {
@@ -89,6 +81,12 @@ export default function SuperAdminAccounts() {
   const handleDelete = (account) => {
     setSelectedAccount(account);
     setIsDeleteAccountModalOpen(true);
+  };
+
+  // Callback when a pending account is approved/declined
+  const handlePendingActionComplete = () => {
+    fetchPendingAccounts(); // Refresh pending list
+    fetchAccounts();        // Refresh main list (newly approved user might appear there)
   };
 
   const getInitials = (name) => {
@@ -103,11 +101,7 @@ export default function SuperAdminAccounts() {
 
   // HELPER: Get Badge Color based on Role
   const getRoleBadgeStyle = (role) => {
-    // 1. Safety check
     if (!role) return 'bg-gray-100 text-gray-700 border-gray-200';
-
-    // 2. Switch on "role" (Remove the '!')
-    // 3. Match the cases to your Schema enum: 'superadmin', 'admin', 'user'
     switch(role) {
       case 'superadmin': 
         return 'bg-purple-100 text-purple-700 border-purple-200';
@@ -142,7 +136,68 @@ export default function SuperAdminAccounts() {
         </div>
 
         <div className="flex flex-col gap-6 max-w-[1200px] m-auto">
+
+          {/* --- NEW SECTION: PENDING APPROVALS --- */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            {/* 1. Pending Teachers */}
+            <div className="card p-5 border-l-4 border-l-orange-400">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-cdark text-[16px] font-bold">Pending Teachers</h2>
+                <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">
+                  {pendingTeachers.length}
+                </span>
+              </div>
+              
+              <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {loadingPending && <p className="text-cgray text-sm">Loading...</p>}
+                
+                {!loadingPending && pendingTeachers.length === 0 && (
+                  <div className="text-center py-4 border border-dashed border-gray-200 rounded-lg">
+                    <p className="text-cgray text-sm">No pending teachers.</p>
+                  </div>
+                )}
+
+                {!loadingPending && pendingTeachers.map((tch) => (
+                  <DashboardPendingAccCard 
+                    key={tch._id || tch.user_id} 
+                    tch={tch}
+                    onActionComplete={handlePendingActionComplete} // Pass callback if your card supports it
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Pending Guardians */}
+            <div className="card p-5 border-l-4 border-l-blue-400">
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-cdark text-[16px] font-bold">Pending Guardians</h2>
+                <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
+                  {pendingGuardians.length}
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                {loadingPending && <p className="text-cgray text-sm">Loading...</p>}
+                
+                {!loadingPending && pendingGuardians.length === 0 && (
+                   <div className="text-center py-4 border border-dashed border-gray-200 rounded-lg">
+                    <p className="text-cgray text-sm">No pending guardians.</p>
+                  </div>
+                )}
+
+                {!loadingPending && pendingGuardians.map((guardian) => (
+                  <DashboardPendingAccCard 
+                    key={guardian._id || guardian.user_id} 
+                    tch={guardian} // Reusing the same card component
+                    onActionComplete={handlePendingActionComplete}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
           
+          {/* --- MAIN SEARCH & FILTER BAR --- */}
           <div className="card p-4 flex flex-col md:flex-row gap-4 justify-between items-center bg-white sticky top-0 z-10">
             <div className="search-bar-small flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 w-full md:max-w-md">
               <span className="material-symbols-outlined text-gray-400">search</span>
@@ -161,17 +216,18 @@ export default function SuperAdminAccounts() {
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
-                <option value="All">All</option>
+                <option value="All">All Roles</option>
                 <option value="admin">Teachers</option>
                 <option value="user">Parents & Guardian</option>
+                <option value="superadmin">Super Admins</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                 <span className="material-symbols-outlined text-[20px]">expand_more</span>
               </div>
             </div>
-
           </div>
 
+          {/* --- ACCOUNTS TABLE (Existing Code) --- */}
           {loading && (
             <div className="p-12 text-center text-cgray bg-white rounded-xl border border-gray-100 shadow-sm">
               <span className="material-symbols-outlined animate-spin text-3xl mb-2">sync</span>
@@ -200,9 +256,7 @@ export default function SuperAdminAccounts() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filteredAccounts.map((acc) => {
-                    // FIX 5: Create the name variable inside the loop
                     const displayName = acc.full_name || `${acc.first_name} ${acc.last_name}`;
-                    
                     return (
                     <tr key={acc._id} className="hover:bg-gray-50 transition-colors group">
                       <td className="p-4">
@@ -214,7 +268,6 @@ export default function SuperAdminAccounts() {
                             {getInitials(displayName)}
                           </div>
                           <div className="flex flex-col">
-                            {/* FIX 7: Use displayName here */}
                             <span className="text-sm font-semibold text-gray-900">{displayName}</span>
                             <span className="text-xs text-gray-500 mt-0.5">ID: {acc.user_id || "N/A"}</span>
                           </div>
@@ -233,15 +286,11 @@ export default function SuperAdminAccounts() {
 
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                           {/* FIX 8: Use !acc.is_archive instead of acc.is_active */}
                           <span className={`w-2 h-2 rounded-full ${!acc.is_archive ? 'bg-green-500' : 'bg-red-500'}`}></span>
                           <span className={`text-xs font-medium ${!acc.is_archive ? 'text-green-700' : 'text-red-700'}`}>
                             {!acc.is_archive ? 'Active' : 'Archived'}
                           </span>
                         </div>
-                        {/* <div className="text-[10px] text-gray-400 mt-0.5 pl-4">
-                           {acc.last_login ? `Last login: ${new Date(acc.last_login).toLocaleDateString()}` : 'Never logged in'}
-                        </div> */}
                       </td>
 
                       <td className="p-4 text-right">
@@ -272,7 +321,6 @@ export default function SuperAdminAccounts() {
           <div className="md:hidden grid grid-cols-1 gap-4">
             {!loading && filteredAccounts.map((acc) => (
               <div key={acc._id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold 
