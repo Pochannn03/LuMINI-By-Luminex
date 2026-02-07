@@ -1,5 +1,4 @@
 export const isAuthenticated = (req, res, next) => {
-    console.log("Logged in User:", req.user);
     if (req.isAuthenticated()) { // Passport.js helper
         return next();
     }

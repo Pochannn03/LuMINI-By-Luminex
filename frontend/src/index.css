@@ -192,7 +192,7 @@ a:hover {
   cursor: pointer;
 }
 
-.btn:disabled {
+.bttn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
@@ -332,6 +332,23 @@ a:hover {
 
 .btn-icon-tool.delete:hover {
   background: #fee2e2;
+  color: var(--accent-red);
+}
+
+.close-modal-ur {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-modal-ur:hover {
+  background-color: #f1f5f9;
   color: var(--accent-red);
 }
 
