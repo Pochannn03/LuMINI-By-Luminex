@@ -225,29 +225,29 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
             </div>
 
             <div className="flex flex-col gap-2">
-              <FormInputRegistration
-                label="Allergies"
-                name="allergies" 
-                value={formData.allergies}
-                onChange={handleChange} 
-                placeholder="Allergies" 
-                error={errors.allergies} // Pass Error
-                className="form-input-modal"
-              />
+                <FormInputRegistration
+                  label="Allergies"
+                  name="allergies" 
+                  value={formData.allergies}
+                  onChange={handleChange} 
+                  placeholder="Allergies" 
+                  error={errors.allergies} // Pass Error
+                  className="form-input-modal"
+                />
             </div>
 
             <div className="flex flex-col gap-2">
-              <FormInputRegistration
-                label="Medical History"
-                name="medical_history"
-                type="textarea"
-                value={formData.medical_history}
-                onChange={handleChange}
-                placeholder="List any medical history..."
-                rows={3} 
-                error={errors.medical_history}
-                className="form-input-modal"
-              />
+                <FormInputRegistration
+                  label="Medical History"
+                  name="medical_history"
+                  type="textarea"
+                  value={formData.medical_history}
+                  onChange={handleChange}
+                  placeholder="List any medical history..."
+                  rows={3} 
+                  error={errors.medical_history}
+                  className="form-input-modal"
+                />
             </div>
  
           </div>
