@@ -100,8 +100,8 @@ router.post(
         relationship: "Parent",
         role: "user",
         // 👇 FIX: Replace backslashes with forward slashes before saving
-        profile_picture: req.file ? req.file.path.replace(/\\/g, "/") : null,,
-        is_archive: false
+        profile_picture: req.file ? req.file.path.replace(/\\/g, "/") : null,
+        is_archive: false,
       });
 
       const savedUser = await newUser.save();

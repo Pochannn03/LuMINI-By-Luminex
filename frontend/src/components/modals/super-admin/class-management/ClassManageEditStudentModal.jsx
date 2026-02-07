@@ -104,6 +104,8 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('last_name', formData.lastName);
       data.append('birthday', formData.birthdate);
       data.append('age', formData.age);
+      data.append('allergies', formData.allergies);
+      data.append('medical_history', formData.medical_history);
 
       // Append Image ONLY if a new one was selected
       if (profileImage) {
