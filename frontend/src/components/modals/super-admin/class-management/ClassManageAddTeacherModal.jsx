@@ -214,6 +214,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
                     error={errors.lastName}
                     required={true}
                     placeholder="Last Name"
+                    className="form-input-modal"
                   />
                 </div>
               </div>
