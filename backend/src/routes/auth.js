@@ -30,6 +30,7 @@ router.post("/api/auth", (req, res, next) => {
           id: user._id,
           username: user.username,
           role: user.role,
+          user_id: user.user_id,
         };
 
         return res.status(200).json({
