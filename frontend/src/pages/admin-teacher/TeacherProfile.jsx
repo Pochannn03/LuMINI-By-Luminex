@@ -6,9 +6,8 @@ import { useNavigate } from "react-router-dom";
 import "../../styles/teacher/teacher-profile.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
+import SuccessModal from "../../components/SuccessModal";
 
-// 1. Import the new SuccessModal
-import SuccessModal from "../../components/modals/SuccessModal";
 const BACKEND_URL = "http://localhost:3000";
 
 export default function TeacherProfile() {

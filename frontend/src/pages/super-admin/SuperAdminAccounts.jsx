@@ -5,45 +5,6 @@ import NavBar from "../../components/navigation/NavBar";
 import AccountsEditModal from "../../components/modals/super-admin/accounts/AccountsEditModal";
 import AccountsDeleteModal from "../../components/modals/super-admin/accounts/AccountsDeleteModal";
 
-const DUMMY_ACCOUNTS = [
-  {
-    _id: "101",
-    role: "Admin",
-    full_name: "Principal Skinner",
-    user_id_number: "ADM-001",
-    username: "principal_skinner",
-    is_active: true,
-    last_login: "2023-10-26T08:30:00.000Z"
-  },
-  {
-    _id: "102",
-    role: "Teacher",
-    full_name: "Edna Krabappel",
-    user_id_number: "TCH-055",
-    username: "ms_krabappel",
-    is_active: true,
-    last_login: "2023-10-25T14:15:00.000Z"
-  },
-  {
-    _id: "104",
-    role: "Student",
-    full_name: "Bart Simpson",
-    user_id_number: "STD-888",
-    username: "el_barto",
-    is_active: false, 
-    last_login: "2023-09-01T09:00:00.000Z"
-  },
-  {
-    _id: "106",
-    role: "Parent",
-    full_name: "Homer Simpson",
-    user_id_number: "PRT-101",
-    username: "mr_plow",
-    is_active: true,
-    last_login: "2023-10-28T18:00:00.000Z"
-  }
-];
-
 export default function SuperAdminAccounts() {
   // MODAL STATES
   const [isEditAccountModalOpen, setIsEditAccountModalOpen] = useState(false);
@@ -59,22 +20,24 @@ export default function SuperAdminAccounts() {
   const [roleFilter, setRoleFilter] = useState("All"); 
 
   const fetchAccounts = useCallback(async () => {
-    setLoading(true); // Optional: show loading spinner on refresh
+    setLoading(true);
     try {
       const response = await axios.get('http://localhost:3000/api/users', { 
         withCredentials: true 
       });
 
       if (response.data.success) {
-        // FIX 2: Set ONLY the array of users, not an object
-        setAccounts(response.data.users || []); 
+        // FIX: Ensure it is an array. If not, fallback to empty array.
+        const usersData = Array.isArray(response.data.users) ? response.data.users : [];
+        setAccounts(usersData); 
       }
     } catch (error) {
-      console.error("Error fetching stats:", error);
+      console.error("Error fetching accounts:", error);
+      setAccounts([]); // Fallback to empty on error
     } finally {
       setLoading(false);
     }
-  }, []);
+}, []);
 
   useEffect(() => {
     fetchAccounts();
@@ -121,13 +84,21 @@ export default function SuperAdminAccounts() {
   };
 
   const filteredAccounts = accounts.filter((acc) => {
-    const fullName = acc.full_name || `${acc.first_name} ${acc.last_name}`;
-    const matchesRole = roleFilter === "All" || (acc.role && acc.role.toLowerCase() === roleFilter.toLowerCase());
-    const matchesSearch = 
-      (acc.username && acc.username.toLowerCase().includes(searchQuery.toLowerCase())) || 
-      (fullName && fullName.toLowerCase().includes(searchQuery.toLowerCase()));
+      // 1. Safety Check: Ensure full_name exists, or fallback to empty string
+      const fullName = acc.full_name || `${acc.first_name || ''} ${acc.last_name || ''}`;
       
-    return matchesRole && matchesSearch;
+      // 2. Safety Check: Ensure role exists and is a string before calling toLowerCase
+      const roleString = acc.role ? String(acc.role).toLowerCase() : "";
+      const matchesRole = roleFilter === "All" || roleString === roleFilter.toLowerCase();
+
+      // 3. Safety Check: Ensure username exists
+      const usernameString = acc.username ? String(acc.username).toLowerCase() : "";
+      
+      const matchesSearch = 
+        usernameString.includes(searchQuery.toLowerCase()) || 
+        fullName.toLowerCase().includes(searchQuery.toLowerCase());
+        
+      return matchesRole && matchesSearch;
   });
 
   return (

@@ -193,7 +193,10 @@ export default function SuperAdminClassManagement() {
                 </div>
 
                 <div className="border-ctop mt-6 pt-4">
-                  <button className="btn btn-outline gap-2 h-12 rounded-xl font-semibold text-[14px] border-0 w-full" id="addClassBtn" onClick={() => setIsAddClassModalOpen(true)}>
+                  <button 
+                    className="btn btn-outline gap-2 h-12 rounded-xl font-semibold text-[14px] w-full" 
+                    onClick={() => setIsAddClassModalOpen(true)}
+                  >
                     <span className="material-symbols-outlined">add</span>
                     Add New Class
                   </button>

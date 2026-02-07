@@ -14,6 +14,7 @@ import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
+import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 
 export default function App() {
   return (
@@ -32,14 +33,9 @@ export default function App() {
 
         {/* Super Admin Routes */}
         <Route element={<RequireAuth allowedRoles={["superadmin"]} />}>
-          <Route
-            path="/superadmin/dashboard"
-            element={<SuperAdminDashbooard />}
-          />
-          <Route
-            path="/superadmin/manage-class"
-            element={<SuperAdminClassManagement />}
-          />
+          <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
+          <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
+          <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
         </Route>
 
         {/* Admin (Teacher) Routes */}
