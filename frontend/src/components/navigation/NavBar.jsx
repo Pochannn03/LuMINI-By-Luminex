@@ -58,6 +58,18 @@ export default function NavBar() {
       allowedRoles: ["user"],
     },
     {
+      label: "Manage Guardians", // <--- NEW ITEM
+      path: "/parent/guardians",
+      icon: "manage_accounts", // <--- Icon choice
+      allowedRoles: ["user"],
+    },
+    {
+      label: "Pickup History", // <--- NEW ITEM
+      path: "/parent/history",
+      icon: "history",
+      allowedRoles: ["user"],
+    },
+    {
       label: "Profile",
       path: "/parent/profile", // Use a specific path for clarity
       icon: "person",
