@@ -14,17 +14,17 @@ export default function AdminDashboardQrScan({ isOpen, onClose, scanMode }) {
   }, [isOpen, scanMode]);
 
   // DYNAMIC TITLES
-  const isGuardian = scanMode === 'user';
+  const isUser = scanMode === 'user';
   
-  const title = isGuardian 
+  const title = isUser 
     ? "Scan Parent/Guardian Pass" 
     : "Scan Student QR Code";
     
-  const instructions = isGuardian 
+  const instructions = isUser 
     ? "Ask the parent to show their Pickup Pass." 
     : "Ask the student to show their ID QR Code.";
 
-  const iconClass = isGuardian ? "orange-icon" : "blue-icon";
+  const iconClass = isUser ? "orange-icon" : "blue-icon";
 
   // HANDLERS
   const handleScan = (detectedCodes) => {
@@ -39,7 +39,7 @@ export default function AdminDashboardQrScan({ isOpen, onClose, scanMode }) {
         // if (isGuardian) verifyGuardian(rawValue)
         // else markAttendance(rawValue)
 
-        alert(`${isGuardian ? "Guardian" : "Student"} Pass Scanned: ${rawValue}`);
+        alert(`${isUser ? "Parent/Guardian" : "Student"} Pass Scanned: ${rawValue}`);
         onClose(); 
       }
     }
