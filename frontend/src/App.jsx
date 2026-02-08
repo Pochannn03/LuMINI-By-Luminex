@@ -15,6 +15,8 @@ import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
 import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
+import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
+
 
 export default function App() {
   return (
@@ -36,6 +38,7 @@ export default function App() {
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
+          <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
         </Route>
 
         {/* Admin (Teacher) Routes */}
