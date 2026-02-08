@@ -8,10 +8,9 @@ export default function GuardianPassModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(300); 
   const [error, setError] = useState(null);
-
   const STORAGE_KEY = "lumini_pickup_pass";
 
-  // 1. GENERATE OR RETRIEVE PASS ON OPEN
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -28,13 +27,11 @@ export default function GuardianPassModal({ isOpen, onClose }) {
           const secondsRemaining = Math.floor((expiry - now) / 1000);
 
           if (secondsRemaining > 0) {
-            console.log("Restoring active pass from storage...");
             setPassData(token);
             setTimeLeft(secondsRemaining);
             setLoading(false);
             return;
           } else {
-            // Pass expired, clear it
             localStorage.removeItem(STORAGE_KEY);
           }
         } catch (err) {
@@ -83,7 +80,6 @@ export default function GuardianPassModal({ isOpen, onClose }) {
     initPass();
   }, [isOpen]);
 
-  // 2. COUNTDOWN TIMER LOGIC
   useEffect(() => {
     if (!isOpen || timeLeft <= 0) return;
 
@@ -101,17 +97,12 @@ export default function GuardianPassModal({ isOpen, onClose }) {
     return () => clearInterval(timerId);
   }, [isOpen, timeLeft]);
 
-  // 3. REGENERATE HANDLER
   const handleRegenerate = () => {
-    localStorage.removeItem(STORAGE_KEY); // Clear old data
-    setLoading(true); // Show loading state
-    // Simple way to re-trigger the effect: close and open, or reload page.
-    // For a smoother UX without reload, we can just call initPass logic again, 
-    // but a page reload is the simplest robust way to reset state here.
+    localStorage.removeItem(STORAGE_KEY);
+    setLoading(true);
     window.location.reload(); 
   };
 
-  // Format seconds into MM:SS
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;

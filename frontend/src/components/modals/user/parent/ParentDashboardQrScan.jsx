@@ -17,9 +17,8 @@ export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }
 
       if (scannedValue === scanResult) return;
 
-      // 1. CHECK IF THE SCANNED CODE MATCHES THE WALL
       if (scannedValue === GATE_KEY) {
-         setScanResult(scannedValue); // Lock it so we don't scan twice
+         setScanResult(scannedValue);
          console.log("Gate Verified!");
          onScanSuccess(); 
          onClose();

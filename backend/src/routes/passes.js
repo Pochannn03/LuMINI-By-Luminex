@@ -57,36 +57,5 @@ router.post('/api/pass/generate',
     }
 });
 
-router.get('/api/pass/generate', 
-  isAuthenticated,
-  hasRole('user'),
-  async (req, res) => {
-    try {
-      const purpose = req.body.purpose || 'pickup';
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-
-      const existingPass = await AccessPass.findOne({
-        user: req.user._id,
-        purpose: purpose,
-        createdAt: { $gt: fiveMinutesAgo } // $gt means "Greater Than" (newer than)
-      });
-
-      if (existingPass) {
-        console.log("Restoring active pass for User:", req.user.user_id);
-        return res.json({
-          success: true,
-          token: existingPass.token,
-          createdAt: existingPass.createdAt, // Send this so frontend can sync timer
-          message: "Restored active pass"
-        });
-      }
-
-    } catch (error) {
-      console.error("Pass Gen Error:", error);
-      res.status(500).json({ error: "Could not generate pass" });
-    }
-});
-
-
 
 export default router;
