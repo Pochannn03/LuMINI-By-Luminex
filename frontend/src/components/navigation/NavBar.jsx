@@ -102,6 +102,13 @@ export default function NavBar() {
     };
   }, [isOpen]);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("lumini_pickup_pass");
+    logout(); 
+    navigate("/login");
+  }
+
   return (
     <>
       <Header onToggle={toggleMenu} />
@@ -134,10 +141,7 @@ export default function NavBar() {
 
         <div className="sidebar-footer">
           <button
-            onClick={() => {
-              logout();
-              navigate("/login");
-            }}
+            onClick={handleLogout}
             className="nav-item logout-btn"
           >
             <span className="material-symbols-outlined">logout</span>

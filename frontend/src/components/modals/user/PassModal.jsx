@@ -6,30 +6,71 @@ import axios from "axios";
 export default function GuardianPassModal({ isOpen, onClose }) {
   const [passData, setPassData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(300); 
   const [error, setError] = useState(null);
 
-  // 1. GENERATE PASS ON OPEN
+  const STORAGE_KEY = "lumini_pickup_pass";
+
+  // 1. GENERATE OR RETRIEVE PASS ON OPEN
   useEffect(() => {
     if (!isOpen) return;
 
-    // Reset states
-    setLoading(true);
-    setPassData(null);
-    setError(null);
-    setTimeLeft(300);
+    const initPass = async () => {
+      setLoading(true);
+      setError(null);
 
-    const generatePass = async () => {
+      // A. CHECK LOCAL STORAGE FIRST
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const { token, expiry } = JSON.parse(saved);
+          const now = Date.now();
+          const secondsRemaining = Math.floor((expiry - now) / 1000);
+
+          if (secondsRemaining > 0) {
+            console.log("Restoring active pass from storage...");
+            setPassData(token);
+            setTimeLeft(secondsRemaining);
+            setLoading(false);
+            return;
+          } else {
+            // Pass expired, clear it
+            localStorage.removeItem(STORAGE_KEY);
+          }
+        } catch (err) {
+          console.log(err)
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      }
+
       try {
-        // Call your backend endpoint
         const res = await axios.post(
-          "http://localhost:3000/api/pass/generate", 
-          { purpose: 'pickup' }, 
+          "http://localhost:3000/api/pass/generate",
+          { purpose: 'pickup' },
           { withCredentials: true }
         );
 
         if (res.data.success) {
-          setPassData(res.data.token);
+          const { token, createdAt } = res.data;
+          const createdTime = new Date(createdAt).getTime();
+          const expiryTime = createdTime + (300 * 1000); // 5 mins in ms
+          const now = Date.now();
+          const secondsLeft = Math.floor((expiryTime - now) / 1000);
+
+          if (secondsLeft <= 0) {
+             // Edge case: It expired just as we fetched it
+             setError("Pass expired. Please try again.");
+             return;
+          }
+
+          // 3. SAVE TO STORAGE & STATE
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            token: token,
+            expiry: expiryTime
+          }));
+
+          setPassData(token);
+          setTimeLeft(secondsLeft); // Set the actual remaining time
         }
       } catch (err) {
         console.error("Pass Gen Error:", err);
@@ -39,19 +80,36 @@ export default function GuardianPassModal({ isOpen, onClose }) {
       }
     };
 
-    generatePass();
+    initPass();
   }, [isOpen]);
 
   // 2. COUNTDOWN TIMER LOGIC
   useEffect(() => {
-    if (!isOpen || !passData || timeLeft <= 0) return;
+    if (!isOpen || timeLeft <= 0) return;
 
     const timerId = setInterval(() => {
-      setTimeLeft((prev) => prev - 1);
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Time's up: clear storage
+          localStorage.removeItem(STORAGE_KEY);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [isOpen, passData, timeLeft]);
+  }, [isOpen, timeLeft]);
+
+  // 3. REGENERATE HANDLER
+  const handleRegenerate = () => {
+    localStorage.removeItem(STORAGE_KEY); // Clear old data
+    setLoading(true); // Show loading state
+    // Simple way to re-trigger the effect: close and open, or reload page.
+    // For a smoother UX without reload, we can just call initPass logic again, 
+    // but a page reload is the simplest robust way to reset state here.
+    window.location.reload(); 
+  };
 
   // Format seconds into MM:SS
   const formatTime = (seconds) => {
@@ -64,7 +122,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
 
   return createPortal(
     <>
-      <div className="modal-overlay active" style={{ zIndex: 9999 }}>
+      <div className="modal-overlay active">
         <div className="bg-white p-6 rounded-2xl shadow-xl max-w-[400px] w-full relative overflow-hidden flex flex-col items-center">
           
           {/* Header */}
@@ -72,9 +130,9 @@ export default function GuardianPassModal({ isOpen, onClose }) {
             <h3 className="font-bold text-lg text-gray-800">My Pickup Pass</h3>
             <button 
               onClick={onClose}
-              className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
+              className="close-modal-ur transition-colors"
             >
-              <span className="material-symbols-outlined text-gray-600 text-sm">close</span>
+              <span className="material-symbols-outlined">close</span>
             </button>
           </div>
 
@@ -82,7 +140,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
           {loading ? (
             <div className="py-10 flex flex-col items-center">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-              <p className="text-gray-500 text-sm">Generating secure token...</p>
+              <p className="text-gray-500 text-sm">Retrieving secure token...</p>
             </div>
           ) : error ? (
             <div className="py-8 text-center">
@@ -94,16 +152,12 @@ export default function GuardianPassModal({ isOpen, onClose }) {
               
               {/* THE QR CODE */}
               <div className="p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50 mb-4">
-                {/* value: The secure token from DB
-                   size: 200px (standard scan size)
-                   level: 'H' (High error correction, easier to scan)
-                */}
                 <QRCode 
                   value={passData} 
                   size={200} 
                   level="H"
-                  bgColor="#eff6ff" // Matches bg-blue-50
-                  fgColor="#1e3a8a" // Dark blue for contrast
+                  bgColor="#eff6ff" 
+                  fgColor="#1e3a8a" 
                 />
               </div>
 
@@ -111,7 +165,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
               {timeLeft > 0 ? (
                 <div className="text-center">
                   <p className="text-gray-500 text-sm mb-1">Show this to the teacher</p>
-                  <div className="flex items-center gap-2 justify-center text-(--primary-blue) font-bold text-xl font-mono px-4 py-2 rounded-lg">
+                  <div className="flex items-center gap-2 justify-center text-blue-600 font-bold text-xl font-mono bg-blue-50 px-4 py-2 rounded-lg">
                     <span className="material-symbols-outlined text-lg">timer</span>
                     {formatTime(timeLeft)}
                   </div>
@@ -120,8 +174,8 @@ export default function GuardianPassModal({ isOpen, onClose }) {
                 <div className="text-center">
                    <p className="text-red-500 font-bold mb-2">Pass Expired</p>
                    <button 
-                     onClick={() => window.location.reload()} // Or re-trigger generation
-                     className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm shadow-md hover:bg-blue-700"
+                     onClick={handleRegenerate}
+                     className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm shadow-md hover:bg-blue-700 font-semibold"
                    >
                      Regenerate
                    </button>

@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
 export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }) {
-  const GATE_KEY = "LUMINI_SCHOOL_ENTRY_GATE_1"; // KEY OF THE QR GATE
+  const GATE_KEY = "LUMINI_SCHOOL_ENTRY_GATE_1";
   const [scanResult, setScanResult] = useState(null);
 
   // Reset state when modal opens
@@ -14,14 +14,16 @@ export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }
   const handleScan = (detectedCodes) => {
     if (detectedCodes && detectedCodes.length > 0) {
       const scannedValue = detectedCodes[0].rawValue;
-      
+
+      if (scannedValue === scanResult) return;
+
       // 1. CHECK IF THE SCANNED CODE MATCHES THE WALL
       if (scannedValue === GATE_KEY) {
+         setScanResult(scannedValue); // Lock it so we don't scan twice
          console.log("Gate Verified!");
-         
-         // 2. TRIGGER SUCCESS (This tells the Dashboard to open the Pass Modal)
          onScanSuccess(); 
          onClose();
+
       } else {
          console.log("Ignored irrelevant QR:", scannedValue);
       }
@@ -29,7 +31,7 @@ export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }
   };
 
   const handleError = (err) => {
-    // console.error(error); // Silently handle errors
+    console.error(err); // Silently handle errors
   };
 
   if (!isOpen) return null;
@@ -81,6 +83,11 @@ export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }
           </div>
         </div>
       </div>
+
+      {/* <PassModal 
+        isOpen={showPassModal} 
+        onClose={() => setShowPassModal(false)} 
+      /> */}
     </>,
     document.body
   );
