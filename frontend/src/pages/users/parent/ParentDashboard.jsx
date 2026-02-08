@@ -1,11 +1,49 @@
-import React from "react";
-import { Link } from 'react-router-dom';
+import React, { useState } from "react";
+// import { Link } from 'react-router-dom';
+// import axios from 'axios';
 import '../../../styles/user/parent/parent-dashboard.css';
 import NavBar from "../../../components/navigation/NavBar";
 import ScanHandAsset from '../../../assets/scan_hand.png';
+import PassModal from '../../../components/modals/user/PassModal';
+import ParentDashboardQrScan from "../../../components/modals/user/parent/ParentDashboardQrScan";
 
 
 export default function Dashboard() {
+  const [showScanner, setShowScanner] = useState(false);
+  const [showPassModal, setShowPassModal] = useState(false);
+
+  const hasActivePass = () => {
+    const STORAGE_KEY = "lumini_pickup_pass";
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const { expiry } = JSON.parse(saved);
+        return Date.now() < expiry;
+      } catch (err) {
+        console.log(err)
+        return false;
+      }
+    }
+    return false;
+  };
+
+  const handleScanButtonClick = () => {
+    if (hasActivePass()) {
+      // Valid pass exists -> Open Pass Modal directly (skip camera)
+      console.log("Active pass found. Opening pass modal.");
+      setShowPassModal(true);
+    } else {
+      // No pass -> Open Camera Scanner
+      setShowScanner(true);
+    }
+  };
+
+  // THE BRIDGE FUNCTION
+  const handleGateScanSuccess = () => {
+    setShowScanner(false);
+    setShowPassModal(true);
+  };
+
   return(
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
@@ -138,7 +176,11 @@ export default function Dashboard() {
                 <img src={ScanHandAsset} alt="Scan QR Illustration" className="max-w-[180px] h-auto block" />
               </div>
 
-              <button class="btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl" id="scanQrBtn">
+              <button 
+                className="btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl" 
+                id="scanQrBtn"
+                onClick={handleScanButtonClick}
+              >
                 Scan Entry QR
               </button>
             </div>
@@ -214,6 +256,17 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      <ParentDashboardQrScan 
+        isOpen={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScanSuccess={handleGateScanSuccess}
+      />
+
+      <PassModal 
+         isOpen={showPassModal} 
+         onClose={() => setShowPassModal(false)} 
+      />
     </div>
   );
 }
