@@ -52,15 +52,25 @@ export default function App() {
           <Route path="/admin/profile" element={<TeacherProfile />} />
         </Route>
 
-        {/* User (Parent/Guardian) Routes */}
-        <Route element={<RequireAuth allowedRoles={["user"]} />}>
-          {/* Parent Pages */}
-          <Route path="/dashboard" element={<ParentDashboard />} />
-          <Route path="/parent/profile" element={<ParentProfile />} />
-          <Route path="/parent/guardians" element={<ManageGuardians />} />
-          <Route path="/parent/history" element={<PickupHistory />} />
+        {/* User (Parent) Routes */}
+        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Parent"]} />}>
+           <Route path="/parent/dashboard" element={<ParentDashboard />} />
+           <Route path="/parent/profile" element={<ParentProfile />} />
+           <Route path="/parent/guardians" element={<ManageGuardians />} />
+           <Route path="/parent/history" element={<PickupHistory />} />
+        </Route>
 
-          {/* Guardian Pages*/}
+        {/* User (Guardian) Routes */}
+        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />}>
+           {/* You will create these pages later */}
+           {/* <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> */}
+           {/* <Route path="/guardian/profile" element={<GuardianProfile />} /> */}
+        </Route>
+
+          {/* SHARED ROUTE OF USER */}
+        <Route element={<RequireAuth allowedRoles={["user"]} />}>
+            {/* Example: A settings page common to both */}
+            {/* <Route path="/user/settings" element={<UserSettings />} /> */}
         </Route>
       </Routes>
     </div>

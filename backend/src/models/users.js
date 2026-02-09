@@ -44,7 +44,8 @@ const UserSchema = new mongoose.Schema({
     required: true 
   },
   relationship: { 
-    type: String, 
+    type: String,
+    enum: ['SuperAdmin', 'Teacher', 'Parent', 'Guardian'], 
     required: true
   },
 
