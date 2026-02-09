@@ -15,7 +15,6 @@ import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
-import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
 import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
 import PickupHistory from "./pages/users/parent/PickupHistory";

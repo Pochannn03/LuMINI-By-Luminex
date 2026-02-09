@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 // import { Link } from 'react-router-dom';
 // import axios from 'axios';
 import '../../../styles/user/parent/parent-dashboard.css';
@@ -6,7 +6,6 @@ import NavBar from "../../../components/navigation/NavBar";
 import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/ParentDashboardQrScan";
-
 
 export default function Dashboard() {
   const [showScanner, setShowScanner] = useState(false);
@@ -144,18 +143,6 @@ export default function Dashboard() {
                     <div className="flex flex-col">
                       <span className="qa-title">Report Absence</span>
                       <span className="qa-desc">Notify school about absence or delay</span>
-                    </div>
-                  </div>
-                  <span class="material-symbols-outlined arrow">chevron_right</span>
-                </button>
-
-                <button className="quick-action-item danger-item">
-                  <div className="flex flex-row items-center">
-                    <div className="qa-icon">
-                      <span className="material-symbols-outlined mt-1">e911_emergency</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="qa-title">Emergency Override</span>
                     </div>
                   </div>
                   <span class="material-symbols-outlined arrow">chevron_right</span>
