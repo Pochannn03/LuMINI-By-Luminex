@@ -1,16 +1,42 @@
 import React, { useState, useEffect } from "react";
-// import { Link } from 'react-router-dom';
-// import axios from 'axios';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 import '../../../styles/user/parent/parent-dashboard.css';
 import NavBar from "../../../components/navigation/NavBar";
 import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
-import ParentDashboardQrScan from "../../../components/modals/user/parent/ParentDashboardQrScan";
+import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 
 export default function Dashboard() {
+  // STATES
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
+  const [loading, setLoading] = useState(false)
+  const [childData, setChildData] = useState(null);
 
+  // USEEFFECT
+  useEffect(() => {
+    const fetchChild = async () => {
+      try {
+        // Update URL to match your new route
+        const response = await axios.get(
+          'http://localhost:3000/api/student/parentDashboard',
+          { withCredentials: true }
+        );
+
+        if (response.data.success) {
+          setChildData(response.data.child);
+        }
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchChild();
+  }, []);
+
+  // PASS CHECKER
   const hasActivePass = () => {
     const STORAGE_KEY = "lumini_pickup_pass";
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -26,10 +52,10 @@ export default function Dashboard() {
     return false;
   };
 
+  // HANDLERS
   const handleScanButtonClick = () => {
     if (hasActivePass()) {
       // Valid pass exists -> Open Pass Modal directly (skip camera)
-      console.log("Active pass found. Opening pass modal.");
       setShowPassModal(true);
     } else {
       // No pass -> Open Camera Scanner
@@ -61,11 +87,19 @@ export default function Dashboard() {
 
               <div className="flex flex-col items-center gap-1.5">
                 <div className="p-1 bg-white rounded-full shadow-[0_4px_12px_rgba(57,168,237,0.2)] mb-2">
-                  <img src="../../../assets/placeholder_image.jpg" className="w-[90px] h-[90px] rounded-full object-cover block" /> {/* Profile Picutre of the User */}
+                  <img 
+                    src={childData?.profilePicture || "../../../assets/placeholder_image.jpg"} 
+                    alt="Child Profile"
+                    className="w-[90px] h-[90px] rounded-full object-cover block" 
+                  />
                 </div>
                 {/* Students Informataion yet to be redesigned for possible multiple kid under the same parent/guardian */}
-                <h2 className="text-cdark text-[22px] font-bold">Mia Chen</h2>
-                <span className="text-cgray text-[14px] font-medium">KinderGarten - Class A</span>
+                <h2 className="text-cdark text-[22px] font-bold">
+                  {childData ? `${childData.firstName} ${childData.lastName}` : "Loading..."}
+                </h2>
+                <span className="text-cgray text-[14px] font-medium">
+                  {childData ? `Section: ${childData.sectionName}` : "..."}
+                </span>
               </div>
 
               <div className="flex items-start justify-between w-full max-w-[340px] relative my-2.5">

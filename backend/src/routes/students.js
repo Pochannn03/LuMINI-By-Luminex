@@ -312,4 +312,39 @@ router.get("/api/students/teacher/totalStudents",
     }
 });
 
+// GETTING THE INFORMATION OF A STUDENT AND PASS TO PARENT/GUARDIAN DASHBOARD
+router.get('/api/student/parentDashboard',
+  isAuthenticated,
+  hasRole('user'), 
+  async (req, res) => {
+    try {
+      const parentCustomId = req.user.user_id; 
+      // 2. Find the student who has this parent's ID in their 'user_id' array
+      // Mongoose automatically checks if the value exists in the array
+      const child = await Student.findOne({ user_id: parentCustomId })
+                                 .populate({ path: 'section_details', select: 'section_name class_schedule' })
+      const sectionInfo = child.section_details;
+
+      if (!child) {
+        return res.status(404).json({ message: "No student found for this parent." });
+      }
+
+      // 3. Send the child's data
+      res.json({
+        success: true,
+        child: {
+          firstName: child.first_name,
+          lastName: child.last_name,
+          sectionName: sectionInfo ? sectionInfo.section_name : "Not Assigned",
+          profilePicture: child.profile_picture,
+          // Add any other fields you need for the dashboard
+        }
+      });
+
+    } catch (error) {
+      console.error("Error fetching child:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+});
+
 export default router;
