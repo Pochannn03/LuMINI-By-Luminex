@@ -42,7 +42,10 @@ export default function App() {
             element={<SuperAdminClassManagement />}
           />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
-          <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
+          <Route
+            path="/superadmin/qr-gate"
+            element={<SuperAdminQrCodeGate />}
+          />
         </Route>
 
         {/* Admin (Teacher) Pages */}
