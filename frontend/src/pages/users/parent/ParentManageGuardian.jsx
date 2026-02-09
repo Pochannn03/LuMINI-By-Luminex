@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "../../../styles/user/parent/manage-guardian.css";
 import NavBar from "../../../components/navigation/NavBar";
-import AddGuardianModal from "../../../components/modals/AddGuardianModal";
+import AddGuardianModal from "../../../components/modals/user/parent/manage-guardian/AddGuardianModal";
 
 const BACKEND_URL = "http://localhost:3000";
 

@@ -34,12 +34,9 @@ export default function App() {
         <Route path="/register/parent" element={<ParentRegistration />} />
         <Route path="/register/teacher" element={<TeacherRegistration />} />
 
-        {/* Super Admin Routes */}
+        {/* Super Admin Pages */}
         <Route element={<RequireAuth allowedRoles={["superadmin"]} />}>
-          <Route
-            path="/superadmin/dashboard"
-            element={<SuperAdminDashbooard />}
-          />
+          <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route
             path="/superadmin/manage-class"
             element={<SuperAdminClassManagement />}
@@ -51,7 +48,7 @@ export default function App() {
           />
         </Route>
 
-        {/* Admin (Teacher) Routes */}
+        {/* Admin (Teacher) Pages */}
         <Route element={<RequireAuth allowedRoles={["admin"]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
@@ -60,10 +57,13 @@ export default function App() {
 
         {/* User (Parent/Guardian) Routes */}
         <Route element={<RequireAuth allowedRoles={["user"]} />}>
+          {/* Parent Pages */}
           <Route path="/dashboard" element={<ParentDashboard />} />
           <Route path="/parent/profile" element={<ParentProfile />} />
           <Route path="/parent/guardians" element={<ManageGuardians />} />
           <Route path="/parent/history" element={<PickupHistory />} />
+
+          {/* Guardian Pages*/}
         </Route>
       </Routes>
     </div>
