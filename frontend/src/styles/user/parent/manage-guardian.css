@@ -15,9 +15,10 @@
   gap: 24px;
 }
 
-/* 1. BLUE HEADER BANNER (Harmonized with Profile) */
+/* =========================================
+   1. DASHBOARD HEADER & FILTER
+   ========================================= */
 .header-banner {
-  /* Match the Parent Profile Cover Gradient */
   background: linear-gradient(135deg, var(--primary-blue), #25ccf7);
   color: white;
   padding: 32px 40px;
@@ -41,12 +42,11 @@
   font-weight: 500;
 }
 
-/* White Circle Button (Contrast against Blue) */
 .btn-add-circle {
   background: white;
   color: var(--primary-blue);
   width: 48px;
-  height: 48px; /* Slightly larger */
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -57,11 +57,10 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 .btn-add-circle:hover {
-  transform: scale(1.1) rotate(90deg); /* Fun micro-interaction */
+  transform: scale(1.1) rotate(90deg);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-/* 2. FILTER BAR */
 .filter-bar {
   background: white;
   padding: 12px 20px;
@@ -113,25 +112,26 @@
   gap: 8px;
 }
 
-/* 3. TABLE CARD & EMPTY STATE FIX */
+/* =========================================
+   2. TABLE CARD & EMPTY STATE
+   ========================================= */
 .table-card {
   background: white;
   border-radius: 20px;
   border: 1px solid #e2e8f0;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-  min-height: 400px; /* Ensure height even when empty */
-  display: flex; /* Allows centering empty state */
+  min-height: 400px;
+  display: flex;
   flex-direction: column;
 }
 
-/* --- THE FIX: Centered Empty State --- */
 .empty-state {
-  flex: 1; /* Take up all available space */
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center; /* Perfect Center */
+  justify-content: center;
   padding: 60px 20px;
   text-align: center;
 }
@@ -156,7 +156,9 @@
   line-height: 1.5;
 }
 
-/* 4. TABLE STYLES */
+/* =========================================
+   3. TABLE STYLES
+   ========================================= */
 .custom-table {
   width: 100%;
   border-collapse: collapse;
@@ -189,7 +191,6 @@
   background-color: #f8fafc;
 }
 
-/* User Cell */
 .user-info-cell {
   display: flex;
   align-items: center;
@@ -217,7 +218,6 @@
   color: #94a3b8;
 }
 
-/* Badge & Status */
 .role-badge {
   display: inline-block;
   padding: 6px 12px;
@@ -249,23 +249,20 @@
 }
 
 /* =========================================
-   ADD GUARDIAN MODAL STYLES (Refined)
+   4. ADD GUARDIAN MODAL (Updated Flow)
    ========================================= */
 
-/* 1. Modal Card - Fixes the Corners & Roundness */
+/* Modal Card - WIDER for the new form */
 .modal-card {
   background: #fff;
   width: 100%;
-  max-width: 480px;
-  border-radius: 16px; /* CHANGED: Reduced from 20px+ */
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  max-width: 600px; /* INCREASED: Was 480px */
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
-  /* KEY FIX: This clips the footer so corners stay rounded */
-  overflow: hidden;
+  overflow: hidden; /* Clips footer to rounded corners */
   animation: modalPop 0.2s ease-out;
 }
 
@@ -280,7 +277,6 @@
   }
 }
 
-/* 2. Header Polish */
 .modal-header {
   padding: 20px 24px;
   border-bottom: 1px solid #f1f5f9;
@@ -314,7 +310,6 @@
   color: #ef4444;
 }
 
-/* 3. Body Layout */
 .modal-body {
   padding: 24px;
   overflow-y: auto;
@@ -323,15 +318,13 @@
   gap: 20px;
 }
 
-/* The Info Box (Updated) */
+/* --- STEP 1: INFO & SECURITY --- */
 .info-box {
   background-color: #f0f9ff;
-  border: 1px solid #bae6fd; /* Consistent thin border on all sides */
-  /* border-left: 4px solid var(--primary-blue); <--- REMOVED THIS */
+  border: 1px solid #bae6fd;
   padding: 16px;
-  border-radius: 12px; /* Slightly rounder to match the new modal style */
+  border-radius: 12px;
 }
-
 .info-box h4 {
   color: #0369a1;
   margin-bottom: 8px;
@@ -341,7 +334,6 @@
   align-items: center;
   gap: 8px;
 }
-
 .info-box p {
   color: #334155;
   font-size: 13px;
@@ -349,11 +341,22 @@
   margin: 0;
 }
 
-/* Security Check Section */
+/* AND ADD THIS RIGHT BELOW IT: */
+.info-note {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #bae6fd; /* subtle separator */
+  color: #0369a1; /* Use the darker blue header color */
+  font-size: 13px;
+  font-weight: 600; /* Make it bold */
+  display: flex;
+  gap: 4px;
+}
+
 .form-group label {
   font-size: 12px;
   font-weight: 700;
-  color: #64748b; /* CHANGED: Gray instead of Red looks cleaner */
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   display: block;
@@ -376,107 +379,229 @@
   box-shadow: 0 0 0 3px rgba(57, 168, 237, 0.1);
   outline: none;
 }
-.confirmation-input::placeholder {
-  color: #94a3b8;
+
+/* --- STEP 2: REGISTRATION FORM --- */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
-/* 4. Footer Alignment */
-.modal-footer {
-  padding: 20px 24px;
-  background: #fff; /* White background to match card */
-  border-top: 1px solid #f1f5f9;
+.modal-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1e293b;
+  outline: none;
+  transition: border 0.2s;
+}
+.modal-input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(57, 168, 237, 0.1);
+}
+
+/* --- STEP 3: FILE UPLOAD (Fixed & Preview Added) --- */
+
+.upload-section-title {
+  margin-bottom: 16px;
+}
+.upload-section-title h4 {
+  font-size: 16px;
+  color: #1e293b;
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+.upload-section-title p {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* The Clickable Area */
+.upload-box {
   display: flex;
-  justify-content: flex-end; /* Push buttons to right */
-  gap: 12px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 40px 20px; /* Ample padding */
+  text-align: center;
+  cursor: pointer;
+  background: #f8fafc;
+  transition: all 0.2s;
+
+  width: 100%; /* Force full width */
+  min-height: 200px; /* Ensure it's not squashed */
+  position: relative;
+  overflow: hidden; /* Keep preview inside */
 }
 
-/* Button overrides for modal */
-.modal-footer .btn {
-  padding: 10px 24px;
+.upload-box:hover {
+  border-color: var(--primary-blue);
+  background: #f0f9ff;
+}
+
+/* Default State (No File) */
+.upload-content-default {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.upload-icon {
+  font-size: 48px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+.upload-text {
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 600;
+}
+.upload-subtext {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+/* Preview State (File Selected) - 16:9 Ratio */
+.preview-container {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.id-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Shows full image without cropping */
+  background: #1e293b; /* Dark background for contrast */
+}
+
+/* Hover Overlay to Change Image */
+.preview-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: white;
+}
+.upload-box:hover .preview-overlay {
+  opacity: 1;
+}
+
+/* --- STEP 4: CONFIRMATION SUMMARY --- */
+.summary-card {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #e2e8f0;
+}
+.summary-row:last-child {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+.sum-label {
+  color: #64748b;
+  font-size: 13px;
+}
+.sum-value {
+  color: #1e293b;
+  font-weight: 600;
   font-size: 14px;
 }
 
-/* =========================================
-   ADD GUARDIAN MODAL TWEAKS
-   ========================================= */
-
-/* 1. BUTTON BALANCE (50/50 Split) */
+/* --- FOOTER & BUTTONS --- */
 .modal-footer {
   padding: 20px 24px;
   background: #fff;
   border-top: 1px solid #f1f5f9;
   display: flex;
-  justify-content: space-between; /* Space out */
-  gap: 16px; /* consistent gap */
+  justify-content: space-between;
+  gap: 16px;
 }
 
-/* Force buttons to share space equally */
 .modal-footer .btn {
-  flex: 1; /* Both buttons take 50% width */
-  justify-content: center; /* Center text inside button */
+  flex: 1; /* Both buttons share 50% width */
+  justify-content: center;
   padding: 12px 20px;
   font-size: 15px;
 }
 
-/* 2. GENERATE CODE SECTION POLISH */
-.code-generator-container {
+/* Disabled state for main modal button */
+.modal-footer .btn-primary:disabled {
+  background-color: #cbd5e1; /* Light gray */
+  border-color: #cbd5e1;
+  color: #64748b; /* Darker gray text */
+  cursor: not-allowed;
+  transform: none !important; /* Stop hover effects */
+  box-shadow: none !important;
+}
+
+/* Add to bottom of manage-guardians.css */
+
+/* PASSWORD INPUT WRAPPER */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+}
+
+/* Push text to the left so it doesn't overlap the icon */
+.password-input-wrapper input {
+  padding-right: 40px;
+}
+
+/* The Eye Button */
+.toggle-password-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 0;
-  text-align: center;
+  transition: color 0.2s;
 }
 
-/* The "Ticket" Box for the Code */
-.code-display {
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: 12px;
+.toggle-password-btn:hover {
   color: var(--primary-blue);
-
-  background: #f0f9ff; /* Light blue tint */
-  padding: 24px 40px;
-  border-radius: 16px;
-  border: 2px dashed #bae6fd; /* Dashed border looks like a coupon/ticket */
-
-  margin: 24px 0;
-  width: 100%;
-  font-family: "Courier New", monospace; /* Monospace for alignment */
-
-  /* Smooth transition for when code appears */
-  transition: all 0.3s ease;
 }
 
-.code-instruction {
-  font-size: 15px;
-  color: #334155;
-  line-height: 1.5;
-  max-width: 90%;
-}
-
-.expiry-text {
-  font-size: 13px;
-  color: #94a3b8;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* Optional: Make the Generate Button Pulse slightly to encourage clicking */
-@keyframes pulse-btn {
-  0% {
-    box-shadow: 0 0 0 0 rgba(57, 168, 237, 0.4);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(57, 168, 237, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(57, 168, 237, 0);
-  }
-}
-
-.btn-generate-pulse {
-  animation: pulse-btn 2s infinite;
+.toggle-password-btn span {
+  font-size: 20px;
 }
