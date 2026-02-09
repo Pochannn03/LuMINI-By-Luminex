@@ -9,11 +9,11 @@ import updatesBgImage from '../../assets/Updates.jpg';
 import '../../styles/auth/login.css'; 
 
 export default function Login() {
+  const navigate = useNavigate(); 
   const { login, user, loading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate(); 
     const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -56,8 +56,10 @@ export default function Login() {
         navigate('/superadmin/dashboard', { replace: true });
       } else if (user.role === "admin") {
         navigate('/admin/dashboard', { replace: true });
+      } else if (user.role === "user" && user.relationship === "Parent") {
+        navigate('/parent/dashboard', { replace: true });
       } else {
-        navigate('/dashboard', { replace: true });
+        navigate('/guardian/dashboard', { replace: true });
       }
     }
   }, [user, loading, navigate]);

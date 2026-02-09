@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthProvider';
 import axios from 'axios';
 import '../../../styles/user/parent/parent-dashboard.css';
 import NavBar from "../../../components/navigation/NavBar";
@@ -8,6 +9,8 @@ import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 
 export default function Dashboard() {
+  // AUTH PROVIDER INFORMATION
+  const { user } = useAuth();
   // STATES
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
@@ -76,7 +79,9 @@ export default function Dashboard() {
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
         <section className="welcome-banner">
           <div>
-            <h1 className="text-[28px]! font-bold text-[white]! mb-2 tracking-[-0.5px]">Welcome!</h1>
+            <h1 className="text-[28px]! font-bold text-[white]! mb-2 tracking-[-0.5px]">
+              {user ? `Welcome, ${user.firstName}!` : "Welcome!"}
+            </h1>
             <p className="text-[white]! opacity-80 text-[15px]! m-0">Here is the daily status for your children.</p>
           </div>
         </section>
