@@ -5,78 +5,112 @@ import Header from "./Header";
 import { useAuth } from "../../context/AuthProvider";
 import "../../styles/sidebar.css";
 
+const NAV_ITEMS = [
+  /* Super Admin */
+  {
+    label: "Dashboard",
+    path: "/superadmin/dashboard",
+    icon: "dashboard",
+    allowedRoles: ["superadmin"],
+  },
+  {
+    label: "Manage Classes",
+    path: "/superadmin/manage-class",
+    icon: "school",
+    allowedRoles: ["superadmin"],
+  },
+  {
+    label: "Analytics",
+    path: "/superadmin/analytics",
+    icon: "analytics",
+    allowedRoles: ["superadmin"],
+  },
+  {
+    label: "Accounts",
+    path: "/superadmin/accounts",
+    icon: "manage_accounts",
+    allowedRoles: ["superadmin"],
+  },
+  /* Admin (Teacher) */
+  {
+    label: "Dashboard",
+    path: "/admin/dashboard",
+    icon: "dashboard",
+    allowedRoles: ["admin"],
+  },
+  {
+    label: "Attendance",
+    path: "/admin/attendance",
+    icon: "punch_clock",
+    allowedRoles: ["admin"],
+  },
+  {
+    label: "Profile",
+    path: "/admin/profile",
+    icon: "person",
+    allowedRoles: ["admin"],
+  },
+  /* Parent (User + Parent) */
+  {
+    label: "Dashboard",
+    path: "/parent/dashboard",
+    icon: "dashboard",
+    allowedRoles: ["user"],
+    allowedTypes: ["Parent"],
+  },
+  {
+    label: "Manage Guardians",
+    path: "/parent/guardians",
+    icon: "manage_accounts",
+    allowedRoles: ["user"],
+    allowedTypes: ["Parent"],
+  },
+  {
+    label: "Pickup History",
+    path: "/parent/history",
+    icon: "history",
+    allowedRoles: ["user"],
+    allowedTypes: ["Parent"],
+  },
+  {
+    label: "Profile",
+    path: "/parent/profile",
+    icon: "person",
+    allowedRoles: ["user"],
+    allowedTypes: ["Parent"],
+  },
+  /* Guardian (User + Guardian) */
+  {
+    label: "Dashboard",
+    path: "/guardian/dashboard",
+    icon: "dashboard",
+    allowedRoles: ["user"],
+    allowedTypes: ["Guardian"],
+  },
+];
+
 export default function NavBar() {
-  const { user, logout } = useAuth();
-  const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  const NAV_ITEMS = [
-    /* Super Admin */
-    {
-      label: "Dashboard",
-      path: "/superadmin/dashboard",
-      icon: "dashboard",
-      allowedRoles: ["superadmin"],
-    },
-    {
-      label: "Manage Classes",
-      path: "/superadmin/manage-class",
-      icon: "school",
-      allowedRoles: ["superadmin"],
-    },
-    {
-      label: "Analytics",
-      path: "/superadmin/analytics",
-      icon: "analytics",
-      allowedRoles: ["superadmin"],
-    },
-    {
-      label: "Accounts",
-      path: "/superadmin/accounts",
-      icon: "manage_accounts",
-      allowedRoles: ["superadmin"],
-    },
-    /* Admin (Teacher) */
-    {
-      label: "Dashboard",
-      path: "/admin/dashboard",
-      icon: "dashboard",
-      allowedRoles: ["admin"],
-    },
-    {
-      label: "Attendance",
-      path: "/admin/attendance",
-      icon: "punch_clock",
-      allowedRoles: ["admin"],
-    },
-    /* User (Parent/Guardian) */
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-      icon: "dashboard",
-      allowedRoles: ["user"],
-    },
-    {
-      label: "Profile",
-      path: "/parent/profile", // Use a specific path for clarity
-      icon: "person",
-      allowedRoles: ["user"],
-    },
-    /* Teacher Profile */
-    {
-      label: "Profile",
-      path: "/admin/profile", // <--- CHANGED from "/profile"
-      icon: "person",
-      allowedRoles: ["admin"], // <--- CHANGED to only show for admins/teachers
-    },
-  ];
+  const { user, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
   const currentRole = user ? user.role : "guest";
+  const currentType = user ? user.relationship : null;
 
-  const visibleNavItems = NAV_ITEMS.filter((item) =>
-    item.allowedRoles.includes(currentRole),
-  );
+  const visibleNavItems = NAV_ITEMS.filter((item) => {
+    // A. Check Main Role
+    const hasRole = item.allowedRoles.includes(currentRole);
+
+    // B. Check Sub-Type (Parent vs Guardian)
+    // If the item specifies 'allowedTypes', we must match it.
+    // If it DOESN'T specify it, we assume it's generic for that role.
+    const hasType = item.allowedTypes 
+      ? item.allowedTypes.includes(currentType) 
+      : true; 
+
+    return hasRole && hasType;
+  });
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -101,6 +135,13 @@ export default function NavBar() {
       document.body.classList.remove("sidebar-open");
     };
   }, [isOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("lumini_pickup_pass");
+    logout(); 
+    navigate("/login");
+  }
 
   return (
     <>
@@ -134,10 +175,7 @@ export default function NavBar() {
 
         <div className="sidebar-footer">
           <button
-            onClick={() => {
-              logout();
-              navigate("/login");
-            }}
+            onClick={handleLogout}
             className="nav-item logout-btn"
           >
             <span className="material-symbols-outlined">logout</span>

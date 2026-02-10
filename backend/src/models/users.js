@@ -44,7 +44,8 @@ const UserSchema = new mongoose.Schema({
     required: true 
   },
   relationship: { 
-    type: String, 
+    type: String,
+    enum: ['SuperAdmin', 'Teacher', 'Parent', 'Guardian'], 
     required: true
   },
 
@@ -105,6 +106,5 @@ UserSchema.pre('save', async function() {
   }
 
 });
-
 
 export const User = mongoose.model("User", UserSchema, "mng.user_active");

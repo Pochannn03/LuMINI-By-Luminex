@@ -167,13 +167,13 @@ export default function SuperAdminDashboard() {
                 </div>
               </Link>
 
-              <Link to="#" className="quick-link-item danger-link">
-                <div className="link-icon-box icon-red">
-                    <span className="material-symbols-outlined">campaign</span>
+              <Link to="/superadmin/qr-gate" className="quick-link-item">
+                <div className="link-icon-box icon-blue">
+                    <span className="material-symbols-outlined">qr_code</span>
                 </div>
                 <div className="flex flex-col flex-1 gap-0.5">
-                  <h3 className="text-cdark text-[15px]! font-semibold! m-0">System Broadcast</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Send emergency alerts or announcements.</p>
+                  <h3 className="text-cdark text-[15px]! font-semibold! m-0">Qr Gate</h3>
+                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Qr for Parent or Guardian to scan on gate</p>
                 </div>
                 <div>
                   <span className="material-symbols-outlined arrow-icon">

@@ -9,12 +9,15 @@ import ParentRegistration from "./pages/auth/ParentRegistration";
 import TeacherRegistration from "./pages/auth/TeacherRegistration";
 import SuperAdminDashbooard from "./pages/super-admin/SuperAdminDashboard";
 import SuperAdminClassManagement from "./pages/super-admin/SuperAdminClassManagement";
+import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
-import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
+import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
+import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
+import PickupHistory from "./pages/users/parent/PickupHistory";
 
 export default function App() {
   return (
@@ -31,24 +34,46 @@ export default function App() {
         <Route path="/register/parent" element={<ParentRegistration />} />
         <Route path="/register/teacher" element={<TeacherRegistration />} />
 
-        {/* Super Admin Routes */}
+        {/* Super Admin Pages */}
         <Route element={<RequireAuth allowedRoles={["superadmin"]} />}>
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
-          <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
+          <Route
+            path="/superadmin/manage-class"
+            element={<SuperAdminClassManagement />}
+          />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
+          <Route
+            path="/superadmin/qr-gate"
+            element={<SuperAdminQrCodeGate />}
+          />
         </Route>
 
-        {/* Admin (Teacher) Routes */}
+        {/* Admin (Teacher) Pages */}
         <Route element={<RequireAuth allowedRoles={["admin"]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/profile" element={<TeacherProfile />} />
         </Route>
 
-        {/* User (Parent/Guardian) Routes */}
+        {/* User (Parent) Routes */}
+        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Parent"]} />}>
+           <Route path="/parent/dashboard" element={<ParentDashboard />} />
+           <Route path="/parent/profile" element={<ParentProfile />} />
+           <Route path="/parent/guardians" element={<ManageGuardians />} />
+           <Route path="/parent/history" element={<PickupHistory />} />
+        </Route>
+
+        {/* User (Guardian) Routes */}
+        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />}>
+           {/* You will create these pages later */}
+           {/* <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> */}
+           {/* <Route path="/guardian/profile" element={<GuardianProfile />} /> */}
+        </Route>
+
+          {/* SHARED ROUTE OF USER */}
         <Route element={<RequireAuth allowedRoles={["user"]} />}>
-          <Route path="/dashboard" element={<ParentDashboard />} />
-          <Route path="/parent/profile" element={<ParentProfile />} />
+            {/* Example: A settings page common to both */}
+            {/* <Route path="/user/settings" element={<UserSettings />} /> */}
         </Route>
       </Routes>
     </div>

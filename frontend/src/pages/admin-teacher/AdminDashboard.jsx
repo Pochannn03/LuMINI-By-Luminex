@@ -1,9 +1,17 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from 'react-router-dom';
 import NavBar from "../../components/navigation/NavBar";
+import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function SuperAdminDashboard() {
+  // MODAL STATES
+  const [activeScanMode, setActiveScanMode] = useState(null);
+
+  const handleCloseScanner = () => {
+    setActiveScanMode(null);
+  };
+
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
@@ -62,9 +70,9 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <button class="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="scanGuardianBtn">
+              <button class="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="scanGuardianBtn" onClick={() => setActiveScanMode('user')}>
                 <span class="material-symbols-outlined text-[20px]!">center_focus_weak</span>
-                Scan Guardian QR Code
+                  Scan Parent or Guardian QR Code
               </button>
               <button class="btn btn-outline gap-2 h-[50px] font-semibold rounded-xl text-[14px]! border-none w-full">Verify Manually</button>
             </div>
@@ -84,7 +92,7 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div class="flex flex-col gap-3">
-              <button class="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="startScanBtn">
+              <button class="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="startScanBtn" onClick={() => setActiveScanMode('student')}>
                 <span class="material-symbols-outlined">center_focus_weak</span>
                 Scan Student QR Code
               </button>
@@ -118,6 +126,13 @@ export default function SuperAdminDashboard() {
         </div>
         </div>
       </main>
+
+      <AdminDashboardQrScan 
+        isOpen={!!activeScanMode}
+        onClose={handleCloseScanner}
+        scanMode={activeScanMode}
+      />
+
     </div>
   );
 }

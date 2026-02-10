@@ -143,15 +143,15 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
 
           <div className="modal-body">
             <div className="flex flex-col gap-2">
-              <label htmlFor="sectionName" className="text-cgray text-[13px] font-medium">Section Name</label>
-              <FormInputRegistration 
-                 name="sectionName"
-                 value={formData.sectionName}
-                 onChange={handleChange}
-                 placeholder="e.g. Sunflower"
-                 error={errors.sectionName}
-                 className="form-input-modal"
-              />
+              <FormInputRegistration
+                label='Section Name'
+                name="sectionName"
+                value={formData.sectionName}
+                onChange={handleChange}
+                placeholder="e.g. Sunflower"
+                error={errors.sectionName}
+                className="form-input-modal"
+               />
             </div>
 
             <div className="flex flex-col gap-2">
