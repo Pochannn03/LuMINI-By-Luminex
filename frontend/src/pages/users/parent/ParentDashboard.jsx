@@ -23,12 +23,26 @@ export default function Dashboard() {
       try {
         // Update URL to match your new route
         const response = await axios.get(
-          'http://localhost:3000/api/student/parentDashboard',
+          'http://localhost:3000/api/parent/children',
           { withCredentials: true }
         );
 
-        if (response.data.success) {
-          setChildData(response.data.child);
+        const childrenList = response.data; 
+
+        if (Array.isArray(childrenList) && childrenList.length > 0) {
+          // For now, we just grab the FIRST child to display
+          const firstChild = childrenList[0];
+          
+          // 3. Map the database fields to your UI fields
+          // Your backend returns raw DB fields (snake_case), UI expects camelCase?
+          // Let's standardise it based on your UI code:
+          setChildData({
+              firstName: firstChild.first_name,
+              lastName: firstChild.last_name,
+              profilePicture: firstChild.profile_picture,
+              // Access the populated virtual 'section_details'
+              sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned"
+          });
         }
       } catch (err) {
         console.error("Error loading profile:", err);
