@@ -180,7 +180,6 @@ export default function SuperAdminAccounts() {
                   <option value="All">All Roles</option>
                   <option value="admin">Teachers</option>
                   <option value="user">Parents & Guardian</option>
-                  <option value="superadmin">Super Admins</option>
                 </select>
                 <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                   <span className="material-symbols-outlined text-[20px]">expand_more</span>
@@ -375,7 +374,7 @@ export default function SuperAdminAccounts() {
 
           {/* --- PENDING APPROVALS SECTION (UNIFIED) --- */}
           <div>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="rounded-xl shadow-sm border border-gray-200 p-4 ">
               
               {/* HEADER WITH ICON */}
               <div className="mb-6 flex items-center gap-3">
