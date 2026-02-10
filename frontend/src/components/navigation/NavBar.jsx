@@ -45,6 +45,12 @@ const NAV_ITEMS = [
     allowedRoles: ["admin"],
   },
   {
+    label: "Approvals", // <--- NEW ITEM
+    path: "/admin/approvals",
+    icon: "verified_user",
+    allowedRoles: ["admin"],
+  },
+  {
     label: "Profile",
     path: "/admin/profile",
     icon: "person",
@@ -105,9 +111,9 @@ export default function NavBar() {
     // B. Check Sub-Type (Parent vs Guardian)
     // If the item specifies 'allowedTypes', we must match it.
     // If it DOESN'T specify it, we assume it's generic for that role.
-    const hasType = item.allowedTypes 
-      ? item.allowedTypes.includes(currentType) 
-      : true; 
+    const hasType = item.allowedTypes
+      ? item.allowedTypes.includes(currentType)
+      : true;
 
     return hasRole && hasType;
   });
@@ -139,9 +145,9 @@ export default function NavBar() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("lumini_pickup_pass");
-    logout(); 
+    logout();
     navigate("/login");
-  }
+  };
 
   return (
     <>
@@ -174,10 +180,7 @@ export default function NavBar() {
         </nav>
 
         <div className="sidebar-footer">
-          <button
-            onClick={handleLogout}
-            className="nav-item logout-btn"
-          >
+          <button onClick={handleLogout} className="nav-item logout-btn">
             <span className="material-symbols-outlined">logout</span>
             <span>Sign Out</span>
           </button>
