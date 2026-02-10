@@ -222,39 +222,6 @@
   gap: 12px;
   align-items: center;
 }
-.btn {
-  padding: 10px 20px;
-  border-radius: 12px;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-.btn-primary {
-  background: var(--primary-blue);
-  color: white;
-  box-shadow: 0 4px 12px rgba(57, 168, 237, 0.3);
-}
-.btn-save {
-  background: #10b981;
-  color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-.btn-cancel {
-  background: #f1f5f9;
-  color: #64748b;
-  border: 1px solid #cbd5e1;
-}
-.btn-cancel:hover {
-  background: #fee2e2;
-  color: #ef4444;
-  border-color: #fca5a5;
-}
 
 /* MODAL STYLES (Simple Version) */
 .modal-overlay {
