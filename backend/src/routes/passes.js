@@ -14,14 +14,14 @@ router.post('/api/pass/generate',
       const purpose = req.body.purpose || 'pickup';
       
       // 1. CALCULATE THE TIME WINDOW (5 minutes ago)
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const tenMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 
       // 2. CHECK FOR EXISTING ACTIVE PASS
       // We look for a pass by this user, for this purpose, created AFTER 5 mins ago
       const existingPass = await AccessPass.findOne({
         user: req.user._id,
         purpose: purpose,
-        createdAt: { $gt: fiveMinutesAgo } // $gt means "Greater Than" (newer than)
+        createdAt: { $gt: tenMinutesAgo } // $gt means "Greater Than" (newer than)
       });
 
       // 3. IF FOUND, RETURN THE EXISTING ONE (Do not create new)

@@ -50,7 +50,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
         if (res.data.success) {
           const { token, createdAt } = res.data;
           const createdTime = new Date(createdAt).getTime();
-          const expiryTime = createdTime + (300 * 1000); // 5 mins in ms
+          const expiryTime = createdTime + (600 * 1000); // 10 mins in ms
           const now = Date.now();
           const secondsLeft = Math.floor((expiryTime - now) / 1000);
 
