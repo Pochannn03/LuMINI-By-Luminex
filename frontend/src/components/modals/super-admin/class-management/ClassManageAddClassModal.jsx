@@ -7,6 +7,7 @@ import ClassManageSelectStudentModal from '../class-management/ClassManageSelect
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose }) {
+  // DATA STATES
   const [teachersList, setTeachersList] = useState([]);  
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
@@ -38,21 +39,21 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
           console.error("Failed to fetch teachers preview", err);
         }
       }
-
-        fetchTeachers();
-      }
+      fetchTeachers();
+    }
   },[isOpen]);
 
   // HELPERS
   const resetForm = () => {
     setFormData({
       sectionName: '',
-      classSchedule: null,
+      classSchedule: '',
       maxCapacity: '',
       description: '',
       assignedTeacher: '',
     });
     setErrors({});
+    setSelectedStudentIds([]);
   };
 
   const handleCloseModal = () => {
@@ -63,7 +64,6 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
   // VALIDATION
   const validateStep = () => {
     const newErrors = validateClassRegistrationStep(formData);
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -84,7 +84,6 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
   };
 
   const handleSubmit = async (e) => {
-    console.log(formData)
     e.preventDefault();
 
     if (!validateStep()) {
@@ -92,44 +91,36 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
     }
 
     setLoading(true);
-      const payload = {
-        section_name: formData.sectionName,
-        class_schedule: formData.classSchedule,
-        max_capacity: formData.maxCapacity,
-        description: formData.description,
-        user_id: formData.assignedTeacher,
-        student_id: selectedStudentIds,
-      };
+    const payload = {
+      section_name: formData.sectionName,
+      class_schedule: formData.classSchedule,
+      max_capacity: formData.maxCapacity,
+      description: formData.description,
+      user_id: formData.assignedTeacher,
+      student_id: selectedStudentIds,
+    };
 
-      try {
+    try {
       const response = await axios.post('http://localhost:3000/api/sections', payload, {
         withCredentials: true
       });
 
       alert("Class created successfully!");
       handleCloseModal();
-
-      const resData = response.data;
-      console.log("Success:", resData);
+      console.log("Success:", response.data);
 
     } catch (error) {
-      // 5. Check the Console for the REAL error
       console.error("Crash Details:", error);
-      
       if (error.response) {
-        // Server responded with 4xx or 5xx
         const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create class";
-        
         if (error.response.data.errors) {
           alert(`Validation Error: ${error.response.data.errors[0].msg}`);
         } else {
           alert(`Error: ${errorMsg}`);
         }
       } else if (error.request) {
-        // Server is down or Network blocked
         alert("Network Error. Is the backend running?");
       } else {
-        // Code bug (like the variable name issue)
         alert(`Code Error: ${error.message}`); 
       }
     } finally {
@@ -138,22 +129,21 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
   };
 
   if (!isOpen) return null;
+  
   return createPortal(
     <>
-      {/* No Logic Yet */}
-      <div className="modal-overlay active" id="addClassModal" >
+      <div className="modal-overlay active" id="addClassModal">
         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
-              <span className="material-symbols-outlined blue-icon text-[24px]"
-                >add_circle</span>
+              <span className="material-symbols-outlined blue-icon text-[24px]">add_circle</span>
               <h2 className="text-cdark text-[18px] font-bold">Create New Class</h2>
             </div>
           </div>
 
           <div className="modal-body">
             <div className="flex flex-col gap-2">
-              <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Section Name</label>
+              <label htmlFor="sectionName" className="text-cgray text-[13px] font-medium">Section Name</label>
               <FormInputRegistration 
                  name="sectionName"
                  value={formData.sectionName}
@@ -161,20 +151,21 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                  placeholder="e.g. Sunflower"
                  error={errors.sectionName}
                  className="form-input-modal"
-               />
+              />
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="createClassGrade" className="text-cgray text-[13px] font-medium">Class Schedule</label>
+              <label htmlFor="classSchedule" className="text-cgray text-[13px] font-medium">Class Schedule</label>
               <div className="relative">
-                <select className="form-input-modal appearance-none" name="classSchedule" onChange={handleChange} value={formData.classSchedule} defaultValue="">
-                  <option className="appearance-none cursor-pointer" value="" disabled selected>Select Schedule</option>
-                  <option className="appearance-none cursor-pointer" value="Morning">
-                    Morning Session (8:00 AM - 11:30 AM)
-                  </option>
-                  <option className="appearance-none cursor-pointer" value="Afternoon">
-                    Afternoon Session (1:00 PM - 4:30 PM)
-                  </option>
+                <select 
+                  className="form-input-modal appearance-none" 
+                  name="classSchedule" 
+                  onChange={handleChange} 
+                  value={formData.classSchedule}
+                >
+                  <option value="" disabled>Select Schedule</option>
+                  <option value="Morning">Morning Session (8:00 AM - 11:30 AM)</option>
+                  <option value="Afternoon">Afternoon Session (1:00 PM - 4:30 PM)</option>
                 </select>
                 <span className="material-symbols-outlined select-arrow">expand_more</span>
               </div>
@@ -191,7 +182,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                  placeholder="e.g. 30"
                  error={errors.maxCapacity}
                  className="form-input-modal"
-               />
+              />
             </div>
             
             <div className="flex flex-col gap-2">
@@ -213,8 +204,8 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
                   name="assignedTeacher"
                   value={formData.assignedTeacher} 
                   onChange={handleChange}
-                  > 
-                  <option className="appearance-none cursor-pointer" value="" disabled selected>Select a Teacher</option>
+                > 
+                  <option value="" disabled>Select a Teacher</option>
                   {teachersList.length > 0 ? (
                     teachersList.map((teacher) => (
                       <option key={teacher.user_id} value={teacher.user_id}>
@@ -232,41 +223,34 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
 
             <div className="flex flex-col gap-2 mt-2.5">
               <label className="text-cgray text-[13px] font-medium">Enroll Students</label>
-
               <div className="flex items-center justify-between bg-[#f8fafc] p-4 border border-[#e2e8f0] rounded-xl">
                 <div className="flex items-center gap-2.5">
                   <div className="icon-box-small blue-bg-soft w-9 h-9 text-[18px]">
                     <span className="material-symbols-outlined">groups</span>
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-cdark font-bold text-[14px]"
-                      id="enrollmentSummaryCount">{selectedStudentIds.length} Selected</span>
+                    <span className="text-cdark font-bold text-[14px]">{selectedStudentIds.length} Selected</span>
                     <span className="text-cgray text-[11px]">Capacity Limit applies</span>
                   </div>
                 </div>
 
-                  <button
-                    type="button"
-                    id="openEnrollmentModalBtn"
-                    className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs"
-                    onClick={() => setIsEnrollStudents(true)}
-                    >
-                    Select Students
-                  </button>
-
-
-                <input type="hidden" id="finalStudentListJSON" value="[]" />
+                <button
+                  type="button"
+                  className="btn bg-white rounded-md border-2 border-(--border-color) hover:text-(--white) hover:bg-(--brand-blue) hover:border-2 hover:border-(--brand-blue) w-auto h-9 px-4 text-xs"
+                  onClick={() => setIsEnrollStudents(true)}
+                >
+                  Select Students
+                </button>
               </div>
             </div>
-
           </div>
 
-            <div className="modal-footer">
-              <button className="btn-cancel" type="button" onClick={handleCloseModal}>Cancel</button>
-              <button className="btn-save" onClick={handleSubmit} disabled={loading}>
-                {loading ? "Saving..." : "Add Class"}
-              </button>
-            </div>
+          <div className="modal-footer">
+            <button className="btn-cancel" type="button" onClick={handleCloseModal}>Cancel</button>
+            <button className="btn-save" onClick={handleSubmit} disabled={loading}>
+              {loading ? "Saving..." : "Add Class"}
+            </button>
+          </div>
         </div>
       </div>
       

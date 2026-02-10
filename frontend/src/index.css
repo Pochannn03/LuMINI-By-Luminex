@@ -210,16 +210,18 @@ a:hover {
 
 .btn-outline {
   background-color: transparent;
-  border: 2px solid var(--border-color-dark);
-  color: var(--text-dark);
+  border: 2px solid #cbd5e1; 
+  color: var(--text-light); 
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-outline:hover {
   text-decoration: none;
   border-color: var(--primary-blue);
   color: var(--primary-blue);
-  transform: translateY(-3px) rotate(0.01deg);
-  outline-offset: 2px;
+  background-color: #f0f9ff; 
+  transform: translateY(-2px);
 }
 
 .btn-modal {
@@ -455,7 +457,7 @@ a:hover {
 
 .queue-card,
 .action-card {
-  background: var(--white);
+  background: var(--color-white);
   border-radius: 16px;
   box-shadow: var(--shadow-sm);
   padding: 24px;
@@ -567,7 +569,7 @@ html {
 .modal-container {
   background: white;
   width: 100%;
-  max-width: 400px;
+  max-width: 800px;
   border-radius: 20px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   display: flex;

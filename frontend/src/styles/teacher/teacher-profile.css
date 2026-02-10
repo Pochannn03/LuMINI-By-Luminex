@@ -355,18 +355,3 @@ a.nav-item {
   gap: 12px; /* Adds space between Save and Cancel */
   align-items: center;
 }
-
-/* Base Button Style Updates */
-.btn {
-  padding: 10px 20px;
-  border-radius: 12px;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px; /* Space between icon and text */
-}
