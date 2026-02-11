@@ -4,13 +4,15 @@ import { createPortal } from "react-dom";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
 
-export default function AdminDashboardQrScan({ isOpen, onClose, scanMode }) {
+export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode }) {
   // USESTATES
   const [scanResult, setScanResult] = useState(null);
+  const [isScanning, setIsScanning] = useState(true);
 
   // USEEFFECTS
   useEffect(() => {
     setScanResult(null);
+    setIsScanning(true);
   }, [isOpen, scanMode]);
 
   // DYNAMIC TITLES
@@ -28,19 +30,20 @@ export default function AdminDashboardQrScan({ isOpen, onClose, scanMode }) {
 
   // HANDLERS
   const handleScan = (detectedCodes) => {
-    if (detectedCodes && detectedCodes.length > 0) {
+    if (detectedCodes && detectedCodes.length > 0 && isScanning) {
       const rawValue = detectedCodes[0].rawValue;
       
-      if (rawValue !== scanResult) {
-        setScanResult(rawValue);
+      if (rawValue) {
         console.log(`Scanned (${scanMode}):`, rawValue);
+        setIsScanning(false); // Stop further scans immediately
         
-        // You can add specific API calls here later:
-        // if (isGuardian) verifyGuardian(rawValue)
-        // else markAttendance(rawValue)
-
-        alert(`${isUser ? "Parent/Guardian" : "Student"} Pass Scanned: ${rawValue}`);
-        onClose(); 
+        // 2. Call the parent function (The one defined in Dashboard)
+        if (onScan) {
+            onScan(rawValue);
+        }
+        
+        // We do NOT call onClose() here because the parent dashboard 
+        // handles closing the scanner when it processes the result.
       }
     }
   };

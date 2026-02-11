@@ -12,6 +12,11 @@ const AccessPassSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  user_name: {
+    type: String,
+    ref: 'User',
+    required: true
+  },
   token: {
     type: String,
     required: true,
@@ -20,6 +25,16 @@ const AccessPassSchema = new mongoose.Schema({
   purpose: {
     type: String,
     enum: ['dropoff', 'pickup'], 
+    required: true
+  },
+  student_id: {
+    type: String,
+    ref: 'Student',
+    required: true
+  },
+  student_name: {
+    type: String,
+    ref: 'Student',
     required: true
   },
   isUsed: {
@@ -31,6 +46,20 @@ const AccessPassSchema = new mongoose.Schema({
     default: Date.now,
     expires: 600 
   }
+});
+
+AccessPassSchema.virtual('student_details', {
+  ref: 'Student',
+  localField: 'student_id', // The string "2026-0001" stored in Pass
+  foreignField: 'student_id', // The string "2026-0001" stored in Student
+  justOne: true
+});
+
+AccessPassSchema.virtual('user_details', {
+  ref: 'User',
+  localField: 'user_id', // The string "2026-0001" stored in Pass
+  foreignField: 'user_id', // The string "2026-0001" stored in Student
+  justOne: true
 });
 
 export const AccessPass = mongoose.model("Access", AccessPassSchema, "qrc.qr_code");

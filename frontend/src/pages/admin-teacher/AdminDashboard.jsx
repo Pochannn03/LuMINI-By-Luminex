@@ -1,12 +1,49 @@
 import React, { useState } from "react";
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
+import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function SuperAdminDashboard() {
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
+
+  // STATES FOR CONFIRMATION
+  const [scannedData, setScannedData] = useState(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [loadingScan, setLoadingScan] = useState(false);
+
+  // GETTING INFORMATION
+  const handleScanSuccess = async (token) => {
+    // A. Close the camera immediately
+    setActiveScanMode(null);
+    setLoadingScan(true);
+
+    try {
+      // B. Call the API we built
+      const response = await axios.get(`http://localhost:3000/api/pass/scan/${token}`, {
+        withCredentials: true
+      });
+
+      if (response.data.valid) {
+        setScannedData(response.data);
+        setIsAuthModalOpen(true);
+      } 
+    } catch (error) {
+      console.error("Scan Failed:", error);
+      alert(error.response?.data?.message || "Invalid QR Code");
+    } finally {
+      setLoadingScan(false);
+    }
+  };
+
+  const handleConfirmPickup = () => {
+    alert(`Pickup Authorized for ${scannedData.student.name}!`);
+    setIsAuthModalOpen(false);
+    setScannedData(null);
+  };
 
   const handleCloseScanner = () => {
     setActiveScanMode(null);
@@ -131,7 +168,24 @@ export default function SuperAdminDashboard() {
         isOpen={!!activeScanMode}
         onClose={handleCloseScanner}
         scanMode={activeScanMode}
+        onScan={handleScanSuccess}
       />
+
+      <AdminConfirmPickUpAuth 
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        data={scannedData}
+        onConfirm={handleConfirmPickup}
+      />
+
+      {loadingScan && (
+        <div className="fixed inset-0 bg-black/50 z-9999 flex items-center justify-center">
+            <div className="bg-white p-4 rounded-lg flex items-center gap-3">
+                <span className="material-symbols-outlined animate-spin text-blue-600">sync</span>
+                <span>Verifying Pass...</span>
+            </div>
+        </div>
+      )}
 
     </div>
   );
