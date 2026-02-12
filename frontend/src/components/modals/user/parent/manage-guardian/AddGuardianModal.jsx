@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import "../../../../../styles/user/parent/manage-guardian.css";
+import "../../../../../index.css";
 
 export default function AddGuardianModal({ isOpen, onClose }) {
   const [step, setStep] = useState(1);

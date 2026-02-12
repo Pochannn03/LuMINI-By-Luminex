@@ -555,6 +555,7 @@
 .modal-footer .btn {
   flex: 1; /* Both buttons share 50% width */
   justify-content: center;
+  border-radius: 12px;
   padding: 12px 20px;
   font-size: 15px;
 }
@@ -562,6 +563,7 @@
 /* Disabled state for main modal button */
 .modal-footer .btn-primary:disabled {
   background-color: #cbd5e1; /* Light gray */
+  border-radius: 12px;
   border-color: #cbd5e1;
   color: #64748b; /* Darker gray text */
   cursor: not-allowed;

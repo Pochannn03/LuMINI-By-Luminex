@@ -18,6 +18,7 @@ import ParentProfile from "./pages/users/parent/ParentProfile";
 import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
 import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
 import PickupHistory from "./pages/users/parent/PickupHistory";
+import ManageApprovals from "./pages/admin-teacher/ManageApprovals";
 
 export default function App() {
   return (
@@ -36,7 +37,10 @@ export default function App() {
 
         {/* Super Admin Pages */}
         <Route element={<RequireAuth allowedRoles={["superadmin"]} />}>
-          <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
+          <Route
+            path="/superadmin/dashboard"
+            element={<SuperAdminDashbooard />}
+          />
           <Route
             path="/superadmin/manage-class"
             element={<SuperAdminClassManagement />}
@@ -53,27 +57,36 @@ export default function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
           <Route path="/admin/profile" element={<TeacherProfile />} />
+          <Route path="/admin/approvals" element={<ManageApprovals />} />
         </Route>
 
         {/* User (Parent) Routes */}
-        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Parent"]} />}>
-           <Route path="/parent/dashboard" element={<ParentDashboard />} />
-           <Route path="/parent/profile" element={<ParentProfile />} />
-           <Route path="/parent/guardians" element={<ManageGuardians />} />
-           <Route path="/parent/history" element={<PickupHistory />} />
+        <Route
+          element={
+            <RequireAuth allowedRoles={["user"]} allowedTypes={["Parent"]} />
+          }
+        >
+          <Route path="/parent/dashboard" element={<ParentDashboard />} />
+          <Route path="/parent/profile" element={<ParentProfile />} />
+          <Route path="/parent/guardians" element={<ManageGuardians />} />
+          <Route path="/parent/history" element={<PickupHistory />} />
         </Route>
 
         {/* User (Guardian) Routes */}
-        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />}>
-           {/* You will create these pages later */}
-           {/* <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> */}
-           {/* <Route path="/guardian/profile" element={<GuardianProfile />} /> */}
+        <Route
+          element={
+            <RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />
+          }
+        >
+          {/* You will create these pages later */}
+          {/* <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> */}
+          {/* <Route path="/guardian/profile" element={<GuardianProfile />} /> */}
         </Route>
 
-          {/* SHARED ROUTE OF USER */}
+        {/* SHARED ROUTE OF USER */}
         <Route element={<RequireAuth allowedRoles={["user"]} />}>
-            {/* Example: A settings page common to both */}
-            {/* <Route path="/user/settings" element={<UserSettings />} /> */}
+          {/* Example: A settings page common to both */}
+          {/* <Route path="/user/settings" element={<UserSettings />} /> */}
         </Route>
       </Routes>
     </div>
