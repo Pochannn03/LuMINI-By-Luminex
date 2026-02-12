@@ -10,7 +10,6 @@ export default function GuardianPassModal({ isOpen, onClose }) {
   const [error, setError] = useState(null);
   const STORAGE_KEY = "lumini_pickup_pass";
 
-
   useEffect(() => {
     if (!isOpen) return;
 
@@ -40,6 +39,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
         }
       }
 
+      // B. GENERATE NEW PASS IF NOT IN STORAGE
       try {
         const res = await axios.post(
           "http://localhost:3000/api/pass/generate",
@@ -55,7 +55,6 @@ export default function GuardianPassModal({ isOpen, onClose }) {
           const secondsLeft = Math.floor((expiryTime - now) / 1000);
 
           if (secondsLeft <= 0) {
-             // Edge case: It expired just as we fetched it
              setError("Pass expired. Please try again.");
              return;
           }
@@ -67,7 +66,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
           }));
 
           setPassData(token);
-          setTimeLeft(secondsLeft); // Set the actual remaining time
+          setTimeLeft(secondsLeft);
         }
       } catch (err) {
         console.error("Pass Gen Error:", err);
@@ -96,12 +95,6 @@ export default function GuardianPassModal({ isOpen, onClose }) {
 
     return () => clearInterval(timerId);
   }, [isOpen, timeLeft]);
-
-  const handleRegenerate = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setLoading(true);
-    window.location.reload(); 
-  };
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -142,13 +135,14 @@ export default function GuardianPassModal({ isOpen, onClose }) {
             <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
               
               {/* THE QR CODE */}
-              <div className="p-4 border-2 border-dashed border-blue-200 rounded-xl bg-blue-50 mb-4">
+              {/* Only show QR if time is remaining */}
+              <div className={`p-4 border-2 border-dashed rounded-xl mb-4 transition-all duration-300 ${timeLeft > 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50 opacity-50 grayscale'}`}>
                 <QRCode 
                   value={passData} 
                   size={200} 
                   level="H"
-                  bgColor="#eff6ff" 
-                  fgColor="#1e3a8a" 
+                  bgColor={timeLeft > 0 ? "#eff6ff" : "#f9fafb"} 
+                  fgColor={timeLeft > 0 ? "#1e3a8a" : "#9ca3af"} 
                 />
               </div>
 
@@ -163,13 +157,12 @@ export default function GuardianPassModal({ isOpen, onClose }) {
                 </div>
               ) : (
                 <div className="text-center">
-                   <p className="text-red-500 font-bold mb-2">Pass Expired</p>
-                   <button 
-                     onClick={handleRegenerate}
-                     className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm shadow-md hover:bg-blue-700 font-semibold"
-                   >
-                     Regenerate
-                   </button>
+                   {/* REGENERATE BUTTON REMOVED */}
+                   <div className="flex flex-col items-center gap-1 text-red-500 bg-red-50 px-6 py-3 rounded-lg border border-red-100">
+                      <span className="material-symbols-outlined">timer_off</span>
+                      <p className="font-bold">Pass Expired</p>
+                      <p className="text-xs text-red-400">Please close and request a new one.</p>
+                   </div>
                 </div>
               )}
 
