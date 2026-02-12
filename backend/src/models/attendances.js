@@ -2,33 +2,38 @@ import mongoose from "mongoose";
 
 const AttendanceSchema = new mongoose.Schema({
   student_id: {
-    type: mongoose.Schema.Types.String,
+    type: String, // e.g., "2026-0001"
     required: true,
-    unique: true,
   },
-  user_id: {
-    type: mongoose.Schema.Types.String,
+  student_name: {
+    type: String,
     required: true,
   },
   status: {
-    type: mongoose.Schema.Types.String,
+    type: String,
+    enum: ['Present', 'Late', 'Absent'],
+    default: 'Present',
+  },
+  date: {
+    type: String,
     required: true,
   },
-  user_note: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
-  accompanied_by: {
-    type: mongoose.Schema.Types.String,
-    required: true,
+  time_in: {
+    type: String,
   },
   created_at: {
-    type: mongoose.Schema.Types.String,
-    required: true,
-  },
+    type: Date,
+    default: Date.now,
+  }
 });
 
-export const Qr = mongoose.model("Attendance", UserSchema, "atn.attendance_student");
+// FIX: Changed "UserSchema" to "AttendanceSchema"
+export const Attendance = mongoose.model("Attendance", AttendanceSchema, "atn.attendance_student");
 
+
+  // accompanied_by: {
+  //   type: mongoose.Schema.Types.String,
+  //   required: true,
+  // },
 
 
