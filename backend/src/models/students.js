@@ -59,7 +59,7 @@ const StudentSchema = new mongoose.Schema({
   },
 
   // 4. SYSTEM FIELDS
-    invitation_code: {
+  invitation_code: {
     type: String,
     required: true,
     unique: true
