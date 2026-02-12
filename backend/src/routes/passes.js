@@ -13,30 +13,24 @@ router.post('/api/pass/generate',
   async (req, res) => {
     try {
       const purpose = req.body.purpose || 'pickup';
-      
-      // 1. CALCULATE THE TIME WINDOW (5 minutes ago)
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-      
-      // FIND STUDENT LINKED TO PARENT
+
       const student = await Student.findOne({ 
         user_id: req.user.user_id 
       });
 
-      // 2. CHECK FOR EXISTING ACTIVE PASS
-      // We look for a pass by this user, for this purpose, created AFTER 5 mins ago
       const existingPass = await AccessPass.findOne({
         user: req.user._id,
         purpose: purpose,
         createdAt: { $gt: tenMinutesAgo } // $gt means "Greater Than" (newer than)
       });
 
-      // 3. IF FOUND, RETURN THE EXISTING ONE (Do not create new)
       if (existingPass) {
         console.log("Restoring active pass for User:", req.user.user_id);
         return res.json({
           success: true,
           token: existingPass.token,
-          createdAt: existingPass.createdAt, // Send this so frontend can sync timer
+          createdAt: existingPass.createdAt,
           message: "Restored active pass"
         });
       }
@@ -44,7 +38,6 @@ router.post('/api/pass/generate',
       const fullName = `${req.user.first_name} ${req.user.last_name}`;
       const fullNameStud = `${student.first_name} ${student.last_name}`;
 
-      // 4. IF NOT FOUND, CREATE NEW
       const secretToken = crypto.randomBytes(16).toString('hex');
       const newPass = await AccessPass.create({
         user: req.user._id,
@@ -72,19 +65,16 @@ router.post('/api/pass/generate',
 // GET INFORMATION OF SCANNED QR
 router.get('/api/pass/scan/:token', 
   isAuthenticated,
-  hasRole('admin'), // Only teachers/admins can scan
+  hasRole(['admin', 'superadmin']), 
   async (req, res) => {
     try {
       const { token } = req.params;
 
-      // 1. FIND THE PASS & POPULATE DATA
-      // We need to look up the 'user' (Guardian) and the 'student_details' (Virtual)
       const pass = await AccessPass.findOne({ token: token })
         .populate('user', 'first_name last_name profile_picture relationship') 
         .populate({
-           path: 'student_details', // <--- Uses the Virtual field in AccessPassSchema
+           path: 'student_details',
            select: 'first_name last_name profile_picture section_id',
-           // Deep populate to get Section Name
            populate: { 
              path: 'section_details', 
              select: 'section_name' 

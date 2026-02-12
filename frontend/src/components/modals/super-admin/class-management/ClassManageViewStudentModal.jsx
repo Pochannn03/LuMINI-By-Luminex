@@ -1,149 +1,168 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { createPortal } from "react-dom";
+import QRCode from "react-qr-code"; // Ensure this is imported!
 import ClassManageDeleteStudentModal from './ClassManageDeleteStudentModal';
 import FormInputRegistration from '../../../FormInputRegistration';
 
 export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess, studentData }) {
+  const qrRef = useRef(null);
   const [isOpenDeleteStudentModal, setIsOpenDeleteStudentModal] = useState(false);
 
   const std = studentData || {};
   const fullName = `${std.first_name || ''} ${std.last_name || ''}`;
   const photoUrl = std.profile_picture || "https://api.dicebear.com/7.x/initials/svg?seed=" + (std.first_name || "User");
+  
   const formattedBday = std.birthday 
     ? new Date(std.birthday).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
     : "--";
 
-  // DISPLAYING THE SECTION WHERE THE STUDENT IS BELONG
   const sectionName = std.section_id?.section_name || "Unassigned";
 
-  // PARENT || GUARDIAN RELATION FOR DISPLAYING THEIR NAME
+  // PARENT LOGIC
   let parentName = "Not Linked";
   if (Array.isArray(std.user_details) && std.user_details.length > 0) {
     const parentUser = std.user_details.find(u => 
       u.relationship === 'Parent' || u.relationship === 'Guardian'
     );
-
     if (parentUser) {
       parentName = `${parentUser.first_name} ${parentUser.last_name}`;
     }
   }
 
-  const handleDeleteClick = () => {
-    setIsOpenDeleteStudentModal(true);
+  const downloadQRCode = () => {
+    if (!qrRef.current) return;
+    const svg = qrRef.current.querySelector("svg");
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    const qrSize = 500; 
+    const padding = 60; 
+    const textSpace = 80; 
+    
+    canvas.width = qrSize + (padding * 2);
+    canvas.height = qrSize + padding + textSpace;
+
+    img.onload = () => {
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      
+      ctx.fillStyle = "#64748b"; 
+      ctx.font = "bold 24px monospace"; 
+      ctx.textAlign = "center";
+      
+      ctx.fillText(
+        std.student_id || "N/A", 
+        canvas.width / 2, 
+        qrSize + padding + (textSpace / 2)
+      );
+      
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `QR_${std.student_id}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
-  if(!isOpen) return null;
+  const handleDeleteClick = () => setIsOpenDeleteStudentModal(true);
+
+  if (!isOpen) return null;
 
   return createPortal(
     <>
-      {/* No Logic Yet soon to be implemented */}
-      <div className="modal-overlay active" id="editStudentModal">
-        <div className="modal-container">
+      <div className="modal-overlay active">
+        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <div class="flex items-center gap-2.5 mb-2">
-              <span className="material-symbols-outlined blue-icon text-[24px]" >badge</span>
+            <div className="flex items-center gap-2.5 mb-2">
+              <span className="material-symbols-outlined blue-icon text-[24px]">badge</span>
               <h2 className="text-cdark text-[18px] font-bold">Student Profile</h2>
             </div>
           </div>
 
           <div className="modal-body items-center text-center">
-            <img 
-              src={photoUrl} 
-              className="w-[100px] h-[100px] rounded-full object-cover border-4 border-slate-50 shadow-[0_4px_12px_rgba(0,0,0,0.1)] mb-3" 
-              alt="Profile"
-            />
-            <h3 className="text-cdark text-[20px] font-bold mb-1">{fullName || '---'}</h3>
-              <div className="flex gap-2 mb-2">
-                <span id="viewStudentID" className="text-cprimary-blue bg-[#e0f2fe] py-1 px-2.5 rounded-[20px] text-xs font-semibold">Student ID: {std.student_id || '--'}</span>
-                <span id="viewStudentAgeBadge" className="text-cgray bg-[#f1f5f9] py-1 px-2.5 rounded-[20px] text-xs font-semibold">Age: {std.age || '---'}</span>
-              </div>
-            <p id="viewStudentBday" className="text-[13px]! text-[#64748b] m-0">Born: {formattedBday || '---'}</p>
+            <img src={photoUrl} className="w-[100px] h-[100px] rounded-full object-cover border-4 border-slate-50 shadow-md mb-3 mx-auto" alt="Profile" />
+            <h3 className="text-cdark text-[20px] font-bold mb-1">{fullName}</h3>
+            
+            <div className="flex gap-2 mb-2 justify-center">
+              <span className="text-cprimary-blue bg-[#e0f2fe] py-1 px-2.5 rounded-[20px] text-xs font-semibold">Student ID: {std.student_id || '--'}</span>
+              <span className="text-cgray bg-[#f1f5f9] py-1 px-2.5 rounded-[20px] text-xs font-semibold">Age: {std.age || '---'}</span>
+            </div>
+            <p className="text-[13px]! text-[#64748b] mb-4">Born: {formattedBday}</p>
 
-            <div className="w-full text-left">
-              <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
-                <span class="material-symbols-outlined blue-icon">school</span>
-                <h3 className="text-cdark text-[16px]! font-semibold">Academic Info</h3>
+            <div className="w-full text-left overflow-y-auto max-h-[400px] pr-2">
+              {/* ACADEMIC INFO */}
+              <div className="flex items-center gap-2 pb-2 border-b border-[#f0f0f0]">
+                <span className="material-symbols-outlined blue-icon">school</span>
+                <h3 className="text-cdark text-[16px] font-semibold">Academic Info</h3>
               </div>
-
-              <div className="flex flex-col gap-2 mt-4">
-                <FormInputRegistration 
-                  label="Current Class"
-                  name="section_name"
-                  value={sectionName}
-                  readOnly={true}
-                  className="form-input-modal"
-                />
+              <div className="mt-3 mb-5">
+                <FormInputRegistration label="Current Class" value={sectionName} readOnly className="form-input-modal" />
               </div>
 
-              <div className="w-full mt-4 text-left">
-                <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
-                  <span class="material-symbols-outlined text-[#e74c3c]">medical_services</span>
-                  <h3 className="text-cdark text-[16px]! font-semibold">Medical Information</h3>
-                </div>
-
-                <div className="flex flex-col gap-2 mt-4">
-                  <FormInputRegistration 
-                    label="Allergies"
-                    name="allergies"
-                    value={std.allergies || "None"}
-                    readOnly={true}
-                    className="form-input-modal"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2 mt-2">
-                  <FormInputRegistration 
-                    label="Medical History"
-                    name="medical_history"
-                    type="textarea"
-                    value={std.medical_history || "None"}
-                    readOnly={true}
-                    row={3}
-                    className="form-input-modal"
-                  />
-                </div>
+              {/* MEDICAL INFO */}
+              <div className="flex items-center gap-2 pb-2 border-b border-[#f0f0f0]">
+                <span className="material-symbols-outlined text-[#e74c3c]">medical_services</span>
+                <h3 className="text-cdark text-[16px] font-semibold">Medical Information</h3>
+              </div>
+              <div className="mt-3 flex flex-col gap-3 mb-5">
+                <FormInputRegistration label="Allergies" value={std.allergies || "None"} readOnly className="form-input-modal" />
+                <FormInputRegistration label="Medical History" type="textarea" value={std.medical_history || "None"} readOnly rows={3} className="form-input-modal" />
               </div>
 
-              <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
-                <span class="material-symbols-outlined orange-icon">family_restroom</span>
+              {/* PARENT INFO */}
+              <div className="flex items-center gap-2 pb-2 border-b border-[#f0f0f0]">
+                <span className="material-symbols-outlined orange-icon">family_restroom</span>
                 <h3 className="text-cdark text-[16px] font-semibold">Parent Connection</h3>
               </div>
-
-              <div className="flex flex-col gap-2 mt-4">
-                <FormInputRegistration 
-                  label="Linked Parent"
-                  name="parent_name"
-                  value={parentName}
-                  readOnly={true}
-                  className="form-input-modal"
-                />
+              <div className="mt-3 flex flex-col gap-3 mb-5">
+                <FormInputRegistration label="Linked Parent" value={parentName} readOnly className="form-input-modal" />
+                <div className="flex flex-row gap-2 items-end">
+                    <div className="flex-1">
+                        <FormInputRegistration label="Invitation Code" value={std.invitation_code || "---"} readOnly className="form-input-modal font-semibold tracking-[2px] text-center" />
+                    </div>
+                    <button className="btn-icon-tool mb-1" title="Copy" onClick={() => navigator.clipboard.writeText(std.invitation_code)}>
+                        <span className="material-symbols-outlined">content_copy</span>
+                    </button>
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2 mt-2">
-                <div className="flex flex-row gap-2">
-                  <FormInputRegistration 
-                      label="Invitation Code"
-                      name="invitation_code"
-                      value={std.invitation_code || "---"}
-                      readOnly={true}
-                      className="form-input-modal font-semibold tracking-[2px] text-center"
-                  />
-                  <button className="btn-icon-tool mt-1.5" title="Copy"
-                    onclick="navigator.clipboard.writeText(document.getElementById('viewStudentInvite').value)">
-                  <span className="material-symbols-outlined">content_copy</span>
-                  </button> {/* will work on logic soon */}
+              {/* QR CODE SECTION */}
+              <div className="flex items-center justify-between pb-2 border-b border-[#f0f0f0] mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined blue-icon">qr_code_2</span>
+                  <h3 className="text-cdark text-[16px] font-semibold">Student QR Code</h3>
+                </div>
+                {std.student_id && (
+                  <button type="button" onClick={downloadQRCode} className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline">
+                    <span className="material-symbols-outlined text-[16px]">download</span>
+                    Download PNG
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-lg border border-dashed border-slate-200 mb-6">
+                <div className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center" ref={qrRef}>
+                  {std.student_id ? (
+                    <>
+                      <QRCode size={120} value={std.student_id} viewBox={`0 0 256 256`} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                      <p className="text-[10px] font-mono mt-2 text-slate-500 tracking-widest uppercase">{std.student_id}</p>
+                    </>
+                  ) : (
+                    <p className="text-cgray text-xs italic">No ID available</p>
+                  )}
                 </div>
               </div>
             </div>
           </div>
           
           <div className="modal-footer flex flex-row justify-between">
-            <button className="btn-danger text-red-600 border-none" onClick={handleDeleteClick}>
-              Delete Student
-            </button>
-            <button className="btn-cancel" onClick={onClose}>
-              Close
-            </button>
+            <button className="btn-danger text-red-600 border-none font-semibold" onClick={handleDeleteClick}>Delete Student</button>
+            <button className="btn-cancel" onClick={onClose}>Close</button>
           </div>
         </div>
       </div>
@@ -152,13 +171,8 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
         isOpen={isOpenDeleteStudentModal}
         onClose={() => setIsOpenDeleteStudentModal(false)}
         studentData={std} 
-        onSuccess={() => {
-            if(onSuccess) onSuccess();
-            onClose();
-        }}
+        onSuccess={() => { if(onSuccess) onSuccess(); onClose(); }}
       />
-
-    </>,
-    document.body
-  );
+    </>
+  , document.body);
 }

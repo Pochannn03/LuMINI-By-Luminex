@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { validateStudentRegistrationStep } from '../../../../utils/class-manage-modal/studentModalValidation';
+import QRCode from "react-qr-code";
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
 export default function ClassManageAddStudentModal({ isOpen, onClose }) {
+  const qrRef = useRef(null);
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -98,11 +100,50 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const downloadQRCode = () => {
+    const svg = qrRef.current.querySelector("svg");
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    // Canvas dimensions
+    const qrSize = 500; 
+    const padding = 60; // Space for the white border
+    const textSpace = 80; // Extra height for the Student ID text
+    
+    canvas.width = qrSize + (padding * 2);
+    canvas.height = qrSize + padding + textSpace;
 
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+    img.onload = () => {
+      // 1. Draw solid white background
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 2. Draw the QR code (centered horizontally)
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      
+      // 3. Draw the Student ID text (XS style)
+      ctx.fillStyle = "#64748b"; // slate-500 color
+      ctx.font = "bold 24px monospace"; // XS size relative to 500px QR
+      ctx.textAlign = "center";
+      
+      // Position text at the bottom
+      ctx.fillText(
+        formData.studentId, 
+        canvas.width / 2, 
+        qrSize + padding + (textSpace / 2)
+      );
+      
+      // 4. Trigger Download
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `QR_${formData.studentId}.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
   // HELPERS REMOVING THE DATAS AFTER USER/CLOSED MODAL
@@ -142,6 +183,13 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       setPreviewUrl(URL.createObjectURL(file));
     }
     if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleSubmit = async (e) => {
@@ -373,6 +421,49 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                 Share this code with the parent to link accounts.
               </p>
             </div>
+            
+            <div className="flex flex-col gap-2">
+              <label className="text-cgray text-[13px] font-medium mb-0">Qr ID</label>
+              <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-lg border border-dashed border-slate-200 mb-4">
+                <div className="flex justify-between items-center w-full mb-3">
+                  <label className="text-cgray text-[12px] font-bold uppercase tracking-wider">Registration QR Preview</label>
+                  
+                  {formData.studentId && !["Loading...", "Generating..."].includes(formData.studentId) && (
+                    <button 
+                      type="button"
+                      onClick={downloadQRCode}
+                      className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">download</span>
+                      Download PNG
+                    </button>
+                  )}
+                </div>
+
+                {/* Visual Preview Container */}
+                <div className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center" ref={qrRef}>
+                  {formData.studentId && !["Loading...", "Generating..."].includes(formData.studentId) ? (
+                    <>
+                      <QRCode
+                        size={120}
+                        value={formData.studentId}
+                        viewBox={`0 0 256 256`}
+                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                      />
+                      {/* XS-style ID label in preview */}
+                      <p className="text-[10px] font-mono mt-2 text-slate-500 tracking-widest uppercase">
+                        {formData.studentId}
+                      </p>
+                    </>
+                  ) : (
+                    <div className="w-[120px] h-[120px] flex items-center justify-center bg-slate-100 text-slate-400">
+                      <span className="material-symbols-outlined text-[40px]">qr_code_2</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
           </div>
 
           <div className="modal-footer">
