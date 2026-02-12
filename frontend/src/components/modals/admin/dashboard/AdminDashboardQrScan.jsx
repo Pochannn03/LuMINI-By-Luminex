@@ -34,15 +34,12 @@ export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode
       
       if (rawValue) {
         console.log(`Scanned (${scanMode}):`, rawValue);
-        setIsScanning(false); // Stop further scans immediately
+        setIsScanning(false);
         
         // 2. Call the parent function (The one defined in Dashboard)
         if (onScan) {
             onScan(rawValue);
         }
-        
-        // We do NOT call onClose() here because the parent dashboard 
-        // handles closing the scanner when it processes the result.
       }
     }
   };
