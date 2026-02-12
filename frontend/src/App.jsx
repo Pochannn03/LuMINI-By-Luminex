@@ -10,6 +10,7 @@ import TeacherRegistration from "./pages/auth/TeacherRegistration";
 import SuperAdminDashbooard from "./pages/super-admin/SuperAdminDashboard";
 import SuperAdminClassManagement from "./pages/super-admin/SuperAdminClassManagement";
 import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
+import SuperAdminAnalytics from "./pages/super-admin/SuperAdminAnalytics"; 
 import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
@@ -49,6 +50,10 @@ export default function App() {
           <Route
             path="/superadmin/qr-gate"
             element={<SuperAdminQrCodeGate />}
+          />
+          <Route
+            path="/superadmin/analytics"
+            element={<SuperAdminAnalytics />}
           />
         </Route>
 
