@@ -227,18 +227,18 @@
 }
 
 /* =========================================
-   3. CONTENT AREA (Grid)
+   3. CONTENT AREA (List Layout)
    ========================================= */
-.approvals-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 20px;
+.requests-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px; /* THIS ADDS THE SPACE BETWEEN CARDS */
   min-height: 400px;
   width: 100%;
 }
 
+/* EMPTY STATE */
 .empty-queue {
-  grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -249,6 +249,7 @@
   border: 1px dashed #cbd5e1;
   text-align: center;
   width: 100%;
+  flex: 1; /* Helps it stretch if container is empty */
 }
 
 .empty-queue-icon {
@@ -258,7 +259,7 @@
 }
 
 /* =========================================
-   4. REQUEST CARD DESIGN (THIS WAS MISSING!)
+   4. REQUEST CARD DESIGN (Updated Layout)
    ========================================= */
 
 .request-card {
@@ -272,6 +273,7 @@
   transition:
     transform 0.2s,
     box-shadow 0.2s;
+  /* REMOVED: cursor: pointer; (Only the guardian side will be clickable now) */
 }
 
 .request-card:hover {
@@ -280,105 +282,127 @@
   border-color: #cbd5e1;
 }
 
-/* CARD HEADER (Applicant Info) */
-.card-header {
-  padding: 20px;
+/* CARD HEADER (Split Parent / Guardian) */
+.card-split-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px dashed #cbd5e1;
+  background: white;
+}
+
+.header-half {
+  padding: 16px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid #f1f5f9;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.applicant-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #e2e8f0;
+.header-left {
+  border-right: 1px dashed #cbd5e1;
+  background: #f8fafc; /* Keep parent side subtle */
 }
 
-.applicant-info h4 {
-  font-size: 16px;
+/* --- THE CLICKABLE GUARDIAN SECTION --- */
+.guardian-clickable {
+  background: #f0f9ff; /* Blue tint */
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+}
+
+.guardian-clickable:hover {
+  background: #e0f2fe; /* Darker blue tint on hover */
+}
+
+.info-label {
+  font-size: 10px;
   font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 4px;
-  margin-top: 0;
-}
-
-.applicant-role {
-  font-size: 12px;
-  font-weight: 600;
   color: #64748b;
-  background: #f1f5f9;
-  padding: 4px 10px;
-  border-radius: 12px;
-  display: inline-block;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* CARD BODY (Details) */
-.card-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex: 1; /* Pushes footer down */
-}
-
-.detail-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.detail-icon {
-  color: #94a3b8;
-  font-size: 20px;
-  margin-top: 2px;
-}
-
-.detail-content label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-
-.detail-content p {
-  font-size: 14px;
-  color: #334155;
-  font-weight: 500;
-  line-height: 1.4;
-  margin: 0;
-}
-
-/* Linked Student Badge */
-.student-badge {
+/* Avatar + Name Layout */
+.person-group {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: #f0f9ff; /* Light Blue */
-  border: 1px solid #bae6fd;
-  padding: 8px 12px;
-  border-radius: 10px;
-  margin-top: 4px;
+  gap: 10px;
 }
 
-.student-avatar-mini {
-  width: 24px;
-  height: 24px;
+.header-avatar {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.guardian-clickable .header-avatar {
+  border-color: #bae6fd; /* Match the blue tint */
+}
+
+.name-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.info-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.role-tag {
+  font-size: 9px;
   background: #bae6fd;
+  color: #0369a1;
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-weight: 800;
+  width: fit-content;
+  text-transform: uppercase;
+}
+
+.view-details-btn {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-blue);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto; /* Pushes to bottom if space varies */
+}
+
+/* CARD ROWS (Child & Date) */
+.card-row {
+  padding: 16px;
+  border-bottom: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: #334155;
+  font-weight: 600;
+  font-size: 13px;
+  width: fit-content;
 }
 
 /* CARD FOOTER (Actions) */
 .card-actions {
-  padding: 16px 20px;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  padding: 16px;
+  background: white;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -413,4 +437,52 @@
 .btn-approve:hover {
   background: #16a34a;
   box-shadow: 0 4px 6px rgba(34, 197, 94, 0.3);
+}
+
+/* =========================================
+   5. TEMPORARY DETAILS MODAL
+   ========================================= */
+.approval-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.approval-modal-card {
+  background: white;
+  width: 100%;
+  max-width: 600px;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  position: relative;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.close-modal-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: #f1f5f9;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+}
+.close-modal-icon:hover {
+  background: #e2e8f0;
+  color: #1e293b;
 }

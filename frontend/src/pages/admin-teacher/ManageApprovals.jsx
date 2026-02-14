@@ -7,47 +7,47 @@ import Header from "../../components/navigation/Header";
 
 export default function ManageApprovals() {
   const [activeTab, setActiveTab] = useState("pending");
-
-  // Filter Dropdown State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
 
-  // --- DUMMY DATA FOR REQUEST CARDS ---
+  // --- DUMMY DATA WITH AVATARS ---
   const [requests] = useState([
     {
       id: 1,
-      name: "Maria Santos",
+      parentName: "Sarah Caballes",
+      parentAvatar: "https://i.pravatar.cc/150?u=parent1",
+      guardianName: "Maria Santos",
+      guardianAvatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
       role: "Grandmother",
       date: "Oct 24, 2025 • 2:30 PM",
       student: "Deonilo Caballes",
-      avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-      student_img: null,
     },
     {
       id: 2,
-      name: "Robert Fox",
+      parentName: "Mark Camoro",
+      parentAvatar: "https://i.pravatar.cc/150?u=parent2",
+      guardianName: "Robert Fox",
+      guardianAvatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
       role: "Driver",
       date: "Oct 24, 2025 • 4:15 PM",
       student: "Carlanee Camoro",
-      avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-      student_img: null,
     },
     {
       id: 3,
-      name: "Jenny Wilson",
+      parentName: "Sarah Caballes",
+      parentAvatar: "https://i.pravatar.cc/150?u=parent1",
+      guardianName: "Jenny Wilson",
+      guardianAvatar: "https://i.pravatar.cc/150?u=a04258114e29026302d",
       role: "Aunt",
       date: "Oct 23, 2025 • 9:00 AM",
       student: "Deonilo Caballes",
-      avatar: "https://i.pravatar.cc/150?u=a04258114e29026302d",
-      student_img: null,
     },
   ]);
 
-  // Update counts based on data
   const pendingCount = requests.length;
   const historyCount = 24;
 
-  // Handle closing dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -58,10 +58,10 @@ export default function ManageApprovals() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleSort = (type) => {
-    console.log(`Sorting by: ${type}`);
-    setIsFilterOpen(false); // Close menu after selection
-  };
+  const handleSort = (type) => setIsFilterOpen(false);
+  const handleCardClick = (req) => setSelectedRequest(req);
+  const handleApprove = (id) => alert(`Approved request ID: ${id}`);
+  const handleReject = (id) => alert(`Rejected request ID: ${id}`);
 
   return (
     <div className="dashboard-wrapper">
@@ -70,13 +70,13 @@ export default function ManageApprovals() {
 
       <main className="main-content">
         <div className="approvals-container">
-          {/* 1. HEADER BANNER */}
+          {/* ... (Header Banner & Controls Bar remain exactly the same) ... */}
+          {/* I will omit them here for brevity, keep your existing ones! */}
           <div className="header-banner">
             <div className="header-title">
               <h1>Account Approvals</h1>
               <p>Review and manage registration requests.</p>
             </div>
-            {/* Admin Icon Decoration */}
             <span
               className="material-symbols-outlined"
               style={{ fontSize: "48px", opacity: 0.8 }}
@@ -85,38 +85,26 @@ export default function ManageApprovals() {
             </span>
           </div>
 
-          {/* 2. CONTROLS BAR (Tabs + Search + Filter) */}
           <div className="controls-bar">
-            {/* LEFT SIDE: Tabs & Search */}
+            {/* Left side tabs/search */}
             <div className="controls-left">
               <div className="tab-group">
                 <button
                   className={`tab-btn ${activeTab === "pending" ? "active" : ""}`}
                   onClick={() => setActiveTab("pending")}
                 >
-                  Pending Requests
+                  Pending Requests{" "}
                   {pendingCount > 0 && (
-                    <span
-                      className="tab-badge"
-                      style={{
-                        marginLeft: "8px",
-                        background: "#ef4444",
-                        color: "white",
-                        padding: "2px 8px",
-                        borderRadius: "10px",
-                        fontSize: "11px",
-                      }}
-                    >
+                    <span className="tab-badge" style={{ marginLeft: "8px" }}>
                       {pendingCount}
                     </span>
                   )}
                 </button>
-
                 <button
                   className={`tab-btn ${activeTab === "history" ? "active" : ""}`}
                   onClick={() => setActiveTab("history")}
                 >
-                  Approval History
+                  Approval History{" "}
                   <span
                     style={{
                       fontSize: "10px",
@@ -128,7 +116,6 @@ export default function ManageApprovals() {
                   </span>
                 </button>
               </div>
-
               <div className="search-mini">
                 <span
                   className="material-symbols-outlined"
@@ -139,19 +126,16 @@ export default function ManageApprovals() {
                 <input type="text" placeholder="Search by name or ID..." />
               </div>
             </div>
-
-            {/* RIGHT SIDE: Filter Dropdown Only */}
+            {/* Right side filter */}
             <div className="controls-right" ref={filterRef}>
               <div className="filter-wrapper">
                 <button
                   className={`btn-filter ${isFilterOpen ? "active" : ""}`}
                   onClick={() => setIsFilterOpen(!isFilterOpen)}
                 >
-                  <span className="material-symbols-outlined">filter_list</span>
+                  <span className="material-symbols-outlined">filter_list</span>{" "}
                   Filter
                 </button>
-
-                {/* DROPDOWN MENU */}
                 {isFilterOpen && (
                   <div className="filter-dropdown-menu">
                     <button
@@ -160,7 +144,7 @@ export default function ManageApprovals() {
                     >
                       <span className="material-symbols-outlined">
                         sort_by_alpha
-                      </span>
+                      </span>{" "}
                       Via Surname
                     </button>
                     <button
@@ -169,7 +153,7 @@ export default function ManageApprovals() {
                     >
                       <span className="material-symbols-outlined">
                         calendar_month
-                      </span>
+                      </span>{" "}
                       Via Date
                     </button>
                   </div>
@@ -178,9 +162,8 @@ export default function ManageApprovals() {
             </div>
           </div>
 
-          {/* 3. CONTENT AREA (The Grid) */}
+          {/* 3. GRID AREA */}
           <div className="requests-grid">
-            {/* EMPTY STATE */}
             {activeTab === "pending" && requests.length === 0 && (
               <div className="empty-queue">
                 <span className="material-symbols-outlined empty-queue-icon">
@@ -202,64 +185,99 @@ export default function ManageApprovals() {
               </div>
             )}
 
-            {/* --- REQUEST CARDS RENDER --- */}
+            {/* --- NEW REQUEST CARDS DESIGN --- */}
             {activeTab === "pending" &&
               requests.map((req) => (
                 <div className="request-card" key={req.id}>
-                  {/* CARD HEADER */}
-                  <div className="card-header">
-                    <img
-                      src={req.avatar}
-                      alt="Avatar"
-                      className="applicant-avatar"
-                    />
-                    <div className="applicant-info">
-                      <h4>{req.name}</h4>
-                      <span className="applicant-role">{req.role}</span>
-                    </div>
-                  </div>
-
-                  {/* CARD BODY */}
-                  <div className="card-body">
-                    {/* Date Row */}
-                    <div className="detail-row">
-                      <span className="material-symbols-outlined detail-icon">
-                        schedule
-                      </span>
-                      <div className="detail-content">
-                        <label>Requested On</label>
-                        <p>{req.date}</p>
+                  {/* TOP ROW: Split Header */}
+                  <div className="card-split-header">
+                    {/* LEFT: Parent (NOT CLICKABLE) */}
+                    <div className="header-half header-left">
+                      <span className="info-label">Legal Parent</span>
+                      <div className="person-group">
+                        <img
+                          src={req.parentAvatar}
+                          alt="Parent"
+                          className="header-avatar"
+                        />
+                        <span className="info-value">{req.parentName}</span>
                       </div>
                     </div>
 
-                    {/* Student Row */}
-                    <div className="detail-row">
-                      <span className="material-symbols-outlined detail-icon">
-                        child_care
-                      </span>
-                      <div className="detail-content" style={{ width: "100%" }}>
-                        <label>Connected Student</label>
-                        <div className="student-badge">
-                          <img
-                            src="https://via.placeholder.com/30"
-                            className="student-avatar-mini"
-                            alt="student"
-                          />
-                          <span>{req.student}</span>
+                    {/* RIGHT: Guardian (CLICKABLE WITH BLUE TINT) */}
+                    <div
+                      className="header-half guardian-clickable"
+                      onClick={() => handleCardClick(req)}
+                    >
+                      <span className="info-label">Requested Guardian</span>
+                      <div className="person-group">
+                        <img
+                          src={req.guardianAvatar}
+                          alt="Guardian"
+                          className="header-avatar"
+                        />
+                        <div className="name-stack">
+                          <span className="info-value">{req.guardianName}</span>
+                          <span className="role-tag">{req.role}</span>
                         </div>
                       </div>
+
+                      {/* View Details Text Button */}
+                      <div className="view-details-btn">
+                        <span
+                          className="material-symbols-outlined"
+                          style={{ fontSize: "14px" }}
+                        >
+                          visibility
+                        </span>
+                        View Details
+                      </div>
                     </div>
                   </div>
 
-                  {/* CARD ACTIONS */}
+                  {/* MIDDLE ROW 1: Linked Child */}
+                  <div className="card-row">
+                    <span className="info-label">Linked Child</span>
+                    <div className="student-badge-inline">
+                      <span
+                        className="material-symbols-outlined"
+                        style={{ fontSize: "18px" }}
+                      >
+                        face
+                      </span>
+                      {req.student}
+                    </div>
+                  </div>
+
+                  {/* MIDDLE ROW 2: Requested On */}
+                  <div className="card-row">
+                    <span className="info-label">Requested On</span>
+                    <span
+                      className="info-value"
+                      style={{ fontWeight: 500, fontSize: "13px" }}
+                    >
+                      {req.date}
+                    </span>
+                  </div>
+
+                  {/* BOTTOM ROW: Actions */}
                   <div className="card-actions">
-                    <button className="btn-card btn-reject">Reject</button>
-                    <button className="btn-card btn-approve">Approve</button>
+                    <button
+                      className="btn-card btn-reject"
+                      onClick={() => handleReject(req.id)}
+                    >
+                      Reject
+                    </button>
+                    <button
+                      className="btn-card btn-approve"
+                      onClick={() => handleApprove(req.id)}
+                    >
+                      Approve
+                    </button>
                   </div>
                 </div>
               ))}
 
-            {/* Placeholder for History */}
             {activeTab === "history" && (
               <div
                 style={{
@@ -275,6 +293,67 @@ export default function ManageApprovals() {
           </div>
         </div>
       </main>
+
+      {/* --- DETAILS MODAL --- */}
+      {selectedRequest && (
+        <div
+          className="approval-modal-overlay"
+          onClick={() => setSelectedRequest(null)}
+        >
+          <div
+            className="approval-modal-card"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="close-modal-icon"
+              onClick={() => setSelectedRequest(null)}
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+
+            <h2
+              style={{
+                fontSize: "20px",
+                color: "#1e293b",
+                marginBottom: "8px",
+              }}
+            >
+              Guardian Details
+            </h2>
+            <p
+              style={{
+                color: "#64748b",
+                fontSize: "14px",
+                marginBottom: "24px",
+              }}
+            >
+              Submitted by <strong>{selectedRequest.parentName}</strong>
+            </p>
+
+            <div
+              style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "2px dashed #cbd5e1",
+                borderRadius: "12px",
+                color: "#94a3b8",
+                flexDirection: "column",
+                gap: "12px",
+              }}
+            >
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: "48px", color: "#cbd5e1" }}
+              >
+                badge
+              </span>
+              Detailed Form & ID Photo will be mapped here...
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
