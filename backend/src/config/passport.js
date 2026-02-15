@@ -7,16 +7,18 @@ passport.serializeUser((user, done) => {
   done(null, user.id)
 });
 
-passport.deserializeUser( async (id, done) => {
-  try{
-    const findUser = await User.findById(id);
-    if(!findUser) {
-      throw new Error("User not Found")
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            // DO NOT use 'throw new Error()' here!
+            // This safely tells Passport the session is invalid without crashing the server.
+            return done(null, false); 
+        }
+        return done(null, user);
+    } catch (err) {
+        return done(err, null);
     }
-    done(null, findUser);
-  } catch (err) {
-    done(err, null)
-  }
 });
 
 export default passport.use(
