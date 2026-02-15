@@ -25,11 +25,10 @@ export default function SuperAdminDashboard() {
     setActiveScanMode(null);
     setLoadingScan(true);
 
-    const parentTokenRegex = /^[0-9a-f]{32}$/i; // Matches 32 hex characters
-    const studentIdRegex = /^\d{4}-\d{4}$/;    // Matches "2026-0001" format
+    const parentTokenRegex = /^[0-9a-f]{32}$/i;
+    const studentIdRegex = /^\d{4}-\d{4}$/;
 
     try {
-      // CONDITION 1: PARENT/GUARDIAN PICKUP
       if (activeScanMode === 'user') {
         if (!parentTokenRegex.test(rawValue)) {
           throw new Error("Invalid Parent Pass. Please scan a valid Pickup Token.");
@@ -45,19 +44,16 @@ export default function SuperAdminDashboard() {
         }
       } 
 
-      // CONDITION 2: STUDENT ATTENDANCE
       else if (activeScanMode === 'student') {
         if (!studentIdRegex.test(rawValue)) {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
 
-        // Call your Attendance API here
         const response = await axios.post(`http://localhost:3000/api/scan/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
         );
 
-        // Trigger your Attendance Success Modal (the one we built earlier)
         setScannedStudentData(response.data.student);
         setIsAttendanceModalOpen(true);
       }
@@ -78,6 +74,7 @@ export default function SuperAdminDashboard() {
       const response = await axios.post(`http://localhost:3000/api/scan/confirm-transfer`, {
         studentId: scannedData.student.studentId,
         studentName: scannedData.student.name,
+        section: scannedData.student.section,
         guardianId: scannedData.guardian.userId,
         guardianName: scannedData.guardian.name,
         type: scannedData.purpose, 
