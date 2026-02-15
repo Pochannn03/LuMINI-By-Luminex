@@ -47,7 +47,7 @@ const NAV_ITEMS = [
   {
     label: "Dismissal History",
     path: "/admin/history",
-    icon: "punch_clock",
+    icon: "archive",
     allowedRoles: ["admin"],
   },
   {
