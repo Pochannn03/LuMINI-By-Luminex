@@ -1,34 +1,63 @@
 import React, { useState, useEffect, useRef } from "react";
+import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 
+// --- HELPERS ---
+const getDateParts = (date) => {
+  const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+  return { monthDay, weekday };
+};
+
+const dateToInputString = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function AdminAttendance() {
-  // --- 1. STATE ---
+  // --- STATE ---
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [attendanceData, setAttendanceData] = useState([]); 
+  const [loading, setLoading] = useState(true);
   const dateInputRef = useRef(null);
   
-  // System Controls
+  // System Controls (Preserved)
   const [activeMode, setActiveMode] = useState("Standard Operation");
   const [selectedAction, setSelectedAction] = useState("dropoff");
-  
-  // Data
-  const [students, setStudents] = useState([
-    { id: 101, name: "Mia Chen", studentId: "102394", arrivalTime: "7:10 AM", status: "present", avatar: null },
-    { id: 102, name: "Liam Johnson", studentId: "102395", arrivalTime: "--:--", status: "absent", avatar: null },
-    { id: 103, name: "Noah Williams", studentId: "102396", arrivalTime: "7:15 AM", status: "late", avatar: null },
-    { id: 104, name: "Emma Davis", studentId: "102397", arrivalTime: "7:05 AM", status: "present", avatar: null },
-    { id: 105, name: "James Wilson", studentId: "102398", arrivalTime: "--:--", status: "absent", avatar: null },
-    { id: 106, name: "Oliver Brown", studentId: "102399", arrivalTime: "7:20 AM", status: "late", avatar: null },
-  ]);
-
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
 
-  // --- 2. EFFECTS ---
+  // --- 1. FETCH DATA FROM DB ---
   useEffect(() => {
-    const present = students.filter(s => s.status === 'present').length;
-    const late = students.filter(s => s.status === 'late').length;
-    const absent = students.filter(s => s.status === 'absent').length;
+    const fetchAttendance = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('http://localhost:3000/api/attendance', { withCredentials: true });
+        if (response.data.success) {
+          setAttendanceData(response.data.data);
+        }
+      } catch (err) {
+        console.error("Fetch Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAttendance();
+  }, []);
+
+  // --- 2. FILTER & STATS CALCULATION ---
+  const filteredRecords = attendanceData.filter(record => {
+    const selectedUIString = dateToInputString(currentDate);
+    return record.date === selectedUIString;
+  });
+
+  useEffect(() => {
+    const present = filteredRecords.filter(s => s.status === 'Present').length;
+    const late = filteredRecords.filter(s => s.status === 'Late').length;
+    const absent = filteredRecords.filter(s => s.status === 'Absent').length;
     setStats({ present, late, absent });
-  }, [students]);
+  }, [attendanceData, currentDate]);
 
   // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
@@ -44,12 +73,6 @@ export default function AdminAttendance() {
     }
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setStudents(prev => prev.map(student => 
-      student.id === id ? { ...student, status: newStatus } : student
-    ));
-  };
-
   const handleSetMode = () => {
     const modeLabels = {
       dropoff: "Morning Drop-off",
@@ -59,21 +82,6 @@ export default function AdminAttendance() {
     setActiveMode(modeLabels[selectedAction]);
   };
 
-  // Helper to split the date parts for the UI
-  const getDateParts = (date) => {
-    const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
-    const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
-    return { monthDay, weekday };
-  };
-
-  const dateToInputString = (date) => {
-    // Format to YYYY-MM-DD for the native date input
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
   const { monthDay, weekday } = getDateParts(currentDate);
 
   return (
@@ -81,77 +89,47 @@ export default function AdminAttendance() {
       <NavBar />
       
       <main className="flex-1 p-6 animate-[fadeIn_0.4s_ease-out_forwards] overflow-y-auto">
-        
-        {/* --- BLUE BANNER --- */}
         <div className="admin-banner max-w-[1200px] mx-auto">
           <h1 className="text-[white]!">Attendance Log</h1>
           <p className="text-[white]! opacity-90 m-0">Manage daily student attendance and system overrides.</p>
         </div>
 
-        {/* --- MAIN GRID LAYOUT --- */}
         <div className="grid grid-cols-1 lg:grid-cols-[3fr_1.5fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
           
-          {/* --- LEFT COLUMN: Student List & Date --- */}
+          {/* LEFT COLUMN: Student List */}
           <div className="flex flex-col gap-6">
             <div className="card p-6 min-h-[500px]">
-              
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                
-                {/* Title Section */}
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined blue-icon text-[32px]">list_alt</span>
                   <div>
                     <h2 className="text-cdark text-[18px] font-bold">Student List</h2>
-                    <p className="text-cgray text-[14px]">Mark attendance for today.</p>
+                    <p className="text-cgray text-[14px]">Logs for selected date.</p>
                   </div>
                 </div>
 
-                {/* SMART DATE CONTROLS (Next/Back + Calendar) */}
-                <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 self-start sm:self-auto shadow-sm">
-                  
-                  {/* Back Arrow */}
+                {/* DATE NAVIGATOR */}
+                <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm">
                   <button onClick={() => handleDateChange(-1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
                     <span className="material-symbols-outlined text-[24px]">chevron_left</span>
                   </button>
-
-                  {/* Clickable Date Display */}
                   <div className="relative">
-                    <button 
-                      onClick={() => dateInputRef.current.showPicker()} 
-                      className="flex items-center justify-between gap-4 px-4 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-60 cursor-pointer"
-                    >
+                    <button onClick={() => dateInputRef.current.showPicker()} className="flex items-center justify-between gap-4 px-4 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-60 cursor-pointer">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[20px] text-blue-500">calendar_month</span>
-                        <span className="text-[14px] font-bold text-cdark uppercase tracking-tight">
-                          {monthDay}
-                        </span>
+                        <span className="text-[14px] font-bold text-cdark uppercase tracking-tight">{monthDay}</span>
                       </div>
                       <div className="w-px h-4 bg-gray-300"></div>
-                      <span className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest">
-                        {weekday}
-                      </span>
+                      <span className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest">{weekday}</span>
                     </button>
-
-                    <input 
-                      type="date"
-                      ref={dateInputRef}
-                      onChange={handleCalendarChange}
-                      value={dateToInputString(currentDate)}
-                      className="absolute opacity-0 pointer-events-none"
-                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-                    />
+                    <input type="date" ref={dateInputRef} onChange={handleCalendarChange} value={dateToInputString(currentDate)} className="absolute opacity-0 pointer-events-none" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                   </div>
-
-                  {/* Next Arrow */}
                   <button onClick={() => handleDateChange(1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
                     <span className="material-symbols-outlined text-[24px]">chevron_right</span>
                   </button>
                 </div>
-
               </div>
 
-              {/* TABLE */}
-              
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -162,66 +140,47 @@ export default function AdminAttendance() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {students.map((student) => (
-                      <tr key={student.id} className="group hover:bg-slate-50 transition-colors">
-                        <td className="py-4 px-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600">
-                              {student.name.charAt(0)}
+                    {loading ? (
+                      <tr><td colSpan="3" className="py-10 text-center italic text-gray-400">Loading records...</td></tr>
+                    ) : filteredRecords.length > 0 ? (
+                      filteredRecords.map((record) => (
+                        <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
+                          <td className="py-4 px-2">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600">
+                                {record.student_name.charAt(0)}
+                              </div>
+                              <div>
+                                <p className="text-cdark text-[14px]! font-bold leading-tight">{record.student_name}</p>
+                                <p className="text-cgray text-[11px]!">ID: {record.student_id}</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-cdark text-[14px] font-bold">{student.name}</p>
-                              <p className="text-cgray text-[12px]">ID: {student.studentId}</p>
-                            </div>
-                          </div>
-                        </td>
-
-                        <td className="py-4 px-2 text-center">
-                          {student.arrivalTime !== "--:--" ? (
-                            <span className="inline-block bg-blue-50 text-blue-600 text-[12px] font-bold px-3 py-1 rounded-lg">
-                              {student.arrivalTime}
+                          </td>
+                          <td className="py-4 px-2 text-center">
+                            <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1 rounded-lg">
+                              {record.time_in}
                             </span>
-                          ) : (
-                            <span className="text-cgray text-[12px] italic">--:--</span>
-                          )}
-                        </td>
-
-                        <td className="py-4 px-2">
-                          <div className="flex justify-center bg-gray-50 p-1 rounded-lg border border-gray-100">
-                             {['present', 'late', 'absent'].map((status) => (
-                               <label 
-                                 key={status}
-                                 className={`
-                                   flex-1 text-center py-1.5 px-2 rounded-md text-[11px] font-bold cursor-pointer transition-all select-none capitalize
-                                   ${student.status === status 
-                                     ? 'bg-white shadow-sm ring-1 ring-gray-200 ' + (
-                                        status === 'present' ? 'text-green-600' : 
-                                        status === 'late' ? 'text-yellow-600' : 'text-red-600'
-                                     ) 
-                                     : 'text-gray-400 hover:bg-gray-200/50'
-                                   }
-                                 `}
-                               >
-                                 <input 
-                                   type="radio" 
-                                   className="hidden" 
-                                   checked={student.status === status}
-                                   onChange={() => handleStatusChange(student.id, status)}
-                                 />
-                                 {status}
-                               </label>
-                             ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="py-4 px-2 text-center">
+                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                              record.status === 'Present' ? 'bg-green-50 text-green-600' : 
+                              record.status === 'Late' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
+                            }`}>
+                              {record.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr><td colSpan="3" className="py-10 text-center italic text-gray-400">No records found for this date.</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: Stats & Actions --- */}
+          {/* RIGHT COLUMN: Stats & System Mode (Preserved) */}
           <div className="flex flex-col gap-6">
             
             <div className="card p-6">
@@ -229,7 +188,6 @@ export default function AdminAttendance() {
                 <span className="material-symbols-outlined green-icon text-[28px]">analytics</span>
                 <h2 className="text-cdark text-[18px] font-bold">Daily Summary</h2>
               </div>
-
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="bg-green-50 rounded-xl p-3 border border-green-100">
                    <span className="block text-[20px] font-bold text-green-700">{stats.present}</span>
