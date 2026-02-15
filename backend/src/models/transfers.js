@@ -15,6 +15,11 @@ const TransferSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  section_id: {
+    type: Number,
+    ref: 'Section',
+    required: true,
+  },
   user_id: {
     type: Number,
     ref: 'User',
@@ -41,8 +46,15 @@ const TransferSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-});
-
+}, {
+    toJSON: { 
+      virtuals: true 
+    }, // Important: Ensure virtuals show up when you query
+    toObject: { 
+      virtuals: true 
+    }
+  }
+);
 
 
 TransferSchema.pre('save', async function() {
@@ -70,6 +82,27 @@ TransferSchema.pre('save', async function() {
       console.error("❌ Transfer ID Generation Failed:", error);
     }
   }
+});
+
+TransferSchema.virtual('user_details', {
+  ref: 'User',
+  localField: 'user_id',
+  foreignField: 'user_id',
+  justOne: false
+});
+
+TransferSchema.virtual('student_details', {
+  ref: 'Student',
+  localField: 'student_id',
+  foreignField: 'student_id',
+  justOne: true
+});
+
+TransferSchema.virtual('section_details', {
+  ref: 'Section',
+  localField: 'section_id',
+  foreignField: 'section_id',
+  justOne: true
 });
 
 export const Transfer = mongoose.model("Transfer", TransferSchema, "trn.transfer_history");
