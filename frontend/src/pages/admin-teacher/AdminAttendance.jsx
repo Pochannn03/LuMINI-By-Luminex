@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import NavBar from "../../components/navigation/NavBar";
 
 export default function AdminAttendance() {
-  // --- STATE ---
+  // --- 1. STATE ---
   const [currentDate, setCurrentDate] = useState(new Date());
+  const dateInputRef = useRef(null);
   
   // System Controls
   const [activeMode, setActiveMode] = useState("Standard Operation");
@@ -21,7 +22,7 @@ export default function AdminAttendance() {
 
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
 
-  // --- EFFECTS ---
+  // --- 2. EFFECTS ---
   useEffect(() => {
     const present = students.filter(s => s.status === 'present').length;
     const late = students.filter(s => s.status === 'late').length;
@@ -29,11 +30,18 @@ export default function AdminAttendance() {
     setStats({ present, late, absent });
   }, [students]);
 
-  // --- HANDLERS ---
+  // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
     setCurrentDate(newDate);
+  };
+
+  const handleCalendarChange = (e) => {
+    const selectedDate = new Date(e.target.value);
+    if (!isNaN(selectedDate.getTime())) {
+      setCurrentDate(selectedDate);
+    }
   };
 
   const handleStatusChange = (id, newStatus) => {
@@ -51,9 +59,22 @@ export default function AdminAttendance() {
     setActiveMode(modeLabels[selectedAction]);
   };
 
-  const formatDateDisplay = (date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+  // Helper to split the date parts for the UI
+  const getDateParts = (date) => {
+    const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+    const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
+    return { monthDay, weekday };
   };
+
+  const dateToInputString = (date) => {
+    // Format to YYYY-MM-DD for the native date input
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const { monthDay, weekday } = getDateParts(currentDate);
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -74,7 +95,6 @@ export default function AdminAttendance() {
           <div className="flex flex-col gap-6">
             <div className="card p-6 min-h-[500px]">
               
-              {/* HEADER: Title + Date Controls Moved Here */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 
                 {/* Title Section */}
@@ -86,22 +106,52 @@ export default function AdminAttendance() {
                   </div>
                 </div>
 
-                {/* Date Controls (Integrated) */}
-                <div className="flex items-center bg-gray-50 rounded-lg p-1 border border-gray-200 self-start sm:self-auto">
-                   <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-cdark hover:bg-white transition-all">
-                      <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                   </button>
-                   <span className="text-[13px] font-bold text-cdark uppercase tracking-wide px-3 whitespace-nowrap min-w-[140px] text-center">
-                      {formatDateDisplay(currentDate)}
-                   </span>
-                   <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-cdark hover:bg-white transition-all">
-                      <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                   </button>
+                {/* SMART DATE CONTROLS (Next/Back + Calendar) */}
+                <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 self-start sm:self-auto shadow-sm">
+                  
+                  {/* Back Arrow */}
+                  <button onClick={() => handleDateChange(-1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                    <span className="material-symbols-outlined text-[24px]">chevron_left</span>
+                  </button>
+
+                  {/* Clickable Date Display */}
+                  <div className="relative">
+                    <button 
+                      onClick={() => dateInputRef.current.showPicker()} 
+                      className="flex items-center justify-between gap-4 px-4 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-60 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[20px] text-blue-500">calendar_month</span>
+                        <span className="text-[14px] font-bold text-cdark uppercase tracking-tight">
+                          {monthDay}
+                        </span>
+                      </div>
+                      <div className="w-px h-4 bg-gray-300"></div>
+                      <span className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest">
+                        {weekday}
+                      </span>
+                    </button>
+
+                    <input 
+                      type="date"
+                      ref={dateInputRef}
+                      onChange={handleCalendarChange}
+                      value={dateToInputString(currentDate)}
+                      className="absolute opacity-0 pointer-events-none"
+                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                    />
+                  </div>
+
+                  {/* Next Arrow */}
+                  <button onClick={() => handleDateChange(1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                    <span className="material-symbols-outlined text-[24px]">chevron_right</span>
+                  </button>
                 </div>
 
               </div>
 
               {/* TABLE */}
+              
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -171,10 +221,9 @@ export default function AdminAttendance() {
             </div>
           </div>
 
-          {/* --- RIGHT COLUMN: Stats & Actions (Date Removed) --- */}
+          {/* --- RIGHT COLUMN: Stats & Actions --- */}
           <div className="flex flex-col gap-6">
             
-            {/* 1. STATS SUMMARY */}
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className="material-symbols-outlined green-icon text-[28px]">analytics</span>
@@ -197,7 +246,6 @@ export default function AdminAttendance() {
               </div>
             </div>
 
-            {/* 2. SYSTEM OVERRIDE */}
             <div className="card p-6 flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined orange-icon text-[28px]">tune</span>
@@ -223,15 +271,14 @@ export default function AdminAttendance() {
                 
                 <button 
                   onClick={handleSetMode}
-                  className="btn btn-outline w-full h-[45px] rounded-xl font-bold text-[14px]"
+                  className="btn btn-outline w-full h-[45px] rounded-xl font-bold text-[14px] cursor-pointer"
                 >
                   Apply Override
                 </button>
               </div>
             </div>
 
-            {/* 3. MAIN ACTION BUTTON */}
-            <button className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2">
+            <button className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer">
               <span className="material-symbols-outlined">save</span>
               Save Attendance
             </button>

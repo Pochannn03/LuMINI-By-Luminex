@@ -71,10 +71,11 @@ export default function SuperAdminDashboard() {
     try {
       setLoadingScan(true);
       
-      const response = await axios.post(`http://localhost:3000/api/scan/confirm-transfer`, {
+      const response = await axios.post(`http://localhost:3000/api/transfer`, {
         studentId: scannedData.student.studentId,
         studentName: scannedData.student.name,
-        section: scannedData.student.section,
+        sectionId: scannedData.student.sectionId,
+        sectionName: scannedData.student.sectionName,
         guardianId: scannedData.guardian.userId,
         guardianName: scannedData.guardian.name,
         type: scannedData.purpose, 
