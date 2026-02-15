@@ -15,6 +15,11 @@ const TransferSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+    section_id: {
+    type: Number,
+    ref: 'Section',
+    required: true,
+  },
   section_name: {
     type: String,
     required: true,
@@ -87,13 +92,20 @@ TransferSchema.virtual('user_details', {
   ref: 'User',
   localField: 'user_id',
   foreignField: 'user_id',
-  justOne: false
+  justOne: true
 });
 
 TransferSchema.virtual('student_details', {
   ref: 'Student',
   localField: 'student_id',
   foreignField: 'student_id',
+  justOne: true
+});
+
+TransferSchema.virtual('section_details', {
+  ref: 'Section',
+  localField: 'section_id',
+  foreignField: 'section_id',
   justOne: true
 });
 

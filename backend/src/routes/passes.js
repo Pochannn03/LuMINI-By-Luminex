@@ -79,7 +79,7 @@ router.get('/api/scan/pass/:token',
            select: 'student_id first_name last_name profile_picture section_id',
            populate: { 
              path: 'section_details', 
-             select: 'section_name' 
+             select: 'section_id section_name' 
            } 
         });
 
@@ -124,7 +124,8 @@ router.get('/api/scan/pass/:token',
         student: {
           name: `${studentData.first_name || 'Unknown'} ${studentData.last_name || ''}`,
           photo: studentData.profile_picture || null,
-          section: sectionData.section_name || "Not Assigned",
+          sectionId: sectionData.section_id,
+          sectionName: sectionData.section_name || "Not Assigned",
           studentId: pass.student_id
         }
       });
@@ -132,38 +133,6 @@ router.get('/api/scan/pass/:token',
     } catch (error) {
       console.error("Scan Error:", error);
       res.status(500).json({ error: "Scan processing failed" });
-    }
-});
-
-// CONFIRM PICKUP/DROPOFF AUTHORIZATION
-router.post('/api/scan/confirm-transfer', 
-  isAuthenticated, 
-  hasRole('admin'), 
-  async (req, res) => {
-    const { studentId, guardianId, type, guardianName, studentName, section } = req.body;
-
-    try {
-        const formattedType = type.toLowerCase() === 'pickup' ? 'Pick up' : 'Drop off';
-
-        const newTransfer = new Transfer({
-            student_id: studentId,
-            student_name: studentName,
-            section_name: section,
-            user_id: guardianId,
-            user_name: guardianName,
-            type: formattedType,
-            date: new Date().toISOString().split('T')[0],
-            time: new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', minute: '2-digit', hour12: true 
-            }),
-        });
-
-        await newTransfer.save();
-        res.json({ success: true, message: `Student successfully recorded for ${formattedType}!` });
-        
-    } catch (error) {
-        console.error("❌ Transfer Save Error:", error.message);
-        res.status(500).json({ error: "Failed to record transfer: " + error.message });
     }
 });
 
