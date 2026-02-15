@@ -70,10 +70,32 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const handleConfirmPickup = () => {
-    alert(`Pickup Authorized for ${scannedData.student.name}!`);
-    setIsAuthModalOpen(false);
-    setScannedData(null);
+  // CONFIRM DROP OFF/PICK UP AUTHORIZATION
+  const handleConfirmPickup = async () => {
+    try {
+      setLoadingScan(true);
+      
+      const response = await axios.post(`http://localhost:3000/api/scan/confirm-transfer`, {
+        studentId: scannedData.student.studentId,
+        studentName: scannedData.student.name,
+        guardianId: scannedData.guardian.userId,
+        guardianName: scannedData.guardian.name,
+        type: scannedData.purpose, 
+      }, { withCredentials: true });
+
+      if (response.data.success) {
+        alert(response.data.message);
+        setIsAuthModalOpen(false);
+        setScannedData(null);
+      }
+    } catch (err) {
+      // Improved error logging to see exactly what the server says
+      const serverMessage = err.response?.data?.error || err.message;
+      console.error("Authorization Error:", serverMessage);
+      alert("Authorization Failed: " + serverMessage);
+    } finally {
+      setLoadingScan(false);
+    }
   };
 
   const handleCloseScanner = () => {

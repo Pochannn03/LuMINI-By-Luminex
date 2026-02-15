@@ -3,11 +3,12 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { AccessPass } from "../models/accessPass.js"; 
 import { Student } from "../models/students.js"; 
 import { Attendance } from "../models/attendances.js";
+import { Transfer } from "../models/transfers.js";
 import crypto from "crypto"; 
 
 const router = Router();
 
-// POST (PARENT / GUARDIAN QR GENERATION)
+// QR PASS CREATION OF PARENT/GUARDIAN SCANNING THE QR SCHOOL GATE
 router.post('/api/pass/generate', 
   isAuthenticated,
   hasRole('user'),
@@ -72,10 +73,10 @@ router.get('/api/scan/pass/:token',
       const { token } = req.params;
 
       const pass = await AccessPass.findOne({ token: token })
-        .populate('user', 'first_name last_name profile_picture relationship') 
+        .populate('user', 'user_id first_name last_name profile_picture relationship') 
         .populate({
            path: 'student_details',
-           select: 'first_name last_name profile_picture section_id',
+           select: 'student_id first_name last_name profile_picture section_id',
            populate: { 
              path: 'section_details', 
              select: 'section_name' 
@@ -90,7 +91,6 @@ router.get('/api/scan/pass/:token',
         });
       }
 
-      // 3. VALIDATION: IS PASS EXPIRED? (e.g., 10 Minute Limit)
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
       if (pass.createdAt < tenMinutesAgo) {
          return res.status(400).json({ 
@@ -114,6 +114,7 @@ router.get('/api/scan/pass/:token',
         
         // Guardian Info (Mapped for Frontend Modal)
         guardian: {
+          userId: guardianData.user_id,
           name: `${guardianData.first_name || 'Unknown'} ${guardianData.last_name || ''}`,
           photo: guardianData.profile_picture || null, 
           relation: guardianData.relationship || 'Guardian'
@@ -134,6 +135,38 @@ router.get('/api/scan/pass/:token',
     }
 });
 
+// CONFIRM PICKUP/DROPOFF AUTHORIZATION
+router.post('/api/scan/confirm-transfer', 
+  isAuthenticated, 
+  hasRole('admin'), 
+  async (req, res) => {
+    const { studentId, guardianId, type, guardianName, studentName } = req.body;
+
+    try {
+        const formattedType = type.toLowerCase() === 'pickup' ? 'Pick up' : 'Drop off';
+
+        const newTransfer = new Transfer({
+            student_id: studentId,
+            student_name: studentName,
+            user_id: guardianId,
+            user_name: guardianName,
+            type: formattedType,
+            date: new Date().toISOString().split('T')[0],
+            time: new Date().toLocaleTimeString('en-US', { 
+                hour: 'numeric', minute: '2-digit', hour12: true 
+            }),
+        });
+
+        await newTransfer.save();
+        res.json({ success: true, message: `Student successfully recorded for ${formattedType}!` });
+        
+    } catch (error) {
+        console.error("❌ Transfer Save Error:", error.message);
+        res.status(500).json({ error: "Failed to record transfer: " + error.message });
+    }
+});
+
+// STUDENT SCANNED QR ATTENDANCE AND RECORD
 router.post('/api/scan/attendance', 
   isAuthenticated,
   hasRole('admin'),
@@ -202,5 +235,6 @@ router.post('/api/scan/attendance',
         res.status(500).json({ msg: "Server Error" });
     }
 });
+
 
 export default router;
