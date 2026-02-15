@@ -15,9 +15,8 @@ const TransferSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  section_id: {
-    type: Number,
-    ref: 'Section',
+  section_name: {
+    type: String,
     required: true,
   },
   user_id: {
@@ -98,11 +97,5 @@ TransferSchema.virtual('student_details', {
   justOne: true
 });
 
-TransferSchema.virtual('section_details', {
-  ref: 'Section',
-  localField: 'section_id',
-  foreignField: 'section_id',
-  justOne: true
-});
 
 export const Transfer = mongoose.model("Transfer", TransferSchema, "trn.transfer_history");

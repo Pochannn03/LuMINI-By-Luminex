@@ -140,7 +140,7 @@ router.post('/api/scan/confirm-transfer',
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
-    const { studentId, guardianId, type, guardianName, studentName } = req.body;
+    const { studentId, guardianId, type, guardianName, studentName, section } = req.body;
 
     try {
         const formattedType = type.toLowerCase() === 'pickup' ? 'Pick up' : 'Drop off';
@@ -148,6 +148,7 @@ router.post('/api/scan/confirm-transfer',
         const newTransfer = new Transfer({
             student_id: studentId,
             student_name: studentName,
+            section_name: section,
             user_id: guardianId,
             user_name: guardianName,
             type: formattedType,
