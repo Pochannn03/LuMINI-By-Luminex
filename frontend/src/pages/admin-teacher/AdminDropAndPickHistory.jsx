@@ -169,7 +169,7 @@ export default function AdminDropAndPickHistory() {
                                 alt="student"
                               />
                               <div>
-                                 <p className="text-cdark text-[13px] font-semibold leading-tight">{record.user_name}</p>
+                                 <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
                                  <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details.relationship || "Authorized User"}</span>
                               </div>
                            </div>

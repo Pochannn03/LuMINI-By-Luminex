@@ -49,7 +49,7 @@ export default function SuperAdminDashboard() {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
 
-        const response = await axios.post(`http://localhost:3000/api/scan/attendance`, 
+        const response = await axios.post(`http://localhost:3000/api/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
         );

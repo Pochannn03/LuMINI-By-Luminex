@@ -7,6 +7,7 @@ import studentRoutes from "./students.js";
 import classesRoutes from "./classes.js";
 import usersRoutes from "./users.js";
 import passesRoutes from "./passes.js";
+import attendancesRoutes from "./attendances.js";
 import transferHistoryRoutes from "./transferHistory.js";
 
 
@@ -20,7 +21,8 @@ router.use(studentRoutes);
 router.use(classesRoutes);
 router.use(usersRoutes);
 router.use(passesRoutes);
-router.use(transferHistoryRoutes)
+router.use(attendancesRoutes);
+router.use(transferHistoryRoutes);
 
 
 
