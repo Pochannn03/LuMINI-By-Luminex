@@ -55,6 +55,8 @@
   transition: all 0.2s;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
 }
 .btn-add-circle:hover {
   transform: scale(1.1) rotate(90deg);
@@ -252,17 +254,30 @@
    4. ADD GUARDIAN MODAL (Updated Flow)
    ========================================= */
 
+/* --- KEY ADDITION: MODAL OVERLAY --- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; 
+  animation: fadeIn 0.2s ease-out;
+}
+
 /* Modal Card - WIDER for the new form */
 .modal-card {
   background: #fff;
   width: 100%;
-  max-width: 600px; /* INCREASED: Was 480px */
+  max-width: 600px;
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   max-height: 90vh;
-  overflow: hidden; /* Clips footer to rounded corners */
+  overflow: hidden; 
   animation: modalPop 0.2s ease-out;
 }
 
@@ -341,14 +356,13 @@
   margin: 0;
 }
 
-/* AND ADD THIS RIGHT BELOW IT: */
 .info-note {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px dashed #bae6fd; /* subtle separator */
-  color: #0369a1; /* Use the darker blue header color */
+  border-top: 1px dashed #bae6fd;
+  color: #0369a1; 
   font-size: 13px;
-  font-weight: 600; /* Make it bold */
+  font-weight: 600; 
   display: flex;
   gap: 4px;
 }
@@ -428,25 +442,22 @@
   margin: 0;
 }
 
-/* The Clickable Area */
 .upload-box {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-
   border: 2px dashed #cbd5e1;
   border-radius: 12px;
-  padding: 40px 20px; /* Ample padding */
+  padding: 40px 20px; 
   text-align: center;
   cursor: pointer;
   background: #f8fafc;
   transition: all 0.2s;
-
-  width: 100%; /* Force full width */
-  min-height: 200px; /* Ensure it's not squashed */
+  width: 100%; 
+  min-height: 200px; 
   position: relative;
-  overflow: hidden; /* Keep preview inside */
+  overflow: hidden; 
 }
 
 .upload-box:hover {
@@ -454,7 +465,6 @@
   background: #f0f9ff;
 }
 
-/* Default State (No File) */
 .upload-content-default {
   display: flex;
   flex-direction: column;
@@ -476,7 +486,6 @@
   margin-top: 4px;
 }
 
-/* Preview State (File Selected) - 16:9 Ratio */
 .preview-container {
   width: 100%;
   height: 100%;
@@ -492,11 +501,10 @@
 .id-preview-img {
   width: 100%;
   height: 100%;
-  object-fit: contain; /* Shows full image without cropping */
-  background: #1e293b; /* Dark background for contrast */
+  object-fit: contain; 
+  background: #1e293b; 
 }
 
-/* Hover Overlay to Change Image */
 .preview-overlay {
   position: absolute;
   inset: 0;
@@ -553,25 +561,22 @@
 }
 
 .modal-footer .btn {
-  flex: 1; /* Both buttons share 50% width */
+  flex: 1; 
   justify-content: center;
   border-radius: 12px;
   padding: 12px 20px;
   font-size: 15px;
 }
 
-/* Disabled state for main modal button */
 .modal-footer .btn-primary:disabled {
-  background-color: #cbd5e1; /* Light gray */
+  background-color: #cbd5e1; 
   border-radius: 12px;
   border-color: #cbd5e1;
-  color: #64748b; /* Darker gray text */
+  color: #64748b; 
   cursor: not-allowed;
-  transform: none !important; /* Stop hover effects */
+  transform: none !important; 
   box-shadow: none !important;
 }
-
-/* Add to bottom of manage-guardians.css */
 
 /* PASSWORD INPUT WRAPPER */
 .password-input-wrapper {
@@ -581,12 +586,10 @@
   align-items: center;
 }
 
-/* Push text to the left so it doesn't overlap the icon */
 .password-input-wrapper input {
   padding-right: 40px;
 }
 
-/* The Eye Button */
 .toggle-password-btn {
   position: absolute;
   right: 12px;
