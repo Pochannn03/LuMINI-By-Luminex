@@ -45,7 +45,13 @@ const NAV_ITEMS = [
     allowedRoles: ["admin"],
   },
   {
-    label: "Approvals", // <--- NEW ITEM
+    label: "Dismissal History",
+    path: "/admin/history",
+    icon: "punch_clock",
+    allowedRoles: ["admin"],
+  },
+  {
+    label: "Approvals",
     path: "/admin/approvals",
     icon: "verified_user",
     allowedRoles: ["admin"],

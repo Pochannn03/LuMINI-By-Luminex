@@ -13,6 +13,7 @@ import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 import SuperAdminAnalytics from "./pages/super-admin/SuperAdminAnalytics"; 
 import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
+import AdminDropAndPickHistory from "./pages/admin-teacher/AdminDropAndPickHistory";
 import ParentDashboard from "./pages/users/parent/ParentDashboard";
 import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
@@ -38,29 +39,18 @@ export default function App() {
 
         {/* Super Admin Pages */}
         <Route element={<RequireAuth allowedRoles={["superadmin"]} />}>
-          <Route
-            path="/superadmin/dashboard"
-            element={<SuperAdminDashbooard />}
-          />
-          <Route
-            path="/superadmin/manage-class"
-            element={<SuperAdminClassManagement />}
-          />
+          <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
+          <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
-          <Route
-            path="/superadmin/qr-gate"
-            element={<SuperAdminQrCodeGate />}
-          />
-          <Route
-            path="/superadmin/analytics"
-            element={<SuperAdminAnalytics />}
-          />
+          <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
+          <Route path="/superadmin/analytics" element={<SuperAdminAnalytics />} />
         </Route>
 
         {/* Admin (Teacher) Pages */}
         <Route element={<RequireAuth allowedRoles={["admin"]} />}>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/attendance" element={<AdminAttendance />} />
+          <Route path="/admin/history" element={<AdminDropAndPickHistory />} />
           <Route path="/admin/profile" element={<TeacherProfile />} />
           <Route path="/admin/approvals" element={<ManageApprovals />} />
         </Route>
