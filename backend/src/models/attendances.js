@@ -2,12 +2,20 @@ import mongoose from "mongoose";
 
 const AttendanceSchema = new mongoose.Schema({
   student_id: {
-    type: String, // e.g., "2026-0001"
+    type: String,
     required: true,
   },
   student_name: {
     type: String,
     required: true,
+  },
+  section_id: { 
+    type: Number, 
+    required: true 
+  },
+  section_name: {
+    type: String, 
+    required: true 
   },
   status: {
     type: String,

@@ -1,10 +1,7 @@
 import { Router } from "express";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
-// import { AccessPass } from "../models/accessPass.js"; 
 import { Student } from "../models/students.js"; 
 import { Attendance } from "../models/attendances.js";
-// import { Transfer } from "../models/transfers.js";
-// import crypto from "crypto"; 
 
 const router = Router();
 
@@ -13,9 +10,18 @@ router.get('/api/attendance',
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
+    const userId = req.user.user_id;
+    const userRole = req.user.role;
+
     try {
-      // Fetch all records for now (you can filter by date later)
-      const records = await Attendance.find().sort({ created_at: -1 });
+      let query = {};
+
+      if (userRole === 'Teacher') {
+        const teacherSections = await Section.find({ user_id: userId });
+        const sectionIds = teacherSections.map(sec => sec.section_id);
+        query = { section_id: { $in: sectionIds } };
+      }
+      const records = await Attendance.find(query).sort({ created_at: -1 });
       
       res.json({
         success: true,
@@ -35,7 +41,8 @@ router.post('/api/attendance',
     const { studentId } = req.body;
     
     try {
-        const student = await Student.findOne({ student_id: studentId });
+        const student = await Student.findOne({ student_id: studentId })
+                                     .populate('section_details');
         if (!student) {
             return res.status(404).json({ msg: "Student not found" });
         }
@@ -72,6 +79,8 @@ router.post('/api/attendance',
         const newAttendance = new Attendance({
             student_id: student.student_id,
             student_name: `${student.first_name} ${student.last_name}`,
+            section_id: student.section_id,
+            section_name: student.section_details?.section_name || "N/A",
             status: status,
             date: todayDate,
             time_in: currentTimeString
