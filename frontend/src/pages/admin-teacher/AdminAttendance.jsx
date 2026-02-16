@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 
@@ -21,21 +21,29 @@ export default function AdminAttendance() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]); 
   const [loading, setLoading] = useState(true);
-  const [selectedSection, setSelectedSection] = useState("all"); // New State
-  const dateInputRef = useRef(null);
-  
+  const [teacherSections, setTeacherSections] = useState([]);
+  const [selectedSection, setSelectedSection] = useState("all");
   const [activeMode, setActiveMode] = useState("Standard Operation");
   const [selectedAction, setSelectedAction] = useState("dropoff");
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
+  const dateInputRef = useRef(null);
 
   // --- 1. FETCH DATA FROM DB ---
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:3000/api/attendance', { withCredentials: true });
+        const response = await axios.get('http://localhost:3000/api/attendance', {
+          params: {
+            date: dateToInputString(currentDate)
+          },
+          withCredentials: true
+        }
+      );
+
         if (response.data.success) {
           setAttendanceData(response.data.data);
+          setTeacherSections(response.data.sections || []); 
         }
       } catch (err) {
         console.error("Fetch Error:", err);
@@ -46,23 +54,23 @@ export default function AdminAttendance() {
     fetchAttendance();
   }, []);
 
-  // Get unique sections for the filter dropdown
-  const uniqueSections = [...new Set(attendanceData.map(item => item.section_name))].filter(Boolean);
-
   // --- 2. FILTER & STATS CALCULATION ---
-  const filteredRecords = attendanceData.filter(record => {
+  const filteredRecords = React.useMemo(() => {
+  return attendanceData.filter(record => {
     const selectedUIString = dateToInputString(currentDate);
     const matchesDate = record.date === selectedUIString;
     const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
     return matchesDate && matchesSection;
   });
+}, [attendanceData, currentDate, selectedSection]);
 
   useEffect(() => {
-    const present = filteredRecords.filter(s => s.status === 'Present').length;
-    const late = filteredRecords.filter(s => s.status === 'Late').length;
-    const absent = filteredRecords.filter(s => s.status === 'Absent').length;
-    setStats({ present, late, absent });
-  }, [attendanceData, currentDate, selectedSection]);
+  const present = filteredRecords.filter(s => s.status === 'Present').length;
+  const late = filteredRecords.filter(s => s.status === 'Late').length;
+  const absent = filteredRecords.filter(s => s.status === 'Absent').length;
+  
+  setStats({ present, late, absent });
+}, [filteredRecords]);
 
   // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
@@ -122,8 +130,10 @@ export default function AdminAttendance() {
                       className="bg-transparent text-[12px] font-bold text-cdark uppercase outline-none cursor-pointer"
                     >
                       <option value="all">All Sections</option>
-                      {uniqueSections.map(section => (
-                        <option key={section} value={section}>{section}</option>
+                      {teacherSections.map(section => (
+                        <option key={section._id} value={section.section_name}>
+                          {section.section_name}
+                        </option>
                       ))}
                     </select>
                   </div>

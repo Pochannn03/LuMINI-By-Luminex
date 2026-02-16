@@ -1,111 +1,143 @@
 import { Router } from "express";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
-import { Student } from "../models/students.js"; 
+import { Student } from "../models/students.js";
+import { Section } from "../models/sections.js";
 import { Attendance } from "../models/attendances.js";
 
 const router = Router();
+
+const ensureDailyAttendance = async () => {
+  const todayDate = new Date().toLocaleDateString('en-CA', {
+    timeZone: 'Asia/Manila'
+  });
+
+  const allStudents = await Student.find({ is_archive: false })
+                                   .populate('section_details');
+
+  for (const student of allStudents) {
+
+    if (!student.section_id) continue;
+
+    const existing = await Attendance.findOne({
+      student_id: student.student_id,
+      date: todayDate
+    });
+
+    if (!existing) {
+      await Attendance.create({
+        student_id: student.student_id,
+        student_name: `${student.first_name} ${student.last_name}`,
+        section_id: student.section_id,
+        section_name: student.section_details?.section_name || "Unassigned",
+        status: "Absent",
+        date: todayDate,
+        time_in: "---"
+      });
+    }
+  }
+  console.log("Daily attendance ensured.");
+};
+
 
 // GET STUDENT ATTENDANCES
 router.get('/api/attendance', 
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
-    const userId = req.user.user_id;
-    const userRole = req.user.role;
-
     try {
+      await ensureDailyAttendance();
+      const selectedDate = req.query.date;
+      const dateToUse = selectedDate || new Date().toISOString().split('T')[0];
+      const currentUserId = req.user.user_id;
+      const userRole = req.user.relationship;
+
+      let teacherSections = [];
       let query = {};
 
-      if (userRole === 'Teacher') {
-        const teacherSections = await Section.find({ user_id: userId });
-        const sectionIds = teacherSections.map(sec => sec.section_id);
-        query = { section_id: { $in: sectionIds } };
+      if (userRole === 'teacher' || userRole === 'Teacher') {
+        teacherSections = await Section.find({ user_id: currentUserId });
+        if (teacherSections.length > 0) {
+          const sectionIds = teacherSections.map(sec => sec.section_id);
+          query = { section_id: { $in: sectionIds } };
+        } else {
+          return res.json({ success: true, data: [], sections: [] });
+        }
+      } else if (userRole === 'superadmin') {
+        teacherSections = await Section.find({}); 
       }
-      const records = await Attendance.find(query).sort({ created_at: -1 });
+
+      const todayDate = new Date().toISOString().split('T')[0];
+      const records = await Attendance.find({ ...query, date: dateToUse })
+                                      .sort({ created_at: -1 });
       
       res.json({
         success: true,
-        data: records
+        data: records,
+        sections: teacherSections
       });
     } catch (error) {
       console.error("Attendance Fetch Error:", error);
-      res.status(500).json({ success: false, message: "Server Error" });
+      res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 });
 
 // STUDENT SCANNED QR ATTENDANCE AND RECORD
-router.post('/api/attendance', 
-  isAuthenticated,
-  hasRole('admin'),
+router.patch('/api/attendance', 
+  isAuthenticated, 
+  hasRole('admin'), 
   async (req, res) => {
     const { studentId } = req.body;
+    const now = new Date();
+    const todayDate = now.toLocaleDateString('en-CA');
     
     try {
         const student = await Student.findOne({ student_id: studentId })
                                      .populate('section_details');
-        if (!student) {
-            return res.status(404).json({ msg: "Student not found" });
-        }
+        if (!student) return res.status(404).json({ msg: "Student not found" });
 
-        const now = new Date();
-        const todayDate = now.toISOString().split('T')[0]; // "2026-02-13"
-        const currentTimeString = now.toLocaleTimeString('en-US', { 
-            hour: 'numeric', minute: '2-digit', hour12: true 
-        });
+        const schedule = student.section_details?.class_schedule;
+        const isMorning = schedule?.includes("Morning");
 
-        // 2. Check if student already scanned today
-        const existingRecord = await Attendance.findOne({ 
-            student_id: studentId, 
-            date: todayDate 
-        });
+        let startHr = isMorning ? 8 : 13;
+        let endHr = isMorning ? 11 : 16;
+        let endMin = 30;
 
-        if (existingRecord) {
-            return res.status(400).json({ 
-                msg: "Attendance already recorded for today",
-                student: {
-                    first_name: student.first_name,
-                    last_name: student.last_name,
-                    time_in: existingRecord.time_in
-                }
-            });
-        }
+        // Create PH-based time comparison
+        const phNow = new Date(
+          now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+        );
 
-        // 3. Determine Status (Example: Late if after 8:00 AM)
+        const lateTime = new Date(phNow);
+        lateTime.setHours(startHr, 15, 0, 0);
+
         let status = "Present";
-        const hour = now.getHours();
-        if (hour >= 8) { status = "Late"; }
 
-        // 4. Create Attendance Record
-        const newAttendance = new Attendance({
-            student_id: student.student_id,
-            student_name: `${student.first_name} ${student.last_name}`,
-            section_id: student.section_id,
-            section_name: student.section_details?.section_name || "N/A",
-            status: status,
-            date: todayDate,
-            time_in: currentTimeString
+        if (phNow.getTime() > lateTime.getTime()) {
+          status = "Late";
+        }
+
+        const currentTimeString = phNow.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
         });
 
-        await newAttendance.save();
+        const updated = await Attendance.findOneAndUpdate(
+          { student_id: studentId, date: todayDate },
+          { status, time_in: currentTimeString },
+          { new: true }
+        );
 
-        res.status(200).json({
-            msg: `Attendance marked as ${status}`,
-            student: {
-                first_name: student.first_name,
-                last_name: student.last_name,
-                student_id: student.student_id,
-                profile_picture: student.profile_picture,
-                status: status,
-                time_in: currentTimeString
-            }
-        });
+        if (!updated) {
+          return res.status(404).json({ msg: "Attendance record not found for today" });
+        }
 
+        res.status(200).json({ msg: `Marked as ${status}`, student: updated });
     } catch (err) {
-        console.error(err);
+        console.error("Update Error:", err);
         res.status(500).json({ msg: "Server Error" });
     }
 });
-
 
 
 export default router;

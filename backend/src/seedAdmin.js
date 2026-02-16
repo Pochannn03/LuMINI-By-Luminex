@@ -29,7 +29,7 @@ const seedSuperAdmin = async () => {
       last_name: "Admin",
       phone_number: "09123456789",
       address: "Rizal Technological University",
-      relationship: "N/A",
+      relationship: "SuperAdmin",
       role: "superadmin",
       is_archive: false,
       created_by: "system_seed",
