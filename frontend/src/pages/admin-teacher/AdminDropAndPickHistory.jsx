@@ -19,6 +19,7 @@ export default function AdminDropAndPickHistory() {
   const [transferData, setTransferData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [filterType, setFilterType] = useState("all"); // State for the new filter
   const dateInputRef = useRef(null);
   const { monthDay, weekday } = getDateParts(currentDate);
 
@@ -43,9 +44,12 @@ export default function AdminDropAndPickHistory() {
     fetchTransferHistory();
   }, []);
 
+  // Updated filter logic to include both Date and Transfer Type
   const filteredData = transferData.filter(item => {
     const selectedDateString = dateToInputString(currentDate); 
-    return item.date === selectedDateString;
+    const matchesDate = item.date === selectedDateString;
+    const matchesType = filterType === "all" || item.type.toLowerCase().includes(filterType.toLowerCase());
+    return matchesDate && matchesType;
   });
 
   const handleDateChange = (days) => {
@@ -76,50 +80,69 @@ export default function AdminDropAndPickHistory() {
         <div className="w-full max-w-[1200px] mx-auto">
           <div className="card p-6 min-h-[500px]">
             
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined blue-icon text-[32px]">history</span>
                 <div>
                   <h2 className="text-cdark text-[18px] font-bold">Log Record</h2>
-                  <p className="text-cgray text-[14px]">Historical records for the selected date.</p>
+                  <p className="text-cgray text-[14px]!">Historical records for the selected date.</p>
                 </div>
               </div>
 
-              <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 self-start sm:self-auto shadow-sm">
-                <button onClick={() => handleDateChange(-1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
-                  <span className="material-symbols-outlined text-[24px]">chevron_left</span>
-                </button>
-
-                <div className="relative">
-                  <button 
-                    onClick={() => dateInputRef.current.showPicker()} 
-                    className="flex items-center justify-between gap-4 px-4 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-60 cursor-pointer"
+              {/* NEW COMBINED CONTROLS SECTION */}
+              <div className="flex flex-wrap items-center gap-3">
+                
+                {/* 1. FILTER SELECT */}
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                  <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">filter_list</span>
+                  <select 
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="bg-transparent text-[12px] font-bold text-cdark uppercase outline-none cursor-pointer"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[20px] text-blue-500">calendar_month</span>
-                      <span className="text-[14px] font-bold text-cdark uppercase tracking-tight">
-                        {monthDay}
-                      </span>
-                    </div>
-                    <div className="w-px h-4 bg-gray-300"></div>
-                    <span className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest">
-                      {weekday}
-                    </span>
-                  </button>
-
-                  <input 
-                    type="date"
-                    ref={dateInputRef}
-                    onChange={handleCalendarChange}
-                    value={dateToInputString(currentDate)}
-                    className="absolute opacity-0 pointer-events-none"
-                    style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-                  />
+                    <option value="all">All Records</option>
+                    <option value="drop off">Drop Offs</option>
+                    <option value="pick up">Pick Ups</option>
+                  </select>
                 </div>
 
-                <button onClick={() => handleDateChange(1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
-                  <span className="material-symbols-outlined text-[24px]">chevron_right</span>
-                </button>
+                {/* 2. SHRUNK DATE NAVIGATOR */}
+                <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm">
+                  <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                    <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                  </button>
+
+                  <div className="relative">
+                    <button 
+                      onClick={() => dateInputRef.current.showPicker()} 
+                      className="flex items-center justify-between gap-3 px-3 py-1 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-[180px] cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[18px] text-blue-500">calendar_month</span>
+                        <span className="text-[12px] font-bold text-cdark uppercase tracking-tight">
+                          {monthDay}
+                        </span>
+                      </div>
+                      <div className="w-px h-3 bg-gray-300"></div>
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                        {weekday.slice(0, 3)} {/* Shrunk day to 3 letters */}
+                      </span>
+                    </button>
+
+                    <input 
+                      type="date"
+                      ref={dateInputRef}
+                      onChange={handleCalendarChange}
+                      value={dateToInputString(currentDate)}
+                      className="absolute opacity-0 pointer-events-none"
+                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                    />
+                  </div>
+
+                  <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                    <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -164,13 +187,13 @@ export default function AdminDropAndPickHistory() {
                         <td className="py-4 px-2">
                            <div className="flex items-center gap-2.5">
                               <img 
-                                src={record.student_details?.profile_picture || `https://ui-avatars.com/api/?name=${record.student_name}&background=random`} 
+                                src={record.user_details?.profile_picture || `https://ui-avatars.com/api/?name=${record.user_name}&background=random`} 
                                 className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                                alt="student"
+                                alt="guardian"
                               />
                               <div>
                                  <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
-                                 <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details.relationship || "Authorized User"}</span>
+                                 <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details?.relationship || "Authorized User"}</span>
                               </div>
                            </div>
                         </td>

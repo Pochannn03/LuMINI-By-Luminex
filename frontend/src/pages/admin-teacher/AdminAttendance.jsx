@@ -21,9 +21,9 @@ export default function AdminAttendance() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]); 
   const [loading, setLoading] = useState(true);
+  const [selectedSection, setSelectedSection] = useState("all"); // New State
   const dateInputRef = useRef(null);
   
-  // System Controls (Preserved)
   const [activeMode, setActiveMode] = useState("Standard Operation");
   const [selectedAction, setSelectedAction] = useState("dropoff");
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
@@ -46,10 +46,15 @@ export default function AdminAttendance() {
     fetchAttendance();
   }, []);
 
+  // Get unique sections for the filter dropdown
+  const uniqueSections = [...new Set(attendanceData.map(item => item.section_name))].filter(Boolean);
+
   // --- 2. FILTER & STATS CALCULATION ---
   const filteredRecords = attendanceData.filter(record => {
     const selectedUIString = dateToInputString(currentDate);
-    return record.date === selectedUIString;
+    const matchesDate = record.date === selectedUIString;
+    const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
+    return matchesDate && matchesSection;
   });
 
   useEffect(() => {
@@ -57,7 +62,7 @@ export default function AdminAttendance() {
     const late = filteredRecords.filter(s => s.status === 'Late').length;
     const absent = filteredRecords.filter(s => s.status === 'Absent').length;
     setStats({ present, late, absent });
-  }, [attendanceData, currentDate]);
+  }, [attendanceData, currentDate, selectedSection]);
 
   // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
@@ -96,37 +101,69 @@ export default function AdminAttendance() {
 
         <div className="grid grid-cols-1 lg:grid-cols-[3fr_1.5fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
           
-          {/* LEFT COLUMN: Student List */}
           <div className="flex flex-col gap-6">
             <div className="card p-6 min-h-[500px]">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined blue-icon text-[32px]">list_alt</span>
                   <div>
                     <h2 className="text-cdark text-[18px] font-bold">Student List</h2>
-                    <p className="text-cgray text-[14px]">Logs for selected date.</p>
+                    <p className="text-cgray text-[14px]!">Logs for selected date.</p>
                   </div>
                 </div>
 
-                {/* DATE NAVIGATOR */}
-                <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm">
-                  <button onClick={() => handleDateChange(-1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
-                    <span className="material-symbols-outlined text-[24px]">chevron_left</span>
-                  </button>
-                  <div className="relative">
-                    <button onClick={() => dateInputRef.current.showPicker()} className="flex items-center justify-between gap-4 px-4 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-60 cursor-pointer">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[20px] text-blue-500">calendar_month</span>
-                        <span className="text-[14px] font-bold text-cdark uppercase tracking-tight">{monthDay}</span>
-                      </div>
-                      <div className="w-px h-4 bg-gray-300"></div>
-                      <span className="text-[12px] font-semibold text-gray-400 uppercase tracking-widest">{weekday}</span>
-                    </button>
-                    <input type="date" ref={dateInputRef} onChange={handleCalendarChange} value={dateToInputString(currentDate)} className="absolute opacity-0 pointer-events-none" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* SECTION FILTER */}
+                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+                    <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">filter_alt</span>
+                    <select 
+                      value={selectedSection}
+                      onChange={(e) => setSelectedSection(e.target.value)}
+                      className="bg-transparent text-[12px] font-bold text-cdark uppercase outline-none cursor-pointer"
+                    >
+                      <option value="all">All Sections</option>
+                      {uniqueSections.map(section => (
+                        <option key={section} value={section}>{section}</option>
+                      ))}
+                    </select>
                   </div>
-                  <button onClick={() => handleDateChange(1)} className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
-                    <span className="material-symbols-outlined text-[24px]">chevron_right</span>
-                  </button>
+
+                  {/* SHRUNK DATE NAVIGATOR */}
+                  <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm self-start sm:self-auto">
+                    <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                      <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                    </button>
+                    
+                    <div className="relative">
+                      <button 
+                        onClick={() => dateInputRef.current.showPicker()} 
+                        className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-[175px] cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[18px] text-blue-500">calendar_month</span>
+                          <span className="text-[12px] font-bold text-cdark uppercase tracking-tight">
+                            {monthDay}
+                          </span>
+                        </div>
+                        <div className="w-px h-3 bg-gray-300"></div>
+                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                          {weekday.slice(0, 3)}
+                        </span>
+                      </button>
+                      <input 
+                        type="date" 
+                        ref={dateInputRef} 
+                        onChange={handleCalendarChange} 
+                        value={dateToInputString(currentDate)} 
+                        className="absolute opacity-0 pointer-events-none" 
+                        style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} 
+                      />
+                    </div>
+
+                    <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                      <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -152,7 +189,10 @@ export default function AdminAttendance() {
                               </div>
                               <div>
                                 <p className="text-cdark text-[14px]! font-bold leading-tight">{record.student_name}</p>
-                                <p className="text-cgray text-[11px]!">ID: {record.student_id}</p>
+                                <div className="flex flex-col">
+                                  <span className="text-cgray text-[11px]!">ID: {record.student_id}</span>
+                                  <span className="text-blue-500 font-bold text-[10px] uppercase tracking-wider">{record.section_name}</span>
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -180,9 +220,8 @@ export default function AdminAttendance() {
             </div>
           </div>
 
-          {/* RIGHT COLUMN: Stats & System Mode (Preserved) */}
+          {/* SIDEBAR REMAINS SAME */}
           <div className="flex flex-col gap-6">
-            
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
                 <span className="material-symbols-outlined green-icon text-[28px]">analytics</span>
@@ -240,7 +279,6 @@ export default function AdminAttendance() {
               <span className="material-symbols-outlined">save</span>
               Save Attendance
             </button>
-
           </div>
         </div>
       </main>
