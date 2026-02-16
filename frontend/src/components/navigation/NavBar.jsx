@@ -111,12 +111,7 @@ export default function NavBar() {
   const currentType = user ? user.relationship : null;
 
   const visibleNavItems = NAV_ITEMS.filter((item) => {
-    // A. Check Main Role
     const hasRole = item.allowedRoles.includes(currentRole);
-
-    // B. Check Sub-Type (Parent vs Guardian)
-    // If the item specifies 'allowedTypes', we must match it.
-    // If it DOESN'T specify it, we assume it's generic for that role.
     const hasType = item.allowedTypes
       ? item.allowedTypes.includes(currentType)
       : true;
