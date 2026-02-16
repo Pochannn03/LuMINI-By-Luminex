@@ -108,7 +108,7 @@ export default function AdminAttendance() {
                   <span className="material-symbols-outlined blue-icon text-[32px]">list_alt</span>
                   <div>
                     <h2 className="text-cdark text-[18px] font-bold">Student List</h2>
-                    <p className="text-cgray text-[14px]!">Logs for selected date.</p>
+                    <p className="text-cgray text-[14px]!">Attendance Logs of Students.</p>
                   </div>
                 </div>
 

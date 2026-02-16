@@ -432,7 +432,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                     <button 
                       type="button"
                       onClick={downloadQRCode}
-                      className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline"
+                      className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[16px]">download</span>
                       Download PNG

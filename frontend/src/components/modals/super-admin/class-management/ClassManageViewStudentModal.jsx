@@ -138,7 +138,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
                   <h3 className="text-cdark text-[16px] font-semibold">Student QR Code</h3>
                 </div>
                 {std.student_id && (
-                  <button type="button" onClick={downloadQRCode} className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline">
+                  <button type="button" onClick={downloadQRCode} className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline cursor-pointer">
                     <span className="material-symbols-outlined text-[16px]">download</span>
                     Download PNG
                   </button>
