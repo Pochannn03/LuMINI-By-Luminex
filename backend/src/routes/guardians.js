@@ -257,4 +257,87 @@ router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (
     }
 });
 
+// ==========================================
+// TEACHER ACTION: FETCH HISTORY
+// ==========================================
+router.get(
+  '/api/teacher/guardian-requests/history', 
+  isAuthenticated, 
+  async (req, res) => {
+    try {
+        // Find requests that are NOT pending
+        const history = await GuardianRequest.find({ status: { $in: ['approved', 'rejected'] } })
+            .populate('parent', 'first_name last_name profile_picture')
+            .populate('student', 'first_name last_name')
+            .sort({ updatedAt: -1 }); // Sort by the time they were approved/rejected
+
+        return res.status(200).json(history);
+    } catch (error) {
+        console.error("Error fetching history requests:", error);
+        return res.status(500).json({ message: "Server error while fetching history." });
+    }
+});
+
+// ==========================================
+// PARENT ACTION: FETCH OWN PENDING REQUESTS
+// ==========================================
+router.get(
+  '/api/parent/guardian-requests/pending', 
+  isAuthenticated, 
+  hasRole('parent', 'user'), 
+  async (req, res) => {
+    try {
+        const parentId = req.user._id;
+
+        // Find all pending requests belonging to this specific parent
+        const pendingRequests = await GuardianRequest.find({ 
+            parent: parentId, 
+            status: 'pending' 
+        }).sort({ createdAt: -1 });
+
+        return res.status(200).json(pendingRequests);
+    } catch (error) {
+        console.error("Error fetching parent's pending requests:", error);
+        return res.status(500).json({ message: "Server error while fetching pending requests." });
+    }
+});
+
+// ==========================================
+// PARENT ACTION: CANCEL PENDING REQUEST
+// ==========================================
+router.delete(
+  '/api/parent/guardian-requests/:id', 
+  isAuthenticated, 
+  async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const parentId = req.user._id;
+
+        // 1. Find the request. Ensure it belongs to this parent AND is still pending.
+        const requestDoc = await GuardianRequest.findOne({
+            _id: requestId,
+            parent: parentId,
+            status: 'pending'
+        });
+
+        if (!requestDoc) {
+            return res.status(404).json({ message: "Pending request not found or already processed." });
+        }
+
+        // 2. Delete the ID photo from the server to save storage space!
+        if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
+            fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
+        }
+
+        // 3. Delete the request from the database
+        await GuardianRequest.findByIdAndDelete(requestId);
+
+        return res.status(200).json({ message: "Guardian application successfully cancelled." });
+
+    } catch (error) {
+        console.error("Cancel Request Error:", error);
+        return res.status(500).json({ message: "Server error while cancelling request." });
+    }
+});
+
 export default router;

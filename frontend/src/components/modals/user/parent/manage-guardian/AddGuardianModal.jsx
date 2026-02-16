@@ -1,18 +1,20 @@
 // frontend/src/components/modals/AddGuardianModal.jsx
 
 import React, { useState } from "react";
-import axios from "axios"; // <-- NEW: Imported Axios
+import axios from "axios"; 
 import "../../../../../styles/user/parent/manage-guardian.css";
 import "../../../../../index.css";
+import SuccessModal from "../../../../SuccessModal";
 
-export default function AddGuardianModal({ isOpen, onClose }) {
+// --- CHANGED: Added onSuccess to the props here ---
+export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   const [confirmText, setConfirmText] = useState("");
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
   
-  // <-- NEW: Loading state for network request
-  const [isSubmitting, setIsSubmitting] = useState(false); 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false); 
 
   // Form State
   const [formData, setFormData] = useState({
@@ -90,7 +92,7 @@ export default function AddGuardianModal({ isOpen, onClose }) {
   };
 
   // ==========================================
-  // --- NEW: THE SUBMISSION FUNCTION ---
+  // --- SUBMISSION FUNCTION ---
   // ==========================================
   const submitGuardianRequest = async () => {
     setIsSubmitting(true);
@@ -103,11 +105,7 @@ export default function AddGuardianModal({ isOpen, onClose }) {
       dataToSend.append("role", formData.role);
       dataToSend.append("username", formData.username);
       dataToSend.append("password", formData.password);
-      dataToSend.append("idFile", formData.idFile); // Append the image file
-
-      // Optional: If your backend needs explicit IDs for testing right now, 
-      // you can append them here. Otherwise, the backend will use the fallbacks we set.
-      // dataToSend.append("parentId", "some-id"); 
+      dataToSend.append("idFile", formData.idFile); 
 
       // 2. Send via Axios
       const response = await axios.post(
@@ -115,15 +113,19 @@ export default function AddGuardianModal({ isOpen, onClose }) {
         dataToSend,
         {
           headers: {
-            "Content-Type": "multipart/form-data", // Crucial for file uploads
+            "Content-Type": "multipart/form-data",
           },
           withCredentials: true,
         }
       );
 
       // 3. Success!
-      alert(response.data.message);
-      handleClose(); // Close the modal and reset
+      setShowSuccessModal(true); 
+
+      // --- NEW: Trigger the refresh function from the parent! ---
+      if (onSuccess) {
+        onSuccess(); 
+      }
 
     } catch (error) {
       console.error("Error submitting request:", error);
@@ -414,7 +416,7 @@ export default function AddGuardianModal({ isOpen, onClose }) {
           {step > 1 && (
             <button
               className="btn btn-cancel"
-              disabled={isSubmitting} // <-- Disable back button while submitting
+              disabled={isSubmitting} 
               onClick={() => {
                 setShowPassword(false);
                 setStep(step - 1);
@@ -427,7 +429,6 @@ export default function AddGuardianModal({ isOpen, onClose }) {
           <button
             className="btn btn-primary"
             style={{ flex: 1 }}
-            // --- NEW: Handle final submission or Next step ---
             onClick={() => {
               if (step === 1 && confirmText.toLowerCase() === "i understand") setStep(2);
               else if (step === 2 && isStep2Valid()) {
@@ -437,10 +438,9 @@ export default function AddGuardianModal({ isOpen, onClose }) {
                 setShowPassword(false);
                 setStep(step + 1);
               } else if (step === 4) {
-                submitGuardianRequest(); // Call our new function!
+                submitGuardianRequest(); 
               }
             }}
-            // Disable if validation fails, or if currently submitting
             disabled={
               isSubmitting ||
               (step === 1 && confirmText.toLowerCase() !== "i understand") ||
@@ -448,7 +448,6 @@ export default function AddGuardianModal({ isOpen, onClose }) {
               (step === 3 && !formData.idFile)
             }
           >
-            {/* Show dynamic text based on submission state */}
             {isSubmitting 
               ? "Submitting..." 
               : step === 4 
@@ -457,6 +456,15 @@ export default function AddGuardianModal({ isOpen, onClose }) {
           </button>
         </div>
       </div>
+
+      <SuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => {
+          setShowSuccessModal(false); 
+          handleClose();              
+        }}
+        message="Your submission was successful! However, it still needs to be verified by your child's teacher. They will typically review your request within 24 hours."
+      />  
     </div>
   );
 }
