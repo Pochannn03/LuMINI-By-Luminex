@@ -5,6 +5,7 @@ import axios from "axios";
 import "../../styles/admin-teacher/admin-manage-approvals.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
+import SuccessModal from "../../components/SuccessModal";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -14,26 +15,34 @@ export default function ManageApprovals() {
   const filterRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
-  // --- NEW: REAL DATA STATE ---
-  const [requests, setRequests] = useState([]);
+ // --- REAL DATA STATE ---
+  const [requests, setRequests] = useState([]); // Pending requests
+  const [historyRequests, setHistoryRequests] = useState([]); // History requests
   const [loading, setLoading] = useState(true);
 
-  // Fetch pending requests on load
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const [expandedImage, setExpandedImage] = useState(null);
+
+  // Fetch both pending and history requests on load
   useEffect(() => {
-    const fetchRequests = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get(
-          `${BACKEND_URL}/api/teacher/guardian-requests/pending`,
-          { withCredentials: true }
-        );
-        setRequests(response.data);
+        const [pendingRes, historyRes] = await Promise.all([
+          axios.get(`${BACKEND_URL}/api/teacher/guardian-requests/pending`, { withCredentials: true }),
+          axios.get(`${BACKEND_URL}/api/teacher/guardian-requests/history`, { withCredentials: true })
+        ]);
+        
+        setRequests(pendingRes.data);
+        setHistoryRequests(historyRes.data);
       } catch (error) {
-        console.error("Error fetching requests:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchRequests();
+    fetchData();
   }, []);
 
   // Helper for formatting Dates beautifully
@@ -49,8 +58,9 @@ export default function ManageApprovals() {
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
+  // Make the counters dynamic!
   const pendingCount = requests.length;
-  const historyCount = 0; // We'll hook this up later
+  const historyCount = historyRequests.length;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -69,23 +79,31 @@ export default function ManageApprovals() {
   // --- ACTION: APPROVE ---
   // ==========================================
   const handleApprove = async (e, id) => {
-    e.stopPropagation(); // Prevents the modal from opening when button is clicked
+    e.stopPropagation(); 
     
-    // Optional confirm dialog to prevent accidental clicks
     if (!window.confirm("Are you sure you want to approve this guardian? An account will be created.")) return;
 
     try {
       const response = await axios.put(
         `${BACKEND_URL}/api/teacher/guardian-requests/${id}/approve`,
-        {}, // Empty body
+        {}, 
         { withCredentials: true }
       );
       
-      alert(response.data.message);
+      setSuccessMessage("Guardian account successfully created and approved!");
+      setShowSuccessModal(true);
+
+      // --- THE INSTANT TAB SWITCH ---
+      const actedRequest = requests.find(req => req._id === id);
+      if (actedRequest) {
+        // 1. Remove from Pending array
+        setRequests(requests.filter(req => req._id !== id)); 
+        // 2. Add to History array with new status
+        setHistoryRequests([{ ...actedRequest, status: 'approved' }, ...historyRequests]); 
+      }
       
-      // Instantly remove the approved card from the UI array
-      setRequests(requests.filter(req => req._id !== id));
-      setSelectedRequest(null); // Close modal if open
+      // 3. Close the modal if the teacher clicked approve from INSIDE the details modal
+      setSelectedRequest(null); 
 
     } catch (error) {
       console.error("Error approving request:", error);
@@ -108,10 +126,16 @@ export default function ManageApprovals() {
         { withCredentials: true }
       );
       
-      alert(response.data.message);
+      setSuccessMessage("Guardian application has been successfully rejected.");
+      setShowSuccessModal(true);
+
+      // --- THE INSTANT TAB SWITCH ---
+      const actedRequest = requests.find(req => req._id === id);
+      if (actedRequest) {
+        setRequests(requests.filter(req => req._id !== id)); 
+        setHistoryRequests([{ ...actedRequest, status: 'rejected' }, ...historyRequests]); 
+      }
       
-      // Instantly remove the rejected card from the UI array
-      setRequests(requests.filter(req => req._id !== id));
       setSelectedRequest(null);
 
     } catch (error) {
@@ -256,25 +280,83 @@ export default function ManageApprovals() {
                 </div>
               ))}
 
-            {activeTab === "history" && (
-              <div style={{ gridColumn: "1/-1", textAlign: "center", color: "#94a3b8", padding: "40px" }}>
-                History cards will appear here...
+            {/* --- MAP REAL HISTORY CARDS --- */}
+            {activeTab === "history" && !loading && historyRequests.length === 0 ? (
+              <div className="empty-queue">
+                <span className="material-symbols-outlined empty-queue-icon">history</span>
+                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>No History Yet</h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px" }}>Approved and rejected applications will appear here.</p>
               </div>
+            ) : activeTab === "history" && !loading && (
+              historyRequests.map((req) => (
+                <div className="request-card" key={req._id} style={{ opacity: 0.9 }}> 
+                  
+                  {/* TOP ROW: Split Header (Same as pending) */}
+                  <div className="card-split-header">
+                    <div className="header-half header-left">
+                      <span className="info-label">Legal Parent</span>
+                      <div className="person-group">
+                        <img src={req.parent ? getImageUrl(req.parent.profile_picture) : getImageUrl(null)} alt="Parent" className="header-avatar" />
+                        <span className="info-value">
+                          {req.parent ? `${req.parent.first_name} ${req.parent.last_name}` : "Unknown Parent"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
+                      <span className="info-label">Requested Guardian</span>
+                      <div className="person-group">
+                        <img src={getImageUrl(req.guardianDetails.idPhotoPath)} alt="Guardian ID" className="header-avatar" />
+                        <div className="name-stack">
+                          <span className="info-value">{req.guardianDetails.firstName} {req.guardianDetails.lastName}</span>
+                          <span className="role-tag" style={{ background: '#e2e8f0', color: '#64748b' }}>{req.guardianDetails.role}</span>
+                        </div>
+                      </div>
+                      <div className="view-details-btn" style={{ color: '#64748b' }}>
+                        <span className="material-symbols-outlined" style={{fontSize: '14px'}}>visibility</span> View Details
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MIDDLE ROW 1: Linked Child */}
+                  <div className="card-row">
+                    <span className="info-label">Linked Child</span>
+                    <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
+                      <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
+                      {req.student ? `${req.student.first_name} ${req.student.last_name}` : "Unknown Student"}
+                    </div>
+                  </div>
+
+                  {/* BOTTOM ROW: History Status Badge */}
+                  <div className="card-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', padding: '16px' }}>
+                    {req.status === 'approved' ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
+                        <span className="material-symbols-outlined">check_circle</span> Application Approved
+                      </span>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
+                        <span className="material-symbols-outlined">cancel</span> Application Rejected
+                      </span>
+                    )}
+                  </div>
+
+                </div>
+              ))
             )}
           </div>
         </div>
       </main>
 
-      {/* --- DETAILS MODAL --- */}
+      {/* --- UNIFIED DETAILS MODAL (MOBILE-FRIENDLY + SMART FOOTER) --- */}
       {selectedRequest && (
         <div className="approval-modal-overlay" onClick={() => setSelectedRequest(null)}>
-          <div className="approval-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+          <div className="approval-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
             
             {/* Modal Header */}
-            <div className="modal-header" style={{ padding: '24px 32px', borderBottom: '1px solid #f1f5f9' }}>
+            <div className="modal-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
               <div>
-                <h2 style={{fontSize: '22px', color: '#1e293b', marginBottom: '4px'}}>Guardian Application</h2>
-                <p style={{color: '#64748b', fontSize: '14px', margin: 0}}>
+                <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px'}}>Guardian Application</h2>
+                <p style={{color: '#64748b', fontSize: '13px', margin: 0}}>
                   Submitted by <strong>{selectedRequest.parent ? `${selectedRequest.parent.first_name} ${selectedRequest.parent.last_name}` : "Unknown Parent"}</strong>
                 </p>
               </div>
@@ -283,84 +365,136 @@ export default function ManageApprovals() {
               </button>
             </div>
 
-            {/* Modal Body (2 Columns) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', padding: '32px' }}>
+            {/* Modal Body (1 Column Stack) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px' }}>
               
-              {/* LEFT COLUMN: Data */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <h3 style={{ fontSize: '16px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px' }}>
+              {/* TOP SECTION: Data */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Applicant Details
                 </h3>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>First Name</label>
-                    <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.firstName}</div>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>First Name</label>
+                    <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.firstName}</div>
                   </div>
                   <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Last Name</label>
-                    <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.lastName}</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Relationship</label>
-                    <div className="role-tag" style={{ marginTop: '4px' }}>{selectedRequest.guardianDetails.role}</div>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Phone Number</label>
-                    <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.phone}</div>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Last Name</label>
+                    <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.lastName}</div>
                   </div>
                 </div>
 
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', marginTop: '8px', border: '1px solid #e2e8f0' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
-                  <div style={{ fontSize: '16px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Relationship</label>
+                    <div className="role-tag" style={{ marginTop: '2px' }}>{selectedRequest.guardianDetails.role}</div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Phone Number</label>
+                    <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.phone}</div>
+                  </div>
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <label style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
+                  <div style={{ fontSize: '15px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
                     {selectedRequest.guardianDetails.tempUsername}
                   </div>
                 </div>
               </div>
 
-              {/* RIGHT COLUMN: ID Photo */}
+              {/* BOTTOM SECTION: ID Photo */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h3 style={{ fontSize: '16px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px' }}>
+                <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Valid ID Verification
                 </h3>
-                <div style={{ 
-                  flex: 1, 
-                  background: '#f8fafc', 
-                  border: '2px dashed #cbd5e1', 
-                  borderRadius: '12px', 
-                  padding: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  overflow: 'hidden'
-                }}>
+                <div 
+                  onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath))}
+                  style={{ 
+                    background: '#f8fafc', 
+                    border: '2px dashed #cbd5e1', 
+                    borderRadius: '12px', 
+                    padding: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'zoom-in',
+                    position: 'relative',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
+                  onMouseOut={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                >
                   <img 
                     src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath)} 
                     alt="ID Document" 
-                    style={{ maxWidth: '100%', maxHeight: '250px', objectFit: 'contain', borderRadius: '8px' }}
+                    style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px' }}
                   />
+                  <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
+                  </div>
                 </div>
               </div>
 
             </div>
             
-            {/* Modal Footer Actions */}
-            <div style={{ padding: '20px 32px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button className="btn-card btn-reject" style={{ padding: '10px 24px' }} onClick={(e) => handleReject(e, selectedRequest._id)}>
-                Reject Application
-              </button>
-              <button className="btn-card btn-approve" style={{ padding: '10px 24px' }} onClick={(e) => handleApprove(e, selectedRequest._id)}>
-                Approve Guardian
-              </button>
-            </div>
+            {/* Modal Footer Actions (SMART FOOTER) */}
+            {selectedRequest.status === 'pending' ? (
+              <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
+                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleReject(e, selectedRequest._id)}>
+                  Reject
+                </button>
+                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApprove(e, selectedRequest._id)}>
+                  Approve
+                </button>
+              </div>
+            ) : (
+              <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
+                {selectedRequest.status === 'approved' ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
+                    <span className="material-symbols-outlined">check_circle</span> Application Approved
+                  </span>
+                ) : (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
+                    <span className="material-symbols-outlined">cancel</span> Application Rejected
+                  </span>
+                )}
+              </div>
+            )}
 
           </div>
         </div>
       )}
+
+      {/* --- NEW: FULL SCREEN IMAGE LIGHTBOX --- */}
+      {expandedImage && (
+        <div 
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out'
+          }}
+          onClick={() => setExpandedImage(null)}
+        >
+          <img 
+            src={expandedImage} 
+            alt="Expanded ID" 
+            style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} 
+          />
+          <button 
+            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setExpandedImage(null)}
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
+
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        message={successMessage}
+      />
 
     </div>
   );
