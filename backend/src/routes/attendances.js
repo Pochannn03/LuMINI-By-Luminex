@@ -83,52 +83,67 @@ router.patch('/api/attendance',
   hasRole('admin'), 
   async (req, res) => {
     const { studentId } = req.body;
+    const currentUserId = Number(req.user.user_id);
+    const userRole = req.user.relationship?.toLowerCase();
     const now = new Date();
     const todayDate = now.toLocaleDateString('en-CA');
     
     try {
-        const student = await Student.findOne({ student_id: studentId })
-                                     .populate('section_details');
-        if (!student) return res.status(404).json({ msg: "Student not found" });
+      const student = await Student.findOne({ student_id: studentId })
+                                   .populate('section_details');
+      if (!student) return res.status(404).json({ msg: "Student not found" });
 
-        const schedule = student.section_details?.class_schedule;
-        const isMorning = schedule?.includes("Morning");
-
-        let startHr = isMorning ? 8 : 13;
-        let endHr = isMorning ? 11 : 16;
-        let endMin = 30;
-
-        // Create PH-based time comparison
-        const phNow = new Date(
-          now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
-        );
-
-        const lateTime = new Date(phNow);
-        lateTime.setHours(startHr, 15, 0, 0);
-
-        let status = "Present";
-
-        if (phNow.getTime() > lateTime.getTime()) {
-          status = "Late";
-        }
-
-        const currentTimeString = phNow.toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
+      if (userRole === 'teacher') {
+        const isAuthorized = await Section.findOne({ 
+          section_id: student.section_id, 
+          user_id: currentUserId 
         });
 
-        const updated = await Attendance.findOneAndUpdate(
-          { student_id: studentId, date: todayDate },
-          { status, time_in: currentTimeString },
-          { new: true }
-        );
-
-        if (!updated) {
-          return res.status(404).json({ msg: "Attendance record not found for today" });
+        if (!isAuthorized) {
+          return res.status(403).json({ 
+            msg: `Unauthorized: You are not the assigned teacher for ${student.section_details?.section_name || 'this section'}.` 
+          });
         }
+      }
 
-        res.status(200).json({ msg: `Marked as ${status}`, student: updated });
+      const schedule = student.section_details?.class_schedule;
+      const isMorning = schedule?.includes("Morning");
+
+      let startHr = isMorning ? 8 : 13;
+      let endHr = isMorning ? 11 : 16;
+      let endMin = 30;
+
+      // Create PH-based time comparison
+      const phNow = new Date(
+        now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
+      );
+
+      const lateTime = new Date(phNow);
+      lateTime.setHours(startHr, 15, 0, 0);
+
+      let status = "Present";
+
+      if (phNow.getTime() > lateTime.getTime()) {
+        status = "Late";
+      }
+
+      const currentTimeString = phNow.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      const updated = await Attendance.findOneAndUpdate(
+        { student_id: studentId, date: todayDate },
+        { status, time_in: currentTimeString },
+        { new: true }
+      );
+
+      if (!updated) {
+        return res.status(404).json({ msg: "Attendance record not found for today" });
+      }
+
+      res.status(200).json({ msg: `Marked as ${status}`, student: updated });
     } catch (err) {
         console.error("Update Error:", err);
         res.status(500).json({ msg: "Server Error" });
