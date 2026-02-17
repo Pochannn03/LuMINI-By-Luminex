@@ -30,18 +30,14 @@ export default function Dashboard() {
         const childrenList = response.data; 
 
         if (Array.isArray(childrenList) && childrenList.length > 0) {
-          // For now, we just grab the FIRST child to display
           const firstChild = childrenList[0];
-          
-          // 3. Map the database fields to your UI fields
-          // Your backend returns raw DB fields (snake_case), UI expects camelCase?
-          // Let's standardise it based on your UI code:
+
           setChildData({
               firstName: firstChild.first_name,
               lastName: firstChild.last_name,
               profilePicture: firstChild.profile_picture,
-              // Access the populated virtual 'section_details'
-              sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned"
+              sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
+              status: firstChild.status
           });
         }
       } catch (err) {
@@ -122,33 +118,46 @@ export default function Dashboard() {
               </div>
 
               <div className="flex items-start justify-between w-full max-w-[340px] relative my-2.5">
-                <div class="absolute top-[18px] left-2.5 right-2.5 h-[3px] bg-[#cfd8dc] z-0 rounded-sm"></div>
-              
-                <div className="tracker-step active">
+                <div className="absolute top-[18px] left-2.5 right-2.5 h-[3px] bg-[#cfd8dc] z-0 rounded-sm"></div>
+
+                {/* Step 1: On the way */}
+                <div className={`tracker-step ${childData?.status === 'On the way' ? 'active-onway' : ''}`}>
                   <div className="step-circle">
                     <span className="material-symbols-outlined text-[20px]">directions_walk</span>
                   </div>
-                  <span class="step-label text-[12px] text-[#b0bec5] font-semibold">On Way</span>
+                  <span className="step-label text-[12px]">On the Way</span>
                 </div>
 
-                <div className="tracker-step">
+                {/* Step 2: Learning */}
+                <div className={`tracker-step ${childData?.status === 'Learning' ? 'active-learning' : ''}`}>
                   <div className="step-circle">
                     <span className="material-symbols-outlined text-[20px]">school</span>
                   </div>
-                  <span class="step-label text-[12px] text-[#b0bec5] font-semibold">Learning</span>
+                  <span className="step-label text-[12px]">Learning</span>
                 </div>
 
-                <div className="tracker-step">
+                {/* Step 3: Dismissed */}
+                <div className={`tracker-step ${childData?.status === 'Dismissed' ? 'active-dismissed' : ''}`}>
                   <div className="step-circle">
                     <span className="material-symbols-outlined text-[20px]">home</span>
                   </div>
-                  <span class="step-label text-[12px] text-[#b0bec5] font-semibold">Dismissed</span>
+                  <span className="step-label text-[12px]">Dismissed</span>
                 </div>
               </div>
 
-              <div className="bg-[#fffbeb] border-2 border-[#fcd34d] py-3 px-9 rounded-[50px] shadow-[0_4px_10px_rgba(245,158,11,0.1)]">
-                {/* Information depends on Status(static for the mean time */}
-                <p className="text-[#b45309]! font-bold! text-base">Learning At School</p>
+              {/* The Text Badge Below the Tracker */}
+              <div className={`status-badge-container ${
+                childData?.status === 'On the way' ? 'badge-onway' :
+                childData?.status === 'Learning' ? 'badge-learning' :
+                childData?.status === 'Dismissed' ? 'badge-dismissed' : 
+                ''
+              }`}>
+                <p className="status-badge-text">
+                  {childData?.status === 'On the way' && "Student is traveling to school"}
+                  {childData?.status === 'Learning' && "Learning At School"}
+                  {childData?.status === 'Dismissed' && "Student has been dismissed"}
+                  {!childData?.status && "Checking status..."}
+                </p>
               </div>
             </div>
 

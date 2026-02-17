@@ -1,11 +1,7 @@
 import { Router } from "express";
 import { createUserValidationSchema } from "../validation/userValidation.js";
-import {
-  validationResult,
-  body,
-  matchedData,
-  checkSchema,
-} from "express-validator";
+import { validationResult, body, matchedData, checkSchema } from "express-validator";
+import { Attendance } from "../models/attendances.js";
 import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 import { hashPassword } from "../utils/passwordUtils.js";
@@ -25,13 +21,32 @@ const storage = multer.diskStorage({
     cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    // Unique filename: timestamp + original extension
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
 
 const upload = multer({ storage: storage });
+
+const resetDailyStudentStatus = async () => {
+  try {
+    const todayDate = new Date().toLocaleDateString('en-CA', {
+      timeZone: 'Asia/Manila'
+    });
+
+    const result = await Student.updateMany(
+      { 
+        is_archive: false, 
+        section_id: { $ne: null } 
+      }, 
+      { $set: { status: 'On the way' } }
+    );
+
+    console.log(`✅ ${todayDate}: Reset ${result.modifiedCount} students to 'On the way'.`);
+  } catch (error) {
+    console.error("❌ Status Reset Failed:", error.message);
+  }
+};
 
 // PARENT REGISTRATION
 // STUDENT CODE VERIFICATION (PHASE I)
@@ -167,6 +182,13 @@ router.get("/api/user-checking", async (req, res) => {
 // Description: Get all students linked to the logged-in parent
 router.get("/api/parent/children", async (req, res) => {
   try {
+    const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    const alreadyReset = await Attendance.exists({ date: todayDate });
+
+    if (!alreadyReset) {
+      await resetDailyStudentStatus();
+    }
+
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }

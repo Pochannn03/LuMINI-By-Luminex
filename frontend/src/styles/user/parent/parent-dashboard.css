@@ -35,6 +35,99 @@
   font-weight: 700;
 }
 
+/* 1. Active State: On Way (Orange) */
+.tracker-step.active-onway .step-circle {
+  background: white;
+  border: 3px solid var(--accent-yellow); /* Your existing yellow/orange */
+  color: var(--accent-yellow);
+  width: 44px;
+  height: 44px;
+  margin-top: -2px;
+  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.15);
+}
+.tracker-step.active-onway .step-label {
+  color: var(--accent-yellow);
+  font-weight: 700;
+}
+
+/* 2. Active State: Learning (Primary Blue) */
+.tracker-step.active-learning .step-circle {
+  background: white;
+  border: 3px solid var(--primary-blue); 
+  color: var(--primary-blue);
+  width: 44px;
+  height: 44px;
+  margin-top: -2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+}
+.tracker-step.active-learning .step-label {
+  color: var(--primary-blue);
+  font-weight: 700;
+}
+
+/* 3. Active State: Dismissed (Light Green) */
+.tracker-step.active-dismissed .step-circle {
+  background: white;
+  border: 3px solid var(--accent-green);
+  color: var(--accent-green);
+  width: 44px;
+  height: 44px;
+  margin-top: -2px;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.15);
+}
+.tracker-step.active-dismissed .step-label {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+/* Bottom Status Badge Styles */
+/* Base Status Badge */
+.status-badge-container {
+  padding: 12px 36px;
+  border-radius: 50px;
+  border-width: 2px;
+  border-style: solid;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.status-badge-text {
+  font-weight: 700 !important;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* On Way - Orange (Your exact Tailwind colors) */
+.badge-onway {
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.1);
+}
+.badge-onway .status-badge-text {
+  color: #b45309 !important;
+}
+
+/* Learning - Primary Blue (Matching your previous request) */
+.badge-learning {
+  background-color: #eff6ff;
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.1);
+}
+.badge-learning .status-badge-text {
+  color: var(--primary-blue) !important;
+}
+
+/* Dismissed - Light Green (Matching your previous request) */
+.badge-dismissed {
+  background-color: #f0fdf4;
+  border-color: var(--accent-green);
+  box-shadow: 0 4px 10px rgba(34, 197, 94, 0.1);
+}
+.badge-dismissed .status-badge-text {
+  color: var(--accent-green) !important;
+}
+
+
 /* Tracker's Icon */
 .step-circle {
   width: 40px;

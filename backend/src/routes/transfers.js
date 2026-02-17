@@ -2,6 +2,7 @@ import { Router } from "express";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js"; 
 import { Section } from "../models/sections.js"; 
+import { Student } from "../models/students.js"
 
 const router = Router();
 
@@ -114,6 +115,15 @@ router.post('/api/transfer',
         });
 
         await newTransfer.save();
+
+        const newStatus = purpose === 'Drop off' ? 'Learning' : 'Dismissed';
+
+        await Student.findOneAndUpdate(
+            { student_id: studentId },
+            { status: newStatus },
+            { new: true }
+        );
+        
         return res.status(200).json({ 
             success: true, 
             message: `${studentName} successfully recorded for ${purpose}!` 
