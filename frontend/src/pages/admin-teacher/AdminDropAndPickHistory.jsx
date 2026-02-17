@@ -19,7 +19,7 @@ export default function AdminDropAndPickHistory() {
   const [transferData, setTransferData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [filterType, setFilterType] = useState("all"); // State for the new filter
+  const [filterType, setFilterType] = useState("all");
   const dateInputRef = useRef(null);
   const { monthDay, weekday } = getDateParts(currentDate);
 
@@ -28,7 +28,13 @@ export default function AdminDropAndPickHistory() {
     const fetchTransferHistory = async () => {
       try {
         setLoading(true);
+        // Format the date to YYYY-MM-DD to match your DB
+        const dateString = dateToInputString(currentDate);
+
         const response = await axios.get('http://localhost:3000/api/transfer', { 
+          params: {
+            date: dateString
+          },
           withCredentials: true 
         });
 
@@ -43,7 +49,7 @@ export default function AdminDropAndPickHistory() {
     };
 
     fetchTransferHistory();
-  }, []);
+  }, [currentDate]);
 
   // Updated filter logic to include both Date and Transfer Type
   const filteredData = transferData.filter(item => {
@@ -203,9 +209,9 @@ export default function AdminDropAndPickHistory() {
                         </td>
                         <td className="py-4 px-2 text-center">
                           <span className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            record.type === "Drop off" ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-green-50 text-green-600 border border-green-100"
+                            record.purpose === "Drop off" ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-green-50 text-green-600 border border-green-100"
                           }`}>
-                            {record.type}
+                            {record.purpose}
                           </span>
                         </td>
                       </tr>
