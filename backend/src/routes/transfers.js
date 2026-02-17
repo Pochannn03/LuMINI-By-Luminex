@@ -43,28 +43,18 @@ router.post('/api/transfer',
     const userRole = req.user.relationship?.toLowerCase();
 
     try {
-        // 2. Teacher-specific validation
+        // Section Validation: Only allow assigned teacher
         if (userRole === 'teacher') {
             const isAuthorized = await Section.findOne({ 
                 section_id: Number(sectionId), 
                 user_id: currentUserId 
             });
-
             if (!isAuthorized) {
-                return res.status(403).json({ 
-                    error: `Unauthorized: You are not the assigned teacher for ${sectionName}.` 
-                });
+                return res.status(403).json({ error: "Unauthorized: Not your assigned section." });
             }
         }
 
-        const todayDate = new Date().toLocaleDateString('en-CA'); 
-
-        const existingTransfer = await Transfer.findOne({
-            student_id: studentId,
-            date: todayDate
-        });
-
-        const autoType = existingTransfer ? 'Pick up' : 'Drop off';
+        const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
         const newTransfer = new Transfer({
             student_id: studentId,
@@ -73,7 +63,7 @@ router.post('/api/transfer',
             section_name: sectionName,
             user_id: guardianId,
             user_name: guardianName,
-            type: autoType,
+            purpose: req.body.purpose,
             date: todayDate,
             time: new Date().toLocaleTimeString('en-US', { 
                 hour: 'numeric', minute: '2-digit', hour12: true 
@@ -81,15 +71,14 @@ router.post('/api/transfer',
         });
 
         await newTransfer.save();
-
-        res.json({ 
+        return res.status(200).json({ 
             success: true, 
-            message: `${studentName} successfully recorded for ${autoType}!` 
+            message: `${studentName} successfully recorded for ${purpose}!` 
         });
         
     } catch (error) {
-        console.error("❌ Transfer Save Error:", error.message);
-        res.status(500).json({ error: "Failed to record transfer: " + error.message });
+        console.error("❌ Transfer Error:", error.message);
+        return res.status(500).json({ error: "Failed to record transfer: " + error.message });
     }
 });
 

@@ -70,7 +70,6 @@ export default function AdminDashboard() {
   const handleConfirmPickup = async () => {
     try {
       setLoadingScan(true);
-      
       const response = await axios.post(`http://localhost:3000/api/transfer`, {
         studentId: scannedData.student.studentId,
         studentName: scannedData.student.name,
@@ -78,7 +77,7 @@ export default function AdminDashboard() {
         sectionName: scannedData.student.sectionName,
         guardianId: scannedData.guardian.userId,
         guardianName: scannedData.guardian.name,
-        type: scannedData.purpose, 
+        purpose: scannedData.purpose,
       }, { withCredentials: true });
 
       if (response.data.success) {
@@ -86,6 +85,7 @@ export default function AdminDashboard() {
         setIsAuthModalOpen(false);
         setScannedData(null);
       }
+
     } catch (err) {
       const serverMessage = err.response?.data?.error || err.message;
       console.error("Authorization Error:", serverMessage);
