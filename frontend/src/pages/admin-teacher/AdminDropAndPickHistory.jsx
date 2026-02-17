@@ -51,12 +51,10 @@ export default function AdminDropAndPickHistory() {
     fetchTransferHistory();
   }, [currentDate]);
 
-  // Updated filter logic to include both Date and Transfer Type
   const filteredData = transferData.filter(item => {
     const selectedDateString = dateToInputString(currentDate); 
     const matchesDate = item.date === selectedDateString;
     
-    // Normalize both strings: remove spaces and convert to lowercase
     const recordPurpose = item.purpose?.toLowerCase().replace(/\s/g, "") || "";
     const activeFilter = filterType.toLowerCase().replace(/\s/g, "");
 

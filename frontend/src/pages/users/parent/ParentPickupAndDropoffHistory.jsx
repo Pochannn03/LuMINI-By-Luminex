@@ -1,47 +1,10 @@
-// frontend/src/pages/users/parent/PickupHistory.jsx
-
 import React, { useState } from "react";
 import "../../../styles/user/parent/pickup-history.css";
 import NavBar from "../../../components/navigation/NavBar";
 import Header from "../../../components/navigation/Header";
 
-export default function PickupHistory() {
-  // --- HARDCODED DUMMY DATA ---
-  const [history] = useState([
-    {
-      id: "TRX-8821",
-      date: "Oct 24, 2025",
-      time: "3:45 PM",
-      child_name: "Deonilo Caballes",
-      child_img: null, // use placeholder
-      type: "pickup",
-      approver: "Teacher Denver",
-      comment: "Picked up by Guardian (Grandma)",
-      status: "Completed",
-    },
-    {
-      id: "TRX-8820",
-      date: "Oct 24, 2025",
-      time: "7:15 AM",
-      child_name: "Deonilo Caballes",
-      child_img: null,
-      type: "dropoff",
-      approver: "Guard Entrance",
-      comment: "Safe arrival",
-      status: "Completed",
-    },
-    {
-      id: "TRX-8815",
-      date: "Oct 23, 2025",
-      time: "4:00 PM",
-      child_name: "Carlanee Camoro",
-      child_img: null,
-      type: "pickup",
-      approver: "Teacher Mark",
-      comment: "Authorized pickup",
-      status: "Completed",
-    },
-  ]);
+export default function PickupAndDropoffHistory() {
+  const [history, setHistory] = useState([]);
 
   return (
     <div className="dashboard-wrapper">

@@ -19,8 +19,8 @@ import TeacherProfile from "./pages/admin-teacher/TeacherProfile";
 import ParentProfile from "./pages/users/parent/ParentProfile";
 import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
 import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
-import PickupHistory from "./pages/users/parent/PickupHistory";
 import ManageApprovals from "./pages/admin-teacher/ManageApprovals";
+import PickupAndDropoffHistory from "./pages/users/parent/ParentPickupAndDropoffHistory";
 
 export default function App() {
   return (
@@ -64,7 +64,7 @@ export default function App() {
           <Route path="/parent/dashboard" element={<ParentDashboard />} />
           <Route path="/parent/profile" element={<ParentProfile />} />
           <Route path="/parent/guardians" element={<ManageGuardians />} />
-          <Route path="/parent/history" element={<PickupHistory />} />
+          <Route path="/parent/history" element={<PickupAndDropoffHistory />} />
         </Route>
 
         {/* User (Guardian) Routes */}

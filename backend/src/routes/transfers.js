@@ -5,6 +5,7 @@ import { Section } from "../models/sections.js";
 
 const router = Router();
 
+// GETT THE PICK UP AND DROP OFF HISTORY (TEACHER)
 router.get('/api/transfer',
   isAuthenticated,
   hasRole('admin'),
