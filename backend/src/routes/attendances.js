@@ -11,31 +11,27 @@ const ensureDailyAttendance = async () => {
     timeZone: 'Asia/Manila'
   });
 
-  const allStudents = await Student.find({ is_archive: false })
-                                   .populate('section_details');
+  const exists = await Attendance.exists({ date: todayDate });
+  if (exists) return; 
 
-  for (const student of allStudents) {
+  const allStudents = await Student.find({ is_archive: false }).populate('section_details');
 
-    if (!student.section_id) continue;
-
-    const existing = await Attendance.findOne({
+  const placeholders = allStudents
+    .filter(student => student.section_id)
+    .map(student => ({
       student_id: student.student_id,
-      date: todayDate
-    });
+      student_name: `${student.first_name} ${student.last_name}`,
+      section_id: student.section_id,
+      section_name: student.section_details?.section_name || "Unassigned",
+      status: "Absent",
+      date: todayDate,
+      time_in: "---"
+    }));
 
-    if (!existing) {
-      await Attendance.create({
-        student_id: student.student_id,
-        student_name: `${student.first_name} ${student.last_name}`,
-        section_id: student.section_id,
-        section_name: student.section_details?.section_name || "Unassigned",
-        status: "Absent",
-        date: todayDate,
-        time_in: "---"
-      });
-    }
+  if (placeholders.length > 0) {
+    await Attendance.insertMany(placeholders);
+    console.log(`✅ ${todayDate}: Pre-filled ${placeholders.length} students as Absent.`);
   }
-  console.log("Daily attendance ensured.");
 };
 
 
@@ -47,8 +43,8 @@ router.get('/api/attendance',
     try {
       await ensureDailyAttendance();
       const selectedDate = req.query.date;
-      const dateToUse = selectedDate || new Date().toISOString().split('T')[0];
-      const currentUserId = req.user.user_id;
+      const dateToUse = req.query.date || new Date().toLocaleDateString('en-CA');
+      const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship;
 
       let teacherSections = [];
@@ -67,7 +63,7 @@ router.get('/api/attendance',
       }
 
       const todayDate = new Date().toISOString().split('T')[0];
-      const records = await Attendance.find({ ...query, date: dateToUse })
+      const records = await Attendance.find({  ...query, date: dateToUse  })
                                       .sort({ created_at: -1 });
       
       res.json({
