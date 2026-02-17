@@ -24,7 +24,7 @@ const AccessPassSchema = new mongoose.Schema({
   },
   purpose: {
     type: String,
-    enum: ['dropoff', 'pickup'], 
+    enum: ['Drop off', 'Pick up'], 
     required: true
   },
   student_id: {

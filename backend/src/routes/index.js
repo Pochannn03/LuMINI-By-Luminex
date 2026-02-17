@@ -8,7 +8,7 @@ import classesRoutes from "./classes.js";
 import usersRoutes from "./users.js";
 import passesRoutes from "./passes.js";
 import attendancesRoutes from "./attendances.js";
-import transferHistoryRoutes from "./transferHistory.js";
+import transfersRoutes from "./transfers.js";
 
 
 const router = Router();
@@ -22,7 +22,7 @@ router.use(classesRoutes);
 router.use(usersRoutes);
 router.use(passesRoutes);
 router.use(attendancesRoutes);
-router.use(transferHistoryRoutes);
+router.use(transfersRoutes);
 
 
 

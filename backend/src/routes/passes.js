@@ -14,16 +14,24 @@ router.post('/api/pass/generate',
   hasRole('user'),
   async (req, res) => {
     try {
-      const purpose = req.body.purpose || 'pickup';
+      const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
       const student = await Student.findOne({ 
         user_id: req.user.user_id 
       });
+      if (!student) return res.status(404).json({ error: "Student not found" });
+
+      const existingTransfer = await Transfer.findOne({
+          student_id: student.student_id,
+          date: todayDate
+      });
+
+      const autoPurpose = existingTransfer ? 'Pick up' : 'Drop off';
 
       const existingPass = await AccessPass.findOne({
         user: req.user._id,
-        purpose: purpose,
+        purpose: autoPurpose,
         createdAt: { $gt: tenMinutesAgo } // $gt means "Greater Than" (newer than)
       });
 
@@ -33,6 +41,7 @@ router.post('/api/pass/generate',
           success: true,
           token: existingPass.token,
           createdAt: existingPass.createdAt,
+          purpose: autoPurpose,
           message: "Restored active pass"
         });
       }
@@ -46,7 +55,7 @@ router.post('/api/pass/generate',
         user_id: req.user.user_id,
         user_name: fullName,
         token: secretToken,
-        purpose: purpose,
+        purpose: autoPurpose,
         student_id: student.student_id,
         student_name: fullNameStud,
       });
@@ -54,6 +63,7 @@ router.post('/api/pass/generate',
       res.json({
         success: true,
         token: secretToken,
+        purpose: autoPurpose,
         createdAt: newPass.createdAt,
         message: "Generated new pass"
       });
@@ -71,6 +81,7 @@ router.get('/api/scan/pass/:token',
   async (req, res) => {
     try {
       const { token } = req.params;
+      const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
       const pass = await AccessPass.findOne({ token: token })
         .populate('user', 'user_id first_name last_name profile_picture relationship') 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
-import NavBar from "../../components/navigation/NavBar";
+import NavBar from "../../../components/navigation/NavBar";
 
 // --- HELPERS ---
 const getDateParts = (date) => {
@@ -31,7 +31,7 @@ export default function AdminDropAndPickHistory() {
         // Format the date to YYYY-MM-DD to match your DB
         const dateString = dateToInputString(currentDate);
 
-        const response = await axios.get('http://localhost:3000/api/transfer', { 
+        const response = await axios.get('http://localhost:3000/api/transfer/parent', { 
           params: {
             date: dateString
           },
