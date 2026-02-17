@@ -47,8 +47,8 @@ router.get('/api/attendance',
     try {
       await ensureDailyAttendance();
       const selectedDate = req.query.date;
-      const dateToUse = selectedDate || new Date().toISOString().split('T')[0];
-      const currentUserId = req.user.user_id;
+      const dateToUse = req.query.date || new Date().toLocaleDateString('en-CA');
+      const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship;
 
       let teacherSections = [];
@@ -67,7 +67,7 @@ router.get('/api/attendance',
       }
 
       const todayDate = new Date().toISOString().split('T')[0];
-      const records = await Attendance.find({ ...query, date: dateToUse })
+      const records = await Attendance.find({  ...query, date: dateToUse  })
                                       .sort({ created_at: -1 });
       
       res.json({

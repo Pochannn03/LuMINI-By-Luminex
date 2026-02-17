@@ -33,13 +33,14 @@ export default function AdminAttendance() {
     const fetchAttendance = async () => {
       try {
         setLoading(true);
+        const dateString = dateToInputString(currentDate);
+
         const response = await axios.get('http://localhost:3000/api/attendance', {
           params: {
-            date: dateToInputString(currentDate)
+            date: dateString
           },
           withCredentials: true
-        }
-      );
+        });
 
         if (response.data.success) {
           setAttendanceData(response.data.data);
@@ -51,8 +52,9 @@ export default function AdminAttendance() {
         setLoading(false);
       }
     };
+
     fetchAttendance();
-  }, []);
+  }, [currentDate]);
 
   // --- 2. FILTER & STATS CALCULATION ---
   const filteredRecords = React.useMemo(() => {
