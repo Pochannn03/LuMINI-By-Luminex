@@ -58,8 +58,13 @@ export default function Login() {
         navigate('/admin/dashboard', { replace: true });
       } else if (user.role === "user" && user.relationship === "Parent") {
         navigate('/parent/dashboard', { replace: true });
-      } else {
-        navigate('/guardian/dashboard', { replace: true });
+      } else if (user.role === "user" && user.relationship !== "Parent") {
+        // --- NEW: GUARDIAN INTERCEPTION ---
+        if (user.is_first_login) {
+          navigate('/guardian/setup', { replace: true });
+        } else {
+          navigate('/guardian/dashboard', { replace: true });
+        }
       }
     }
   }, [user, loading, navigate]);
@@ -86,22 +91,37 @@ export default function Login() {
         withCredentials: true 
       });
 
+      // --- THE MISSING LINES: Define data and update AuthContext ---
       const data = response.data;
       login(data.user);
 
-        if (data.user.role === "superadmin") {
-          navigate('/superadmin/dashboard');
-        } else if (data.user.role === "admin") {
-          navigate('/admin/dashboard');
+      // --- UNIFIED ROUTING LOGIC ---
+      if (data.user.role === "superadmin") {
+        navigate('/superadmin/dashboard');
+      } else if (data.user.role === "admin") {
+        navigate('/admin/dashboard');
+      } else if (data.user.role === "user" && data.user.relationship === "Parent") {
+        navigate('/parent/dashboard');
+      } else {
+        // It's a Guardian
+        if (data.user.is_first_login) {
+          navigate('/guardian/setup');
         } else {
-          navigate('/dashboard'); 
+          navigate('/guardian/dashboard');
         }
+      }
 
     } catch (err) {
-        if (err.response && err.response.data && err.response.data.message) {
+      console.error("Login Error:", err);
+      if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message); 
-        setIsLoading(false)
+      } else {
+        setError("An unexpected error occurred during login.");
       }
+    } finally {
+      // --- BULLETPROOF FIX ---
+      // The finally block ensures the spinner ALWAYS turns off, even if a crash happens
+      setIsLoading(false);
     }
   };
 

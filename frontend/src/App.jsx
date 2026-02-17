@@ -21,6 +21,8 @@ import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
 import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
 import PickupHistory from "./pages/users/parent/PickupHistory";
 import ManageApprovals from "./pages/admin-teacher/ManageApprovals";
+import GuardianSetup from "./pages/users/guardian/GuardianSetup";
+import GuardianDashboard from "./pages/users/guardian/GuardianDashboard";
 
 export default function App() {
   return (
@@ -73,8 +75,9 @@ export default function App() {
             <RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />
           }
         >
-          {/* You will create these pages later */}
-          {/* <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> */}
+          {/* --- NEW: GUARDIAN SETUP BUFFER ZONE --- */}
+          <Route path="/guardian/setup" element={<GuardianSetup />} />
+          <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> 
           {/* <Route path="/guardian/profile" element={<GuardianProfile />} /> */}
         </Route>
 

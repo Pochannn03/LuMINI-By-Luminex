@@ -340,4 +340,89 @@ router.delete(
     }
 });
 
+// ==========================================
+// GUARDIAN ACTION: FETCH ASSIGNED CHILDREN
+// ==========================================
+router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
+  try {
+    // Grab the custom numeric user_id of the logged-in Guardian
+    const guardianNumericId = req.user.user_id;
+
+    // Search the Student collection where this Guardian's numeric ID 
+    // exists inside the student's 'user_id' array.
+    const assignedChildren = await Student.find({ 
+      user_id: guardianNumericId 
+    }).populate('section_details'); // Populates section to get 'section_name'
+
+    if (!assignedChildren || assignedChildren.length === 0) {
+      return res.status(200).json([]); // Return empty array if no kids are found
+    }
+
+    return res.status(200).json(assignedChildren);
+
+  } catch (error) {
+    console.error("Error fetching guardian's children:", error);
+    return res.status(500).json({ message: "Server error while fetching assigned students." });
+  }
+});
+
+// ==========================================
+// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP
+// ==========================================
+router.put(
+  '/api/guardian/setup', 
+  isAuthenticated, 
+  upload.single('profilePic'), // Expects the image under the key 'profilePic'
+  async (req, res) => {
+    try {
+      const userId = req.user._id;
+      const { 
+        username, password, firstName, lastName,
+        contact, houseUnit, street, barangay, city, zipCode 
+      } = req.body;
+
+      // 1. Find the logged-in Guardian account
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: "User not found." });
+
+      // 2. Update Basic Info
+      if (username) user.username = username;
+      if (firstName) user.first_name = firstName;
+      if (lastName) user.last_name = lastName;
+      if (contact) user.phone_number = contact;
+
+      // 3. Hash and Update Password
+      if (password) {
+        user.password = await hashPassword(password);
+      }
+
+      // 4. Construct and Update Address
+      const fullAddress = [houseUnit, street, barangay, city, zipCode].filter(Boolean).join(', ');
+      if (fullAddress) {
+        user.address = fullAddress;
+      }
+
+      // 5. Update Profile Picture (if one was uploaded)
+      if (req.file) {
+        // Optional: If you want to delete the old generic avatar, you could do it here
+        user.profile_picture = req.file.path;
+      }
+
+      // 6. REMOVE THE BUFFER ZONE LOCK!
+      user.is_first_login = false;
+
+      // Save all changes to the database
+      await user.save();
+
+      return res.status(200).json({ 
+        message: "Security setup complete! Account fully verified.",
+        user 
+      });
+
+    } catch (error) {
+      console.error("Guardian Setup Error:", error);
+      return res.status(500).json({ message: "Server error during setup." });
+    }
+});
+
 export default router;

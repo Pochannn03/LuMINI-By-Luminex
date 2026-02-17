@@ -58,10 +58,15 @@ const UserSchema = new mongoose.Schema({
   },
 
   // Timestamps & Validation
+  is_first_login: {
+    type: Boolean,
+    default: true, // <-- ADD THIS: Forces new users to setup!
+  },
   is_archive: {
     type: Boolean, 
-    default: true,
+    default: false, // <-- FIX THIS: Should be false for active users
   },
+
   created_at: {
     type: Date,
     default: Date.now,

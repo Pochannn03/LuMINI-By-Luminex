@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import jsPDF from "jspdf"; // <- FOR PDF
+import autoTable from "jspdf-autotable"; // <- FOR PDF
 import "../../styles/admin-teacher/admin-manage-approvals.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
@@ -144,6 +146,84 @@ export default function ManageApprovals() {
     }
   };
 
+  // ==========================================
+  // --- PDF EXPORT FUNCTION (BULLETPROOF) ---
+  // ==========================================
+  const exportHistoryToPDF = () => {
+    try {
+      if (!historyRequests || historyRequests.length === 0) {
+        alert("No history records to export.");
+        return;
+      }
+
+      const doc = new jsPDF();
+      
+      // 1. Add Title and Date
+      doc.setFontSize(18);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Guardian Approval History", 14, 22);
+      
+      doc.setFontSize(11);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      // 2. Define Table Columns
+      const tableColumn = ["Date", "Parent", "Guardian", "Role", "Child", "Status"];
+      const tableRows = [];
+
+      // 3. Map the data SAFELY
+      historyRequests.forEach(req => {
+        // Safe Date
+        const date = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Unknown";
+        
+        // Safe Parent Name
+        let parentName = "N/A";
+        if (req.parent && req.parent.first_name) {
+            parentName = `${req.parent.first_name} ${req.parent.last_name}`;
+        } else if (typeof req.parent === 'string') {
+            parentName = "ID: " + req.parent.substring(0, 5) + "..."; // Fallback if not populated
+        }
+
+        // Safe Guardian Name
+        const gDetails = req.guardianDetails || {};
+        const guardianName = `${gDetails.firstName || 'Unknown'} ${gDetails.lastName || ''}`.trim();
+        const role = gDetails.role || "N/A";
+        
+        // Safe Child Name
+        let childName = "N/A";
+        if (req.student && req.student.first_name) {
+            childName = `${req.student.first_name} ${req.student.last_name}`;
+        } else if (typeof req.student === 'string') {
+             childName = "ID: " + req.student.substring(0, 5) + "..."; // Fallback if not populated
+        }
+
+        // Safe Status
+        const status = (req.status || "Unknown").toUpperCase();
+
+        // Push the clean row
+        tableRows.push([date, parentName, guardianName, role, childName, status]);
+      });
+
+      // 4. Generate the Table (Safely passing the doc in)
+      autoTable(doc, {
+        startY: 36,
+        head: [tableColumn],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [57, 168, 237] }, 
+        styles: { fontSize: 9 },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+
+      // 5. Download the file
+      doc.save("Guardian_Approval_History.pdf");
+
+    } catch (error) {
+      console.error("PDF Generation Error:", error);
+      alert("Failed to generate PDF. Check the console for details.");
+    }
+  };
+
   return (
     <div className="dashboard-wrapper">
       <Header />
@@ -178,6 +258,18 @@ export default function ManageApprovals() {
                 </div>
              </div>
              <div className="controls-right" ref={filterRef}>
+                {/* --- NEW: EXPORT PDF BUTTON (Only shows on History Tab) --- */}
+                {activeTab === "history" && (
+                  <button 
+                    className="btn-outline" 
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px' }}
+                    onClick={() => exportHistoryToPDF()}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>picture_as_pdf</span>
+                    Export PDF
+                  </button>
+                )}
+
                 <div className="filter-wrapper">
                   <button className={`btn-filter ${isFilterOpen ? "active" : ""}`} onClick={() => setIsFilterOpen(!isFilterOpen)}>
                     <span className="material-symbols-outlined">filter_list</span> Filter
