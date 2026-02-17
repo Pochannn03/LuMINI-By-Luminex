@@ -27,13 +27,14 @@ router.post("/api/auth", (req, res, next) => {
         }
 
         const safeUser = {
-          id: user._id,
-          username: user.username,
-          relationship: user.relationship,
-          role: user.role,
-          user_id: user.user_id,
-          firstName: user.first_name, 
-          lastName: user.last_name
+          id: user._id || req.user._id,
+          username: user.username || req.user.username,
+          relationship: user.relationship || req.user.relationship,
+          role: user.role || req.user.role,
+          user_id: user.user_id || req.user.user_id,
+          firstName: user.first_name || req.user.first_name, 
+          lastName: user.last_name || req.user.last_name,
+          is_first_login: user.is_first_login !== undefined ? user.is_first_login : true // <-- NEW FLAG
         };
 
         return res.status(200).json({
@@ -48,14 +49,16 @@ router.post("/api/auth", (req, res, next) => {
 router.get("/api/auth/session", (req, res) => {
   if (req.isAuthenticated() && req.user) {
     const safeUser = {
-      id: req.user._id,            
-      username: req.user.username, 
-      relationship: req.user.relationship,
-      role: req.user.role,         
-      user_id: req.user.user_id,
-      firstName: req.user.first_name, 
-      lastName: req.user.last_name
-    };
+          id: req.user._id,
+          username: req.user.username,
+          relationship: req.user.relationship,
+          role: req.user.role,
+          user_id: req.user.user_id,
+          firstName: req.user.first_name, 
+          lastName: req.user.last_name,
+          // Safely check req.user here!
+          is_first_login: req.user.is_first_login !== undefined ? req.user.is_first_login : true 
+        };
     return res.status(200).json({ isAuthenticated: true, user: safeUser });
   } else {
     return res.status(200).json({ isAuthenticated: false, user: null });
