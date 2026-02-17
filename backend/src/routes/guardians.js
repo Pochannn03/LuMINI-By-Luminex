@@ -348,11 +348,16 @@ router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
     // Grab the custom numeric user_id of the logged-in Guardian
     const guardianNumericId = req.user.user_id;
 
-    // Search the Student collection where this Guardian's numeric ID 
-    // exists inside the student's 'user_id' array.
+    // Search the Student collection and perform a "Deep Populate"
     const assignedChildren = await Student.find({ 
       user_id: guardianNumericId 
-    }).populate('section_details'); // Populates section to get 'section_name'
+    }).populate({
+      path: 'section_details',
+      populate: { 
+        path: 'user_details', // <-- THE FIX: This grabs the nested Teacher info!
+        select: 'first_name last_name email' // We only grab what we need for security
+      }
+    });
 
     if (!assignedChildren || assignedChildren.length === 0) {
       return res.status(200).json([]); // Return empty array if no kids are found

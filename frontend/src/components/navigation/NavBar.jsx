@@ -99,6 +99,13 @@ const NAV_ITEMS = [
     allowedRoles: ["user"],
     allowedTypes: ["Guardian"],
   },
+  {
+    label: "Profile",
+    path: "/guardian/profile",
+    icon: "person",
+    allowedRoles: ["user"],
+    allowedTypes: ["Guardian"],
+  },
 ];
 
 export default function NavBar() {

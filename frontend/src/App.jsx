@@ -21,6 +21,7 @@ import SuperAdminQrCodeGate from "./pages/super-admin/SuperAdminQrCodeGate";
 import ManageGuardians from "./pages/users/parent/ParentManageGuardian";
 import ManageApprovals from "./pages/admin-teacher/ManageApprovals";
 import GuardianSetup from "./pages/users/guardian/GuardianSetup";
+import GuardianProfile from "./pages/users/guardian/GuardianProfile";
 import GuardianDashboard from "./pages/users/guardian/GuardianDashboard";
 import PickupAndDropoffHistory from "./pages/users/parent/ParentPickupAndDropoffHistory";
 
@@ -78,7 +79,7 @@ export default function App() {
           {/* --- NEW: GUARDIAN SETUP BUFFER ZONE --- */}
           <Route path="/guardian/setup" element={<GuardianSetup />} />
           <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> 
-          {/* <Route path="/guardian/profile" element={<GuardianProfile />} /> */}
+          <Route path="/guardian/profile" element={<GuardianProfile />} /> 
         </Route>
 
         {/* SHARED ROUTE OF USER */}
