@@ -161,7 +161,7 @@ export default function TeacherProfile() {
               <div className="profile-actions">
                 {!isEditing ? (
                   <button
-                    className="btn btn-primary"
+                    className="btn btn-primary h-12 w-45 rounded-xl"
                     onClick={() => setIsEditing(true)}
                   >
                     <span
@@ -175,7 +175,7 @@ export default function TeacherProfile() {
                 ) : (
                   <div className="action-buttons-wrapper">
                     {/* 5. Rename "Save Changes" to "Save" */}
-                    <button className="btn btn-save" onClick={handleSave}>
+                    <button className="btn btn-save h-12 w-30 rounded-xl" onClick={handleSave}>
                       <span
                         className="material-symbols-outlined"
                         style={{ fontSize: "18px" }}
@@ -185,7 +185,7 @@ export default function TeacherProfile() {
                       Save
                     </button>
 
-                    <button className="btn btn-cancel" onClick={handleCancel}>
+                    <button className="btn btn-cancel h-12 w-30 rounded-xl" onClick={handleCancel}>
                       <span
                         className="material-symbols-outlined"
                         style={{ fontSize: "18px" }}
