@@ -55,7 +55,13 @@ export default function AdminDropAndPickHistory() {
   const filteredData = transferData.filter(item => {
     const selectedDateString = dateToInputString(currentDate); 
     const matchesDate = item.date === selectedDateString;
-    const matchesType = filterType === "all" || item.type.toLowerCase().includes(filterType.toLowerCase());
+    
+    // Normalize both strings: remove spaces and convert to lowercase
+    const recordPurpose = item.purpose?.toLowerCase().replace(/\s/g, "") || "";
+    const activeFilter = filterType.toLowerCase().replace(/\s/g, "");
+
+    const matchesType = filterType === "all" || recordPurpose.includes(activeFilter);
+    
     return matchesDate && matchesType;
   });
 

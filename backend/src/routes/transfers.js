@@ -3,7 +3,6 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js"; 
 import { Section } from "../models/sections.js"; 
 
-
 const router = Router();
 
 router.get('/api/transfer',
@@ -38,33 +37,34 @@ router.post('/api/transfer',
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
-    const { studentId, guardianId, guardianName, studentName, sectionName, sectionId } = req.body;
+    const { studentId, guardianId, guardianName, studentName, sectionName, sectionId, purpose } = req.body;
     const currentUserId = Number(req.user.user_id); 
     const userRole = req.user.relationship?.toLowerCase();
 
     try {
-        // 2. Teacher-specific validation
         if (userRole === 'teacher') {
             const isAuthorized = await Section.findOne({ 
                 section_id: Number(sectionId), 
                 user_id: currentUserId 
             });
-
             if (!isAuthorized) {
-                return res.status(403).json({ 
-                    error: `Unauthorized: You are not the assigned teacher for ${sectionName}.` 
-                });
+                return res.status(403).json({ error: "Unauthorized: Not your assigned section." });
             }
         }
 
-        const todayDate = new Date().toLocaleDateString('en-CA'); 
+        const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-        const existingTransfer = await Transfer.findOne({
+        const duplicateCheck = await Transfer.findOne({
             student_id: studentId,
-            date: todayDate
+            date: todayDate,
+            purpose: purpose
         });
 
-        const autoType = existingTransfer ? 'Pick up' : 'Drop off';
+        if (duplicateCheck) {
+            return res.status(400).json({ 
+                error: `Duplicate Entry: This student has already been recorded for ${purpose} today.` 
+            });
+        }
 
         const newTransfer = new Transfer({
             student_id: studentId,
@@ -73,7 +73,7 @@ router.post('/api/transfer',
             section_name: sectionName,
             user_id: guardianId,
             user_name: guardianName,
-            type: autoType,
+            purpose: purpose,
             date: todayDate,
             time: new Date().toLocaleTimeString('en-US', { 
                 hour: 'numeric', minute: '2-digit', hour12: true 
@@ -81,15 +81,14 @@ router.post('/api/transfer',
         });
 
         await newTransfer.save();
-
-        res.json({ 
+        return res.status(200).json({ 
             success: true, 
-            message: `${studentName} successfully recorded for ${autoType}!` 
+            message: `${studentName} successfully recorded for ${purpose}!` 
         });
         
     } catch (error) {
-        console.error("❌ Transfer Save Error:", error.message);
-        res.status(500).json({ error: "Failed to record transfer: " + error.message });
+        console.error("❌ Transfer Error:", error.message);
+        return res.status(500).json({ error: "Failed to record transfer: " + error.message });
     }
 });
 
