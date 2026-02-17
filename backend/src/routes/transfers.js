@@ -3,7 +3,6 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js"; 
 import { Section } from "../models/sections.js"; 
 
-
 const router = Router();
 
 router.get('/api/transfer',
@@ -38,12 +37,11 @@ router.post('/api/transfer',
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
-    const { studentId, guardianId, guardianName, studentName, sectionName, sectionId } = req.body;
+    const { studentId, guardianId, guardianName, studentName, sectionName, sectionId, purpose } = req.body;
     const currentUserId = Number(req.user.user_id); 
     const userRole = req.user.relationship?.toLowerCase();
 
     try {
-        // Section Validation: Only allow assigned teacher
         if (userRole === 'teacher') {
             const isAuthorized = await Section.findOne({ 
                 section_id: Number(sectionId), 
@@ -56,6 +54,18 @@ router.post('/api/transfer',
 
         const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
+        const duplicateCheck = await Transfer.findOne({
+            student_id: studentId,
+            date: todayDate,
+            purpose: purpose
+        });
+
+        if (duplicateCheck) {
+            return res.status(400).json({ 
+                error: `Duplicate Entry: This student has already been recorded for ${purpose} today.` 
+            });
+        }
+
         const newTransfer = new Transfer({
             student_id: studentId,
             student_name: studentName,
@@ -63,7 +73,7 @@ router.post('/api/transfer',
             section_name: sectionName,
             user_id: guardianId,
             user_name: guardianName,
-            purpose: req.body.purpose,
+            purpose: purpose,
             date: todayDate,
             time: new Date().toLocaleTimeString('en-US', { 
                 hour: 'numeric', minute: '2-digit', hour12: true 
