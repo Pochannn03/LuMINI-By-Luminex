@@ -5,6 +5,7 @@ import { Section } from "../models/sections.js";
 
 const router = Router();
 
+// GETT THE PICK UP AND DROP OFF HISTORY (TEACHER)
 router.get('/api/transfer',
   isAuthenticated,
   hasRole('admin'),
@@ -12,10 +13,19 @@ router.get('/api/transfer',
 
     try {
       const { date } = req.query;
+      const currentUserId = Number(req.user.user_id);
+      const userRole = req.user.relationship?.toLowerCase();
       let query = {};
 
       if (date) {
         query.date = date;
+      }
+
+      if (userRole === 'teacher') {
+        const teacherSections = await Section.find({ user_id: currentUserId })
+                                             .select('section_id');
+        const sectionIds = teacherSections.map(s => s.section_id);
+        query.section_id = { $in: sectionIds };
       }
 
       const history = await Transfer.find(query) 
@@ -29,6 +39,29 @@ router.get('/api/transfer',
     } catch (err) {
       console.error("Transfer Fetch Error:", err);
       res.status(500).json({ success: false });
+    }
+});
+
+// GETT THE PICK UP AND DROP OFF HISTORY (PARENT)
+router.get('/api/transfer/parent',
+  isAuthenticated,
+  hasRole('user'),
+  async (req, res) => {
+    try {
+      const currentUserId = Number(req.user.user_id); 
+      const query = { user_id: currentUserId };
+
+      const history = await Transfer.find(query) 
+                                    .populate('student_details')
+                                    .populate('user_details')
+                                    .populate('section_details')
+                                    .sort({ created_at: -1 });
+        
+      res.json({ success: true, data: history });
+
+    } catch (err) {
+      console.error("Parent Transfer Fetch Error:", err);
+      res.status(500).json({ success: false, error: "Failed to fetch your history" });
     }
 });
 
