@@ -57,6 +57,10 @@ const StudentSchema = new mongoose.Schema({
     type: String,
     required: false, // Changed to false
   },
+  status: {
+    type: String,
+    enum: ['On the way', 'Learning', 'Dismissed']
+  },
 
   // 4. SYSTEM FIELDS
   invitation_code: {
