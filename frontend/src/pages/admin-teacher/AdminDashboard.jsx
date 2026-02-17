@@ -60,7 +60,9 @@ export default function AdminDashboard() {
 
     } catch (error) {
       console.error("Scan Process Failed:", error);
-      alert(error.message || error.response?.data?.message || "Scan Error");
+      const serverErrorMessage = error.response?.data?.msg || error.response?.data?.message;
+      const finalMessage = serverErrorMessage || error.message || "Scan Error";
+      alert(finalMessage);
     } finally {
       setLoadingScan(false);
     }
