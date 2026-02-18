@@ -24,11 +24,12 @@ const GuardianRequestSchema = new mongoose.Schema({
     role: { type: String, required: true },
     tempUsername: { type: String, required: true },
     tempPassword: { type: String, required: true }, 
-    idPhotoPath: { type: String, required: true } 
+    idPhotoPath: { type: String, required: true } ,
+    createdUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
   },
   status: { 
     type: String, 
-    enum: ['pending', 'approved', 'rejected'], 
+    enum: ['pending', 'approved', 'rejected', 'revoked'],
     default: 'pending' 
   }
 }, { timestamps: true });

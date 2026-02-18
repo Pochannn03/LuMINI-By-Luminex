@@ -12,6 +12,7 @@ const BACKEND_URL = "http://localhost:3000";
 export default function ManageGuardians() {
   const [guardians, setGuardians] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [approvedRequests, setApprovedRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -27,6 +28,11 @@ export default function ManageGuardians() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [requestToCancel, setRequestToCancel] = useState(null);
 
+  // --- NEW: States for Revoke Modal ---
+  const [showRevokeModal, setShowRevokeModal] = useState(false);
+  const [requestToRevoke, setRequestToRevoke] = useState(null);
+  const [revokeConfirmationText, setRevokeConfirmationText] = useState("");
+
   // Helper for Images
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150";
@@ -37,13 +43,15 @@ export default function ManageGuardians() {
   // --- 1. EXTRACTED FETCH LOGIC ---
   const refreshData = async () => {
     try {
-      const [guardiansRes, pendingRes] = await Promise.all([
+      const [guardiansRes, pendingRes, historyRes] = await Promise.all([ // <-- Added historyRes
         axios.get(`${BACKEND_URL}/api/parent/guardians`, { withCredentials: true }),
-        axios.get(`${BACKEND_URL}/api/parent/guardian-requests/pending`, { withCredentials: true })
+        axios.get(`${BACKEND_URL}/api/parent/guardian-requests/pending`, { withCredentials: true }),
+        axios.get(`${BACKEND_URL}/api/parent/guardian-requests/history`, { withCredentials: true }) // <-- NEW FETCH
       ]);
       
       setGuardians(guardiansRes.data);
       setPendingRequests(pendingRes.data);
+      setApprovedRequests(historyRes.data); // <-- SET THE STATE
     } catch (err) {
       console.error("Error fetching data:", err);
     } finally {
@@ -85,6 +93,44 @@ export default function ManageGuardians() {
     } finally {
       setRequestToCancel(null); // Reset the memory
     }
+  };
+
+  // --- PART 3: Executes the backend revocation ---
+  const executeRevokeRequest = async () => {
+    if (!requestToRevoke) return;
+
+    try {
+      const response = await axios.put(
+        `${BACKEND_URL}/api/parent/guardian-requests/${requestToRevoke._id}/revoke`,
+        {},
+        { withCredentials: true }
+      );
+
+      // Close the modal
+      setShowRevokeModal(false);
+      
+      // Refresh the data to update both the top Active table and the bottom History table!
+      refreshData();
+
+      // Trigger success modal
+      setSuccessMessage(response.data.message || "Guardian access permanently revoked.");
+      setShowSuccessModal(true);
+
+    } catch (error) {
+      console.error("Error revoking access:", error);
+      alert(error.response?.data?.message || "Failed to revoke access.");
+    } finally {
+      // Always wipe the state clean
+      setRequestToRevoke(null);
+      setRevokeConfirmationText("");
+    }
+  };
+
+  // --- PART 1: Opens the Revoke Modal ---
+  const triggerRevokeConfirm = (req) => {
+    setRequestToRevoke(req);
+    setRevokeConfirmationText(""); // Always clear the input!
+    setShowRevokeModal(true);
   };
 
   return (
@@ -138,7 +184,7 @@ export default function ManageGuardians() {
               <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
                 Loading guardians...
               </div>
-            ) : guardians.length === 0 && pendingRequests.length === 0 ? (
+            ) : guardians.length === 0 && pendingRequests.length === 0 && approvedRequests.length === 0 ? (
               <div className="empty-state">
                 <span className="material-symbols-outlined empty-icon">diversity_3</span>
                 <h3 className="empty-text">No Guardians Found</h3>
@@ -255,6 +301,67 @@ export default function ManageGuardians() {
                     </tr>
                   ))}
 
+                  {/* --- MAP APPROVED REQUESTS --- */}
+                  {approvedRequests.map((req) => (
+                    <tr key={req._id} style={{ background: '#f0fdf4', borderLeft: '4px solid #22c55e' }}>
+                      <td>
+                        <div className="user-info-cell">
+                          <img src={getImageUrl(req.guardianDetails.idPhotoPath)} className="table-avatar-circle" alt="ID" />
+                          <div className="user-text">
+                            <span className="user-name" style={{ color: '#1e293b' }}>
+                              {req.guardianDetails.firstName} {req.guardianDetails.lastName}
+                            </span>
+                            <span className="user-id" style={{ color: '#64748b' }}>Account Created</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className="role-badge" style={{ background: '#e2e8f0', color: '#64748b' }}>
+                          {req.guardianDetails.role}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: "13px", color: "#64748b" }}>
+                          <div>{req.guardianDetails.tempUsername}</div>
+                          <div style={{ fontSize: "11px", marginTop: "4px" }}>
+                            {req.guardianDetails.phone}
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        {/* GREEN APPROVED BADGE */}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#dcfce7', color: '#16a34a', padding: '6px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>check_circle</span>
+                          Approved
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                          <button 
+                            onClick={() => setSelectedRequest(req)}
+                            style={{ background: 'white', color: '#64748b', border: '1px solid #cbd5e1', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#334155'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.color = '#64748b'; }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>visibility</span>
+                            View
+                          </button>
+
+                          {/* --- NEW REVOKE BUTTON --- */}
+                          <button 
+                            onClick={() => triggerRevokeConfirm(req)}
+                            style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: 'background 0.2s', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            onMouseOver={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                            onMouseOut={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: '16px', pointerEvents: 'none' }}>person_remove</span>
+                            Revoke
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
                 </tbody>
               </table>
             )}
@@ -352,6 +459,68 @@ export default function ManageGuardians() {
           >
             <span className="material-symbols-outlined">close</span>
           </button>
+        </div>
+      )}
+
+      {/* --- REVOKE ACCESS MODAL (Step 2 & 3) --- */}
+      {showRevokeModal && (
+        <div className="modal-overlay active" style={{ zIndex: 9999 }}>
+          <div className="modal-card" style={{ maxWidth: '420px', padding: '24px' }}>
+            
+            {/* Warning Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#ef4444' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>warning</span>
+              <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Revoke Guardian Access</h2>
+            </div>
+            
+            {/* Warning Text */}
+            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+              You are about to permanently revoke access for <strong style={{color: '#1e293b'}}>{requestToRevoke?.guardianDetails?.firstName} {requestToRevoke?.guardianDetails?.lastName}</strong>. 
+              They will be removed from your active guardians, their account will be disabled, and they will no longer be able to pick up your child. <br/><br/>This action cannot be undone.
+            </p>
+
+            {/* The "I understand" Input Field */}
+            <div style={{ marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                Please type <strong style={{ color: '#ef4444' }}>I understand</strong> to confirm:
+              </label>
+              <input 
+                type="text" 
+                value={revokeConfirmationText}
+                onChange={(e) => setRevokeConfirmationText(e.target.value)}
+                placeholder="I understand"
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', fontFamily: 'monospace' }}
+                autoComplete="off"
+              />
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={() => setShowRevokeModal(false)}
+                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                onMouseOver={(e) => e.target.style.background = '#f1f5f9'}
+                onMouseOut={(e) => e.target.style.background = 'white'}
+              >
+                Cancel
+              </button>
+              
+              {/* This button is disabled until the text perfectly matches! */}
+              <button 
+                disabled={revokeConfirmationText !== "I understand"}
+                onClick={executeRevokeRequest} 
+                style={{ 
+                  background: revokeConfirmationText === "I understand" ? '#ef4444' : '#fca5a5', 
+                  color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, 
+                  cursor: revokeConfirmationText === "I understand" ? 'pointer' : 'not-allowed',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Revoke Access
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
 

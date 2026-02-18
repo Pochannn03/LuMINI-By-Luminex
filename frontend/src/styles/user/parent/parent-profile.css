@@ -420,6 +420,48 @@
   font-size: 13px;
 }
 
+/* --- BUTTON STYLES --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: "Poppins", sans-serif;
+}
+
+.btn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.btn-primary {
+  background-color: var(--primary-blue);
+  color: var(--white);
+  box-shadow: 0 4px 12px rgba(57, 168, 237, 0.25);
+}
+
+.btn-primary:hover {
+  background-color: #25ccf7;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(57, 168, 237, 0.35);
+}
+
+.btn-cancel {
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.btn-cancel:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
 .btn-save {
   background-color: #10b981;
   color: white;

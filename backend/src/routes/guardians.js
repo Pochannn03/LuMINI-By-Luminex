@@ -6,8 +6,7 @@ import { createUserValidationSchema } from '../validation/userValidation.js'
 import { validationResult, matchedData, checkSchema} from "express-validator";
 import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
-// Make sure to import your new GuardianRequest model!
-// Adjust the path below if your models folder is structured differently.
+import { Section } from "../models/sections.js";
 import GuardianRequest from "../models/guardianRequest.js"; 
 import { hashPassword } from "../utils/passwordUtils.js";
 import multer from "multer";
@@ -110,11 +109,9 @@ router.post(
     try {
         const { firstName, lastName, phone, role, username, password } = req.body;
         
-        // 1. Get both IDs from the logged-in parent
-        const parentObjectId = req.user._id; // The standard MongoDB string ID
-        const parentCustomId = req.user.user_id; // Your custom numeric ID (e.g., 1005)
+        const parentObjectId = req.user._id; 
+        const parentCustomId = req.user.user_id; 
         
-        // --- THE FIX: Search the user_id array using the custom ID ---
         const linkedStudent = await Student.findOne({ user_id: parentCustomId }); 
         
         if (!linkedStudent) {
@@ -122,8 +119,28 @@ router.post(
              return res.status(404).json({ message: "No linked child found for this parent account." });
         }
 
-        const studentId = linkedStudent._id; // Use the student's MongoDB ID for the request
-        const teacherId = req.body.teacherId || "60d5ecb8b392d700153ee789";
+        const studentId = linkedStudent._id; 
+
+        // --- THE FIX: DYNAMICALLY FIND THE CORRECT TEACHER ---
+        let actualTeacherId = null;
+        if (linkedStudent.section_id) {
+            // Find the student's section
+            const section = await Section.findOne({ section_id: linkedStudent.section_id });
+            if (section && section.user_id) {
+                // Find the teacher assigned to that section
+                const teacher = await User.findOne({ user_id: section.user_id });
+                if (teacher) {
+                    actualTeacherId = teacher._id; // Grab the Teacher's MongoDB ID
+                }
+            }
+        }
+
+        // Fallback to a provided ID or throw an error if no teacher is found
+        const finalTeacherId = actualTeacherId || req.body.teacherId;
+        if (!finalTeacherId) {
+             if (req.file) fs.unlinkSync(req.file.path);
+             return res.status(400).json({ message: "No teacher assigned to this student's section." });
+        }
 
         const idPhotoPath = req.file ? req.file.path : null;
         if (!idPhotoPath) return res.status(400).json({ message: "ID photo is required." });
@@ -131,9 +148,9 @@ router.post(
         const hashedPassword = await hashPassword(password);
 
         const newRequest = new GuardianRequest({
-            parent: parentObjectId, // Save the ObjectId here
+            parent: parentObjectId, 
             student: studentId,
-            teacher: teacherId,
+            teacher: finalTeacherId, // <-- SAVES THE CORRECT TEACHER ID
             guardianDetails: {
                 firstName, lastName, phone, role,
                 tempUsername: username,
@@ -162,9 +179,14 @@ router.get(
   isAuthenticated, 
   async (req, res) => {
     try {
-        const requests = await GuardianRequest.find({ status: 'pending' })
+        const teacherMongoId = req.user._id; // Get the logged-in teacher's ID
+
+        // THE FIX: Filter by status AND teacher ID
+        const requests = await GuardianRequest.find({ 
+              status: 'pending',
+              teacher: teacherMongoId 
+            })
             .populate('parent', 'first_name last_name profile_picture')
-            // --- NEW: POPULATE THE STUDENT DETAILS TOO ---
             .populate('student', 'first_name last_name') 
             .sort({ createdAt: -1 }); 
 
@@ -215,8 +237,9 @@ router.put('/api/teacher/guardian-requests/:id/approve', isAuthenticated, async 
             });
         }
 
-        // 4. Mark request as approved
+        // 4. Mark request as approved and HARD-LINK the new User ID!
         requestDoc.status = 'approved';
+        requestDoc.guardianDetails.createdUserId = savedGuardian._id; // <-- THE FIX
         await requestDoc.save();
 
         return res.status(200).json({ message: "Guardian successfully approved and account created!" });
@@ -265,11 +288,16 @@ router.get(
   isAuthenticated, 
   async (req, res) => {
     try {
-        // Find requests that are NOT pending
-        const history = await GuardianRequest.find({ status: { $in: ['approved', 'rejected'] } })
+        const teacherMongoId = req.user._id;
+
+        // THE FIX: Filter history by the logged-in teacher's ID
+        const history = await GuardianRequest.find({ 
+              status: { $in: ['approved', 'rejected', 'revoked'] }, // Added revoked for history tracking!
+              teacher: teacherMongoId 
+            })
             .populate('parent', 'first_name last_name profile_picture')
             .populate('student', 'first_name last_name')
-            .sort({ updatedAt: -1 }); // Sort by the time they were approved/rejected
+            .sort({ updatedAt: -1 }); 
 
         return res.status(200).json(history);
     } catch (error) {
@@ -427,6 +455,80 @@ router.put(
     } catch (error) {
       console.error("Guardian Setup Error:", error);
       return res.status(500).json({ message: "Server error during setup." });
+    }
+});
+
+// ==========================================
+// PARENT ACTION: FETCH OWN APPROVED REQUESTS
+// ==========================================
+router.get(
+  '/api/parent/guardian-requests/history', 
+  isAuthenticated, 
+  async (req, res) => {
+    try {
+        const parentId = req.user._id;
+
+        // Fetch requests that belong to this parent and are marked 'approved'
+        const approvedRequests = await GuardianRequest.find({ 
+            parent: parentId, 
+            status: 'approved' 
+        }).sort({ updatedAt: -1 });
+
+        return res.status(200).json(approvedRequests);
+    } catch (error) {
+        console.error("Error fetching parent's approved requests:", error);
+        return res.status(500).json({ message: "Server error while fetching history." });
+    }
+});
+
+// ==========================================
+// PARENT ACTION: REVOKE APPROVED GUARDIAN
+// ==========================================
+router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const parentId = req.user._id;
+
+        // 1. Find the approved request ensuring it belongs to this parent
+        const requestDoc = await GuardianRequest.findOne({
+            _id: requestId,
+            parent: parentId,
+            status: 'approved'
+        });
+
+        if (!requestDoc) {
+            return res.status(404).json({ message: "Approved request not found." });
+        }
+
+        // 2. Find the active Guardian User account securely!
+        // We use the hard-linked ID. (We keep the username search as a fallback just in case you test on older requests).
+        let guardianUser;
+        if (requestDoc.guardianDetails.createdUserId) {
+            guardianUser = await User.findById(requestDoc.guardianDetails.createdUserId);
+        } else {
+            guardianUser = await User.findOne({ username: requestDoc.guardianDetails.tempUsername });
+        }
+
+        if (guardianUser) {
+            // 3. Remove the guardian's user_id from the student's authorized list
+            await Student.findByIdAndUpdate(requestDoc.student, {
+                $pull: { user_id: guardianUser.user_id } 
+            });
+
+            // 4. Archive (disable) the guardian account so they can no longer log in
+            guardianUser.is_archive = true;
+            await guardianUser.save();
+        }
+
+        // 5. Update the request status to 'revoked' so it disappears from the Active list
+        requestDoc.status = 'revoked';
+        await requestDoc.save();
+
+        return res.status(200).json({ message: "Guardian access has been permanently revoked." });
+
+    } catch (error) {
+        console.error("Revoke Error:", error);
+        return res.status(500).json({ message: "Server error during revocation." });
     }
 });
 

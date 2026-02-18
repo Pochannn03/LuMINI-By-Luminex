@@ -207,8 +207,10 @@ router.get("/api/user/profile", (req, res) => {
 });
 
 // PUT /api/user/profile
-// Description: Update user contact details (Phone, Address, Email)
-router.put("/api/user/profile", async (req, res) => {
+// Description: Update user contact details AND Profile Picture
+router.put("/api/user/profile", 
+  upload.single('profile_picture'), // <-- ADDED: Multer middleware to catch the file
+  async (req, res) => {
   try {
     if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Unauthorized" });
@@ -217,18 +219,31 @@ router.put("/api/user/profile", async (req, res) => {
     // 1. Get data from the frontend
     const { phone_number, address, email } = req.body;
 
-    // 2. Update the user object (req.user is the Mongoose document)
-    // We only update specific fields to prevent users from changing their Role or Name
-    if (phone_number !== undefined) req.user.phone_number = phone_number;
-    if (address !== undefined) req.user.address = address;
-    if (email !== undefined) req.user.email = email;
+    // 2. Prepare the update object
+    const updateFields = {
+        phone_number: phone_number !== undefined ? phone_number : req.user.phone_number,
+        address: address !== undefined ? address : req.user.address,
+        email: email !== undefined ? email : req.user.email
+    };
 
-    // 3. Save to Database
-    await req.user.save();
+    // 3. If an image was uploaded, add it to the update object
+    if (req.file) {
+        updateFields.profile_picture = req.file.path;
+    }
 
-    res
-      .status(200)
-      .json({ message: "Profile updated successfully", user: req.user });
+    // 4. Safely update the user directly in the database
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        { $set: updateFields },
+        { new: true, runValidators: true } 
+    );
+
+    if (!updatedUser) {
+        return res.status(404).json({ message: "User not found in database." });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
+    
   } catch (err) {
     console.error("Update Profile Error:", err);
     res.status(500).json({ message: "Failed to update profile" });
