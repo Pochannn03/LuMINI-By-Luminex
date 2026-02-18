@@ -56,6 +56,14 @@ const UserSchema = new mongoose.Schema({
     enum: ['superadmin', 'admin', 'user'], 
     default: 'user'
   },
+  status: {
+    type: String,
+    enum: ['At Home', 'On the way', 'At School', 'Arrived'],
+    default: 'At Home', // Default for Parents/Guardians
+    required: function() { 
+        return this.relationship === 'Parent' || this.relationship === 'Guardian'; 
+    }
+  },
 
   // Timestamps & Validation
   is_first_login: {
@@ -91,25 +99,43 @@ UserSchema.pre('save', async function() {
     try {
       if (!Counter) throw new Error("Counter model is missing");
 
-      const counter = await Counter.findByIdAndUpdate(
-        'user_id_seq', 
+      let counterKey = '';
+      let startSeq = 1;
+
+      if (doc.relationship === 'SuperAdmin') {
+        doc.user_id = 1;
+        return;
+      } else if (doc.relationship === 'Teacher') {
+        counterKey = 'user_id_teacher';
+        startSeq = 2;
+      } else {
+        counterKey = 'user_id_parent';
+        startSeq = 1000;
+      }
+
+      const counter = await Counter.findOneAndUpdate(
+        { _id: counterKey }, 
         { $inc: { seq: 1 } }, 
-        { new: true, upsert: true }
+        { 
+          new: true, 
+          upsert: true, 
+          setDefaultsOnInsert: true 
+        }
       );
 
-      // 2. Assign the ID
-      const newId = counter.seq;
-      doc.user_id = newId;
+      if (counter.seq < startSeq) {
+        counter.seq = startSeq;
+        await counter.save();
+      }
 
-      console.log(`✅ Generated user_id: ${newId}`);
+      doc.user_id = counter.seq;
+      console.log(`✅ Generated user_id for ${doc.relationship}: ${doc.user_id}`);
       
     } catch (error) {
-      // 3. Just THROW the error to stop the save
       console.error("❌ ID Generation Failed:", error);
       throw error; 
     }
   }
-
 });
 
 export const User = mongoose.model("User", UserSchema, "mng.user_active");

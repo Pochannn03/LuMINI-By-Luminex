@@ -263,7 +263,7 @@ export default function TeacherProfile() {
                   {formData.first_name} {formData.last_name}
                 </h1>
                 <p>
-                  {formData.role?.toUpperCase()} • ID: {formData.user_id}
+                  {formData.relationship} • ID: {formData.user_id}
                 </p>
               </div>
 
@@ -273,17 +273,29 @@ export default function TeacherProfile() {
                     className="btn btn-primary h-12 w-45 rounded-xl"
                     onClick={handleEditClick} 
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>edit</span>
+                    <span
+                      className="material-symbols-outlined mr-1.5 text-[18px]"
+                    >
+                      edit
+                    </span>
                     Edit Information
                   </button>
                 ) : (
                   <div className="action-buttons-wrapper">
                     <button className="btn btn-save h-12 w-30 rounded-xl" onClick={handleSave}>
-                      <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>check</span>
+                      <span
+                        className="material-symbols-outlined mr-1.5 text-[18px]"
+                      >
+                        check
+                      </span>
                       Save
                     </button>
                     <button className="btn btn-cancel h-12 w-30 rounded-xl" onClick={handleCancel}>
-                      <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>close</span>
+                      <span
+                        className="material-symbols-outlined mr-1.5 text-[18px]"
+                      >
+                        close
+                      </span>
                       Cancel
                     </button>
                   </div>

@@ -3,7 +3,7 @@ import { validationResult, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { createStudentValidationSchema } from '../validation/studentValidation.js';
 import { updateStudentValidationSchema } from '../validation/editStudentValidation.js';
-// import { User } from "../models/users.js";
+import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';

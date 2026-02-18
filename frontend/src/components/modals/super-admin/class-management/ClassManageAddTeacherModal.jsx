@@ -43,11 +43,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
       email: '',
       phoneNumber: '',  
       relationship: 'Teacher', 
-      houseUnit: '',
-      street: '',
-      barangay: '',
-      city: '',
-      zipCode: '',
+      address: '---'
     });
     setProfileImage(null);
     setPreviewUrl(null);
@@ -92,7 +88,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
     data.append('email', formData.email);
     data.append('phone_number', formData.phoneNumber);
     data.append('relationship', formData.relationship);
-    data.append('address', `${formData.houseUnit}, ${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.zipCode}`);
+    data.append('address', formData.address);
 
     if (profileImage) {
       data.append('profile_photo', profileImage);

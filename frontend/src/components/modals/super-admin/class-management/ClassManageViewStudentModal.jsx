@@ -16,7 +16,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
     ? new Date(std.birthday).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
     : "--";
 
-  const sectionName = std.section_id?.section_name || "Unassigned";
+  const sectionName = std.section_details?.section_name || "Unassigned";
 
   // PARENT LOGIC
   let parentName = "Not Linked";
