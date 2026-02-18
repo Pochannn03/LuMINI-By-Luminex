@@ -56,6 +56,14 @@ const UserSchema = new mongoose.Schema({
     enum: ['superadmin', 'admin', 'user'], 
     default: 'user'
   },
+  status: {
+    type: String,
+    enum: ['At Home', 'On the way', 'At School', 'Arrived'],
+    default: 'At Home', // Default for Parents/Guardians
+    required: function() { 
+        return this.relationship === 'Parent' || this.relationship === 'Guardian'; 
+    }
+  },
 
   // Timestamps & Validation
   is_archive: {

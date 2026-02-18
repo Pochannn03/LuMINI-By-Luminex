@@ -154,7 +154,7 @@ export default function TeacherProfile() {
                   {formData.first_name} {formData.last_name}
                 </h1>
                 <p>
-                  {formData.role?.toUpperCase()} • ID: {formData.user_id}
+                  {formData.relationship} • ID: {formData.user_id}
                 </p>
               </div>
 
@@ -165,7 +165,7 @@ export default function TeacherProfile() {
                     onClick={() => setIsEditing(true)}
                   >
                     <span
-                      className="material-symbols-outlined"
+                      className="material-symbols-outlined mr-1.5"
                       style={{ fontSize: "18px" }}
                     >
                       edit
@@ -177,7 +177,7 @@ export default function TeacherProfile() {
                     {/* 5. Rename "Save Changes" to "Save" */}
                     <button className="btn btn-save h-12 w-30 rounded-xl" onClick={handleSave}>
                       <span
-                        className="material-symbols-outlined"
+                        className="material-symbols-outlined mr-1.5"
                         style={{ fontSize: "18px" }}
                       >
                         check
@@ -187,7 +187,7 @@ export default function TeacherProfile() {
 
                     <button className="btn btn-cancel h-12 w-30 rounded-xl" onClick={handleCancel}>
                       <span
-                        className="material-symbols-outlined"
+                        className="material-symbols-outlined mr-1.5"
                         style={{ fontSize: "18px" }}
                       >
                         close

@@ -59,7 +59,8 @@ const StudentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['On the way', 'Learning', 'Dismissed']
+    enum: ['On the way', 'Learning', 'Dismissed'],
+    default: 'Dismissed'
   },
 
   // 4. SYSTEM FIELDS

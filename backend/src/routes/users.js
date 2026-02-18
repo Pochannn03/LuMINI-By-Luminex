@@ -188,7 +188,6 @@ router.get("/api/user/profile", (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  // 2. Extract only the necessary data (Exclude password!)
   const userProfile = {
     _id: req.user._id,
     user_id: req.user.user_id,
@@ -196,6 +195,7 @@ router.get("/api/user/profile", (req, res) => {
     first_name: req.user.first_name,
     last_name: req.user.last_name,
     email: req.user.email,
+    relationship: req.user.relationship,
     phone_number: req.user.phone_number,
     address: req.user.address,
     role: req.user.role,
