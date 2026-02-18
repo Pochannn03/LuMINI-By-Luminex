@@ -21,9 +21,15 @@ const QueueingSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  type: {
+  purpose: {
     type: String,
+    enum: ['Drop off', 'Pick up'],
     required: true,
+  },
+  on_queue: {
+    type: Boolean,
+    required: true,
+    default: true
   },
   created_at: {
     type: Date,

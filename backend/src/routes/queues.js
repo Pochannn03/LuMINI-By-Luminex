@@ -12,13 +12,21 @@ router.post('/api/queue',
   isAuthenticated, 
   hasRole('user'),
   async (req, res) => {
-  const { student_id, section_id, status, type } = req.body;
+  const { student_id, section_id, status, purpose } = req.body;
+
   try {
     const queueEntry = await Queue.findOneAndUpdate(
-      { user_id: req.user.user_id },
-      { student_id, section_id, status, type, created_at: new Date() },
-      { upsert: true, new: true }
-    ).populate('user_details');
+    { user_id: req.user.user_id },
+    { 
+      student_id, 
+      section_id, 
+      status, 
+      purpose, 
+      on_queue: true,
+      created_at: new Date() 
+    },
+    { upsert: true, new: true }
+  ).populate('user_details');
 
     req.app.get('socketio').emit('new_queue_entry', queueEntry);
 
@@ -34,7 +42,7 @@ router.get('/api/queue',
       const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship?.toLowerCase();
 
-      let query = {};
+      let query = { on_queue: true };
 
       if (userRole === 'teacher') {
         const teacherSections = await Section.find({ user_id: currentUserId }).select('section_id');
@@ -51,12 +59,12 @@ router.get('/api/queue',
       const queue = await Queue.find(query)
         .populate('user_details')
         .populate({
-          path: 'student_id', // Assuming your schema links to Student
+          path: 'student_id',
           model: 'Student',
           localField: 'student_id',
           foreignField: 'student_id'
         })
-        .sort({ created_at: -1 }); // Show newest updates first
+        .sort({ created_at: -1 });
 
       res.status(200).json({ success: true, queue });
     } catch (err) {

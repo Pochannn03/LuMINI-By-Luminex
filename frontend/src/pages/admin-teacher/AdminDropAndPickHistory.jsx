@@ -221,7 +221,14 @@ export default function AdminDropAndPickHistory() {
                       </tr>
                     ))
                   ) : (
-                    <tr><td colSpan="5" className="py-10 text-center text-gray-400 italic">No transfers recorded for {monthDay}.</td></tr>
+                    <tr>
+                      <td colSpan="5" className="py-10 text-center text-gray-400 italic">
+                        <div className="flex flex-col gap-1">
+                          <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
+                          No transfers recorded for {monthDay}.
+                        </div>
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>

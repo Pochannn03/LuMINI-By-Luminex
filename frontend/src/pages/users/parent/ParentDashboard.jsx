@@ -60,14 +60,15 @@ export default function Dashboard() {
 
     try {
       setLoading(true);
-      const transferType = (childData?.status === 'Learning') ? 'Pick-up' : 'Drop-off';
+      const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
       // 2. Send to Queue Endpoint
       await axios.post('http://localhost:3000/api/queue', {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
-        type: transferType
+        purpose: transferType,
+        on_queue: true
       }, { withCredentials: true });
 
       alert(`Status updated: ${statusLabel}`);
@@ -97,10 +98,8 @@ export default function Dashboard() {
   // HANDLERS
   const handleScanButtonClick = () => {
     if (hasActivePass()) {
-      // Valid pass exists -> Open Pass Modal directly (skip camera)
       setShowPassModal(true);
     } else {
-      // No pass -> Open Camera Scanner
       setShowScanner(true);
     }
   };

@@ -103,25 +103,35 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchInitialQueue = async () => {
       try {
-          const response = await axios.get("http://localhost:3000/api/queue", { withCredentials: true });
-          if (response.data.success) {
-              setQueue(response.data.queue);
-          }
+        const response = await axios.get("http://localhost:3000/api/queue", 
+          { withCredentials: true }
+        );
+
+        if (response.data.success) {
+            setQueue(response.data.queue);
+        }
       } catch (err) {
           console.error("Failed to fetch queue:", err);
       }
     };
+
     fetchInitialQueue();
 
     // 2. Setup Socket Listener
     const socket = io("http://localhost:3000");
+    
     socket.on("new_queue_entry", (newEntry) => {
         setQueue(prevQueue => {
-            // Remove old entry from this parent if they updated their status
             const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
-            // Add the new update to the top of the list
             return [newEntry, ...filtered];
         });
+    });
+
+    socket.on("remove_queue_entry", (userId) => {
+      console.log("Removing user from UI:", userId);
+      setQueue(prevQueue => 
+        prevQueue.filter(q => Number(q.user_id) !== Number(userId))
+      );
     });
 
     return () => socket.disconnect();

@@ -224,7 +224,14 @@ export default function AdminAttendance() {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan="3" className="py-10 text-center italic text-gray-400">No records found for this date.</td></tr>
+                      <tr>
+                        <td colSpan="3" className="py-10 text-center italic text-gray-400">
+                          <div className="flex flex-col gap-1">
+                          <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
+                          No records found for {monthDay}.
+                        </div>
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
