@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthProvider';
+import { io } from "socket.io-client";
 import axios from 'axios';
 import '../../../styles/user/parent/parent-dashboard.css';
 import NavBar from "../../../components/navigation/NavBar";
@@ -14,8 +15,9 @@ export default function Dashboard() {
   // STATES
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
   const [childData, setChildData] = useState(null);
+  const [rawStudentData, setRawStudentData] = useState(null);
 
   // USEEFFECT
   useEffect(() => {
@@ -31,13 +33,14 @@ export default function Dashboard() {
 
         if (Array.isArray(childrenList) && childrenList.length > 0) {
           const firstChild = childrenList[0];
+          setRawStudentData(firstChild);
 
           setChildData({
-              firstName: firstChild.first_name,
-              lastName: firstChild.last_name,
-              profilePicture: firstChild.profile_picture,
-              sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
-              status: firstChild.status
+            firstName: firstChild.first_name,
+            lastName: firstChild.last_name,
+            profilePicture: firstChild.profile_picture,
+            sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
+            status: firstChild.status
           });
         }
       } catch (err) {
@@ -48,6 +51,33 @@ export default function Dashboard() {
     };
     fetchChild();
   }, []);
+
+  const handleStatusUpdate = async (statusLabel) => {
+    if (!rawStudentData) {
+      console.error("Student data not loaded yet");
+      return; 
+    }
+
+    try {
+      setLoading(true);
+      const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
+
+      // 2. Send to Queue Endpoint
+      await axios.post('http://localhost:3000/api/queue', {
+        student_id: rawStudentData.student_id, 
+        section_id: rawStudentData.section_id, 
+        status: statusLabel,
+        purpose: transferType,
+        on_queue: true
+      }, { withCredentials: true });
+
+      alert(`Status updated: ${statusLabel}`);
+    } catch (err) {
+      alert(err.response?.data?.msg || "Failed to join the queue");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // PASS CHECKER
   const hasActivePass = () => {
@@ -68,10 +98,8 @@ export default function Dashboard() {
   // HANDLERS
   const handleScanButtonClick = () => {
     if (hasActivePass()) {
-      // Valid pass exists -> Open Pass Modal directly (skip camera)
       setShowPassModal(true);
     } else {
-      // No pass -> Open Camera Scanner
       setShowScanner(true);
     }
   };
@@ -243,26 +271,29 @@ export default function Dashboard() {
                 <p className="text-cgray text-[14px]! leading-normal">Keep the school and parents informed about your arrival progress.</p>
               </div>
 
-              <div class="status-options-container" id="statusButtonsContainer">
-                <button class="status-option-btn status-blue">
+              <div className="status-options-container" id="statusButtonsContainer">
+                <button 
+                  className="status-option-btn status-blue" 
+                  onClick={() => handleStatusUpdate('On the Way')}
+                >
                   <span>On the Way</span>
-                  <span class="material-symbols-outlined arrow-icon"
-                    >keyboard_double_arrow_right</span
-                  >
+                  <span className="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span>
                 </button>
 
-                <button class="status-option-btn status-green">
+                <button 
+                  className="status-option-btn status-green"
+                  onClick={() => handleStatusUpdate('At School')}
+                >
                   <span>At School</span>
-                  <span class="material-symbols-outlined arrow-icon"
-                    >keyboard_double_arrow_right</span
-                  >
+                  <span className="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span>
                 </button>
 
-                <button class="status-option-btn status-red">
+                <button 
+                  className="status-option-btn status-red"
+                  onClick={() => handleStatusUpdate('Running late')}
+                >
                   <span>Running late</span>
-                  <span class="material-symbols-outlined arrow-icon"
-                    >keyboard_double_arrow_right</span
-                  >
+                  <span className="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span>
                 </button>
               </div>
 

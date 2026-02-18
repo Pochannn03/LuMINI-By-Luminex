@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { createServer } from "http";
+import { Server } from "socket.io";
 import cookieParser from "cookie-parser";
 import session from "express-session";
 import mongoose from "mongoose";
@@ -11,6 +13,18 @@ import "./config/passport.js";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
+
+// 2. Make io accessible in your routes via req.app.get('socketio')
+app.set('socketio', io);
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -48,6 +62,11 @@ app.get("/", (req, res) => {
   res.send("Server is running!");
 });
 
-app.listen(PORT, () => {
-  console.log(`Running on Port ${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server and WebSockets running on port ${PORT}`);
+});
+
+// 4. Basic connection log for debugging
+io.on('connection', (socket) => {
+  console.log(`⚡ User connected: ${socket.id}`);
 });

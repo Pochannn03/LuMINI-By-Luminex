@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
+import { io } from "socket.io-client";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
+import AdminQueueParentGuardian from "../../components/modals/admin/dashboard/AdminQueueParentGuardian"
 import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
 import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
 import AdminDashboardAttendanceSuccessModal from "../../components/modals/admin/dashboard/AdminDashboardAttendanceSuccessModal";
@@ -10,6 +12,7 @@ import "../../styles/admin-teacher/admin-dashboard.css"
 export default function AdminDashboard() {
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
+  const [queue, setQueue] = useState([]);
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -97,6 +100,43 @@ export default function AdminDashboard() {
     }
   };
 
+  useEffect(() => {
+    const fetchInitialQueue = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/queue", 
+          { withCredentials: true }
+        );
+
+        if (response.data.success) {
+            setQueue(response.data.queue);
+        }
+      } catch (err) {
+          console.error("Failed to fetch queue:", err);
+      }
+    };
+
+    fetchInitialQueue();
+
+    // 2. Setup Socket Listener
+    const socket = io("http://localhost:3000");
+    
+    socket.on("new_queue_entry", (newEntry) => {
+        setQueue(prevQueue => {
+            const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
+            return [newEntry, ...filtered];
+        });
+    });
+
+    socket.on("remove_queue_entry", (userId) => {
+      console.log("Removing user from UI:", userId);
+      setQueue(prevQueue => 
+        prevQueue.filter(q => Number(q.user_id) !== Number(userId))
+      );
+    });
+
+    return () => socket.disconnect();
+  }, []);
+
   const handleCloseScanner = () => {
     setActiveScanMode(null);
   };
@@ -127,7 +167,19 @@ export default function AdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-4" id="queueContainer">
-              <p className="text-[#94a3b8] p-5 text-center">Loading queue...</p>
+              {queue.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 opacity-60">
+                  <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
+                  <p className="text-[#94a3b8] text-center">No parents in the queue.</p>
+                </div>
+              ) : (
+                queue.map((item) => (
+                  <AdminQueueParentGuardian 
+                    key={item._id} 
+                    item={item} 
+                  />
+                ))
+              )}
             </div>
           </div>
 

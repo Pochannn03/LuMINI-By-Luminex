@@ -9,6 +9,7 @@ import usersRoutes from "./users.js";
 import passesRoutes from "./passes.js";
 import attendancesRoutes from "./attendances.js";
 import transfersRoutes from "./transfers.js";
+import queueRoutes from "./queues.js"
 
 
 const router = Router();
@@ -23,6 +24,8 @@ router.use(usersRoutes);
 router.use(passesRoutes);
 router.use(attendancesRoutes);
 router.use(transfersRoutes);
+router.use(queueRoutes);
+
 
 
 

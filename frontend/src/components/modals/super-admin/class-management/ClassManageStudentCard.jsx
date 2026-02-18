@@ -32,7 +32,7 @@ export default function ClassManageStudentCard({ std, onView, onEdit }) {
             </div>
             <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
                 <span className="material-symbols-outlined text-[14px]!">class</span>
-                <span>{std.section_id?.section_name || 'Unassigned'}</span>
+                <span>{std.section_details?.section_name || 'Unassigned'}</span>
             </div>
         </div>
     </div>

@@ -3,6 +3,7 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
+import { Queue } from "../models/queues.js";
 
 const router = Router();
 
@@ -76,58 +77,77 @@ router.post('/api/transfer',
     const userRole = req.user.relationship?.toLowerCase();
 
     try {
-        if (userRole === 'teacher') {
-            const isAuthorized = await Section.findOne({ 
-                section_id: Number(sectionId), 
-                user_id: currentUserId 
-            });
-            if (!isAuthorized) {
-                return res.status(403).json({ error: "Unauthorized: Not your assigned section." });
-            }
-        }
+      if (userRole === 'teacher') {
+          const isAuthorized = await Section.findOne({ 
+              section_id: Number(sectionId), 
+              user_id: currentUserId 
+          });
+          if (!isAuthorized) {
+              return res.status(403).json({ error: "Unauthorized: Not your assigned section." });
+          }
+      }
 
-        const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      const queueCheck = await Queue.findOne({
+          user_id: guardianId,
+          student_id: studentId,
+          on_queue: true
+      });
 
-        const duplicateCheck = await Transfer.findOne({
-            student_id: studentId,
-            date: todayDate,
-            purpose: purpose
-        });
+      if (!queueCheck) {
+          return res.status(400).json({ 
+              error: "Authorization Denied: Guardian has not initiated arrival status (Not on Queue)." 
+          });
+      }
 
-        if (duplicateCheck) {
-            return res.status(400).json({ 
-                error: `Duplicate Entry: This student has already been recorded for ${purpose} today.` 
-            });
-        }
+      const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-        const newTransfer = new Transfer({
-            student_id: studentId,
-            student_name: studentName,
-            section_id: sectionId,
-            section_name: sectionName,
-            user_id: guardianId,
-            user_name: guardianName,
-            purpose: purpose,
-            date: todayDate,
-            time: new Date().toLocaleTimeString('en-US', { 
-                hour: 'numeric', minute: '2-digit', hour12: true 
-            }),
-        });
+      const duplicateCheck = await Transfer.findOne({
+          student_id: studentId,
+          date: todayDate,
+          purpose: purpose
+      });
 
-        await newTransfer.save();
+      if (duplicateCheck) {
+          return res.status(400).json({ 
+              error: `Duplicate Entry: This student has already been recorded for ${purpose} today.` 
+          });
+      }
 
-        const newStatus = purpose === 'Drop off' ? 'Learning' : 'Dismissed';
+      const newTransfer = new Transfer({
+          student_id: studentId,
+          student_name: studentName,
+          section_id: sectionId,
+          section_name: sectionName,
+          user_id: guardianId,
+          user_name: guardianName,
+          purpose: purpose,
+          date: todayDate,
+          time: new Date().toLocaleTimeString('en-US', { 
+              hour: 'numeric', minute: '2-digit', hour12: true 
+          }),
+      });
 
-        await Student.findOneAndUpdate(
-            { student_id: studentId },
-            { status: newStatus },
-            { new: true }
-        );
-        
-        return res.status(200).json({ 
-            success: true, 
-            message: `${studentName} successfully recorded for ${purpose}!` 
-        });
+      await newTransfer.save();
+
+      const newStatus = purpose === 'Drop off' ? 'Learning' : 'Dismissed';
+
+      await Student.findOneAndUpdate(
+          { student_id: studentId },
+          { status: newStatus },
+          { new: true }
+      );
+
+      await Queue.findOneAndUpdate(
+          { user_id: Number(guardianId), student_id: studentId },
+          { on_queue: false }
+      );
+
+      req.app.get('socketio').emit('remove_queue_entry', Number(guardianId));
+      
+      return res.status(200).json({ 
+          success: true, 
+          message: `${studentName} successfully recorded for ${purpose}!` 
+      });
         
     } catch (error) {
         console.error("❌ Transfer Error:", error.message);
