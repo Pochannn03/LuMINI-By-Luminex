@@ -14,6 +14,12 @@ router.post("/api/auth", (req, res, next) => {
       return res.status(401).json({ message: "Invalid Credentials" });
     }
 
+    // --- THE NEW FIX: CHECK IF ACCOUNT IS REVOKED/ARCHIVED ---
+    if (user.is_archive === true) {
+      return res.status(403).json({ message: "This account has been revoked or archived. Access denied." });
+    }
+    // ---------------------------------------------------------
+
     req.logIn(user, (err) => {
       if (err) {
         console.error("Login Session Error:", err);
@@ -34,7 +40,8 @@ router.post("/api/auth", (req, res, next) => {
           user_id: user.user_id || req.user.user_id,
           firstName: user.first_name || req.user.first_name, 
           lastName: user.last_name || req.user.last_name,
-          is_first_login: user.is_first_login !== undefined ? user.is_first_login : true // <-- NEW FLAG
+          is_first_login: user.is_first_login !== undefined ? user.is_first_login : true, // <-- NEW FLAG
+          profile_picture: user.profile_picture || req.user?.profile_picture
         };
 
         return res.status(200).json({

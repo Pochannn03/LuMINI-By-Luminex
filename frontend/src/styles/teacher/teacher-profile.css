@@ -61,7 +61,6 @@ a.nav-item {
   display: flex;
   align-items: flex-end;
   gap: 24px;
-  /* CHANGED: -50px -> -30px (Pushes everything down by 20px) */
   margin-top: -30px;
 }
 
@@ -105,8 +104,10 @@ a.nav-item {
 .profile-text {
   flex: 1;
   margin-bottom: 10px;
-  /* ADDED: Extra breathing room at the top just in case */
   padding-top: 10px;
+  /* Ensure desktop stays left-aligned */
+  display: block; 
+  text-align: left; 
 }
 
 .profile-text h1 {
@@ -123,21 +124,6 @@ a.nav-item {
 
 .profile-actions {
   margin-bottom: 15px;
-}
-
-@media (max-width: 768px) {
-  .profile-details-row {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    margin-top: -60px;
-  }
-  .profile-actions {
-    width: 100%;
-  }
-  .profile-actions .btn {
-    width: 100%;
-  }
 }
 
 /* =========================================
@@ -207,6 +193,8 @@ a.nav-item {
   display: flex;
   align-items: center;
   width: 100%;
+  max-width: 100%; /* Force it to stay inside the parent */
+  box-sizing: border-box; /* Apply to wrapper too */
 }
 
 .input-wrapper .icon {
@@ -222,6 +210,8 @@ a.nav-item {
 
 .input-wrapper input {
   width: 100%;
+  max-width: 100%; /* Stop it from bleeding out */
+  box-sizing: border-box !important; /* Force the browser to respect padding limits */
   padding: 12px 16px 12px 48px !important; /* Space for icon */
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -253,7 +243,7 @@ a.nav-item {
   color: #ef4444;
   border: 2px solid #fee2e2;
   width: 100%;
-  margin-top: 0; /* Adjusted since it's the only item now */
+  margin-top: 0; 
   font-weight: 600;
   transition: all 0.2s ease;
 }
@@ -267,84 +257,121 @@ a.nav-item {
 }
 
 /* =========================================
-   5. RIGHT COLUMN STATS WIDGET
+   5. CLASSROOM LIST WIDGET
    ========================================= */
 
-.stats-grid {
+.classroom-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.mini-stat-box {
+.classroom-list-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border-radius: 16px;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: 14px;
   background: #f8fafc;
   border: 1px solid #f1f5f9;
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
 }
 
-.mini-stat-box:hover {
+.classroom-list-item:hover {
   background: #ffffff;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
   border-color: #e2e8f0;
   transform: translateY(-2px);
 }
 
-/* Icon Backgrounds */
-.stat-icon-bg {
-  width: 48px;
-  height: 48px;
+.classroom-info-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Re-using your nice blue/orange aesthetic for the icons */
+.classroom-icon {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+.classroom-icon.blue { background: #e0f2fe; color: #0284c7; }
+.classroom-icon.orange { background: #ffedd5; color: #ea580c; }
+.classroom-icon.green { background: #dcfce7; color: #16a34a; }
 
-.stat-icon-bg span {
+.classroom-icon span {
   font-size: 24px;
 }
 
-.stat-icon-bg.blue {
-  background: #e0f2fe;
-  color: #0284c7;
-}
-.stat-icon-bg.orange {
-  background: #ffedd5;
-  color: #ea580c;
-}
-.stat-icon-bg.green {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-/* Text Styling */
-.stat-text {
+.classroom-details {
   display: flex;
   flex-direction: column;
 }
-.stat-value {
-  font-size: 18px;
+
+.classroom-details h4 {
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-dark);
-  line-height: 1.2;
+  margin: 0 0 4px 0;
 }
-.stat-label {
-  font-size: 12px;
-  font-weight: 500;
+
+.classroom-details p {
+  font-size: 11.5px;
   color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inline-icon {
+  font-size: 14px !important;
+  color: #94a3b8;
+}
+
+.bullet-divider {
+  margin: 0 4px;
+  color: #cbd5e1;
+}
+
+/* The Eye Icon Button */
+.btn-view-class {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view-class:hover {
+  background: var(--primary-blue);
+  color: white;
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 10px rgba(57, 168, 237, 0.25);
+  transform: scale(1.05);
+}
+
+.btn-view-class span {
+  font-size: 20px;
 }
 
 /* Add top margin to push content below the fixed Header */
 .main-content {
-  margin-top: 80px; /* Adjust this value if your header is taller or shorter */
-  padding: 20px; /* Add some padding around the content */
-  min-height: calc(100vh - 80px); /* Ensure it takes up the full height */
+  margin-top: 80px; 
+  padding: 20px; 
+  min-height: calc(100vh - 80px); 
   box-sizing: border-box;
-  background-color: #f8fafc; /* Match your dashboard background color */
+  background-color: #f8fafc; 
 }
 
 /* --- NEW BUTTON STYLES --- */
@@ -352,6 +379,108 @@ a.nav-item {
 /* Wrapper for the buttons to sit side-by-side */
 .action-buttons-wrapper {
   display: flex;
-  gap: 12px; /* Adds space between Save and Cancel */
+  gap: 12px; 
   align-items: center;
+}
+
+/* =========================================
+   ADDRESS SPLIT & ANIMATIONS
+   ========================================= */
+.address-container {
+  overflow: hidden;
+}
+
+/* The grid that holds the 5 split inputs */
+.address-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+  width: 100%; /* Ensure it doesn't stretch past the container */
+  box-sizing: border-box; /* Calculate the gap inside the 100% width */
+}
+
+/* Make Zip Code span the whole bottom row */
+.address-edit-grid .full-width {
+  grid-column: span 2;
+}
+
+/* The Modern "Poof" Slide & Fade Animation */
+@keyframes modernPoof {
+  0% {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-poof {
+  animation: modernPoof 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: top center;
+}
+
+/* Remove icon padding override for split fields since they have no icons */
+.address-edit-grid .input-wrapper input {
+  padding-left: 16px !important; 
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS (Center Profile)
+   ========================================= */
+@media (max-width: 768px) {
+  .profile-details-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -60px; 
+    padding: 0 20px 24px 20px;
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .avatar-upload-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%; 
+  }
+
+  .large-avatar {
+    margin: 0 auto !important; 
+  }
+
+  /* THIS MUST BE INSIDE THE @MEDIA BLOCK */
+  .profile-text {
+    padding-top: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers the text horizontally */
+    text-align: center;
+  }
+
+  .profile-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .profile-actions .btn {
+    width: 100%;
+  }
+
+  .action-buttons-wrapper {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .address-edit-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .address-edit-grid .full-width {
+    grid-column: span 1 !important;
+  }
 }
