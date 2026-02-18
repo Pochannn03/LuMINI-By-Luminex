@@ -7,7 +7,7 @@ import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/Admi
 import AdminDashboardAttendanceSuccessModal from "../../components/modals/admin/dashboard/AdminDashboardAttendanceSuccessModal";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
-export default function SuperAdminDashboard() {
+export default function AdminDashboard() {
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
 
@@ -87,7 +87,6 @@ export default function SuperAdminDashboard() {
         setScannedData(null);
       }
     } catch (err) {
-      // Improved error logging to see exactly what the server says
       const serverMessage = err.response?.data?.error || err.message;
       console.error("Authorization Error:", serverMessage);
       alert("Authorization Failed: " + serverMessage);

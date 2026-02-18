@@ -36,7 +36,6 @@ export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode
         console.log(`Scanned (${scanMode}):`, rawValue);
         setIsScanning(false);
         
-        // 2. Call the parent function (The one defined in Dashboard)
         if (onScan) {
             onScan(rawValue);
         }
