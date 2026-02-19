@@ -19,4 +19,9 @@ export const updateStudentValidationSchema = {
   age: {
     optional: true,
   },
+  gender: {
+    notEmpty: { 
+      errorMessage: "Gender is required" 
+    },
+  },
 };

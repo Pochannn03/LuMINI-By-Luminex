@@ -15,6 +15,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
     lastName: '',
     birthdate: '', // Validator expects 'birthdate'
     age: '',
+    gender: '',
     studentId: '', 
     invitationCode: '', // Included to satisfy validator structure if needed
   });
@@ -31,6 +32,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         firstName: std.first_name || '',
         lastName: std.last_name || '',
         birthdate: formattedBday,
+        gender: std.gender || '',
         age: std.age || calculateAge(formattedBday),
         studentId: std.student_id || 'No ID Assigned',
         invitationCode: std.invitation_code || '',
@@ -104,6 +106,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('last_name', formData.lastName);
       data.append('birthday', formData.birthdate);
       data.append('age', formData.age);
+      data.append('gender', formData.gender);
       data.append('allergies', formData.allergies);
       data.append('medical_history', formData.medical_history);
 
@@ -182,6 +185,30 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                   className="form-input-modal w-full"
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-cgray text-[13px] font-medium">Gender</label>
+                <div className="relative w-full">
+                  <select 
+                    name="gender" 
+                    value={formData.gender}
+                    onChange={handleChange} 
+                    className={`form-input-modal w-full bg-white h-[42px] appearance-none pr-10 ${
+                      errors.gender ? 'border-red-500! bg-red-50' : ''
+                    }`}
+                  >
+                    <option value="" disabled>Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    expand_more
+                  </span>
+                </div>
+
+                {errors.gender && (
+                  <span className="text-red-500 text-[11px] ml-1">{errors.gender}</span>
+                )}
+              </div>
             </div>
 
             <div className="flex flex-col gap-2">
@@ -235,7 +262,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                 className="form-input-modal"
               />
             </div>
- 
           </div>
 
           <div className="modal-footer">
