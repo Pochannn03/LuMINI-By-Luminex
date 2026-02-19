@@ -26,6 +26,8 @@ export default function AdminAttendance() {
   const [activeMode, setActiveMode] = useState("Standard Operation");
   const [selectedAction, setSelectedAction] = useState("dropoff");
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef(null);
   const dateInputRef = useRef(null);
 
   // --- 1. FETCH DATA FROM DB ---
@@ -55,6 +57,16 @@ export default function AdminAttendance() {
 
     fetchAttendance();
   }, [currentDate]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // --- 2. FILTER & STATS CALCULATION ---
   const filteredRecords = React.useMemo(() => {
@@ -124,20 +136,36 @@ export default function AdminAttendance() {
 
                 <div className="flex flex-wrap items-center gap-3">
                   {/* SECTION FILTER */}
-                  <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
-                    <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">filter_alt</span>
-                    <select 
-                      value={selectedSection}
-                      onChange={(e) => setSelectedSection(e.target.value)}
-                      className="bg-transparent text-[12px] font-bold text-cdark uppercase outline-none cursor-pointer"
+                  <div className="filter-wrapper" ref={filterRef}>
+                    <button 
+                      className={`btn-filter ${isFilterOpen ? "active" : ""}`} 
+                      onClick={() => setIsFilterOpen(!isFilterOpen)}
+                      style={{ height: '38px', textTransform: 'uppercase', fontSize: '12px' }}
                     >
-                      <option value="all">All Sections</option>
-                      {teacherSections.map(section => (
-                        <option key={section._id} value={section.section_name}>
-                          {section.section_name}
-                        </option>
-                      ))}
-                    </select>
+                      <span className="material-symbols-outlined">filter_list</span> 
+                      {selectedSection === "all" ? "All Sections" : selectedSection}
+                    </button>
+
+                    {isFilterOpen && (
+                      <div className="filter-dropdown-menu" style={{ top: '42px', right: 0 }}>
+                        <button 
+                          className="filter-option" 
+                          onClick={() => { setSelectedSection("all"); setIsFilterOpen(false); }}
+                        >
+                          <span className="material-symbols-outlined">groups</span> All Sections
+                        </button>
+                        
+                        {teacherSections.map(section => (
+                          <button 
+                            key={section._id} 
+                            className="filter-option" 
+                            onClick={() => { setSelectedSection(section.section_name); setIsFilterOpen(false); }}
+                          >
+                            <span className="material-symbols-outlined">inbox</span> {section.section_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* SHRUNK DATE NAVIGATOR */}
