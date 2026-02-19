@@ -318,7 +318,7 @@ export default function Dashboard() {
                 disabled={isScanDisabled}
               >
                 {childData?.status === 'Dismissed' 
-                  ? 'Process Complete' 
+                  ? 'Student Dismissed' 
                   : !isParentOnQueue 
                     ? 'Update Status to Start' 
                     : `Scan for ${actionType}`}

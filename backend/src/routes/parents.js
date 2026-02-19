@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { createUserValidationSchema } from "../validation/userValidation.js";
+import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { validationResult, body, matchedData, checkSchema } from "express-validator";
 import { Attendance } from "../models/attendances.js";
 import { User } from "../models/users.js";
@@ -27,30 +28,6 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
-
-const resetDailyStudentStatus = async (userId, todayDate) => {
-  try {
-    const result = await Student.updateMany(
-      { 
-        user_id: userId, 
-        is_archive: false, 
-        last_reset_date: { $ne: todayDate }
-      }, 
-      { 
-        $set: { 
-          status: 'On the way', 
-          on_queue: false,
-          last_reset_date: todayDate 
-        } 
-      }
-    );
-    if (result.modifiedCount > 0) {
-      console.log(`✅ Reset ${result.modifiedCount} students for User ${userId}`);
-    }
-  } catch (error) {
-    console.error("❌ Individual Reset Failed:", error.message);
-  }
-};
 
 // PARENT REGISTRATION
 // STUDENT CODE VERIFICATION (PHASE I)
@@ -184,30 +161,39 @@ router.get("/api/user-checking", async (req, res) => {
 
 // GET /api/parent/children
 // Description: Get all students linked to the logged-in parent
-router.get("/api/parent/children", async (req, res) => {
-  try {
-    const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-    const alreadyReset = await Attendance.exists({ date: todayDate });
+router.get("/api/parent/children", 
+  isAuthenticated,
+  hasRole('user'),
+  async (req, res) => {
+    try {
+      const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-    if (!alreadyReset) {
-      await resetDailyStudentStatus();
-    }
+      // 1. Perform the reset for this specific parent's children ONLY
+      // This targets students who haven't been reset yet today
+      await Student.updateMany(
+        { 
+          user_id: req.user.user_id, 
+          is_archive: false, 
+          last_reset_date: { $ne: todayDate } 
+        },
+        { 
+          $set: { 
+            status: 'On the way', 
+            last_reset_date: todayDate 
+          } 
+        }
+      );
 
-    if (!req.isAuthenticated() || !req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const children = await Student.find({ user_id: req.user.user_id }).populate(
-      {
+    // 2. Now fetch the updated data
+      const children = await Student.find({ user_id: req.user.user_id }).populate({
         path: "section_details",
         populate: {
           path: "user_details",
           select: "first_name last_name email phone_number",
         },
-      },
-    );
+      });
 
-    res.status(200).json(children);
+      res.status(200).json(children);
   } catch (err) {
     console.error("Error fetching children:", err);
     res.status(500).json({ message: "Server error fetching children" });
