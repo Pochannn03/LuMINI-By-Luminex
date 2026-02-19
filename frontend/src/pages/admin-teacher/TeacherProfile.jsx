@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import AvatarEditor from "react-avatar-editor";
 import axios from "axios";
+import { useAuth } from "../../context/AuthProvider"; // Adjust path if needed
 import { useNavigate } from "react-router-dom";
 import "../../styles/teacher/teacher-profile.css";
 import "../../styles/teacher/class-list-modal.css";
@@ -11,6 +12,7 @@ import ClassListModal from "../../components/modals/admin/ClassListModal";
 
 export default function TeacherProfile() {
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -107,6 +109,10 @@ export default function TeacherProfile() {
         const response = await axios.get("http://localhost:3000/api/user/profile", {
           withCredentials: true,
         });
+        // --- NEW: Tell the Header to update its picture! ---
+      if (response.data.user?.profile_picture) {
+         updateUser({ profile_picture: response.data.user.profile_picture });
+      }
         setFormData(response.data);
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -237,6 +243,11 @@ export default function TeacherProfile() {
         payload,
         axiosConfig 
       );
+
+      // --- THE MAGIC FIX: Instantly update the Header without refreshing! ---
+      if (response.data.user?.profile_picture) {
+        updateUser({ profile_picture: response.data.user.profile_picture });
+      }
 
       setFormData((prev) => ({ 
         ...prev, 

@@ -1,15 +1,22 @@
 // frontend/src/pages/users/parent/ParentProfile.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import AvatarEditor from "react-avatar-editor";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "../../../styles/user/parent/parent-profile.css";
 import NavBar from "../../../components/navigation/NavBar";
 import SuccessModal from "../../../components/SuccessModal";
+// --- NEW: Import the Auth Context ---
+import { useAuth } from "../../../context/AuthProvider"; 
+
 const BACKEND_URL = "http://localhost:3000";
 
 export default function ParentProfile() {
   const navigate = useNavigate();
+  // --- NEW: Grab the global update function ---
+  const { updateUser } = useAuth(); 
+
   const [loading, setLoading] = useState(true);
 
   // States
@@ -17,6 +24,17 @@ export default function ParentProfile() {
   const [children, setChildren] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // --- NEW: Profile Picture & Cropper States ---
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  
+  // Cropper specific states
+  const editorRef = useRef(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImage, setTempImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
 
   // Student Modal State
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -46,35 +64,97 @@ export default function ParentProfile() {
     fetchData();
   }, []);
 
+  // --- NEW: Image Handlers ---
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file); 
+      setTempImage(imageUrl);
+      setShowCropModal(true); 
+      setZoom(1); 
+    }
+    e.target.value = null; 
+  };
+
+  const handleCropSave = () => {
+    if (editorRef.current) {
+      const canvas = editorRef.current.getImageScaledToCanvas();
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "profile_photo.jpg", { type: "image/jpeg" });
+          setSelectedImageFile(croppedFile);
+          setPreviewImage(URL.createObjectURL(croppedFile));
+          setShowCropModal(false);
+          setTempImage(null);
+        }
+      }, "image/jpeg", 0.95);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (!isEditing) {
+      setIsLightboxOpen(true);
+    }
+  };
+
+  // --- UPDATED: Save Handler to support FormData (Images) ---
   const handleSave = async () => {
     try {
-      await axios.put(
-        `${BACKEND_URL}/api/user/profile`,
-        {
+      let payload;
+      let axiosConfig = { withCredentials: true };
+
+      if (selectedImageFile) {
+        payload = new FormData();
+        payload.append("phone_number", formData.phone_number);
+        payload.append("address", formData.address);
+        payload.append("email", formData.email);
+        payload.append("profile_picture", selectedImageFile); 
+      } else {
+        payload = {
           phone_number: formData.phone_number,
           address: formData.address,
           email: formData.email,
-        },
-        { withCredentials: true },
+        };
+      }
+
+      const response = await axios.put(
+        `${BACKEND_URL}/api/user/profile`,
+        payload,
+        axiosConfig
       );
+
+      // --- THE MAGIC FIX: Instantly update the Header without refreshing! ---
+      if (response.data.user?.profile_picture) {
+        updateUser({ profile_picture: response.data.user.profile_picture });
+      }
+      
+      // Update form data with the new picture path from backend if it exists
+      setFormData((prev) => ({ 
+        ...prev, 
+        profile_picture: response.data?.user?.profile_picture || prev.profile_picture 
+      }));
+
       setShowSuccessModal(true);
       setIsEditing(false);
+      setSelectedImageFile(null);
+      setPreviewImage(null);
     } catch (err) {
-      alert("Failed to save.");
+      console.error("Save error:", err);
+      alert(err.response?.data?.message || "Failed to save changes.");
     }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setSelectedImageFile(null);
+    setPreviewImage(null); // Revert image to original
   };
 
   // Helper to format image URLs correctly
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150";
-
-    // 1. If it's already a full web URL (e.g., Google or Cloudinary), use it as is.
     if (path.startsWith("http")) return path;
-
-    // 2. Windows Fix: Replace backslashes (\) with forward slashes (/)
     const cleanPath = path.replace(/\\/g, "/");
-
-    // 3. Combine with Backend URL
     return `${BACKEND_URL}/${cleanPath}`;
   };
 
@@ -86,7 +166,7 @@ export default function ParentProfile() {
     );
 
   return (
-    <div className="dashboard-wrapper">
+    <div className="dashboard-wrapper hero-bg">
       <NavBar />
       <SuccessModal
         isOpen={showSuccessModal}
@@ -94,19 +174,133 @@ export default function ParentProfile() {
         message="Profile updated successfully!"
       />
 
+      {/* --- NEW: FULLSCREEN LIGHTBOX --- */}
+      {isLightboxOpen && (
+        <div 
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out'
+          }}
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <img 
+            src={previewImage || getImageUrl(formData.profile_picture)} 
+            alt="Fullscreen Profile" 
+            style={{ width: '400px', height: '400px', objectFit: 'cover', borderRadius: '50%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '6px solid white' }} 
+          />
+          <button 
+            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
+
+      {/* --- NEW: CROPPER MODAL --- */}
+      {showCropModal && (
+        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
+          <div className="modal-card" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>
+              Adjust Profile Picture
+            </h3>
+            
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+              <AvatarEditor
+                ref={editorRef}
+                image={tempImage}
+                width={220}
+                height={220}
+                border={20}
+                borderRadius={110}
+                color={[15, 23, 42, 0.6]}
+                scale={zoom}
+                rotate={0}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.01" 
+                value={zoom} 
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }}
+              />
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button 
+                type="button"
+                className="btn btn-cancel" 
+                style={{ flex: 1, height: '44px', borderRadius: '10px', cursor: 'pointer' }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCropModal(false);
+                  setTempImage(null);
+                  if (document.getElementById('profile-upload')) {
+                    document.getElementById('profile-upload').value = '';
+                  }
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="btn btn-save" 
+                style={{ flex: 1, height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCropSave();
+                }}
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="main-content">
         <div className="profile-container">
           {/* HEADER */}
           <div className="profile-header-card">
             <div className="profile-cover"></div>
             <div className="profile-details-row">
+              
+              {/* --- UPDATED: AVATAR WITH CAMERA OVERLAY --- */}
               <div className="avatar-upload-wrapper">
                 <img
-                  src={getImageUrl(formData.profile_picture)}
+                  src={previewImage || getImageUrl(formData.profile_picture)}
                   className="large-avatar"
                   alt="Profile"
+                  onClick={handleAvatarClick}
+                  style={{ cursor: isEditing ? 'default' : 'zoom-in', transition: 'transform 0.2s' }}
+                  onMouseOver={(e) => { if(!isEditing) e.currentTarget.style.transform = 'scale(1.02)' }}
+                  onMouseOut={(e) => { if(!isEditing) e.currentTarget.style.transform = 'scale(1)' }}
                 />
+                
+                {/* Show Camera Button ONLY when Edit is clicked */}
+                {isEditing && (
+                  <>
+                    <label htmlFor="profile-upload" className="camera-btn" style={{ position: 'absolute', bottom: '5px', right: '5px', cursor: 'pointer', background: '#1e293b', color: 'white', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>photo_camera</span>
+                    </label>
+                    <input
+                      id="profile-upload"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleImageSelect}
+                    />
+                  </>
+                )}
               </div>
+
               <div className="profile-text">
                 <h1>
                   {formData.first_name} {formData.last_name}
@@ -132,7 +326,7 @@ export default function ParentProfile() {
                     </button>
                     <button
                       className="btn btn-cancel"
-                      onClick={() => setIsEditing(false)}
+                      onClick={handleCancel}
                     >
                       <span className="material-symbols-outlined">close</span>{" "}
                       Cancel
@@ -155,18 +349,32 @@ export default function ParentProfile() {
                 </h3>
               </div>
               <form className="profile-form">
-                <div className="form-group">
-                  <label>Full Name</label>
-                  <div className="input-wrapper">
-                    <span className="material-symbols-outlined icon">
-                      person
-                    </span>
-                    <input
-                      type="text"
-                      value={`${formData.first_name} ${formData.last_name}`}
-                      readOnly
-                      style={{ opacity: 0.7 }}
-                    />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                  <div className="form-group">
+                    <label>First Name</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">person</span>
+                      <input
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name || ""}
+                        readOnly
+                        style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Last Name</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">person</span>
+                      <input
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name || ""}
+                        readOnly
+                        style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="form-group">

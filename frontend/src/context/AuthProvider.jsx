@@ -48,8 +48,14 @@ export default function AuthProvider({ children }) {
     }
   };
 
+  // --- NEW: Function to instantly update user data across the whole app! ---
+  const updateUser = (newUserData) => {
+    setUser((prevUser) => ({ ...prevUser, ...newUserData }));
+  };
+
+  // --- UPDATED: Added updateUser to the Provider value ---
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );
