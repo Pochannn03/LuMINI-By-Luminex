@@ -15,6 +15,18 @@ router.post('/api/queue',
   const { student_id, section_id, status, purpose } = req.body;
 
   try {
+    const student = await Student.findOne({ student_id: student_id });
+
+    if (!student) {
+      return res.status(404).json({ msg: "Student not found" });
+    }
+
+    if (student.status === 'Dismissed') {
+      return res.status(403).json({ 
+        msg: "Cannot join queue: Student has already been dismissed for the day." 
+      });
+    }
+
     const queueEntry = await Queue.findOneAndUpdate(
     { user_id: req.user.user_id },
     { 
