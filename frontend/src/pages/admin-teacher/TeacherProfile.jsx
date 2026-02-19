@@ -5,6 +5,7 @@ import "../../styles/teacher/teacher-profile.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
+import ClassListModal from "../../components/modals/admin/ClassListModal";
 
 export default function TeacherProfile() {
   const navigate = useNavigate();
@@ -18,10 +19,15 @@ export default function TeacherProfile() {
   const [previewImage, setPreviewImage] = useState(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
+
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalSections: 0,
   });
+
+  const [sections, setSections] = useState([]);
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -72,6 +78,7 @@ export default function TeacherProfile() {
             totalStudents: response.data.totalStudents || 0,
             totalSections: response.data.totalSections || 0,
           });
+          setSections(response.data.sections || []);
         }
       } catch (err) {
         console.error("Error fetching teacher stats:", err);
@@ -198,6 +205,12 @@ export default function TeacherProfile() {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         message="Profile information updated successfully!"
+      />
+
+      <ClassListModal 
+        isOpen={isClassModalOpen} 
+        onClose={() => setIsClassModalOpen(false)} 
+        section={selectedClass} 
       />
 
       {/* --- NEW: FULLSCREEN LIGHTBOX --- */}
@@ -474,10 +487,7 @@ export default function TeacherProfile() {
                 
                 {/* --- NEW SIMPLIFIED CLASSROOM LIST UI --- */}
                 <div className="classroom-list">
-                  {[
-                    { id: 1, name: "Sampaguita", time: "8:00 AM - 12:00 PM", color: "blue" },
-                    { id: 2, name: "Rizal", time: "1:00 PM - 5:00 PM", color: "orange" },
-                  ].map((section) => (
+                  {sections.map((section) => (
                     <div key={section.id} className="classroom-list-item">
                       
                       {/* LEFT SIDE: Icon and Info */}
@@ -500,7 +510,10 @@ export default function TeacherProfile() {
                       <button 
                         className="btn-view-class" 
                         title="View Section"
-                        onClick={() => alert(`Navigating to ${section.name} module...`)}
+                        onClick={() => {
+                          setSelectedClass(section); // Save the clicked section data
+                          setIsClassModalOpen(true); // Open the modal
+                        }}
                       >
                         <span className="material-symbols-outlined">visibility</span>
                       </button>

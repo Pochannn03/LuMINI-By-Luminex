@@ -275,75 +275,50 @@ router.get('/api/students/invitation',
     }
 });
 
-// GET TOTAL STUDENTS OF TEACHER
+// GET TOTAL STUDENTS OF TEACHER (AND SECTION DETAILS)
 router.get("/api/students/teacher/totalStudents", 
   isAuthenticated, 
   hasRole('admin'),
   async (req, res) => { 
     
     try {
-        // 2. Get the current logged-in teacher's ID
-        // CRITICAL: Ensure this is a Number to match your database schema (user_id: 2)
         const teacherId = Number(req.user.user_id); 
 
-        // 3. Find ONLY sections where user_id matches the current teacher
-        const sections = await Section.find({ user_id: teacherId });
+        // Find sections and populate the virtual 'student_details' to get the actual student info
+        const sections = await Section.find({ user_id: teacherId })
+                                      .populate('student_details'); 
 
-        // 4. Calculate Total Sections (Count of documents found)
-        const totalSections = sections.length;
+        let totalStudents = 0;
+        const colors = ["blue", "orange", "green"]; // UI colors to cycle through
 
-        // 5. Calculate Total Students (Sum of all student_id arrays)
-        const totalStudents = sections.reduce((total, section) => {
-            // Use ?.length to safely handle sections with no students (undefined)
-            return total + (section.student_id?.length || 0);
-        }, 0);
+        // Format the data exactly how our React frontend expects it
+        const formattedSections = sections.map((section, index) => {
+            const studentsList = section.student_details || [];
+            totalStudents += studentsList.length;
 
-        // 6. Return the data
+            return {
+                id: section.section_id || section._id,
+                name: section.section_name,
+                time: section.class_schedule,
+                color: colors[index % colors.length], // Assigns a rotating color
+                students: studentsList.map(student => ({
+                    id: student.student_id, // e.g., "2026-0001"
+                    name: `${student.last_name}, ${student.first_name}` // e.g., "Alvarez, Juan"
+                }))
+            };
+        });
+
         res.status(200).json({
             success: true,
             teacherId: teacherId,
-            totalSections: totalSections,
-            totalStudents: totalStudents
+            totalSections: sections.length,
+            totalStudents: totalStudents,
+            sections: formattedSections // <-- THE NEW DATA!
         });
 
     } catch (error) {
         console.error("Error fetching teacher totals:", error);
         res.status(500).json({ error: "Server Error" });
-    }
-});
-
-// GETTING THE INFORMATION OF A STUDENT AND PASS TO PARENT/GUARDIAN DASHBOARD
-router.get('/api/student/parentDashboard',
-  isAuthenticated,
-  hasRole('user'), 
-  async (req, res) => {
-    try {
-      const parentCustomId = req.user.user_id; 
-      // 2. Find the student who has this parent's ID in their 'user_id' array
-      // Mongoose automatically checks if the value exists in the array
-      const child = await Student.findOne({ user_id: parentCustomId })
-                                 .populate({ path: 'section_details', select: 'section_name class_schedule' })
-      const sectionInfo = child.section_details;
-
-      if (!child) {
-        return res.status(404).json({ message: "No student found for this parent." });
-      }
-
-      // 3. Send the child's data
-      res.json({
-        success: true,
-        child: {
-          firstName: child.first_name,
-          lastName: child.last_name,
-          sectionName: sectionInfo ? sectionInfo.section_name : "Not Assigned",
-          profilePicture: child.profile_picture,
-          // Add any other fields you need for the dashboard
-        }
-      });
-
-    } catch (error) {
-      console.error("Error fetching child:", error);
-      res.status(500).json({ message: "Server error" });
     }
 });
 
