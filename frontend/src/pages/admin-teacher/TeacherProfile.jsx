@@ -16,7 +16,7 @@ export default function TeacherProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-// --- NEW: Profile Picture & Cropper States ---
+  // --- NEW: Profile Picture & Cropper States ---
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -26,6 +26,51 @@ export default function TeacherProfile() {
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImage, setTempImage] = useState(null);
   const [zoom, setZoom] = useState(1);
+
+  // --- ACCOUNT CREDENTIALS STATES ---
+  const [passwordData, setPasswordData] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+  
+  // Dedicated state for the credentials card
+  const [isEditingCredentials, setIsEditingCredentials] = useState(false);
+
+  // --- NEW: Password Visibility States ---
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditCredentialsClick = (e) => {
+    e.preventDefault();
+    setIsEditingCredentials(true);
+  };
+
+  const handleCancelCredentials = (e) => {
+    e.preventDefault();
+    setIsEditingCredentials(false);
+    setPasswordData({ password: "", confirmPassword: "" }); // Clear fields on cancel
+    setShowPassword(false); // Reset eyes to hidden
+    setShowConfirmPassword(false);
+  };
+
+  const handleSaveCredentials = (e) => {
+    e.preventDefault();
+    // Temporary check until we wire the backend
+    if (passwordData.password !== passwordData.confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+    alert("Password logic ready to be wired to backend!");
+    setIsEditingCredentials(false);
+    setPasswordData({ password: "", confirmPassword: "" });
+    setShowPassword(false); // Reset eyes to hidden
+    setShowConfirmPassword(false);
+  };
 
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
@@ -149,6 +194,7 @@ export default function TeacherProfile() {
       }, "image/jpeg", 0.95);
     }
   };
+  
   // --- NEW: Open Lightbox (only if not editing) ---
   const handleAvatarClick = () => {
     if (!isEditing) {
@@ -178,7 +224,6 @@ export default function TeacherProfile() {
         payload.append("email", formData.email);
         payload.append("profile_picture", selectedImageFile); 
         
-        // REMOVED the manual headers! Let Axios handle the boundary automatically.
       } else {
         payload = {
           phone_number: formData.phone_number,
@@ -206,7 +251,6 @@ export default function TeacherProfile() {
 
     } catch (err) {
       console.error("Save error:", err);
-      // UPDATED: Now shows the actual backend error message so we aren't guessing!
       alert(err.response?.data?.message || "Failed to save changes."); 
     }
   };
@@ -228,7 +272,7 @@ export default function TeacherProfile() {
   if (error) return <div className="profile-container" style={{ marginTop: "100px", color: "red" }}>{error}</div>;
 
   return (
-    <div className="dashboard-wrapper">
+    <div className="dashboard-wrapper hero-bg">
       <Header />
       <NavBar />
 
@@ -306,15 +350,14 @@ export default function TeacherProfile() {
             {/* Buttons */}
             <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
               <button 
-                type="button" // <--- Added type="button" to prevent accidental form submits
+                type="button" 
                 className="btn btn-cancel" 
                 style={{ flex: 1, height: '44px', borderRadius: '10px', cursor: 'pointer' }} 
                 onClick={(e) => {
-                  e.preventDefault(); // <--- Stops the click from doing anything weird
+                  e.preventDefault(); 
                   e.stopPropagation();
                   setShowCropModal(false);
                   setTempImage(null); 
-                  // Also clear the file input so they can re-select the exact same file
                   if (document.getElementById('profile-upload')) {
                     document.getElementById('profile-upload').value = '';
                   }
@@ -323,7 +366,7 @@ export default function TeacherProfile() {
                 Cancel
               </button>
               <button 
-                type="button" // <--- Added type="button"
+                type="button" 
                 className="btn btn-primary" 
                 style={{ flex: 1, height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
                 onClick={(e) => {
@@ -387,17 +430,7 @@ export default function TeacherProfile() {
                 {!isEditing ? (
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      whiteSpace: 'nowrap', /* Forces single line */
-                      padding: '0 24px', 
-                      height: '48px', 
-                      width: 'auto',
-                      cursor: 'pointer'
-                    }}
+                    className="btn btn-primary profile-action-btn"
                     onClick={(e) => {
                       e.preventDefault();
                       handleEditClick();
@@ -409,21 +442,12 @@ export default function TeacherProfile() {
                     Edit Information
                   </button>
                 ) : (
-                  <div className="action-buttons-wrapper" style={{ display: 'flex', gap: '12px' }}>
+                  <div className="action-buttons-wrapper">
                     
                     {/* --- SAVE BUTTON --- */}
                     <button 
                       type="button"
-                      className="btn btn-save" 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        whiteSpace: 'nowrap', 
-                        padding: '0 24px', 
-                        height: '48px',
-                        cursor: 'pointer'
-                      }}
+                      className="btn btn-save profile-action-btn" 
                       onClick={(e) => {
                         e.preventDefault();
                         handleSave();
@@ -438,18 +462,9 @@ export default function TeacherProfile() {
                     {/* --- CANCEL BUTTON --- */}
                     <button 
                       type="button"
-                      className="btn btn-cancel" 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        whiteSpace: 'nowrap', 
-                        padding: '0 24px', 
-                        height: '48px',
-                        cursor: 'pointer'
-                      }}
+                      className="btn btn-cancel profile-action-btn" 
                       onClick={(e) => {
-                        e.preventDefault(); /* Strictly enforces the cancel action */
+                        e.preventDefault();
                         handleCancel();
                       }}
                     >
@@ -667,8 +682,137 @@ export default function TeacherProfile() {
                   ))}
                 </div>
                 {/* --- END CLASSROOM LIST --- */}
-
               </div>
+
+              {/* --- NEW: ACCOUNT CREDENTIALS CARD --- */}
+              <div className="card form-card">
+                <div className="card-header">
+                  <h3>
+                    <span className="material-symbols-outlined header-icon">lock</span> Account Credentials
+                  </h3>
+                  <p>Manage your account security and password.</p>
+                </div>
+                
+                <div className="profile-form">
+                  
+                  {/* Username (Typically Read-Only) */}
+                  <div className="form-group">
+                    <label>Username</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">account_circle</span>
+                      <input
+                        type="text"
+                        name="username"
+                        value={formData.username || "maria_lanee"} /* Dummy fallback until wired */
+                        readOnly
+                        style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field with Hide/View Toggle */}
+                  <div className="form-group">
+                    <label>{isEditingCredentials ? "New Password" : "Password"}</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">key</span>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        placeholder="••••••••"
+                        value={passwordData.password}
+                        onChange={handlePasswordChange}
+                        readOnly={!isEditingCredentials}
+                        style={!isEditingCredentials 
+                          ? { opacity: 0.8 } 
+                          : { borderColor: "#39a8ed", paddingRight: '40px' } /* Make room for the eye icon! */}
+                      />
+                      {isEditingCredentials && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{
+                            position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8',
+                            display: 'flex', padding: 0
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            {showPassword ? "visibility_off" : "visibility"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Confirm Password with Hide/View Toggle (ONLY SHOWS WHEN EDITING) */}
+                  {isEditingCredentials && (
+                    <div className="form-group animate-poof">
+                      <label>Confirm New Password</label>
+                      <div className="input-wrapper">
+                        <span className="material-symbols-outlined icon">lock_reset</span>
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          placeholder="••••••••"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          style={{ borderColor: "#39a8ed", paddingRight: '40px' }} /* Make room for the eye icon! */
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{
+                            position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8',
+                            display: 'flex', padding: 0
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            {showConfirmPassword ? "visibility_off" : "visibility"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- CARD ACTION BUTTONS --- */}
+                  <div style={{ marginTop: '24px' }}>
+                    {!isEditingCredentials ? (
+                      <button 
+                        type="button"
+                        className="btn btn-primary profile-action-btn"
+                        style={{ width: '100%', height: '44px', borderRadius: '10px' }}
+                        onClick={handleEditCredentialsClick}
+                      >
+                        <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>edit</span>
+                        Change Password
+                      </button>
+                    ) : (
+                      <div className="action-buttons-wrapper">
+                        <button 
+                          type="button"
+                          className="btn btn-save profile-action-btn"
+                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          onClick={handleSaveCredentials}
+                        >
+                          <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>check</span>
+                          Update
+                        </button>
+                        <button 
+                          type="button"
+                          className="btn btn-cancel profile-action-btn"
+                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          onClick={handleCancelCredentials}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+              {/* --- END ACCOUNT CREDENTIALS --- */}
             </div>
           </div>
         </div>

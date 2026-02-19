@@ -371,7 +371,7 @@ a.nav-item {
   padding: 20px; 
   min-height: calc(100vh - 80px); 
   box-sizing: border-box;
-  background-color: #f8fafc; 
+  background-color: transparent; /* <-- Let the doodles show through! */
 }
 
 /* --- NEW BUTTON STYLES --- */
@@ -443,13 +443,15 @@ a.nav-item {
   }
 
   .avatar-upload-wrapper {
-    display: flex;
-    justify-content: center;
-    width: 100%; 
+    display: block; 
+    width: 120px; /* Locks the wrapper to the exact size of the avatar */
+    height: 120px;
+    margin: 0 auto; /* Centers the whole wrapper */
+    position: relative;
   }
 
   .large-avatar {
-    margin: 0 auto !important; 
+    margin: 0 !important; 
   }
 
   /* THIS MUST BE INSIDE THE @MEDIA BLOCK */
