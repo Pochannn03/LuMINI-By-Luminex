@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import "../../../styles/teacher/class-list-modal.css";
+import StudentDetailsModal from "./StudentDetailsModal";
 
 export default function ClassListModal({ isOpen, onClose, section }) {
+  const [selectedStudent, setSelectedStudent] = useState(null);
   if (!isOpen) return null;
 
   return (
@@ -36,7 +38,11 @@ export default function ClassListModal({ isOpen, onClose, section }) {
               <p style={{ textAlign: "center", color: "#64748b", padding: "20px" }}>No students enrolled yet.</p>
             ) : (
               section.students.map((student, index) => (
-                <div key={student.id} className="student-list-item">
+                <div 
+                  key={student.id} 
+                  className="student-list-item clickable" // Added 'clickable' class
+                  onClick={() => setSelectedStudent(student)} // Set state on click
+                >
                   <div className="student-number-circle">
                     {index + 1}
                   </div>
@@ -51,6 +57,13 @@ export default function ClassListModal({ isOpen, onClose, section }) {
         </div>
         
       </div>
+
+      {/* --- ADD THIS AT THE BOTTOM, JUST BEFORE THE LAST CLOSING DIV --- */}
+      <StudentDetailsModal 
+        isOpen={!!selectedStudent} 
+        onClose={() => setSelectedStudent(null)} 
+        student={selectedStudent} 
+      />
     </div>
   );
 }
