@@ -18,6 +18,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     lastName: '',
     birthdate: '',
     age: '',
+    gender: '',
     allergies: 'None',
     medical_history: 'None',
     studentId: 'Generating...', 
@@ -32,6 +33,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
         lastName: '',
         birthdate: '',
         age: '',
+        gender: '',
         allergies: 'None',
         medical_history: 'None',
         studentId: 'Generating...', 
@@ -153,6 +155,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       lastName: '',
       birthdate: '',
       age: '',
+      gender: '',
       allergies: 'None',
       medical_history: 'None',
       studentId: 'Generating...', 
@@ -211,6 +214,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     data.append('last_name', formData.lastName);
     data.append('birthday', formData.birthdate);
     data.append('age', formData.age);
+    data.append('gender', formData.gender);
     data.append('allergies', formData.allergies)
     data.append('medical_history', formData.medical_history)
     data.append('invitation_code', formData.invitationCode);
@@ -339,7 +343,32 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                   className="form-input-modal"
                 />
               </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-cgray text-[13px] font-medium">Gender</label>
+                <div className="relative w-full">
+                  <select 
+                    name="gender" 
+                    value={formData.gender}
+                    onChange={handleChange} 
+                    className={`form-input-modal w-full bg-white h-[42px] appearance-none pr-10 ${
+                      errors.gender ? 'border-red-500! bg-red-50' : ''
+                    }`}
+                  >
+                    <option value="" disabled>Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                    expand_more
+                  </span>
+                </div>
+
+                {errors.gender && (
+                  <span className="text-red-500 text-[11px] ml-1">{errors.gender}</span>
+                )}
+              </div>
             </div>
+            
 
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Birthdate & Age</label>

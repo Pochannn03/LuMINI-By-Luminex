@@ -34,6 +34,11 @@ export const createStudentValidationSchema = {
       errorMessage: "Birthday is required" 
     },
   },
+  gender: {
+    notEmpty: { 
+      errorMessage: "Gender is required" 
+    },
+  },
   age: {
     notEmpty: { 
       errorMessage: "Age is required" 

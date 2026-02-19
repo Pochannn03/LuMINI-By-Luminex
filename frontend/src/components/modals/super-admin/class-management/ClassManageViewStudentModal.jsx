@@ -16,6 +16,12 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
     ? new Date(std.birthday).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 
     : "--";
 
+  const genderStyles = std.gender === 'Male' 
+    ? 'text-indigo-600 bg-indigo-100' 
+  : std.gender === 'Female' 
+    ? 'text-pink-500 bg-pink-100' 
+    : 'text-cgray bg-[#f1f5f9]';
+
   const sectionName = std.section_details?.section_name || "Unassigned";
 
   // PARENT LOGIC
@@ -86,7 +92,10 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
 
           <div className="modal-body items-center text-center">
             <img src={photoUrl} className="w-[100px] h-[100px] rounded-full object-cover border-4 border-slate-50 shadow-md mb-3 mx-auto" alt="Profile" />
-            <h3 className="text-cdark text-[20px] font-bold mb-1">{fullName}</h3>
+            <h3 className="text-cdark text-[20px] font-bold">{fullName}</h3>
+            <span className={`${genderStyles} py-1 px-2.5 rounded-[20px] text-xs font-semibold`}>
+              {std.gender || '---'}
+            </span>
             
             <div className="flex gap-2 mb-2 justify-center">
               <span className="text-cprimary-blue bg-[#e0f2fe] py-1 px-2.5 rounded-[20px] text-xs font-semibold">Student ID: {std.student_id || '--'}</span>

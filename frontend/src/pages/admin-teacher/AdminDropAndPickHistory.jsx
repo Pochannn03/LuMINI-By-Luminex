@@ -20,6 +20,8 @@ export default function AdminDropAndPickHistory() {
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filterType, setFilterType] = useState("all");
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef(null);
   const dateInputRef = useRef(null);
   const { monthDay, weekday } = getDateParts(currentDate);
 
@@ -50,6 +52,16 @@ export default function AdminDropAndPickHistory() {
 
     fetchTransferHistory();
   }, [currentDate]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (filterRef.current && !filterRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const filteredData = transferData.filter(item => {
     const selectedDateString = dateToInputString(currentDate); 
@@ -103,18 +115,41 @@ export default function AdminDropAndPickHistory() {
               {/* NEW COMBINED CONTROLS SECTION */}
               <div className="flex flex-wrap items-center gap-3">
                 
-                {/* 1. FILTER SELECT */}
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
-                  <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">filter_list</span>
-                  <select 
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="bg-transparent text-[12px] font-bold text-cdark uppercase outline-none cursor-pointer"
+                {/* 1. FILTER SELECT - CUSTOM DROPDOWN */}
+                <div className="filter-wrapper" ref={filterRef}>
+                  <button 
+                    className={`btn-filter ${isFilterOpen ? "active" : ""}`} 
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    style={{ height: '38px', textTransform: 'uppercase', fontSize: '12px' }}
                   >
-                    <option value="all">All Records</option>
-                    <option value="drop off">Drop Offs</option>
-                    <option value="pick up">Pick Ups</option>
-                  </select>
+                    <span className="material-symbols-outlined">filter_list</span> 
+                    {filterType === "all" ? "All Records" : filterType}
+                  </button>
+
+                  {isFilterOpen && (
+                    <div className="filter-dropdown-menu" style={{ top: '42px', right: 0 }}>
+                      <button 
+                        className="filter-option" 
+                        onClick={() => { setFilterType("all"); setIsFilterOpen(false); }}
+                      >
+                        <span className="material-symbols-outlined">list</span> All Records
+                      </button>
+                      
+                      <button 
+                        className="filter-option" 
+                        onClick={() => { setFilterType("drop off"); setIsFilterOpen(false); }}
+                      >
+                        <span className="material-symbols-outlined">login</span> Drop Offs
+                      </button>
+
+                      <button 
+                        className="filter-option" 
+                        onClick={() => { setFilterType("pick up"); setIsFilterOpen(false); }}
+                      >
+                        <span className="material-symbols-outlined">logout</span> Pick Ups
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. SHRUNK DATE NAVIGATOR */}

@@ -30,9 +30,14 @@ const StudentSchema = new mongoose.Schema({
     type: Date, // Or Date
     required: true,
   },
+  gender: {
+    type: String, 
+    enum: ['Male', 'Female'],
+    required: true, 
+  },
   age: {
-    type: Number, // FIX: Changed 'int' to 'Number'
-    required: false, // Calculated automatically, so optional in schema
+    type: Number,
+    required: false, 
   },
   allergies: {
     type: String, 
@@ -60,7 +65,7 @@ const StudentSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['On the way', 'Learning', 'Dismissed'],
-    default: 'Dismissed'
+    default: 'On the way'
   },
 
   // 4. SYSTEM FIELDS
