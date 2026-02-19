@@ -18,12 +18,11 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
     origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PATCH", "PUT"],
     credentials: true
   }
 });
 
-// 2. Make io accessible in your routes via req.app.get('socketio')
 app.set('socketio', io);
 
 mongoose
@@ -66,7 +65,6 @@ httpServer.listen(PORT, () => {
   console.log(`🚀 Server and WebSockets running on port ${PORT}`);
 });
 
-// 4. Basic connection log for debugging
 io.on('connection', (socket) => {
   console.log(`⚡ User connected: ${socket.id}`);
 });

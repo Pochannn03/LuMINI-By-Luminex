@@ -43,7 +43,7 @@ const QueueItemCard = ({ item }) => {
             {item.status}
           </span>
           <span className="text-cgray text-[12px]">
-            is arriving for <b className="text-cdark">{item.type}</b>
+            is arriving for <b className="text-cdark">{item.purpose}</b>
           </span>
         </div>
       </div>
