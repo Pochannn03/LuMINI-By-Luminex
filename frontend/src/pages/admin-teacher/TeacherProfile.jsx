@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import AvatarEditor from "react-avatar-editor";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import "../../styles/teacher/teacher-profile.css";
+import "../../styles/teacher/class-list-modal.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
+import ClassListModal from "../../components/modals/admin/ClassListModal";
 
 export default function TeacherProfile() {
   const navigate = useNavigate();
@@ -13,15 +16,26 @@ export default function TeacherProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // --- NEW: Profile Picture States ---
+// --- NEW: Profile Picture & Cropper States ---
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  
+  // Cropper specific states
+  const editorRef = useRef(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImage, setTempImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
+
+  const [isClassModalOpen, setIsClassModalOpen] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(null);
 
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalSections: 0,
   });
+
+  const [sections, setSections] = useState([]);
 
   const [formData, setFormData] = useState({
     first_name: "",
@@ -72,6 +86,7 @@ export default function TeacherProfile() {
             totalStudents: response.data.totalStudents || 0,
             totalSections: response.data.totalSections || 0,
           });
+          setSections(response.data.sections || []);
         }
       } catch (err) {
         console.error("Error fetching teacher stats:", err);
@@ -102,15 +117,38 @@ export default function TeacherProfile() {
     setIsEditing(true);
   };
 
-  // --- NEW: Handle Image Selection ---
+  // Opens the Cropper when a file is selected
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setSelectedImageFile(file);
-      setPreviewImage(URL.createObjectURL(file)); // Create local temporary URL to show instantly
+      // Safely convert the raw file into a local browser URL
+      const imageUrl = URL.createObjectURL(file); 
+      setTempImage(imageUrl);
+      setShowCropModal(true); 
+      setZoom(1); 
     }
+    // Clear the input so they can click the same file again if needed
+    e.target.value = null; 
   };
 
+  // Handles grabbing the dragged/zoomed image and converting it to a file
+  const handleCropSave = () => {
+    if (editorRef.current) {
+      // Get the cropped area as an HTML canvas
+      const canvas = editorRef.current.getImageScaledToCanvas();
+      
+      // Convert it to an actual image file for the backend
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "profile_photo.jpg", { type: "image/jpeg" });
+          setSelectedImageFile(croppedFile);
+          setPreviewImage(URL.createObjectURL(croppedFile)); // Show the cropped preview
+          setShowCropModal(false);
+          setTempImage(null);
+        }
+      }, "image/jpeg", 0.95);
+    }
+  };
   // --- NEW: Open Lightbox (only if not editing) ---
   const handleAvatarClick = () => {
     if (!isEditing) {
@@ -200,6 +238,12 @@ export default function TeacherProfile() {
         message="Profile information updated successfully!"
       />
 
+      <ClassListModal 
+        isOpen={isClassModalOpen} 
+        onClose={() => setIsClassModalOpen(false)} 
+        section={selectedClass} 
+      />
+
       {/* --- NEW: FULLSCREEN LIGHTBOX --- */}
       {isLightboxOpen && (
         <div 
@@ -220,6 +264,78 @@ export default function TeacherProfile() {
           >
             <span className="material-symbols-outlined">close</span>
           </button>
+        </div>
+      )}
+
+      {/* --- NEW: CROPPER MODAL --- */}
+      {showCropModal && (
+        <div className="class-modal-overlay" style={{ zIndex: 999999 }}>
+          <div className="class-modal-card" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>
+              Adjust Profile Picture
+            </h3>
+            
+            {/* The Editor Area */}
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+              <AvatarEditor
+                ref={editorRef}
+                image={tempImage}
+                width={220}
+                height={220}
+                border={20}
+                borderRadius={110} /* Creates the circle cutout effect */
+                color={[15, 23, 42, 0.6]} /* Dark overlay outside crop */
+                scale={zoom}
+                rotate={0}
+              />
+            </div>
+
+            {/* Zoom Slider */}
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.01" 
+                value={zoom} 
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }}
+              />
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
+            </div>
+
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button 
+                type="button" // <--- Added type="button" to prevent accidental form submits
+                className="btn btn-cancel" 
+                style={{ flex: 1, height: '44px', borderRadius: '10px', cursor: 'pointer' }} 
+                onClick={(e) => {
+                  e.preventDefault(); // <--- Stops the click from doing anything weird
+                  e.stopPropagation();
+                  setShowCropModal(false);
+                  setTempImage(null); 
+                  // Also clear the file input so they can re-select the exact same file
+                  if (document.getElementById('profile-upload')) {
+                    document.getElementById('profile-upload').value = '';
+                  }
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" // <--- Added type="button"
+                className="btn btn-primary" 
+                style={{ flex: 1, height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCropSave();
+                }}
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -270,34 +386,76 @@ export default function TeacherProfile() {
               <div className="profile-actions">
                 {!isEditing ? (
                   <button
-                    className="btn btn-primary h-12 w-45 rounded-xl"
-                    onClick={handleEditClick} 
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      whiteSpace: 'nowrap', /* Forces single line */
+                      padding: '0 24px', 
+                      height: '48px', 
+                      width: 'auto',
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleEditClick();
+                    }}
                   >
-                    <span
-                      className="material-symbols-outlined mr-1.5 text-[18px]"
-                    >
+                    <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
                       edit
                     </span>
                     Edit Information
                   </button>
                 ) : (
-                  <div className="action-buttons-wrapper">
-                    <button className="btn btn-save h-12 w-30 rounded-xl" onClick={handleSave}>
-                      <span
-                        className="material-symbols-outlined mr-1.5 text-[18px]"
-                      >
+                  <div className="action-buttons-wrapper" style={{ display: 'flex', gap: '12px' }}>
+                    
+                    {/* --- SAVE BUTTON --- */}
+                    <button 
+                      type="button"
+                      className="btn btn-save" 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        whiteSpace: 'nowrap', 
+                        padding: '0 24px', 
+                        height: '48px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleSave();
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
                         check
                       </span>
                       Save
                     </button>
-                    <button className="btn btn-cancel h-12 w-30 rounded-xl" onClick={handleCancel}>
-                      <span
-                        className="material-symbols-outlined mr-1.5 text-[18px]"
-                      >
-                        close
-                      </span>
+
+                    {/* --- CANCEL BUTTON --- */}
+                    <button 
+                      type="button"
+                      className="btn btn-cancel" 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        whiteSpace: 'nowrap', 
+                        padding: '0 24px', 
+                        height: '48px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault(); /* Strictly enforces the cancel action */
+                        handleCancel();
+                      }}
+                    >
                       Cancel
                     </button>
+
                   </div>
                 )}
               </div>
@@ -474,10 +632,7 @@ export default function TeacherProfile() {
                 
                 {/* --- NEW SIMPLIFIED CLASSROOM LIST UI --- */}
                 <div className="classroom-list">
-                  {[
-                    { id: 1, name: "Sampaguita", time: "8:00 AM - 12:00 PM", color: "blue" },
-                    { id: 2, name: "Rizal", time: "1:00 PM - 5:00 PM", color: "orange" },
-                  ].map((section) => (
+                  {sections.map((section) => (
                     <div key={section.id} className="classroom-list-item">
                       
                       {/* LEFT SIDE: Icon and Info */}
@@ -500,7 +655,10 @@ export default function TeacherProfile() {
                       <button 
                         className="btn-view-class" 
                         title="View Section"
-                        onClick={() => alert(`Navigating to ${section.name} module...`)}
+                        onClick={() => {
+                          setSelectedClass(section); // Save the clicked section data
+                          setIsClassModalOpen(true); // Open the modal
+                        }}
                       >
                         <span className="material-symbols-outlined">visibility</span>
                       </button>
