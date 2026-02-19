@@ -15,18 +15,6 @@ router.post('/api/queue',
   const { student_id, section_id, status, purpose } = req.body;
 
   try {
-    const student = await Student.findOne({ student_id: student_id });
-
-    if (!student) {
-      return res.status(404).json({ msg: "Student not found" });
-    }
-
-    if (student.status === 'Dismissed') {
-      return res.status(403).json({ 
-        msg: "Cannot join queue: Student has already been dismissed for the day." 
-      });
-    }
-
     const queueEntry = await Queue.findOneAndUpdate(
     { user_id: req.user.user_id },
     { 
@@ -81,6 +69,23 @@ router.get('/api/queue',
       console.error("Queue Fetch Error:", err);
       res.status(500).json({ success: false, msg: "Failed to load queue." });
     }
+});
+
+// QUEUE CHECKING FOR SCAN BUTTON ENABLER
+// Backend: Queue Check Endpoint
+router.get('/api/queue/check', 
+  isAuthenticated,
+  hasRole('user'),
+  async (req, res) => {
+  try {
+    const queueCheck = await Queue.findOne({ 
+      user_id: req.user.user_id, 
+      on_queue: true 
+    });
+    res.json({ onQueue: !!queueCheck }); // Returns true if found, false if not
+  } catch (err) {
+    res.status(500).json({ error: "Server error checking queue status" });
+  }
 });
 
 export default router;

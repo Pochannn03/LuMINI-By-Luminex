@@ -84,8 +84,12 @@ const StudentSchema = new mongoose.Schema({
     default: null
   },
   is_archive: {
-    type: Boolean, // Better to use Boolean than String
+    type: Boolean,
     default: false,
+  },
+  last_reset_date: {
+    type: String,
+    default: null
   },
   created_at: {
     type: Date,
