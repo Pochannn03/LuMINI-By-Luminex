@@ -209,7 +209,7 @@ router.get("/api/user/profile", (req, res) => {
 // PUT /api/user/profile
 // Description: Update user contact details AND Profile Picture
 router.put("/api/user/profile", 
-  upload.single('profile_picture'), // <-- ADDED: Multer middleware to catch the file
+  upload.single('profile_picture'), 
   async (req, res) => {
   try {
     if (!req.isAuthenticated() || !req.user) {
@@ -226,9 +226,23 @@ router.put("/api/user/profile",
         email: email !== undefined ? email : req.user.email
     };
 
-    // 3. If an image was uploaded, add it to the update object
+    // 3. If an image was uploaded, handle the new file AND delete the old one
     if (req.file) {
         updateFields.profile_picture = req.file.path;
+
+        // Fetch the current user BEFORE we update them, so we can see their old photo path
+        const currentUser = await User.findById(req.user._id);
+
+        if (currentUser && currentUser.profile_picture) {
+            // Create the full system path to the old image
+            const oldImagePath = path.join(process.cwd(), currentUser.profile_picture);
+            
+            // Check if the file actually exists on the hard drive, then delete it!
+            if (fs.existsSync(oldImagePath)) {
+                fs.unlinkSync(oldImagePath);
+                console.log("♻️ Old profile picture deleted successfully to save space.");
+            }
+        }
     }
 
     // 4. Safely update the user directly in the database

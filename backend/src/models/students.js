@@ -39,14 +39,15 @@ const StudentSchema = new mongoose.Schema({
     type: Number,
     required: false, 
   },
+  // --- NEW: Add Medical Fields ---
   allergies: {
-    type: String, 
-    required: false,
+    type: String,
+    default: "N/A"
   },
   medical_history: {
-    type: String, 
-    required: false,
-  },
+        type: String,
+        default: "N/A"
+    },
   profile_picture: {
     type: String,
     required: false, // Make optional in case they don't upload one

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import passport from "../config/passport.js";
+import { User } from "../models/users.js"; // <-- NEW: Import the User model!
 
 const router = Router();
 
@@ -40,7 +41,7 @@ router.post("/api/auth", (req, res, next) => {
           user_id: user.user_id || req.user.user_id,
           firstName: user.first_name || req.user.first_name, 
           lastName: user.last_name || req.user.last_name,
-          is_first_login: user.is_first_login !== undefined ? user.is_first_login : true, // <-- NEW FLAG
+          is_first_login: user.is_first_login !== undefined ? user.is_first_login : true, 
           profile_picture: user.profile_picture || req.user?.profile_picture
         };
 
@@ -53,20 +54,38 @@ router.post("/api/auth", (req, res, next) => {
   })(req, res, next);
 });
 
-router.get("/api/auth/session", (req, res) => {
+// --- UPDATED: Made async to fetch fresh DB data ---
+router.get("/api/auth/session", async (req, res) => {
   if (req.isAuthenticated() && req.user) {
-    const safeUser = {
-          id: req.user._id,
-          username: req.user.username,
-          relationship: req.user.relationship,
-          role: req.user.role,
-          user_id: req.user.user_id,
-          firstName: req.user.first_name, 
-          lastName: req.user.last_name,
-          // Safely check req.user here!
-          is_first_login: req.user.is_first_login !== undefined ? req.user.is_first_login : true 
-        };
-    return res.status(200).json({ isAuthenticated: true, user: safeUser });
+    
+    try {
+      // 1. Force a fresh database lookup using the ID from the session cookie
+      const freshUser = await User.findById(req.user._id);
+
+      if (!freshUser) {
+        return res.status(200).json({ isAuthenticated: false, user: null });
+      }
+
+      // 2. Build the safe object with the 100% fresh data
+      const safeUser = {
+        id: freshUser._id,
+        username: freshUser.username,
+        relationship: freshUser.relationship,
+        role: freshUser.role,
+        user_id: freshUser.user_id,
+        firstName: freshUser.first_name, 
+        lastName: freshUser.last_name,
+        is_first_login: freshUser.is_first_login !== undefined ? freshUser.is_first_login : true,
+        profile_picture: freshUser.profile_picture // <-- ADDED MISSING PICTURE FIX!
+      };
+
+      return res.status(200).json({ isAuthenticated: true, user: safeUser });
+
+    } catch (error) {
+      console.error("Session DB Fetch Error:", error);
+      return res.status(500).json({ isAuthenticated: false, message: "Server error" });
+    }
+
   } else {
     return res.status(200).json({ isAuthenticated: false, user: null });
   }
@@ -87,6 +106,5 @@ router.post("/api/auth/logout", (req, res) => {
     });
   });
 });
-
 
 export default router;
