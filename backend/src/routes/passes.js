@@ -94,7 +94,6 @@ router.get('/api/scan/pass/:token',
            } 
         });
 
-      // 2. VALIDATION: DOES PASS EXIST?
       if (!pass) {
         return res.status(404).json({ 
             valid: false, 

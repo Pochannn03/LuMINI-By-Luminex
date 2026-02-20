@@ -4,6 +4,7 @@ import { Transfer } from "../models/transfers.js";
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
 import { Queue } from "../models/queues.js";
+import { AccessPass } from "../models/accessPass.js"
 
 const router = Router();
 
@@ -72,18 +73,29 @@ router.post('/api/transfer',
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
-    const { studentId, guardianId, guardianName, studentName, sectionName, sectionId, purpose } = req.body;
+    const { studentId, guardianId, guardianName, studentName, sectionName, sectionId, purpose, token } = req.body;
     const currentUserId = Number(req.user.user_id); 
     const userRole = req.user.relationship?.toLowerCase();
 
     try {
+        const pass = await AccessPass.findOne({ 
+            token: token, 
+            isUsed: false 
+        });
+
+        if (!pass) {
+            return res.status(400).json({ 
+                error: "Invalid or Expired QR: This pass has already been used or has timed out." 
+            });
+        }
+
       if (userRole === 'teacher') {
           const isAuthorized = await Section.findOne({ 
               section_id: Number(sectionId), 
               user_id: currentUserId 
           });
           if (!isAuthorized) {
-              return res.status(403).json({ error: "Unauthorized: Not your assigned section." });
+              return res.status(403).json({ error: "Unauthorized Not your assigned section." });
           }
       }
 
@@ -129,6 +141,11 @@ router.post('/api/transfer',
 
       await newTransfer.save();
 
+      await AccessPass.findOneAndUpdate(
+            { token: token },
+            { isUsed: true }
+        );
+
       const newStatus = purpose === 'Drop off' ? 'Learning' : 'Dismissed';
 
       await Student.findOneAndUpdate(
@@ -143,16 +160,20 @@ router.post('/api/transfer',
       );
 
       req.app.get('socketio').emit('remove_queue_entry', Number(guardianId));
-
       req.app.get('socketio').emit('student_status_updated', {
             student_id: studentId,
             newStatus: newStatus
         });
       
       return res.status(200).json({ 
-          success: true, 
-          message: `${studentName} successfully recorded for ${purpose}!` 
-      });
+            success: true,
+            message: {
+                text: `${studentName} successfully recorded!`,
+                purpose: purpose // This allows you to do response.data.message.purpose
+            },
+            studentName,
+            guardianName
+        });
         
     } catch (error) {
         console.error("❌ Transfer Error:", error.message);

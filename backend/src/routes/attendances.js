@@ -48,50 +48,62 @@ router.get('/api/attendance',
 });
 
 // STUDENT SCANNED QR ATTENDANCE AND RECORD
-router.post('/api/attendance', isAuthenticated, hasRole('admin'), async (req, res) => {
+router.post('/api/attendance', 
+    isAuthenticated, 
+    hasRole('admin'), 
+    async (req, res) => {
     const { studentId } = req.body;
-    const currentUserId = Number(req.user.user_id);
-    const userRole = req.user.relationship?.toLowerCase();
     
     const now = new Date();
     const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
     
     try {
-        const exists = await Attendance.exists({ date: todayDate });
-        
-        if (!exists) {
-            console.log(`[DEBUG] No records for ${todayDate}. Fetching students...`);
-            const allStudents = await Student.find({ is_archive: false }).populate('section_details');
-
-            console.log(`[DEBUG] Students found in DB: ${allStudents.length}`);
-
-            const placeholders = allStudents
-                .filter(s => s.section_id != null) // More inclusive check for section_id
-                .map(s => ({
-                    student_id: s.student_id,
-                    student_name: `${s.first_name} ${s.last_name}`,
-                    section_id: s.section_id,
-                    section_name: s.section_details?.section_name || "Unassigned",
-                    status: "Absent",
-                    date: todayDate,
-                    time_in: "---"
-                }));
-
-            console.log(`[DEBUG] Placeholders created: ${placeholders.length}`);
-
-            if (placeholders.length > 0) {
-                await Attendance.insertMany(placeholders, { ordered: false });
-                console.log(`✅ Successfully pre-filled ${placeholders.length} students.`);
-            }
-        }
-
         const student = await Student.findOne({ student_id: studentId }).populate('section_details');
         
         if (!student) {
-            console.log(`[DEBUG] Student with ID ${studentId} not found in Student collection.`);
             return res.status(404).json({ msg: "Student not found in system" });
         }
 
+        if (userRole === 'teacher') {
+            const isAuthorized = await Section.findOne({ 
+                section_id: student.section_id, 
+                user_id: currentUserId 
+            });
+
+            if (!isAuthorized) {
+                return res.status(403).json({ 
+                    msg: "Access Denied: This student belongs to another section/teacher." 
+                });
+            }
+        }
+
+        const exists = await Attendance.exists({ 
+            date: todayDate, 
+            section_id: student.section_id
+        });
+        
+        if (!exists) {
+            const sectionStudents = await Student.find({ 
+                is_archive: false, 
+                section_id: student.section_id 
+            }).populate('section_details');
+
+            const placeholders = sectionStudents.map(s => ({
+                student_id: s.student_id,
+                student_name: `${s.first_name} ${s.last_name}`,
+                section_id: s.section_id,
+                section_name: s.section_details?.section_name || "Unassigned",
+                status: "Absent",
+                date: todayDate,
+                time_in: "---"
+            }));
+
+            if (placeholders.length > 0) {
+                await Attendance.insertMany(placeholders, { ordered: false });
+            }
+        }
+
+        // 3. Time calculation
         const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
         const isMorning = student.section_details?.class_schedule?.includes("Morning");
         const startHr = isMorning ? 8 : 13;
@@ -99,7 +111,11 @@ router.post('/api/attendance', isAuthenticated, hasRole('admin'), async (req, re
         lateTime.setHours(startHr, 15, 0, 0);
 
         let status = phNow.getTime() > lateTime.getTime() ? "Late" : "Present";
-        const currentTimeString = phNow.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const currentTimeString = phNow.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true 
+        });
 
         const updated = await Attendance.findOneAndUpdate(
             { student_id: studentId, date: todayDate },
@@ -110,13 +126,12 @@ router.post('/api/attendance', isAuthenticated, hasRole('admin'), async (req, re
                     student_name: `${student.first_name} ${student.last_name}`,
                     section_id: student.section_id,
                     section_name: student.section_details?.section_name || "Unassigned",
-                    date: todayDate // Ensure date is set on insert
+                    date: todayDate
                 }
             },
             { new: true, upsert: true }
         ).populate('student_details').lean();
 
-        // Prepare response for your frontend modal
         const finalData = {
             ...updated,
             full_name: updated.student_details 

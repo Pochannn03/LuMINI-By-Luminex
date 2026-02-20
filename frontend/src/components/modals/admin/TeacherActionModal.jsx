@@ -65,8 +65,13 @@ const AdminActionFeedbackModal = ({
               {details.map((item, index) => (
                 <React.Fragment key={index}>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#64748b] text-[12px] font-medium uppercase tracking-wider">{item.label}</span>
-                    <span className="text-[#1e293b] font-bold">{item.value}</span>
+                    <span className="text-[#64748b] text-[12px] font-medium uppercase tracking-wider mr-4">
+                      {item.label}:
+                    </span>
+
+                    <span className="text-[#1e293b] font-bold">
+                      {item.value}
+                    </span>
                   </div>
                   {index < details.length - 1 && <div className="h-px bg-[#e2e8f0] w-full"></div>}
                 </React.Fragment>

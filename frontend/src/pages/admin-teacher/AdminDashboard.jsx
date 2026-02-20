@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const [queue, setQueue] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [transferSuccessData, setTransferSuccessData] = useState(null);
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -44,7 +45,10 @@ export default function AdminDashboard() {
         });
 
         if (response.data.valid) {
-          setScannedData(response.data);
+          setScannedData({
+            ...response.data,
+            token: rawValue
+          });
           setIsAuthModalOpen(true);
         }
       } 
@@ -70,7 +74,6 @@ export default function AdminDashboard() {
       }
 
     } catch (error) {
-      console.error("Scan Process Failed:", error);
       const serverErrorMessage = error.response?.data?.msg || error.response?.data?.message;
       const finalMessage = serverErrorMessage || error.message || "Scan Error";
       setErrorMessage(finalMessage);
@@ -92,18 +95,39 @@ export default function AdminDashboard() {
         guardianId: scannedData.guardian.userId,
         guardianName: scannedData.guardian.name,
         purpose: scannedData.purpose,
+        token: scannedData.token
       }, { withCredentials: true });
 
       if (response.data.success) {
-        alert(response.data.message);
         setIsAuthModalOpen(false);
+        setTransferSuccessData({
+          title: response.data.message.purpose === 'Drop off' ? 'Entry Confirmed' : 'Exit Confirmed',
+          message: response.data.message.text, 
+          type: 'success',
+          details: [
+            { label: 'Student', value: response.data.studentName },
+            { label: 'Activity', value: response.data.message.purpose },
+            { label: 'Guardian', value: response.data.guardianName }
+          ]
+        });
         setScannedData(null);
       }
 
     } catch (err) {
-      const serverMessage = err.response?.data?.error || err.message;
-      console.error("Authorization Error:", serverMessage);
-      alert("Authorization Failed: " + serverMessage);
+      setIsAuthModalOpen(false); 
+      setIsErrorModalOpen(false); 
+
+      const backendError = err.response?.data?.error || "An unexpected error occurred.";
+      setTransferSuccessData({
+          type: 'error',
+          title: 'Transfer Failed',
+          message: 'Invalid Pass', 
+          details: [
+              { label: 'Reason', value: backendError },
+              { label: 'Status', value: 'Access Denied' }
+          ],
+          buttonText: 'Try Again'
+      });
     } finally {
       setLoadingScan(false);
     }
@@ -306,13 +330,24 @@ export default function AdminDashboard() {
       />
 
       <AdminActionFeedbackModal
+        isOpen={!!transferSuccessData}
+        onClose={() => setTransferSuccessData(null)}
+        type={transferSuccessData?.type || 'success'}
+        title={transferSuccessData?.title}
+        message={transferSuccessData?.message}
+        details={transferSuccessData?.details}
+        buttonText={transferSuccessData?.type === 'error' ? 'Try Again' : 'Great'}
+      />
+
+      
+      <AdminActionFeedbackModal
         isOpen={isErrorModalOpen}
         onClose={() => setIsErrorModalOpen(false)}
         type="error"
         title="Scan Error"
         message="Could not process QR"
         details={[
-          { value: errorMessage }
+          { label: 'Reason', value: errorMessage } 
         ]}
         buttonText="Try Again"
       />
