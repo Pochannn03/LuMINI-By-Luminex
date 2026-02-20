@@ -62,5 +62,5 @@ AccessPassSchema.virtual('user_details', {
   justOne: true
 });
 
-export const AccessPass = mongoose.model("Access", AccessPassSchema, "qrc.qr_code");
+export const AccessPass = mongoose.model("AccessPass", AccessPassSchema, "qrc.qr_code");
 

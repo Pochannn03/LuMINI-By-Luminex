@@ -6,42 +6,12 @@ import { Attendance } from "../models/attendances.js";
 
 const router = Router();
 
-const ensureDailyAttendance = async () => {
-  const todayDate = new Date().toLocaleDateString('en-CA', {
-    timeZone: 'Asia/Manila'
-  });
-
-  const exists = await Attendance.exists({ date: todayDate });
-  if (exists) return; 
-
-  const allStudents = await Student.find({ is_archive: false }).populate('section_details');
-
-  const placeholders = allStudents
-    .filter(student => student.section_id)
-    .map(student => ({
-      student_id: student.student_id,
-      student_name: `${student.first_name} ${student.last_name}`,
-      section_id: student.section_id,
-      section_name: student.section_details?.section_name || "Unassigned",
-      status: "Absent",
-      date: todayDate,
-      time_in: "---"
-    }));
-
-  if (placeholders.length > 0) {
-    await Attendance.insertMany(placeholders);
-    console.log(`✅ ${todayDate}: Pre-filled ${placeholders.length} students as Absent.`);
-  }
-};
-
-
 // GET STUDENT ATTENDANCES
 router.get('/api/attendance', 
   isAuthenticated, 
   hasRole('admin'), 
   async (req, res) => {
     try {
-      await ensureDailyAttendance();
       const selectedDate = req.query.date;
       const dateToUse = req.query.date || new Date().toLocaleDateString('en-CA');
       const currentUserId = Number(req.user.user_id);
@@ -78,77 +48,107 @@ router.get('/api/attendance',
 });
 
 // STUDENT SCANNED QR ATTENDANCE AND RECORD
-router.patch('/api/attendance', 
-  isAuthenticated, 
-  hasRole('admin'), 
-  async (req, res) => {
+router.post('/api/attendance', 
+    isAuthenticated, 
+    hasRole('admin'), 
+    async (req, res) => {
     const { studentId } = req.body;
-    const currentUserId = Number(req.user.user_id);
-    const userRole = req.user.relationship?.toLowerCase();
+    const currentUserId = Number(req.user.user_id); 
+    const userRole = req.user.relationship?.toLowerCase()
     const now = new Date();
-    const todayDate = now.toLocaleDateString('en-CA');
+    const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
     
     try {
-      const student = await Student.findOne({ student_id: studentId })
-                                   .populate('section_details');
-      if (!student) return res.status(404).json({ msg: "Student not found" });
+        const student = await Student.findOne({ student_id: studentId }).populate('section_details');
+        
+        if (!student) {
+            return res.status(404).json({ msg: "Student not found in system" });
+        }
 
-      if (userRole === 'teacher') {
-        const isAuthorized = await Section.findOne({ 
-          section_id: student.section_id, 
-          user_id: currentUserId 
+        if (userRole === 'teacher') {
+            const isAuthorized = await Section.findOne({ 
+                section_id: student.section_id, 
+                user_id: currentUserId 
+            });
+
+            if (!isAuthorized) {
+                return res.status(403).json({ 
+                    msg: "This student belongs to another section/teacher." 
+                });
+            }
+        }
+
+        const exists = await Attendance.exists({ 
+            date: todayDate, 
+            section_id: student.section_id
+        });
+        
+        if (!exists) {
+            const sectionStudents = await Student.find({ 
+                is_archive: false, 
+                section_id: student.section_id 
+            }).populate('section_details');
+
+            const placeholders = sectionStudents.map(s => ({
+                student_id: s.student_id,
+                student_name: `${s.first_name} ${s.last_name}`,
+                section_id: s.section_id,
+                section_name: s.section_details?.section_name || "Unassigned",
+                status: "Absent",
+                date: todayDate,
+                time_in: "---"
+            }));
+
+            if (placeholders.length > 0) {
+                await Attendance.insertMany(placeholders, { ordered: false });
+            }
+        }
+
+        // 3. Time calculation
+        const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+        const isMorning = student.section_details?.class_schedule?.includes("Morning");
+        const startHr = isMorning ? 8 : 13;
+        const lateTime = new Date(phNow);
+        lateTime.setHours(startHr, 15, 0, 0);
+
+        let status = phNow.getTime() > lateTime.getTime() ? "Late" : "Present";
+        const currentTimeString = phNow.toLocaleTimeString('en-US', { 
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true 
         });
 
-        if (!isAuthorized) {
-          return res.status(403).json({ 
-            msg: `Unauthorized: You are not the assigned teacher for ${student.section_details?.section_name || 'this section'}.` 
-          });
-        }
-      }
+        const updated = await Attendance.findOneAndUpdate(
+            { student_id: studentId, date: todayDate },
+            { 
+                status, 
+                time_in: currentTimeString,
+                $setOnInsert: {
+                    student_name: `${student.first_name} ${student.last_name}`,
+                    section_id: student.section_id,
+                    section_name: student.section_details?.section_name || "Unassigned",
+                    date: todayDate
+                }
+            },
+            { new: true, upsert: true }
+        ).populate('student_details').lean();
 
-      const schedule = student.section_details?.class_schedule;
-      const isMorning = schedule?.includes("Morning");
+        const finalData = {
+            ...updated,
+            full_name: updated.student_details 
+                ? `${updated.student_details.first_name} ${updated.student_details.last_name}` 
+                : updated.student_name
+        };
 
-      let startHr = isMorning ? 8 : 13;
-      let endHr = isMorning ? 11 : 16;
-      let endMin = 30;
+        res.status(200).json({ 
+            msg: `Marked as ${status}`, 
+            student: finalData 
+        });
 
-      // Create PH-based time comparison
-      const phNow = new Date(
-        now.toLocaleString("en-US", { timeZone: "Asia/Manila" })
-      );
-
-      const lateTime = new Date(phNow);
-      lateTime.setHours(startHr, 15, 0, 0);
-
-      let status = "Present";
-
-      if (phNow.getTime() > lateTime.getTime()) {
-        status = "Late";
-      }
-
-      const currentTimeString = phNow.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      });
-
-      const updated = await Attendance.findOneAndUpdate(
-        { student_id: studentId, date: todayDate },
-        { status, time_in: currentTimeString },
-        { new: true }
-      );
-
-      if (!updated) {
-        return res.status(404).json({ msg: "Attendance record not found for today" });
-      }
-
-      res.status(200).json({ msg: `Marked as ${status}`, student: updated });
     } catch (err) {
-        console.error("Update Error:", err);
+        console.error("Attendance Error:", err);
         res.status(500).json({ msg: "Server Error" });
     }
 });
-
 
 export default router;

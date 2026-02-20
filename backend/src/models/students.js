@@ -149,10 +149,10 @@ StudentSchema.pre('save', async function() {
 });
 
 StudentSchema.virtual('user_details', {
-  ref: 'User',           // The Model to use
-  localField: 'user_id', // The field in StudentSchema
-  foreignField: 'user_id', // The field in UserSchema (The Primary Key)
-  justOne: false          // Since one student has only one user account
+  ref: 'User',           
+  localField: 'user_id',
+  foreignField: 'user_id',
+  justOne: false
 });
 
 StudentSchema.virtual('section_details', {

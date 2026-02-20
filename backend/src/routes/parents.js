@@ -126,7 +126,6 @@ router.post(
 // Checking for User Information under the Student Schema // EXAMPLE OF GEMINI TO GET THE DETAILS OF ANOTHER SCHEMA UNDER A CERTAIN SCHAME ('.populate')
 router.get("/api/user-checking", async (req, res) => {
   try {
-    // Populate the VIRTUAL name 'user_details', not the field name 'user_id'
     const studentWithParent = await Student.findOne({
       student_id: "2026-0001",
     }).populate({
@@ -168,23 +167,20 @@ router.get("/api/parent/children",
     try {
       const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-      // 1. Perform the reset for this specific parent's children ONLY
-      // This targets students who haven't been reset yet today
-      await Student.updateMany(
-        { 
-          user_id: req.user.user_id, 
-          is_archive: false, 
-          last_reset_date: { $ne: todayDate } 
-        },
-        { 
-          $set: { 
-            status: 'On the way', 
-            last_reset_date: todayDate 
-          } 
-        }
-      );
+      const studentToReset = await Student.findOne({ 
+        user_id: req.user.user_id, 
+        last_reset_date: { $ne: todayDate } 
+      });
 
-    // 2. Now fetch the updated data
+      let resetHappened = false;
+      if (studentToReset) {
+          await Student.updateMany(
+              { user_id: req.user.user_id, last_reset_date: { $ne: todayDate } },
+              { $set: { status: 'On the way', last_reset_date: todayDate } }
+          );
+          resetHappened = true;
+      }
+
       const children = await Student.find({ user_id: req.user.user_id }).populate({
         path: "section_details",
         populate: {
@@ -193,7 +189,10 @@ router.get("/api/parent/children",
         },
       });
 
-      res.status(200).json(children);
+      res.status(200).json({
+        success: resetHappened,
+        children: children
+      });
   } catch (err) {
     console.error("Error fetching children:", err);
     res.status(500).json({ message: "Server error fetching children" });

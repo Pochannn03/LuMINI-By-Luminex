@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import axios from 'axios';
@@ -6,13 +6,19 @@ import NavBar from "../../components/navigation/NavBar";
 import AdminQueueParentGuardian from "../../components/modals/admin/dashboard/AdminQueueParentGuardian"
 import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
 import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
-import AdminDashboardAttendanceSuccessModal from "../../components/modals/admin/dashboard/AdminDashboardAttendanceSuccessModal";
+import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActionModal';
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function AdminDashboard() {
+  // REF
+  const teacherSections = useRef([]);
+
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
   const [queue, setQueue] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [transferSuccessData, setTransferSuccessData] = useState(null);
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -42,7 +48,10 @@ export default function AdminDashboard() {
         });
 
         if (response.data.valid) {
-          setScannedData(response.data);
+          setScannedData({
+            ...response.data,
+            token: rawValue
+          });
           setIsAuthModalOpen(true);
         }
       } 
@@ -52,20 +61,28 @@ export default function AdminDashboard() {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
 
-        const response = await axios.patch(`http://localhost:3000/api/attendance`, 
+        const response = await axios.post(`http://localhost:3000/api/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
         );
 
-        setScannedStudentData(response.data.student);
+        setScannedStudentData({
+          studentName: response.data.student.full_name,
+          studentId: response.data.student.student_id,
+          timeIn: response.data.student.time_in,
+          status: response.data.student.status,
+          displayMsg: response.data.msg
+        });
         setIsAttendanceModalOpen(true);
       }
 
     } catch (error) {
-      console.error("Scan Process Failed:", error);
-      const serverErrorMessage = error.response?.data?.msg || error.response?.data?.message;
-      const finalMessage = serverErrorMessage || error.message || "Scan Error";
-      alert(finalMessage);
+      const finalMessage = error.response?.data?.error || 
+                           error.response?.data?.msg || 
+                           error.message || 
+                           "An unexpected error occurred.";
+      setErrorMessage(finalMessage);
+      setIsErrorModalOpen(true);
     } finally {
       setLoadingScan(false);
     }
@@ -83,18 +100,39 @@ export default function AdminDashboard() {
         guardianId: scannedData.guardian.userId,
         guardianName: scannedData.guardian.name,
         purpose: scannedData.purpose,
+        token: scannedData.token
       }, { withCredentials: true });
 
       if (response.data.success) {
-        alert(response.data.message);
         setIsAuthModalOpen(false);
+        setTransferSuccessData({
+          title: response.data.message.purpose === 'Drop off' ? 'Entry Confirmed' : 'Exit Confirmed',
+          message: response.data.message.text, 
+          type: 'success',
+          details: [
+            { label: 'Student', value: response.data.studentName },
+            { label: 'Activity', value: response.data.message.purpose },
+            { label: 'Guardian', value: response.data.guardianName }
+          ]
+        });
         setScannedData(null);
       }
 
     } catch (err) {
-      const serverMessage = err.response?.data?.error || err.message;
-      console.error("Authorization Error:", serverMessage);
-      alert("Authorization Failed: " + serverMessage);
+      setIsAuthModalOpen(false); 
+      setIsErrorModalOpen(false); 
+
+      const backendError = err.response?.data?.error || "An unexpected error occurred.";
+      setTransferSuccessData({
+          type: 'error',
+          title: 'Transfer Failed',
+          message: 'Invalid Pass', 
+          details: [
+              { label: 'Reason', value: backendError },
+              { label: 'Status', value: 'Access Denied' }
+          ],
+          buttonText: 'Try Again'
+      });
     } finally {
       setLoadingScan(false);
     }
@@ -108,7 +146,9 @@ export default function AdminDashboard() {
         );
 
         if (response.data.success) {
-            setQueue(response.data.queue);
+          setQueue(response.data.queue);
+          const allowedIds = response.data.queue.map(q => q.section_id);
+          teacherSections.current = [...new Set(allowedIds)];
         }
       } catch (err) {
           console.error("Failed to fetch queue:", err);
@@ -122,9 +162,14 @@ export default function AdminDashboard() {
     
     socket.on("new_queue_entry", (newEntry) => {
         setQueue(prevQueue => {
-            const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
-            return [newEntry, ...filtered];
-        });
+        if (!teacherSections.current.includes(newEntry.section_id)) {
+          console.log("Blocking entry for another teacher's section:", newEntry.section_id);
+          return prevQueue; 
+        }
+
+        const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
+        return [newEntry, ...filtered];
+      });
     });
 
     socket.on("remove_queue_entry", (userId) => {
@@ -282,10 +327,41 @@ export default function AdminDashboard() {
         onConfirm={handleConfirmPickup}
       />
 
-      <AdminDashboardAttendanceSuccessModal 
+      <AdminActionFeedbackModal
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
-        studentData={scannedStudentData}
+        type={scannedStudentData?.status === 'Late' ? 'warning' : 'success'}
+        title="Attendance Recorded"
+        message={scannedStudentData?.displayMsg}
+        details={[
+          { label: 'Student ID', value: scannedStudentData?.studentId },
+          { label: 'Student', value: scannedStudentData?.studentName},
+          { label: 'Time In', value: scannedStudentData?.timeIn },
+          { label: 'Status', value: scannedStudentData?.status }
+        ]}
+      />
+
+      <AdminActionFeedbackModal
+        isOpen={!!transferSuccessData}
+        onClose={() => setTransferSuccessData(null)}
+        type={transferSuccessData?.type || 'success'}
+        title={transferSuccessData?.title}
+        message={transferSuccessData?.message}
+        details={transferSuccessData?.details}
+        buttonText={transferSuccessData?.type === 'error' ? 'Try Again' : 'Great'}
+      />
+
+      
+      <AdminActionFeedbackModal
+        isOpen={isErrorModalOpen}
+        onClose={() => setIsErrorModalOpen(false)}
+        type="error"
+        title="Scan Error"
+        message="Could not process QR"
+        details={[
+          { label: 'Reason', value: errorMessage } 
+        ]}
+        buttonText="Try Again"
       />
 
       {loadingScan && (
