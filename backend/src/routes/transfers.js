@@ -85,7 +85,7 @@ router.post('/api/transfer',
 
         if (!pass) {
             return res.status(400).json({ 
-                error: "Invalid or Expired QR: This pass has already been used or has timed out." 
+                error: "This pass has already been used or has timed out." 
             });
         }
 
@@ -95,7 +95,7 @@ router.post('/api/transfer',
               user_id: currentUserId 
           });
           if (!isAuthorized) {
-              return res.status(403).json({ error: "Unauthorized Not your assigned section." });
+              return res.status(403).json({ error: "Unauthorized Not your assigned Student." });
           }
       }
 
@@ -107,7 +107,7 @@ router.post('/api/transfer',
 
       if (!queueCheck) {
           return res.status(400).json({ 
-              error: "Authorization Denied: Guardian has not initiated arrival status (Not on Queue)." 
+              error: "Guardian has not initiated arrival status (Not on Queue)." 
           });
       }
 

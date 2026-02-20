@@ -64,12 +64,14 @@ const AdminActionFeedbackModal = ({
             <div className="flex flex-col gap-3">
               {details.map((item, index) => (
                 <React.Fragment key={index}>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#64748b] text-[12px] font-medium uppercase tracking-wider mr-4">
+                  <div className="flex justify-between items-start py-1">
+                    {/* The label stays on the left and won't shrink */}
+                    <span className="text-[#64748b] text-[12px] font-medium uppercase tracking-wider mr-4 shrink-0">
                       {item.label}:
                     </span>
 
-                    <span className="text-[#1e293b] font-bold">
+                    {/* The value takes the remaining space and aligns text to the right */}
+                    <span className="text-[#1e293b] font-bold text-right wrap-break-word max-w-[200px]">
                       {item.value}
                     </span>
                   </div>

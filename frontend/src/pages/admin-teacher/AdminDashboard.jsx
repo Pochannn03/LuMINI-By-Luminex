@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import axios from 'axios';
@@ -10,6 +10,9 @@ import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActio
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function AdminDashboard() {
+  // REF
+  const teacherSections = useRef([]);
+
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
   const [queue, setQueue] = useState([]);
@@ -74,8 +77,10 @@ export default function AdminDashboard() {
       }
 
     } catch (error) {
-      const serverErrorMessage = error.response?.data?.msg || error.response?.data?.message;
-      const finalMessage = serverErrorMessage || error.message || "Scan Error";
+      const finalMessage = error.response?.data?.error || 
+                           error.response?.data?.msg || 
+                           error.message || 
+                           "An unexpected error occurred.";
       setErrorMessage(finalMessage);
       setIsErrorModalOpen(true);
     } finally {
@@ -141,7 +146,9 @@ export default function AdminDashboard() {
         );
 
         if (response.data.success) {
-            setQueue(response.data.queue);
+          setQueue(response.data.queue);
+          const allowedIds = response.data.queue.map(q => q.section_id);
+          teacherSections.current = [...new Set(allowedIds)];
         }
       } catch (err) {
           console.error("Failed to fetch queue:", err);
@@ -155,9 +162,14 @@ export default function AdminDashboard() {
     
     socket.on("new_queue_entry", (newEntry) => {
         setQueue(prevQueue => {
-            const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
-            return [newEntry, ...filtered];
-        });
+        if (!teacherSections.current.includes(newEntry.section_id)) {
+          console.log("Blocking entry for another teacher's section:", newEntry.section_id);
+          return prevQueue; 
+        }
+
+        const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
+        return [newEntry, ...filtered];
+      });
     });
 
     socket.on("remove_queue_entry", (userId) => {

@@ -43,21 +43,36 @@ router.get('/api/queue',
       const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship?.toLowerCase();
 
+      // Default: Find nothing if the logic doesn't populate the query
       let query = { on_queue: true };
 
       if (userRole === 'teacher') {
-        const teacherSections = await Section.find({ user_id: currentUserId })
-                                             .select('section_id');
+        const teacherSections = await Section.find({ user_id: currentUserId }).select('section_id');
+        
+        // If teacher has no sections, return empty queue immediately
+        if (!teacherSections || teacherSections.length === 0) {
+          return res.status(200).json({ success: true, queue: [] });
+        }
+
         const sectionIds = teacherSections.map(s => s.section_id);
         
-        // We need to find students in these sections first to filter the queue
-        const studentsInSections = await Student.find({ section_id: { $in: sectionIds } })
-                                                .select('student_id');
+        // Find students in these sections
+        const studentsInSections = await Student.find({ 
+            section_id: { $in: sectionIds },
+            is_archive: false 
+        }).select('student_id');
+
         const studentIds = studentsInSections.map(s => s.student_id);
+
+        // If no students are in the teacher's sections, return empty
+        if (studentIds.length === 0) {
+          return res.status(200).json({ success: true, queue: [] });
+        }
+
+        // Explicitly filter the queue by these student IDs
         query.student_id = { $in: studentIds };
       }
 
-      // 2. Fetch the Queue with full details
       const queue = await Queue.find(query)
                                .populate('user_details')
                                .populate('student_details')
@@ -82,7 +97,7 @@ router.get('/api/queue/check',
       user_id: req.user.user_id, 
       on_queue: true 
     });
-    res.json({ onQueue: !!queueCheck }); // Returns true if found, false if not
+    res.json({ onQueue: !!queueCheck }); 
   } catch (err) {
     res.status(500).json({ error: "Server error checking queue status" });
   }

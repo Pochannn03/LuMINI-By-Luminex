@@ -290,7 +290,7 @@ export default function AdminAttendance() {
               </div>
             </div>
 
-            <div className="card p-6 flex flex-col gap-4">
+            {/* <div className="card p-6 flex flex-col gap-4">
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined orange-icon text-[28px]">tune</span>
                 <div>
@@ -320,7 +320,7 @@ export default function AdminAttendance() {
                   Apply Override
                 </button>
               </div>
-            </div>
+            </div> */}
 
             <button className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer">
               <span className="material-symbols-outlined">save</span>

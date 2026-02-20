@@ -53,7 +53,8 @@ router.post('/api/attendance',
     hasRole('admin'), 
     async (req, res) => {
     const { studentId } = req.body;
-    
+    const currentUserId = Number(req.user.user_id); 
+    const userRole = req.user.relationship?.toLowerCase()
     const now = new Date();
     const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
     
@@ -72,7 +73,7 @@ router.post('/api/attendance',
 
             if (!isAuthorized) {
                 return res.status(403).json({ 
-                    msg: "Access Denied: This student belongs to another section/teacher." 
+                    msg: "This student belongs to another section/teacher." 
                 });
             }
         }

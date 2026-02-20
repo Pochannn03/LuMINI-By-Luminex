@@ -3,6 +3,7 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { AccessPass } from "../models/accessPass.js"; 
 import { Student } from "../models/students.js"; 
 import { Attendance } from "../models/attendances.js";
+import { Section } from "../models/sections.js";
 import { Transfer } from "../models/transfers.js";
 import crypto from "crypto"; 
 
@@ -79,6 +80,9 @@ router.get('/api/scan/pass/:token',
   isAuthenticated,
   hasRole('admin'), 
   async (req, res) => {
+    const currentUserId = Number(req.user.user_id); 
+    const userRole = req.user.relationship?.toLowerCase();
+    
     try {
       const { token } = req.params;
       const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
@@ -107,6 +111,23 @@ router.get('/api/scan/pass/:token',
              valid: false, 
              message: "This pass has expired." 
          });
+      }
+
+      const studentSectionId = pass.student_details?.section_id;
+
+      if (userRole === 'teacher') {
+        if (!studentSectionId) {
+          return res.status(400).json({ error: "Student is not assigned to any section." });
+        }
+
+        const isAuthorized = await Section.findOne({ 
+            section_id: Number(studentSectionId), 
+            user_id: currentUserId 
+        });
+
+        if (!isAuthorized) {
+            return res.status(403).json({ error: "This student is not in your assigned section." });
+        }
       }
 
       // 4. PREPARE DATA SAFEGUARDS
