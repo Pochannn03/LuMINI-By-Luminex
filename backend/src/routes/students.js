@@ -14,24 +14,106 @@ import fs from "fs";
 // Router Import to Export this router to index.js
 const router = Router();
 
-// for Image/File Holder
-const uploadDir = 'uploads';
+// --- Multer Setup for Student Images ---
+const uploadDir = 'uploads/students'; // Store student images in a separate subfolder
 if (!fs.existsSync(uploadDir)){
-    fs.mkdirSync(uploadDir);
+    fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/') 
+    cb(null, uploadDir); 
   },
   filename: function (req, file, cb) {
-    // Unique filename: timestamp + original extension
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname)); 
+    cb(null, 'student-' + uniqueSuffix + path.extname(file.originalname)); 
   }
 });
 
 const upload = multer({ storage: storage });
+
+// --- NEW ROUTE: Update Student Profile Picture ---
+router.put('/api/student/:id/profile-picture', 
+  isAuthenticated, 
+  upload.single('profile_picture'), 
+  async (req, res) => {
+    try {
+      const studentId = req.params.id;
+
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded." });
+      }
+
+      // 1. Find the student to get the old picture path
+      const student = await Student.findById(studentId);
+      if (!student) {
+        // Clean up the uploaded file if student not found
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ message: "Student not found." });
+      }
+
+      // 2. Delete the OLD file if it exists
+      if (student.profile_picture) {
+        const oldImagePath = path.join(process.cwd(), student.profile_picture);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log(`fwb_log: Old student profile picture deleted: ${oldImagePath}`);
+        }
+      }
+
+      // 3. Update the student record with the new picture path
+      student.profile_picture = req.file.path;
+      const updatedStudent = await student.save();
+
+      res.status(200).json({ 
+        success: true, 
+        message: "Student profile picture updated successfully!", 
+        student: updatedStudent 
+      });
+
+    } catch (err) {
+      console.error("Error updating student profile picture:", err);
+      // Clean up the uploaded file on error
+      if (req.file) {
+        fs.unlinkSync(req.file.path);
+      }
+      res.status(500).json({ message: "Failed to update student profile picture." });
+    }
+});
+
+// --- NEW ROUTE: Update Student Medical Details (For Parents) ---
+router.put('/api/student/:id/medical', isAuthenticated, async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const { allergies, medical_history } = req.body;
+
+    // Update only the specific medical fields
+    const updatedStudent = await Student.findByIdAndUpdate(
+      studentId,
+      { 
+        $set: { 
+          allergies: allergies, 
+          medical_history: medical_history 
+        } 
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: "Student not found." });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Medical details updated successfully!", 
+      student: updatedStudent 
+    });
+
+  } catch (err) {
+    console.error("Error updating medical details:", err);
+    res.status(500).json({ message: "Failed to update medical details." });
+  }
+});
 
 // STUDENT
 router.get('/api/students', 
