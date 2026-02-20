@@ -143,6 +143,11 @@ router.post('/api/transfer',
       );
 
       req.app.get('socketio').emit('remove_queue_entry', Number(guardianId));
+
+      req.app.get('socketio').emit('student_status_updated', {
+            student_id: studentId,
+            newStatus: newStatus
+        });
       
       return res.status(200).json({ 
           success: true, 

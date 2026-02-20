@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isParentOnQueue, setIsParentOnQueue] = useState(false);
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
 
@@ -40,7 +41,8 @@ export default function Dashboard() {
             lastName: firstChild.last_name,
             profilePicture: firstChild.profile_picture,
             sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
-            status: firstChild.status
+            status: firstChild.status,
+            onQueue: firstChild.on_queue
           });
         }
       } catch (err) {
@@ -51,6 +53,47 @@ export default function Dashboard() {
     };
     fetchChild();
   }, []);
+
+  useEffect(() => {
+    const checkQueueStatus = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/queue/check', { 
+          withCredentials: true 
+        });
+        setIsParentOnQueue(response.data.onQueue);
+      } catch (error) {
+        console.error("Failed to fetch queue status:", error);
+      }
+    };
+    checkQueueStatus();
+  }, []);
+  
+
+  useEffect(() => {
+    const socket = io("http://localhost:3000", { withCredentials: true });
+
+    // Listen for the queue entry your backend emits
+    socket.on('new_queue_entry', (entry) => {
+      // Only unlock if the entry belongs to the logged-in parent
+      if (entry.user_id === user?.user_id) {
+        setIsParentOnQueue(true);
+      }
+    });
+
+    // Your existing listener for when the teacher clears them
+    socket.on('student_status_updated', (data) => {
+      if (data.student_id === rawStudentData?.student_id) {
+        setChildData(prev => ({ ...prev, status: data.newStatus }));
+        setIsParentOnQueue(false); // Locks the button again
+      }
+    });
+
+    return () => {
+      socket.off('new_queue_entry');
+      socket.off('student_status_updated');
+      socket.disconnect();
+    };
+  }, [rawStudentData, user]);
 
   const handleStatusUpdate = async (statusLabel) => {
     if (!rawStudentData) {
@@ -70,6 +113,8 @@ export default function Dashboard() {
         purpose: transferType,
         on_queue: true
       }, { withCredentials: true });
+
+      setIsParentOnQueue(true);
 
       alert(`Status updated: ${statusLabel}`);
     } catch (err) {
@@ -109,6 +154,14 @@ export default function Dashboard() {
     setShowScanner(false);
     setShowPassModal(true);
   };
+
+  const isScanDisabled = 
+    !childData || 
+    childData.status === 'Dismissed' || 
+    !isParentOnQueue || 
+    loading;
+
+  const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
 
   return(
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -244,21 +297,31 @@ export default function Dashboard() {
           <div className="flex flex-col gap-6"> {/* Right Grid */}
             <div className="card py-8 px-6 flex flex-col items-center text-center">
               <div>
-                <h2 className="text-cdark text-[20px] font-bold mb-2">Initiate Pickup</h2>
-                <p className="text-cgray text-[14px]! leading-normal m-auto">Scan the school's entry QR code to begin the pickup process and generate your dynamic pickup pass.
+                <h2 className="text-cdark text-[20px] font-bold mb-2">
+                  Initiate {actionType}
+                </h2>
+                <p className="text-cgray text-[14px]! leading-normal m-auto">
+                  Scan the school's entry QR code to begin the <span className="font-bold">{actionType}</span> process and generate your dynamic pass.
                 </p>
               </div>
 
-              <div class="flex justify-center my-6 w-full">
+              <div className="flex justify-center my-6 w-full">
                 <img src={ScanHandAsset} alt="Scan QR Illustration" className="max-w-[180px] h-auto block" />
               </div>
 
               <button 
-                className="btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl" 
+                className={`btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl transition-all ${
+                  isScanDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                }`} 
                 id="scanQrBtn"
                 onClick={handleScanButtonClick}
+                disabled={isScanDisabled}
               >
-                Scan Entry QR
+                {childData?.status === 'Dismissed' 
+                  ? 'Student Dismissed' 
+                  : !isParentOnQueue 
+                    ? 'Update Status to Start' 
+                    : `Scan for ${actionType}`}
               </button>
             </div>
 
