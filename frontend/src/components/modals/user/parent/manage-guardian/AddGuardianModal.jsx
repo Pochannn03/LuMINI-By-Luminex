@@ -364,22 +364,31 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
                 <span className="sum-value">{formData.role || "Not specified"}</span>
               </div>
               <div className="summary-row">
-                <span className="sum-label">Password</span>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <span className="sum-value">
-                    {showPassword ? formData.password : "••••••••"}
+              <span className="sum-label">Password</span>
+              
+              {/* Added Flexbox to perfectly center the text and icon together */}
+              <div className="sum-value" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>
+                  {/* Note: Make sure the variable matches what you named it in your modal state! */}
+                  {showPassword ? formData.password : "••••••••"} 
+                </span>
+                
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ 
+                    background: 'none', border: 'none', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', 
+                    color: '#94a3b8', padding: 0, marginTop: '2px' 
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
+                    {showPassword ? "visibility_off" : "visibility"}
                   </span>
-                  <button
-                    className="toggle-password-btn"
-                    style={{ position: "static" }}
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
-                      {showPassword ? "visibility" : "visibility_off"}
-                    </span>
-                  </button>
-                </div>
+                </button>
               </div>
+              
+            </div>
               <div className="summary-row">
                 <span className="sum-label">ID File</span>
                 <span className="sum-value" style={{ color: "var(--primary-blue)" }}>
