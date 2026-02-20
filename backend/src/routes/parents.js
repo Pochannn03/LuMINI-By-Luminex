@@ -28,23 +28,27 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-const resetDailyStudentStatus = async () => {
+const resetDailyStudentStatus = async (userId, todayDate) => {
   try {
-    const todayDate = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Manila'
-    });
-
     const result = await Student.updateMany(
       { 
+        user_id: userId, 
         is_archive: false, 
-        section_id: { $ne: null } 
+        last_reset_date: { $ne: todayDate }
       }, 
-      { $set: { status: 'On the way' } }
+      { 
+        $set: { 
+          status: 'On the way', 
+          on_queue: false,
+          last_reset_date: todayDate 
+        } 
+      }
     );
-
-    console.log(`✅ ${todayDate}: Reset ${result.modifiedCount} students to 'On the way'.`);
+    if (result.modifiedCount > 0) {
+      console.log(`✅ Reset ${result.modifiedCount} students for User ${userId}`);
+    }
   } catch (error) {
-    console.error("❌ Status Reset Failed:", error.message);
+    console.error("❌ Individual Reset Failed:", error.message);
   }
 };
 
@@ -197,8 +201,8 @@ router.get("/api/parent/children", async (req, res) => {
       {
         path: "section_details",
         populate: {
-          path: "user_details", // Deep populate to get the Teacher (User)
-          select: "first_name last_name email phone_number", // Only get what we need
+          path: "user_details",
+          select: "first_name last_name email phone_number",
         },
       },
     );

@@ -40,7 +40,8 @@ export default function Dashboard() {
             lastName: firstChild.last_name,
             profilePicture: firstChild.profile_picture,
             sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
-            status: firstChild.status
+            status: firstChild.status,
+            onQueue: true
           });
         }
       } catch (err) {
@@ -51,6 +52,30 @@ export default function Dashboard() {
     };
     fetchChild();
   }, []);
+
+  useEffect(() => {
+    const socket = io("http://localhost:3000", {
+        withCredentials: true // Recommended since your API uses credentials
+    });
+
+    socket.on('student_status_updated', (data) => {
+        // We use rawStudentData?.student_id to make sure we only update 
+        // if the message is for the child currently on the screen
+        if (data.student_id === rawStudentData?.student_id) {
+            setChildData(prev => ({
+                ...prev,
+                status: data.newStatus,
+                onQueue: false 
+            }));
+            console.log(`Socket Update: ${data.newStatus}`);
+        }
+    });
+
+    return () => {
+        socket.off('student_status_updated'); // Clean up the listener
+        socket.disconnect();
+      };
+  }, [rawStudentData]);
 
   const handleStatusUpdate = async (statusLabel) => {
     if (!rawStudentData) {
@@ -109,6 +134,14 @@ export default function Dashboard() {
     setShowScanner(false);
     setShowPassModal(true);
   };
+
+  const isScanDisabled = 
+    !childData || 
+    childData.status === 'Dismissed' || 
+    !childData.onQueue || 
+    loading;
+
+  const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
 
   return(
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -244,21 +277,31 @@ export default function Dashboard() {
           <div className="flex flex-col gap-6"> {/* Right Grid */}
             <div className="card py-8 px-6 flex flex-col items-center text-center">
               <div>
-                <h2 className="text-cdark text-[20px] font-bold mb-2">Initiate Pickup</h2>
-                <p className="text-cgray text-[14px]! leading-normal m-auto">Scan the school's entry QR code to begin the pickup process and generate your dynamic pickup pass.
+                <h2 className="text-cdark text-[20px] font-bold mb-2">
+                  Initiate {actionType}
+                </h2>
+                <p className="text-cgray text-[14px]! leading-normal m-auto">
+                  Scan the school's entry QR code to begin the <span className="font-bold">{actionType}</span> process and generate your dynamic pass.
                 </p>
               </div>
 
-              <div class="flex justify-center my-6 w-full">
+              <div className="flex justify-center my-6 w-full">
                 <img src={ScanHandAsset} alt="Scan QR Illustration" className="max-w-[180px] h-auto block" />
               </div>
 
               <button 
-                className="btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl" 
+                className={`btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl transition-all ${
+                  isScanDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                }`} 
                 id="scanQrBtn"
                 onClick={handleScanButtonClick}
+                disabled={isScanDisabled}
               >
-                Scan Entry QR
+                {childData?.status === 'Dismissed' 
+                  ? 'Process Complete' 
+                  : !childData?.onQueue 
+                    ? 'Update Status to Start' 
+                    : `Scan for ${actionType}`}
               </button>
             </div>
 
