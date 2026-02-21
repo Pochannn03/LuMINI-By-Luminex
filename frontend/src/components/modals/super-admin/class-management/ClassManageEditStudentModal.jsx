@@ -1,8 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
 import { validateStudentRegistrationStep } from '../../../../utils/class-manage-modal/studentModalValidation';
+import AvatarEditor from "react-avatar-editor"; // <-- ADDED CROPPER IMPORT
+
+// --- ADDED HELPER ---
+const BACKEND_URL = "http://localhost:3000";
+
+const getImageUrl = (path, firstName) => {
+  if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'User'}`; 
+  if (path.startsWith("http")) return path;
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+// --------------------
 
 export default function ClassManageEditStudentModal({ isOpen, onClose, studentData, onSuccess }) {
   // HOOKS (useState & useEffect)
@@ -13,12 +24,18 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
   const [formData, setFormData] = useState({
     firstName: '', 
     lastName: '',
-    birthdate: '', // Validator expects 'birthdate'
+    birthdate: '', 
     age: '',
     gender: '',
     studentId: '', 
-    invitationCode: '', // Included to satisfy validator structure if needed
+    invitationCode: '', 
   });
+
+  // --- NEW: CROPPER STATES ---
+  const editorRef = useRef(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImage, setTempImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (isOpen && studentData) {
@@ -38,12 +55,13 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         invitationCode: std.invitation_code || '',
       });
 
-      setPreviewUrl(
-        std.profile_picture || 
-        `https://api.dicebear.com/7.x/initials/svg?seed=${std.first_name || 'User'}`
-      );
+      // --- APPLIED HELPER HERE SO IT LOADS THE EXISTING IMAGE ---
+      setPreviewUrl(getImageUrl(std.profile_picture, std.first_name));
+      
       setProfileImage(null);
       setErrors({});
+      setShowCropModal(false);
+      setTempImage(null);
     }
   }, [isOpen, studentData]);
 
@@ -75,18 +93,38 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
+  // --- UPDATED IMAGE HANDLERS FOR CROPPER ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfileImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+      const imageUrl = URL.createObjectURL(file);
+      setTempImage(imageUrl);
+      setShowCropModal(true); // Open cropper instead of saving immediately
+      setZoom(1);
+    }
+    e.target.value = null; // reset input
+    if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+  };
+
+  const handleCropSave = () => {
+    if (editorRef.current) {
+      const canvas = editorRef.current.getImageScaledToCanvas();
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "student_photo.jpg", { type: "image/jpeg" });
+          setProfileImage(croppedFile); // This is what gets sent to backend
+          setPreviewUrl(URL.createObjectURL(croppedFile)); // Update the UI preview
+          setShowCropModal(false);
+          setTempImage(null);
+        }
+      }, "image/jpeg", 0.95);
     }
   };
 
   const handleSubmit = async () => {
     const newErrors = validateStudentRegistrationStep(formData, profileImage);
 
+    // In edit mode, profileImage is optional (only validate if they are uploading a new one)
     if (!profileImage) {
       delete newErrors.profileImage; 
     }
@@ -110,7 +148,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('allergies', formData.allergies);
       data.append('medical_history', formData.medical_history);
 
-      // Append Image ONLY if a new one was selected
+      // Append Image ONLY if a new one was selected/cropped
       if (profileImage) {
         data.append('profile_photo', profileImage);
       }
@@ -136,8 +174,74 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
   if(!isOpen) return null;
   return createPortal(
     <>
-      <div className="modal-overlay active" id="editStudentModal">
-        <div className="modal-container">
+      {/* --- CROPPER SUB-MODAL --- */}
+      {showCropModal && (
+        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
+          <div className="modal-container" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>
+              Crop Student Photo
+            </h3>
+            
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+              <AvatarEditor
+                ref={editorRef}
+                image={tempImage}
+                width={220}
+                height={220}
+                border={20}
+                borderRadius={110} // Makes the crop guide a circle!
+                color={[15, 23, 42, 0.6]}
+                scale={zoom}
+                rotate={0}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.01" 
+                value={zoom} 
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }}
+              />
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button 
+                type="button"
+                className="btn-cancel" 
+                style={{ flex: 1 }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCropModal(false);
+                  setTempImage(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="btn-save" 
+                style={{ flex: 1 }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCropSave();
+                }}
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MAIN EDIT MODAL --- */}
+      <div className="modal-overlay active" id="editStudentModal" onClick={onClose}>
+        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
               <span class="material-symbols-outlined header-icon blue-icon">edit_square</span>

@@ -1,8 +1,18 @@
 import React from 'react';
 
-export default function ClassManageAddStudentCard({ student, isSelected, onToggle }) {
+const BACKEND_URL = "http://localhost:3000";
 
-  const photoUrl = student.profile_picture || "/default-avatar.png";
+// HELPER: Convert backend path to full URL
+const getImageUrl = (path) => {
+  if (!path) return "/default-avatar.png"; 
+  if (path.startsWith("http")) return path;
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+
+export default function ClassManageAddStudentCard({ student, isSelected, onToggle }) {
+  
+  // Use the helper here!
+  const photoUrl = getImageUrl(student.profile_picture);
   const isEnrolled = !!(student.section_id && student.section_id.section_name);
   const statusBadge = isEnrolled ? 
     <span className="text-[10px] bg-green-100 text-green-600 px-1 rounded">Enrolled</span> : 
