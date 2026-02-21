@@ -71,4 +71,21 @@ router.get('/api/queue',
     }
 });
 
+// QUEUE CHECKING FOR SCAN BUTTON ENABLER
+// Backend: Queue Check Endpoint
+router.get('/api/queue/check', 
+  isAuthenticated,
+  hasRole('user'),
+  async (req, res) => {
+  try {
+    const queueCheck = await Queue.findOne({ 
+      user_id: req.user.user_id, 
+      on_queue: true 
+    });
+    res.json({ onQueue: !!queueCheck }); // Returns true if found, false if not
+  } catch (err) {
+    res.status(500).json({ error: "Server error checking queue status" });
+  }
+});
+
 export default router;

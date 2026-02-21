@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isParentOnQueue, setIsParentOnQueue] = useState(false);
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
 
@@ -41,7 +42,7 @@ export default function Dashboard() {
             profilePicture: firstChild.profile_picture,
             sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
             status: firstChild.status,
-            onQueue: true
+            onQueue: firstChild.on_queue
           });
         }
       } catch (err) {
@@ -54,28 +55,45 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const socket = io("http://localhost:3000", {
-        withCredentials: true // Recommended since your API uses credentials
+    const checkQueueStatus = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/queue/check', { 
+          withCredentials: true 
+        });
+        setIsParentOnQueue(response.data.onQueue);
+      } catch (error) {
+        console.error("Failed to fetch queue status:", error);
+      }
+    };
+    checkQueueStatus();
+  }, []);
+  
+
+  useEffect(() => {
+    const socket = io("http://localhost:3000", { withCredentials: true });
+
+    // Listen for the queue entry your backend emits
+    socket.on('new_queue_entry', (entry) => {
+      // Only unlock if the entry belongs to the logged-in parent
+      if (entry.user_id === user?.user_id) {
+        setIsParentOnQueue(true);
+      }
     });
 
+    // Your existing listener for when the teacher clears them
     socket.on('student_status_updated', (data) => {
-        // We use rawStudentData?.student_id to make sure we only update 
-        // if the message is for the child currently on the screen
-        if (data.student_id === rawStudentData?.student_id) {
-            setChildData(prev => ({
-                ...prev,
-                status: data.newStatus,
-                onQueue: false 
-            }));
-            console.log(`Socket Update: ${data.newStatus}`);
-        }
+      if (data.student_id === rawStudentData?.student_id) {
+        setChildData(prev => ({ ...prev, status: data.newStatus }));
+        setIsParentOnQueue(false); // Locks the button again
+      }
     });
 
     return () => {
-        socket.off('student_status_updated'); // Clean up the listener
-        socket.disconnect();
-      };
-  }, [rawStudentData]);
+      socket.off('new_queue_entry');
+      socket.off('student_status_updated');
+      socket.disconnect();
+    };
+  }, [rawStudentData, user]);
 
   const handleStatusUpdate = async (statusLabel) => {
     if (!rawStudentData) {
@@ -95,6 +113,8 @@ export default function Dashboard() {
         purpose: transferType,
         on_queue: true
       }, { withCredentials: true });
+
+      setIsParentOnQueue(true);
 
       alert(`Status updated: ${statusLabel}`);
     } catch (err) {
@@ -138,7 +158,7 @@ export default function Dashboard() {
   const isScanDisabled = 
     !childData || 
     childData.status === 'Dismissed' || 
-    !childData.onQueue || 
+    !isParentOnQueue || 
     loading;
 
   const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
@@ -299,7 +319,7 @@ export default function Dashboard() {
               >
                 {childData?.status === 'Dismissed' 
                   ? 'Process Complete' 
-                  : !childData?.onQueue 
+                  : !isParentOnQueue 
                     ? 'Update Status to Start' 
                     : `Scan for ${actionType}`}
               </button>
