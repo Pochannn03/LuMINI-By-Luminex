@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Scanner } from "@yudiel/react-qr-scanner";
 
-
 export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode }) {
   // USESTATES
   const [scanResult, setScanResult] = useState(null);

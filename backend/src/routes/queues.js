@@ -42,19 +42,19 @@ router.get('/api/queue',
     try {
       const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship?.toLowerCase();
-
-      // Default: Find nothing if the logic doesn't populate the query
+      let sectionIds = [];
       let query = { on_queue: true };
 
       if (userRole === 'teacher') {
-        const teacherSections = await Section.find({ user_id: currentUserId }).select('section_id');
+        const teacherSections = await Section.find({ user_id: currentUserId })
+                                             .select('section_id');
         
         // If teacher has no sections, return empty queue immediately
         if (!teacherSections || teacherSections.length === 0) {
-          return res.status(200).json({ success: true, queue: [] });
+          return res.status(200).json({ success: true, queue: [], authorized_sections: [] });
         }
 
-        const sectionIds = teacherSections.map(s => s.section_id);
+        sectionIds = teacherSections.map(s => s.section_id);
         
         // Find students in these sections
         const studentsInSections = await Student.find({ 
@@ -66,7 +66,7 @@ router.get('/api/queue',
 
         // If no students are in the teacher's sections, return empty
         if (studentIds.length === 0) {
-          return res.status(200).json({ success: true, queue: [] });
+          return res.status(200).json({ success: true, queue: [], authorized_sections: sectionIds });
         }
 
         // Explicitly filter the queue by these student IDs
@@ -78,7 +78,11 @@ router.get('/api/queue',
                                .populate('student_details')
                                .sort({ created_at: -1 });
 
-      res.status(200).json({ success: true, queue });
+      res.status(200).json({ 
+        success: true, 
+        queue, 
+        authorized_sections: sectionIds 
+      });
 
     } catch (err) {
       console.error("Queue Fetch Error:", err);
@@ -101,6 +105,26 @@ router.get('/api/queue/check',
   } catch (err) {
     res.status(500).json({ error: "Server error checking queue status" });
   }
+});
+
+router.patch('/api/queue/remove/:userId', 
+  isAuthenticated, 
+  hasRole('admin'),
+  async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      await Queue.findOneAndUpdate(
+        { user_id: userId, on_queue: true }, 
+        { on_queue: false }
+      );
+
+      req.app.get('socketio').emit('remove_queue_entry', Number(userId));
+
+      res.json({ success: true, msg: "Removed from queue" });
+    } catch (err) {
+      res.status(500).json({ success: false, msg: "Server error" });
+    }
 });
 
 export default router;
