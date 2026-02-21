@@ -175,8 +175,19 @@ router.get("/api/parent/children",
       let resetHappened = false;
       if (studentToReset) {
           await Student.updateMany(
-              { user_id: req.user.user_id, last_reset_date: { $ne: todayDate } },
-              { $set: { status: 'On the way', last_reset_date: todayDate } }
+              { 
+                user_id: req.user.user_id,
+                 last_reset_date: { 
+                  $ne: 
+                  todayDate 
+                } 
+              },
+              { 
+                $set: { 
+                  status: 'On the way', 
+                  last_reset_date: todayDate 
+                } 
+              }
           );
           resetHappened = true;
       }

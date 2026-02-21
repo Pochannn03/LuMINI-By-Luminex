@@ -3,12 +3,13 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
+import { User } from "../models/users.js";
 import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
 
 const router = Router();
 
-// GETT THE PICK UP AND DROP OFF HISTORY (TEACHER)
+// GET THE PICK UP AND DROP OFF HISTORY (TEACHER)
 router.get('/api/transfer',
   isAuthenticated,
   hasRole('admin'),
@@ -45,26 +46,48 @@ router.get('/api/transfer',
     }
 });
 
-// GETT THE PICK UP AND DROP OFF HISTORY (PARENT)
+// GET THE PICK UP AND DROP OFF HISTORY (PARENT)
 router.get('/api/transfer/parent',
   isAuthenticated,
   hasRole('user'),
   async (req, res) => {
     try {
-      const currentUserId = Number(req.user.user_id); 
-      const query = { user_id: currentUserId };
+      const { date, purpose } = req.query;
+      const currentUserId = req.user.user_id; 
+      const children = await Student.find({ user_id: currentUserId });
 
-      const history = await Transfer.find(query) 
-                                    .populate('student_details')
-                                    .populate('user_details')
-                                    .populate('section_details')
-                                    .sort({ created_at: -1 });
-        
+      if (!children || children.length === 0) {
+        return res.json({ success: true, data: [], message: "No students linked to this parent account." });
+      }
+
+      const studentIdStrings = children.map(child => child.student_id);
+      console.log("Step 3: Searching transfers for Student IDs:", studentIdStrings);
+
+      let query = { 
+        student_id: { $in: studentIdStrings }
+      };
+
+      if (date) {
+        query.date = date;
+      }
+
+      if (purpose && purpose !== "all") {
+        query.purpose = { $regex: new RegExp(purpose, "i") };
+      }
+
+      const history = await Transfer.find(query)
+        .populate('student_details')
+        .populate('user_details')
+        .populate('section_details')
+        .sort({ created_at: -1 });
+
+      console.log(`Step 4: Success! Found ${history.length} transfer records.`);
+
       res.json({ success: true, data: history });
 
     } catch (err) {
-      console.error("Parent Transfer Fetch Error:", err);
-      res.status(500).json({ success: false, error: "Failed to fetch your history" });
+      console.error("CRITICAL ERROR:", err);
+      res.status(500).json({ success: false, error: "Internal Server Error" });
     }
 });
 
@@ -150,6 +173,10 @@ router.post('/api/transfer',
 
       await Student.findOneAndUpdate(
           { student_id: studentId },
+          { 
+            status: newStatus,
+            last_reset_date: todayDate 
+          },
           { status: newStatus },
           { new: true }
       );
