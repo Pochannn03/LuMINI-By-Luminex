@@ -374,7 +374,8 @@ export default function SuperAdminAccounts() {
 
           {/* --- PENDING APPROVALS SECTION (UNIFIED) --- */}
           <div>
-            <div className="rounded-xl shadow-sm border border-gray-200 p-4 ">
+            {/* ADDED 'bg-white' TO MAKE IT SOLID! */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 ">
               
               {/* HEADER WITH ICON */}
               <div className="mb-6 flex items-center gap-3">

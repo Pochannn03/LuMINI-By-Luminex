@@ -1,10 +1,18 @@
 import React from 'react';
 
+const BACKEND_URL = "http://localhost:3000";
+
+// HELPER: Convert backend path to full URL, or use Dicebear fallback
+const getImageUrl = (path, firstName) => {
+  if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'User'}`; 
+  if (path.startsWith("http")) return path;
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+
 export default function ClassManageStudentCard({ std, onView, onEdit }) {
 
-  const photoUrl = std.profile_picture 
-    ? std.profile_picture 
-    : `https://api.dicebear.com/7.x/initials/svg?seed=${std.first_name || 'User'}`;
+  // Uses the helper to fix the path!
+  const photoUrl = getImageUrl(std.profile_picture, std.first_name);
 
   const fullName = `${std.first_name || ''} ${std.last_name || ''}`;
 

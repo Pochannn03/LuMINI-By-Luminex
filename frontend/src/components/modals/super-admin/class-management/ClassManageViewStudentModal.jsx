@@ -4,13 +4,25 @@ import QRCode from "react-qr-code"; // Ensure this is imported!
 import ClassManageDeleteStudentModal from './ClassManageDeleteStudentModal';
 import FormInputRegistration from '../../../FormInputRegistration';
 
+// --- ADDED HELPER ---
+const BACKEND_URL = "http://localhost:3000";
+
+const getImageUrl = (path, firstName) => {
+  if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'User'}`; 
+  if (path.startsWith("http")) return path;
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+// --------------------
+
 export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess, studentData }) {
   const qrRef = useRef(null);
   const [isOpenDeleteStudentModal, setIsOpenDeleteStudentModal] = useState(false);
 
   const std = studentData || {};
   const fullName = `${std.first_name || ''} ${std.last_name || ''}`;
-  const photoUrl = std.profile_picture || "https://api.dicebear.com/7.x/initials/svg?seed=" + (std.first_name || "User");
+  
+  // --- APPLIED HELPER HERE ---
+  const photoUrl = getImageUrl(std.profile_picture, std.first_name);
   
   const formattedBday = std.birthday 
     ? new Date(std.birthday).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) 

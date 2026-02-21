@@ -4,6 +4,7 @@ import { validateStudentRegistrationStep } from '../../../../utils/class-manage-
 import QRCode from "react-qr-code";
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
+import AvatarEditor from "react-avatar-editor"; // <-- ADDED CROPPER IMPORT
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
 export default function ClassManageAddStudentModal({ isOpen, onClose }) {
@@ -25,23 +26,16 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     invitationCode: '',
   })
 
+  // --- NEW: CROPPER STATES ---
+  const editorRef = useRef(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImage, setTempImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
+
   // USE EFFECTS
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        firstName: '',
-        lastName: '',
-        birthdate: '',
-        age: '',
-        gender: '',
-        allergies: 'None',
-        medical_history: 'None',
-        studentId: 'Generating...', 
-        invitationCode: '',
-      });
-      setProfileImage(null);
-      setPreviewUrl(null);
-      setLoading(false);
+      resetForm();
     }
   }, [isOpen]);
 
@@ -87,13 +81,10 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       const response = await axios.get('http://localhost:3000/api/students/invitation', {
         withCredentials: true
       });
-
-      // Update state with the code from the server
       setFormData((prev) => ({ 
         ...prev, 
         invitationCode: response.data.code 
       }));
-
     } catch (error) {
       console.error("Error generating code:", error);
       alert("Failed to generate code. Please try again.");
@@ -109,35 +100,26 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     const ctx = canvas.getContext("2d");
     const img = new Image();
     
-    // Canvas dimensions
     const qrSize = 500; 
-    const padding = 60; // Space for the white border
-    const textSpace = 80; // Extra height for the Student ID text
+    const padding = 60;
+    const textSpace = 80;
     
     canvas.width = qrSize + (padding * 2);
     canvas.height = qrSize + padding + textSpace;
 
     img.onload = () => {
-      // 1. Draw solid white background
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // 2. Draw the QR code (centered horizontally)
       ctx.drawImage(img, padding, padding, qrSize, qrSize);
-      
-      // 3. Draw the Student ID text (XS style)
-      ctx.fillStyle = "#64748b"; // slate-500 color
-      ctx.font = "bold 24px monospace"; // XS size relative to 500px QR
+      ctx.fillStyle = "#64748b"; 
+      ctx.font = "bold 24px monospace"; 
       ctx.textAlign = "center";
-      
-      // Position text at the bottom
       ctx.fillText(
         formData.studentId, 
         canvas.width / 2, 
         qrSize + padding + (textSpace / 2)
       );
       
-      // 4. Trigger Download
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.download = `QR_${formData.studentId}.png`;
@@ -148,21 +130,15 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
-  // HELPERS REMOVING THE DATAS AFTER USER/CLOSED MODAL
   const resetForm = () => {
     setFormData({
-      firstName: '',
-      lastName: '',
-      birthdate: '',
-      age: '',
-      gender: '',
-      allergies: 'None',
-      medical_history: 'None',
-      studentId: 'Generating...', 
-      invitationCode: '',
+      firstName: '', lastName: '', birthdate: '', age: '', gender: '',
+      allergies: 'None', medical_history: 'None', studentId: 'Generating...', invitationCode: '',
     });
     setProfileImage(null);
     setPreviewUrl(null);
+    setTempImage(null);
+    setShowCropModal(false);
     setErrors({});
   };
 
@@ -171,37 +147,49 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
     onClose();
   };
 
-  // VALIDATION
   const validateStep = () => {
     const newErrors = validateStudentRegistrationStep(formData, profileImage);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // HANDLERS
+  // --- UPDATED IMAGE HANDLERS FOR CROPPER ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfileImage(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      const imageUrl = URL.createObjectURL(file);
+      setTempImage(imageUrl);
+      setShowCropModal(true); // Open cropper instead of saving immediately
+      setZoom(1);
     }
+    e.target.value = null; // reset input
     if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+  };
+
+  const handleCropSave = () => {
+    if (editorRef.current) {
+      const canvas = editorRef.current.getImageScaledToCanvas();
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "student_photo.jpg", { type: "image/jpeg" });
+          setProfileImage(croppedFile);
+          setPreviewUrl(URL.createObjectURL(croppedFile));
+          setShowCropModal(false);
+          setTempImage(null);
+        }
+      }, "image/jpeg", 0.95);
+    }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
-
-    if (!validateStep()) {
-      return;
-    }
-
+    if (!validateStep()) return;
     if (!formData.invitationCode) {
       alert("Please generate an invitation code.");
       return;
@@ -227,11 +215,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       const response = await axios.post('http://localhost:3000/api/students', data, {
         withCredentials: true
       });
-
       alert("Student created successfully!");
       handleCloseModal();
-      console.log("Success:", response.data);
-
     } catch (error) {
       console.error("Crash Details:", error);
       if (error.response) {
@@ -255,8 +240,73 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
   
   return createPortal(
     <>
+      {/* --- CROPPER SUB-MODAL --- */}
+      {showCropModal && (
+        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
+          <div className="modal-container" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>
+              Crop Student Photo
+            </h3>
+            
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+              <AvatarEditor
+                ref={editorRef}
+                image={tempImage}
+                width={220}
+                height={220}
+                border={20}
+                borderRadius={110} // Makes the crop guide a circle!
+                color={[15, 23, 42, 0.6]}
+                scale={zoom}
+                rotate={0}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.01" 
+                value={zoom} 
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }}
+              />
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button 
+                type="button"
+                className="btn-cancel" 
+                style={{ flex: 1 }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCropModal(false);
+                  setTempImage(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="btn-save" 
+                style={{ flex: 1 }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCropSave();
+                }}
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MAIN REGISTRATION MODAL --- */}
       <div className="modal-overlay active" id="addStudentModal" onClick={handleCloseModal}>
-        {/* FIX: Form IS the container now */}
         <form 
           className="modal-container" 
           onClick={(e) => e.stopPropagation()} 
@@ -297,7 +347,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                     <div className="flex items-center gap-2.5">
                       <img src={previewUrl} alt="Preview" className="w-10 h-10 rounded-full object-cover border border-slate-200" />
                       <span className="text-cdark font-medium max-w-[250px] truncate" id="stuFileName">
-                        {profileImage?.name}
+                        {profileImage?.name || "cropped_photo.jpg"}
                       </span>
                     </div>
                     <span className="material-symbols-outlined text-base text-[#22c55e]">check_circle</span>
@@ -469,7 +519,6 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                   )}
                 </div>
 
-                {/* Visual Preview Container */}
                 <div className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center" ref={qrRef}>
                   {formData.studentId && !["Loading...", "Generating..."].includes(formData.studentId) ? (
                     <>
@@ -479,7 +528,6 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
                         viewBox={`0 0 256 256`}
                         style={{ height: "auto", maxWidth: "100%", width: "100%" }}
                       />
-                      {/* XS-style ID label in preview */}
                       <p className="text-[10px] font-mono mt-2 text-slate-500 tracking-widest uppercase">
                         {formData.studentId}
                       </p>
