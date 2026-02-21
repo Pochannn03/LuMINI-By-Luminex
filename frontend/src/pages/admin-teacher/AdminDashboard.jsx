@@ -6,13 +6,15 @@ import NavBar from "../../components/navigation/NavBar";
 import AdminQueueParentGuardian from "../../components/modals/admin/dashboard/AdminQueueParentGuardian"
 import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
 import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
-import AdminDashboardAttendanceSuccessModal from "../../components/modals/admin/dashboard/AdminDashboardAttendanceSuccessModal";
+import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActionModal';
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function AdminDashboard() {
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
   const [queue, setQueue] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -52,12 +54,18 @@ export default function AdminDashboard() {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
 
-        const response = await axios.patch(`http://localhost:3000/api/attendance`, 
+        const response = await axios.post(`http://localhost:3000/api/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
         );
 
-        setScannedStudentData(response.data.student);
+        setScannedStudentData({
+          studentName: response.data.student.full_name,
+          studentId: response.data.student.student_id,
+          timeIn: response.data.student.time_in,
+          status: response.data.student.status,
+          displayMsg: response.data.msg
+        });
         setIsAttendanceModalOpen(true);
       }
 
@@ -65,7 +73,8 @@ export default function AdminDashboard() {
       console.error("Scan Process Failed:", error);
       const serverErrorMessage = error.response?.data?.msg || error.response?.data?.message;
       const finalMessage = serverErrorMessage || error.message || "Scan Error";
-      alert(finalMessage);
+      setErrorMessage(finalMessage);
+      setIsErrorModalOpen(true);
     } finally {
       setLoadingScan(false);
     }
@@ -282,10 +291,30 @@ export default function AdminDashboard() {
         onConfirm={handleConfirmPickup}
       />
 
-      <AdminDashboardAttendanceSuccessModal 
+      <AdminActionFeedbackModal
         isOpen={isAttendanceModalOpen}
         onClose={() => setIsAttendanceModalOpen(false)}
-        studentData={scannedStudentData}
+        type={scannedStudentData?.status === 'Late' ? 'warning' : 'success'}
+        title="Attendance Recorded"
+        message={scannedStudentData?.displayMsg}
+        details={[
+          { label: 'Student ID', value: scannedStudentData?.studentId },
+          { label: 'Student', value: scannedStudentData?.studentName},
+          { label: 'Time In', value: scannedStudentData?.timeIn },
+          { label: 'Status', value: scannedStudentData?.status }
+        ]}
+      />
+
+      <AdminActionFeedbackModal
+        isOpen={isErrorModalOpen}
+        onClose={() => setIsErrorModalOpen(false)}
+        type="error"
+        title="Scan Error"
+        message="Could not process QR"
+        details={[
+          { value: errorMessage }
+        ]}
+        buttonText="Try Again"
       />
 
       {loadingScan && (

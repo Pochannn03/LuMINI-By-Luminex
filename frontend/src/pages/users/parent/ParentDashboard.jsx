@@ -8,6 +8,7 @@ import NavBar from "../../../components/navigation/NavBar";
 import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
+import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
 
 export default function Dashboard() {
   // AUTH PROVIDER INFORMATION
@@ -17,6 +18,7 @@ export default function Dashboard() {
   const [showPassModal, setShowPassModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isParentOnQueue, setIsParentOnQueue] = useState(false);
+  const [showNewDayModal, setShowNewDayModal] = useState(false);
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
 
@@ -24,23 +26,30 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchChild = async () => {
       try {
-        // Update URL to match your new route
+        setLoading(true); // Ensure loading is active
         const response = await axios.get(
           'http://localhost:3000/api/parent/children',
           { withCredentials: true }
         );
 
-        const childrenList = response.data; 
+        // 1. Destructure the new object format from the backend
+        const { success, children } = response.data; 
 
-        if (Array.isArray(childrenList) && childrenList.length > 0) {
-          const firstChild = childrenList[0];
+        // 2. Trigger your Reminder Modal if it's a new day reset
+        if (success === true) {
+          setShowNewDayModal(true); 
+        }
+
+        // 3. Use the 'children' array extracted above
+        if (Array.isArray(children) && children.length > 0) {
+          const firstChild = children[0];
           setRawStudentData(firstChild);
 
           setChildData({
             firstName: firstChild.first_name,
             lastName: firstChild.last_name,
             profilePicture: firstChild.profile_picture,
-            sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
+            sectionName: firstChild.section_details?.section_name || "Not Assigned",
             status: firstChild.status,
             onQueue: firstChild.on_queue
           });
@@ -48,7 +57,7 @@ export default function Dashboard() {
       } catch (err) {
         console.error("Error loading profile:", err);
       } finally {
-        setLoading(false);
+        setLoading(false); // This stops the "Loading..." text
       }
     };
     fetchChild();
@@ -72,19 +81,16 @@ export default function Dashboard() {
   useEffect(() => {
     const socket = io("http://localhost:3000", { withCredentials: true });
 
-    // Listen for the queue entry your backend emits
     socket.on('new_queue_entry', (entry) => {
-      // Only unlock if the entry belongs to the logged-in parent
       if (entry.user_id === user?.user_id) {
         setIsParentOnQueue(true);
       }
     });
 
-    // Your existing listener for when the teacher clears them
     socket.on('student_status_updated', (data) => {
       if (data.student_id === rawStudentData?.student_id) {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
-        setIsParentOnQueue(false); // Locks the button again
+        setIsParentOnQueue(false); 
       }
     });
 
@@ -311,7 +317,7 @@ export default function Dashboard() {
 
               <button 
                 className={`btn btn-primary h-[50px] text-[14px]! font-semibold w-full rounded-xl transition-all ${
-                  isScanDisabled ? 'opacity-50 cursor-not-allowed grayscale' : ''
+                  isScanDisabled ? 'opacity-50 cursor-not-allowed! grayscale' : ''
                 }`} 
                 id="scanQrBtn"
                 onClick={handleScanButtonClick}
@@ -409,6 +415,11 @@ export default function Dashboard() {
       <PassModal 
          isOpen={showPassModal} 
          onClose={() => setShowPassModal(false)} 
+      />
+
+      <ParentNewDayModal 
+        isOpen={showNewDayModal} 
+        onClose={() => setShowNewDayModal(false)} 
       />
     </div>
   );

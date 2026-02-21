@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const AttendanceSchema = new mongoose.Schema({
   student_id: {
     type: String,
+    ref: 'Student',
     required: true,
   },
   student_name: {
@@ -33,9 +34,23 @@ const AttendanceSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   }
+}, {
+    toJSON: { 
+      virtuals: true 
+    },
+    toObject: { 
+      virtuals: true 
+    }
+  }
+);
+
+AttendanceSchema.virtual('student_details', {
+  ref: 'Student',
+  localField: 'student_id', 
+  foreignField: 'student_id',
+  justOne: true          
 });
 
-// FIX: Changed "UserSchema" to "AttendanceSchema"
 export const Attendance = mongoose.model("Attendance", AttendanceSchema, "atn.attendance_student");
 
 
