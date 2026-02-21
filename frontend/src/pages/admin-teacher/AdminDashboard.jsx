@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
@@ -220,7 +220,8 @@ export default function AdminDashboard() {
                 queue.map((item) => (
                   <AdminQueueParentGuardian 
                     key={item._id} 
-                    item={item} 
+                    item={item}
+                    setQueue={setQueue}
                   />
                 ))
               )}
