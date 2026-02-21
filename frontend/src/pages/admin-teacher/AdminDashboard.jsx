@@ -147,9 +147,8 @@ export default function AdminDashboard() {
 
         if (response.data.success) {
           setQueue(response.data.queue);
-          const allowedIds = response.data.queue.map(q => q.section_id);
-          teacherSections.current = [...new Set(allowedIds)];
-        }
+          teacherSections.current = response.data.authorized_sections || [];
+          }
       } catch (err) {
           console.error("Failed to fetch queue:", err);
       }
@@ -161,10 +160,11 @@ export default function AdminDashboard() {
     const socket = io("http://localhost:3000");
     
     socket.on("new_queue_entry", (newEntry) => {
-        setQueue(prevQueue => {
-        if (!teacherSections.current.includes(newEntry.section_id)) {
-          console.log("Blocking entry for another teacher's section:", newEntry.section_id);
-          return prevQueue; 
+      setQueue(prevQueue => {
+        const isAllowed = teacherSections.current.some(id => Number(id) === Number(newEntry.section_id));
+
+        if (!isAllowed) {
+            return prevQueue; 
         }
 
         const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
@@ -173,7 +173,6 @@ export default function AdminDashboard() {
     });
 
     socket.on("remove_queue_entry", (userId) => {
-      console.log("Removing user from UI:", userId);
       setQueue(prevQueue => 
         prevQueue.filter(q => Number(q.user_id) !== Number(userId))
       );
