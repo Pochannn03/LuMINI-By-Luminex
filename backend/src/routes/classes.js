@@ -76,6 +76,8 @@ router.post('/api/sections',
           { $set: { section_id: newClass.section_id } }
         );
       }
+      const io = req.app.get('socketio');
+      io.emit('section_added', savedClass);
       return res.status(201).send({ 
         msg: "Section created and students enrolled successfully", 
         user: savedClass 
@@ -84,7 +86,6 @@ router.post('/api/sections',
       console.log(err);
       return res.status(400).send({ msg: "Registration failed", error: err.message });
     }
-
 })
 
 router.put('/api/sections/archive/:id',
@@ -104,7 +105,6 @@ router.put('/api/sections/archive/:id',
         return res.status(404).json({ success: false, msg: "Class not found" });
       }
 
-      console.log(`Archived section: ${deletedSection.section_name}`);
       res.status(200).json({ success: true, msg: "Class deleted successfully" });
 
     } catch (err) {

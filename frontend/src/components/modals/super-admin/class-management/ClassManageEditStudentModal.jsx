@@ -124,7 +124,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
   const handleSubmit = async () => {
     const newErrors = validateStudentRegistrationStep(formData, profileImage);
 
-    // In edit mode, profileImage is optional (only validate if they are uploading a new one)
     if (!profileImage) {
       delete newErrors.profileImage; 
     }
@@ -153,13 +152,14 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         data.append('profile_photo', profileImage);
       }
 
-      await axios.put(`http://localhost:3000/api/students/${studentData._id}`, data, {
+      const response = await axios.put(`http://localhost:3000/api/students/${studentData._id}`, data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" }
       });
 
-      alert("Student profile updated successfully!");
-      if (onSuccess) onSuccess(); // Refresh parent list
+      if (response.data.success) {
+        onSuccess(response.data.msg); 
+      }
       onClose();
 
     } catch (error) {

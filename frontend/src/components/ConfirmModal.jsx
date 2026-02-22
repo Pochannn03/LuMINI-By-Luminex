@@ -1,5 +1,3 @@
-// frontend/src/components/modals/ConfirmModal.jsx
-
 import React from "react";
 import "../styles/confirm-modal.css";
 
@@ -11,7 +9,7 @@ const ConfirmModal = ({
   message = "Do you want to proceed with this action?",
   confirmText = "Confirm",
   cancelText = "Cancel",
-  isDestructive = false // If true, makes the confirm button red!
+  isDestructive = false 
 }) => {
   if (!isOpen) return null;
 

@@ -192,7 +192,10 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
         isOpen={isOpenDeleteStudentModal}
         onClose={() => setIsOpenDeleteStudentModal(false)}
         studentData={std} 
-        onSuccess={() => { if(onSuccess) onSuccess(); onClose(); }}
+        onSuccess={(msg) => { 
+          if(onSuccess) onSuccess(msg);
+          onClose();
+        }}
       />
     </>
   , document.body);

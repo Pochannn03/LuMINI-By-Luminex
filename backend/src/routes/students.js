@@ -177,7 +177,7 @@ router.put('/api/students/:id',
 
       return res.status(200).json({ 
         success: true, 
-        msg: "Class updated successfully!", 
+        msg: "Student updated successfully!", 
         class: updatedStudent 
       });
 
@@ -281,6 +281,8 @@ router.post('/api/students',
 
     try {
         const savedStudent = await newStudent.save();
+        const io = req.app.get('socketio');
+        io.emit('student_added', savedStudent);
         return res.status(201).send({ msg: "Student registered successfully!", user: savedStudent });
     } catch (err) {
         if (req.file) fs.unlinkSync(req.file.path);

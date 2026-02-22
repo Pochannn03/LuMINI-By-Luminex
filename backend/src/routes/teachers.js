@@ -55,7 +55,7 @@ router.post('/api/teachers',
 
     try {
       const savedUser = await newUser.save();
-      return res.status(201).send({ msg: "Parent registered successfully!", user: savedUser });
+      return res.status(201).send({ msg: "Teacher registered successfully!", user: savedUser });
     } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
       
@@ -115,7 +115,9 @@ router.post('/api/teachers/modal',
 
     try{
       const savedUser = await newUser.save();
-      return res.status(201).send({ msg: "Parent registered successfully!", user: savedUser });
+      const io = req.app.get('socketio');
+      io.emit('teacher_added', savedUser);
+      return res.status(201).send({ msg: "Teacher registered successfully!", user: savedUser });
     } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
       
@@ -173,7 +175,7 @@ router.put('/api/teacher/:id',
 
       return res.status(200).json({ 
         success: true, 
-        msg: "Class updated successfully!", 
+        msg: "Teacher updated successfully!", 
         class: updatedUser 
       });
 

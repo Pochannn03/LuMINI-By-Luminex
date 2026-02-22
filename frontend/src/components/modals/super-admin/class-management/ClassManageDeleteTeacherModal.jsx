@@ -23,13 +23,14 @@ export default function ClassManageDeleteTeacherModal({ isOpen, onClose, teacher
     setLoading(true);
     try {
       // Assuming Teachers are in the 'users' collection
-      await axios.put(`http://localhost:3000/api/teacher/archive/${teacherData._id}`, {}, {
+      const response = await axios.put(`http://localhost:3000/api/teacher/archive/${teacherData._id}`, {}, {
         withCredentials: true
       });
 
-      alert("Teacher account deleted successfully.");
-      if (onSuccess) onSuccess(); 
-      handleClose();
+      if (response.data.success) {
+        onSuccess(response.data.msg); 
+      }
+      onClose();
 
     } catch (error) {
       console.error("Delete failed:", error);

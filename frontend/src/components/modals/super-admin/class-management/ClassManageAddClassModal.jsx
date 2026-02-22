@@ -6,7 +6,7 @@ import axios from 'axios';
 import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
-export default function ClassManageAddClassModal({ isOpen, onClose }) {
+export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess }) {
   // DATA STATES
   const [teachersList, setTeachersList] = useState([]);  
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
@@ -105,9 +105,10 @@ export default function ClassManageAddClassModal({ isOpen, onClose }) {
         withCredentials: true
       });
 
-      alert("Class created successfully!");
+      if (onSuccess) {
+        onSuccess("Class created successfully!"); 
+      }
       handleCloseModal();
-      console.log("Success:", response.data);
 
     } catch (error) {
       console.error("Crash Details:", error);

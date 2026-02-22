@@ -5,6 +5,7 @@ import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
 
 export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherData, onSuccess }) {
+  const backendBaseUrl = import.meta.env.VITE_BACKEND_URL;
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -48,11 +49,14 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
         city: addrParts[3] || '',
         zipCode: addrParts[4] || '',
       });
-      setPreviewUrl(teacherData.profile_picture || null);
+      const existingPhoto = teacherData.profile_picture 
+      ? `${backendBaseUrl}/${teacherData.profile_picture.replace(/\\/g, '/')}` 
+      : null;
+      setPreviewUrl(existingPhoto);
       setProfileImage(null);
       setErrors({}); // Clear old errors
     }
-  }, [isOpen, teacherData]);
+  }, [isOpen, teacherData, backendBaseUrl]);
 
   // HANDLERS
   const handleChange = (e) => {
@@ -79,8 +83,6 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
 
   // 3. Submit Changes
   const handleSubmit = async () => {
-    
-    // RUN VALIDATION
     const newErrors = validateRegistrationStep(formData);
 
     if (!formData.password) {
@@ -120,13 +122,15 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
         data.append('profile_photo', profileImage);
       }
 
-      await axios.put(`http://localhost:3000/api/teacher/${teacherData._id}`, data, {
+      const response = await axios.put(`${backendBaseUrl}/api/teacher/${teacherData._id}`, data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" }
       });
 
-      alert("Teacher profile updated successfully!");
-      if (onSuccess) onSuccess(); 
+
+      if (response.data.success) {
+        onSuccess(response.data.msg); 
+      }
       onClose();
 
     } catch (error) {
@@ -163,24 +167,33 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
                   onChange={handleImageChange} 
                 />
               
-                <div className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} onClick={() => document.getElementById('addTeacherPhoto').click()} >
+                <div className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} onClick={() => document.getElementById('addTeacherPhoto').click()}>
                   {!previewUrl ? (
-                      <div className="text-cdark mt-2 mb-1 font-medium text-center" id="stuUploadInitial">
-                        <span className="material-symbols-outlined blue-icon text-[32px]">face</span>
-                        <p className="text-cdark! font-medium! mt-2 mx-0 mb-1">Click to upload photo</p>
-                        <span className="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
+                    <div className="text-cdark mt-2 mb-1 font-medium text-center">
+                      <span className="material-symbols-outlined blue-icon text-[32px]">face</span>
+                      <p className="text-cdark! font-medium! mt-2 mx-0 mb-1">Click to upload photo</p>
+                      <span className="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between items-center p-[5px]">
+                      <div className="flex items-center gap-2.5">
+                        <img 
+                          src={previewUrl} 
+                          alt="Preview" 
+                          className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.firstName}`;
+                          }}
+                        />
+                        <span className="text-cdark font-medium max-w-[250px] truncate">
+                          {/* Show new file name if selected, otherwise show 'Current Photo' */}
+                          {profileImage ? profileImage.name : "Current Photo"}
+                        </span>
                       </div>
-                    ) : (
-                      <div className="flex justify-between items-center p-[5px]" id="stuUploadSelected">
-                        <div className="flex items-center gap-2.5">
-                          <img src={previewUrl} alt="Preview" className="w-10 h-10 rounded-full object-cover border border-slate-200" />
-                          <span className="text-cdark font-medium max-w-[250px] truncate" id="stuFileName">
-                            {profileImage?.name}
-                          </span>
-                        </div>
-                        <span className="material-symbols-outlined text-base text-[#22c55e]">check_circle</span>
-                      </div>
-                    )}
+                      <span className="material-symbols-outlined text-base text-[#22c55e]">check_circle</span>
+                    </div>
+                  )}
                 </div>
                 {errors.profileImage && (
                   <span className="text-red-500 text-[11px] ml-1 mt-1 block text-left">

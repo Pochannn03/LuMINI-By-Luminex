@@ -21,12 +21,13 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
 
     setLoading(true);
     try {
-      await axios.put(`http://localhost:3000/api/sections/archive/${classData._id}`, {}, {
+      const response = await axios.put(`http://localhost:3000/api/sections/archive/${classData._id}`, {}, {
         withCredentials: true
       });
 
-      alert("Class deleted successfully.");
-      if (onSuccess) onSuccess(); 
+      if (response.data.success) {
+        onSuccess(response.data.msg); 
+      }
       handleClose();
 
     } catch (error) {
