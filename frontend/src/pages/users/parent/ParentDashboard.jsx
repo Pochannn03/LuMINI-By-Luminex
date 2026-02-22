@@ -112,12 +112,8 @@ export default function Dashboard() {
       setLoading(true);
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
-<<<<<<< HEAD
       // 2. Send to Queue Endpoint
       const response = await axios.post('http://localhost:3000/api/queue', {
-=======
-      await axios.post('http://localhost:3000/api/queue', {
->>>>>>> 19cc57cb308593ed2afc9354a798d7ad043a9ffc
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
@@ -459,16 +455,12 @@ export default function Dashboard() {
         )}
       </main>
 
-<<<<<<< HEAD
       <SuccessModal 
         isOpen={isSuccessModalOpen}
         onClose={() => setIsSuccessModalOpen(false)}
         message={successMessage}
       />
 
-=======
-      {/* --- Other Popups/Modals remain outside main --- */}
->>>>>>> 19cc57cb308593ed2afc9354a798d7ad043a9ffc
       <ParentDashboardQrScan 
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}
