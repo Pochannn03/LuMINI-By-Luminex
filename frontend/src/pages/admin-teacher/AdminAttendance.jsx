@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // <-- CHANGED: Proper import for modern React
 
 // --- HELPERS ---
 const getDateParts = (date) => {
@@ -15,6 +17,20 @@ const dateToInputString = (date) => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+// --- IMAGE HELPER ---
+const BACKEND_URL = "http://localhost:3000";
+
+const getImageUrl = (path, fallbackName) => {
+  if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
+  if (path.startsWith("http")) return path;
+  
+  let cleanPath = path.replace(/\\/g, "/");
+  if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+  
+  return `${BACKEND_URL}/${cleanPath}`;
+};
+// --------------------------
 
 export default function AdminAttendance() {
   // --- STATE ---
@@ -70,21 +86,21 @@ export default function AdminAttendance() {
 
   // --- 2. FILTER & STATS CALCULATION ---
   const filteredRecords = React.useMemo(() => {
-  return attendanceData.filter(record => {
-    const selectedUIString = dateToInputString(currentDate);
-    const matchesDate = record.date === selectedUIString;
-    const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
-    return matchesDate && matchesSection;
-  });
-}, [attendanceData, currentDate, selectedSection]);
+    return attendanceData.filter(record => {
+      const selectedUIString = dateToInputString(currentDate);
+      const matchesDate = record.date === selectedUIString;
+      const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
+      return matchesDate && matchesSection;
+    });
+  }, [attendanceData, currentDate, selectedSection]);
 
   useEffect(() => {
-  const present = filteredRecords.filter(s => s.status === 'Present').length;
-  const late = filteredRecords.filter(s => s.status === 'Late').length;
-  const absent = filteredRecords.filter(s => s.status === 'Absent').length;
-  
-  setStats({ present, late, absent });
-}, [filteredRecords]);
+    const present = filteredRecords.filter(s => s.status === 'Present').length;
+    const late = filteredRecords.filter(s => s.status === 'Late').length;
+    const absent = filteredRecords.filter(s => s.status === 'Absent').length;
+    
+    setStats({ present, late, absent });
+  }, [filteredRecords]);
 
   // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
@@ -107,6 +123,62 @@ export default function AdminAttendance() {
       dismissal: "Afternoon Dismissal"
     };
     setActiveMode(modeLabels[selectedAction]);
+  };
+
+  // --- 4. PRINT TO PDF HELPER ---
+  const handlePrint = () => {
+    const doc = new jsPDF();
+    
+    // Add Title
+    doc.setFontSize(20);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text("Daily Attendance Log", 14, 22);
+    
+    // Add Date and Section Info
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Date: ${monthDay}, ${currentDate.getFullYear()}`, 14, 32);
+    doc.text(`Section: ${selectedSection === "all" ? "All Sections" : selectedSection}`, 14, 38);
+    
+    // Add Summary Stats
+    doc.text(`Summary: ${stats.present} Present | ${stats.late} Late | ${stats.absent} Absent`, 14, 44);
+
+    // Prepare Table Data
+    const tableColumn = ["Student ID", "Student Name", "Section", "Time In", "Status"];
+    const tableRows = [];
+
+    filteredRecords.forEach(record => {
+      const rowData = [
+        record.student_id || "---",
+        record.student_name,
+        record.section_name || "Unassigned",
+        record.time_in || "---",
+        record.status
+      ];
+      tableRows.push(rowData);
+    });
+
+    // CHANGED: Using autoTable() properly
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 52,
+      theme: 'grid',
+      headStyles: { fillColor: [57, 168, 237] }, // Matches LuMINI blue
+      styles: { fontSize: 10, cellPadding: 4 },
+      alternateRowStyles: { fillColor: [248, 250, 252] }, // slate-50
+      didParseCell: function(data) {
+        // Color code the status column text
+        if (data.section === 'body' && data.column.index === 4) {
+          if (data.cell.raw === 'Present') data.cell.styles.textColor = [22, 163, 74]; // green-600
+          if (data.cell.raw === 'Late') data.cell.styles.textColor = [202, 138, 4]; // yellow-600
+          if (data.cell.raw === 'Absent') data.cell.styles.textColor = [220, 38, 38]; // red-600
+        }
+      }
+    });
+
+    // Save PDF
+    doc.save(`Attendance_${selectedSection}_${dateToInputString(currentDate)}.pdf`);
   };
 
   const { monthDay, weekday } = getDateParts(currentDate);
@@ -224,9 +296,11 @@ export default function AdminAttendance() {
                         <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
                           <td className="py-4 px-2">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600">
-                                {record.student_name.charAt(0)}
-                              </div>
+                              <img 
+                                src={getImageUrl(record.student_details?.profile_picture || record.profile_picture, record.student_name)} 
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                                alt="student"
+                              />
                               <div>
                                 <p className="text-cdark text-[14px]! font-bold leading-tight">{record.student_name}</p>
                                 <div className="flex flex-col">
@@ -255,9 +329,9 @@ export default function AdminAttendance() {
                       <tr>
                         <td colSpan="3" className="py-10 text-center italic text-gray-400">
                           <div className="flex flex-col gap-1">
-                          <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
-                          No records found for {monthDay}.
-                        </div>
+                            <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
+                            No records found for {monthDay}.
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -267,7 +341,7 @@ export default function AdminAttendance() {
             </div>
           </div>
 
-          {/* SIDEBAR REMAINS SAME */}
+          {/* SIDEBAR */}
           <div className="flex flex-col gap-6">
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -290,42 +364,15 @@ export default function AdminAttendance() {
               </div>
             </div>
 
-            {/* <div className="card p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined orange-icon text-[28px]">tune</span>
-                <div>
-                  <h2 className="text-cdark text-[18px] font-bold">System Mode</h2>
-                  <p className="text-cgray text-[12px]">Current: <span className="font-bold text-orange-500">{activeMode}</span></p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                <div className="relative">
-                  <select 
-                    value={selectedAction}
-                    onChange={(e) => setSelectedAction(e.target.value)}
-                    className="w-full pl-3 pr-10 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[14px] font-medium text-cdark outline-none appearance-none cursor-pointer hover:bg-gray-100 transition-colors"
-                  >
-                    <option value="dropoff">🌅 Drop-off (Morning)</option>
-                    <option value="class">📚 Class In-Session</option>
-                    <option value="dismissal">👋 Dismissal (Afternoon)</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-3 pointer-events-none text-gray-400">expand_more</span>
-                </div>
-                
-                <button 
-                  onClick={handleSetMode}
-                  className="btn btn-outline w-full h-[45px] rounded-xl font-bold text-[14px] cursor-pointer"
-                >
-                  Apply Override
-                </button>
-              </div>
-            </div> */}
-
-            <button className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer">
-              <span className="material-symbols-outlined">save</span>
-              Save Attendance
+            <button 
+              className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handlePrint}
+              disabled={filteredRecords.length === 0}
+            >
+              <span className="material-symbols-outlined">print</span>
+              Print Attendance
             </button>
+
           </div>
         </div>
       </main>

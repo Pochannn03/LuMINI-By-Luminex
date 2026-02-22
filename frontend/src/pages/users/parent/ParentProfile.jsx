@@ -66,20 +66,29 @@ export default function ParentProfile() {
     medical_history: ""
   });
 
-  // Fetch Data
+  // ==========================================
+  // THE FIX: Safe Data Fetching
+  // ==========================================
   useEffect(() => {
     const fetchData = async () => {
       try {
         const profileRes = await axios.get(`${BACKEND_URL}/api/user/profile`, {
           withCredentials: true,
         });
-        setFormData(profileRes.data);
+        
+        // 1. Safely extract the user object from the response
+        const userData = profileRes.data.user || profileRes.data;
+        setFormData(userData || {});
 
         const childrenRes = await axios.get(
           `${BACKEND_URL}/api/parent/children`,
           { withCredentials: true },
         );
-        setChildren(childrenRes.data);
+        
+        // 2. Safely extract the array to PREVENT the blank screen crash!
+        const childrenArray = childrenRes.data.children || childrenRes.data.students || childrenRes.data;
+        setChildren(Array.isArray(childrenArray) ? childrenArray : []);
+        
       } catch (err) {
         console.error("Error loading profile:", err);
       } finally {
@@ -207,7 +216,6 @@ export default function ParentProfile() {
               { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } }
             );
 
-            // --- THE FIX: Merge updated fields so we don't lose the populated section_details! ---
             const updatedStudent = { ...selectedStudent, ...response.data.student };
             
             setSelectedStudent(updatedStudent); // Update the modal
@@ -240,7 +248,6 @@ export default function ParentProfile() {
         { withCredentials: true }
       );
 
-      // --- THE FIX: Merge updated fields so we don't lose the populated section_details! ---
       const updatedChild = { ...selectedStudent, ...response.data.student };
       
       setChildren((prev) => 
@@ -548,15 +555,14 @@ export default function ParentProfile() {
                 {!isEditing ? (
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className="btn btn-primary h-[42px] w-[190px] rounded-[10px]"
                     onClick={handleEditClick}
                   >
-                    <span className="material-symbols-outlined">edit</span> Edit
-                    Information
+                    Edit Information
                   </button>
                 ) : (
                   <div className="action-buttons-wrapper">
-                    <button type="button" className="btn btn-save" onClick={handleSave}>
+                    <button type="button" className="btn btn-save h-[42px] w-[190px] rounded-[10px]" onClick={handleSave}>
                       <span className="material-symbols-outlined">check</span>{" "}
                       Save
                     </button>
@@ -1074,7 +1080,6 @@ export default function ParentProfile() {
                 </div>
               </div>
 
-              {/* FIXED: Removed modal-row-2 so Email takes up full width! */}
               <div className="form-group">
                 <label>Email</label>
                 <div className="input-wrapper">
