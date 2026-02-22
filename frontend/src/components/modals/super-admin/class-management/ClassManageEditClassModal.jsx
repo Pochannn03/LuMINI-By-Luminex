@@ -94,12 +94,13 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
       };
 
       // Use the ID from classData to target the update
-      await axios.put(`http://localhost:3000/api/sections/${classData._id}`, payload, {
+      const response = await axios.put(`http://localhost:3000/api/sections/${classData._id}`, payload, {
         withCredentials: true
       });
 
-      alert("Class updated successfully!");
-      if (onSuccess) onSuccess(); // Refresh parent list
+      if (response.data.success) {
+        onSuccess(response.data.msg); 
+      }
       onClose();
 
     } catch (error) {

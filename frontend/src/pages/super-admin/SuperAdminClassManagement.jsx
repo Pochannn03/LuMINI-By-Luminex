@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from 'react-router-dom';
+import { io } from "socket.io-client";
 import axios from 'axios';
 import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
@@ -15,6 +16,7 @@ import ClassManageDeleteTeacherModal from "../../components/modals/super-admin/c
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 import ClassManageViewStudentModal from "../../components/modals/super-admin/class-management/ClassManageViewStudentModal";
 import ClassManageEditStudentModal from "../../components/modals/super-admin/class-management/ClassManageEditStudentModal";
+import SuccessModal from '../../components/SuccessModal';
 
 
 export default function SuperAdminClassManagement() {
@@ -22,6 +24,8 @@ export default function SuperAdminClassManagement() {
   const [isAddClassModalOpen, setIsAddClassModalOpen] = useState(false);
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // EDIT & DELETE MODAL STATES
   const [isEditClassModalOpen, setIsEditClassModalOpen] = useState(false);
@@ -110,6 +114,34 @@ export default function SuperAdminClassManagement() {
     fetchStudents();
   }, [fetchStudents]);
 
+  // WEBSOCKET FOR LIVE FETCHING
+  useEffect(() => {
+    const socket = io("http://localhost:3000", {
+      withCredentials: true
+    });
+
+    socket.on("teacher_added", (newTeacher) => {
+      setTeachers((prev) => [...prev, newTeacher]);
+      fetchTeachers();
+    });
+
+    socket.on("student_added", (newStudent) => {
+      setStudents((prev) => [...prev, newStudent]);
+      fetchStudents();
+    });
+
+    socket.on("section_added", (newSection) => {
+      setClasses((prev) => [...prev, newSection]);
+      fetchClasses();
+    });
+
+    // 4. Cleanup on unmount
+    return () => {
+      socket.off("teacher_added");
+      socket.disconnect();
+    };
+  }, [fetchTeachers, fetchStudents, fetchClasses]);
+
 
   // FOR EDIT AND DELETE HANDLERS 
   // --CLASSES--
@@ -143,6 +175,11 @@ export default function SuperAdminClassManagement() {
   const handleEditStudent = (studentData) => {
     setSelectedStudent(studentData); 
     setIsEditStudentModalOpen(true);
+  };
+
+  const handleShowSuccess = (msg) => {
+    setSuccessMessage(msg);
+    setIsSuccessModalOpen(true);
   };
 
   return (
@@ -296,6 +333,7 @@ export default function SuperAdminClassManagement() {
       <ClassManageAddClassModal 
         isOpen={isAddClassModalOpen} 
         onClose={() => setIsAddClassModalOpen(false)}
+        onSuccess={(msg) => handleShowSuccess(msg)}
       />
         <ClassManageEditClassModal 
           isOpen={isEditClassModalOpen}
@@ -304,7 +342,10 @@ export default function SuperAdminClassManagement() {
             setSelectedClass(null);
           }}
           classData={selectedClass}
-          onSuccess={fetchClasses}
+          onSuccess={(msg) => {
+            fetchClasses();
+            handleShowSuccess(msg);
+          }}
         />
         <ClassManageDeleteClassModal
           isOpen={isDeletClassModalOpen}
@@ -313,13 +354,17 @@ export default function SuperAdminClassManagement() {
             setSelectedClass(null);
           }}
           classData={selectedClass}
-          onSuccess={fetchClasses}
+          onSuccess={(msg) => {
+            fetchClasses();
+            handleShowSuccess(msg);
+          }}
         />
 
       {/* TEACHERS */}
       <ClassManageAddTeacherModal 
         isOpen={isAddTeacherModalOpen} 
-        onClose={() => setIsAddTeacherModalOpen(false)} 
+        onClose={() => setIsAddTeacherModalOpen(false)}
+        onSuccess={(msg) => handleShowSuccess(msg)}
       />
         <ClassManageEditTeacherModal 
           isOpen={isEditTeacherModalOpen}
@@ -328,7 +373,10 @@ export default function SuperAdminClassManagement() {
             setSelectedTeacher(null);
           }}
           teacherData={selectedTeacher}
-          onSuccess={fetchTeachers} 
+          onSuccess={(msg) => {
+            fetchTeachers();
+            handleShowSuccess(msg);
+          }}
         />
         <ClassManageDeleteTeacherModal
           isOpen={isDeleteTeacherModalOpen}
@@ -337,13 +385,17 @@ export default function SuperAdminClassManagement() {
             setSelectedTeacher(null);
           }}
           teacherData={selectedTeacher}
-          onSuccess={fetchTeachers}
+          onSuccess={(msg) => {
+            fetchTeachers();
+            handleShowSuccess(msg);
+          }}
         />
 
       {/* STUDENTS */}
       <ClassManageAddStudentModal 
         isOpen={isAddStudentModalOpen} 
-        onClose={() => setIsAddStudentModalOpen(false)} 
+        onClose={() => setIsAddStudentModalOpen(false)}
+        onSuccess={(msg) => handleShowSuccess(msg)}
       />
         <ClassManageViewStudentModal 
           isOpen={isViewStudentModalOpen}
@@ -352,6 +404,10 @@ export default function SuperAdminClassManagement() {
             setSelectedStudent(null);
           }}
           studentData={selectedStudent}
+          onSuccess={(msg) => {
+            fetchStudents();
+            handleShowSuccess(msg);
+          }}
         />
         <ClassManageEditStudentModal 
           isOpen={isEditStudentModalOpen}
@@ -360,8 +416,17 @@ export default function SuperAdminClassManagement() {
             setSelectedStudent(null);
           }}
           studentData={selectedStudent}
-          onSuccess={fetchStudents}
+          onSuccess={(msg) => {
+            fetchStudents();
+            handleShowSuccess(msg);
+          }}
         />
+
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        message={successMessage}
+      />
       
     </div>
 

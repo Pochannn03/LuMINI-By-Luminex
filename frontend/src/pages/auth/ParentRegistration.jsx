@@ -271,6 +271,7 @@ const handleNext = () => {
                     label="Username"
                     name="username"
                     type='text'
+                    className="form-input-modal"
                     placeholder="johndoe12"
                     value={formData.username}
                     onChange={handleChange}
@@ -284,6 +285,7 @@ const handleNext = () => {
                     label="Password"
                     name="password"
                     type='password'
+                    className="form-input-modal"
                     placeholder="********"
                     value={formData.password}
                     onChange={handleChange}
@@ -297,6 +299,7 @@ const handleNext = () => {
                     label="Confirm Password"
                     name="confirmPassword"
                     type='password'
+                    className="form-input-modal"
                     placeholder="********"
                     value={formData.confirmPassword}
                     onChange={handleChange}
@@ -365,6 +368,7 @@ const handleNext = () => {
                       name="firstName"
                       type='text'
                       placeholder="John"
+                      className="form-input-modal"
                       value={formData.firstName}
                       onChange={handleChange}
                       error={errors.firstName}
@@ -378,6 +382,7 @@ const handleNext = () => {
                       name="lastName"
                       type='text'
                       placeholder="Doe"
+                      className="form-input-modal"
                       value={formData.lastName}
                       onChange={handleChange}
                       error={errors.lastName}
@@ -391,6 +396,7 @@ const handleNext = () => {
                       label="Email Address"
                       name="email"
                       type='text'
+                      className="form-input-modal"
                       placeholder="Johndoe@gmail.com"
                       className='registration-input'
                       value={formData.email}
@@ -405,6 +411,7 @@ const handleNext = () => {
                       label="Phone Number"
                       name="phoneNumber"
                       type='text'
+                      className="form-input-modal"
                       placeholder="09*********"
                       className='registration-input'
                       value={formData.phoneNumber}
@@ -425,6 +432,7 @@ const handleNext = () => {
                   <FormInputRegistration
                       label="Relationship"
                       name="relationship"
+                      className="form-input-modal"
                       value={formData.relationship}
                       readOnly={true}
                     />
@@ -434,6 +442,7 @@ const handleNext = () => {
                   <FormInputRegistration
                     label="Child's name"
                     name="childName"
+                    className="form-input-modal"
                     value={studentInfo ? `${studentInfo}` : "Loading..."}
                     readOnly={true}
                   />

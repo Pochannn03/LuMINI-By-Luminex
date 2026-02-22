@@ -22,12 +22,13 @@ export default function ClassManageDeleteStudentModal({ isOpen, onClose, student
     setLoading(true);
     try {
       // 1. Updated URL to match Backend
-      await axios.put(`http://localhost:3000/api/students/archive/${studentData._id}`, {}, {
+      const response = await axios.put(`http://localhost:3000/api/students/archive/${studentData._id}`, {}, {
         withCredentials: true
       });
 
-      alert("Student deleted successfully.");
-      if (onSuccess) onSuccess(); 
+      if (response.data.success) {
+      onSuccess(response.data.msg); 
+      }
       handleClose();
 
     } catch (error) {

@@ -9,6 +9,7 @@ import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
+import SuccessModal from "../../../components/SuccessModal";
 
 export default function Dashboard() {
   // AUTH PROVIDER INFORMATION
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isParentOnQueue, setIsParentOnQueue] = useState(false);
   const [showNewDayModal, setShowNewDayModal] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
 
@@ -109,7 +112,7 @@ export default function Dashboard() {
       setLoading(true);
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
-      await axios.post('http://localhost:3000/api/queue', {
+      const response = await axios.post('http://localhost:3000/api/queue', {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
@@ -118,8 +121,9 @@ export default function Dashboard() {
       }, { withCredentials: true });
 
       setIsParentOnQueue(true);
+      setSuccessMessage(response.data.msg || `Status updated: ${statusLabel}`);
+      setIsSuccessModalOpen(true);
 
-      alert(`Status updated: ${statusLabel}`);
     } catch (err) {
       alert(err.response?.data?.msg || "Failed to join the queue");
     } finally {
@@ -450,7 +454,12 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* --- Other Popups/Modals remain outside main --- */}
+      <SuccessModal 
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        message={successMessage}
+      />
+
       <ParentDashboardQrScan 
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}

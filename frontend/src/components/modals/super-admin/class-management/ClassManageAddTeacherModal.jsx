@@ -5,7 +5,7 @@ import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
 
-export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
+export default function ClassManageAddTeacherModal({ isOpen, onClose, onSuccess }) {
   // HOOKS/STATES
   const [errors, setErrors] = useState({});
   const [profileImage, setProfileImage] = useState(null);
@@ -99,9 +99,10 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose }) {
         withCredentials: true
       });
 
-      alert("Teacher created successfully!");
       handleCloseModal();
-      console.log("Success:", response.data);
+      if (onSuccess) {
+        onSuccess("Teacher registered successfully!"); 
+      }
 
     } catch (error) {
       console.error("Crash Details:", error);

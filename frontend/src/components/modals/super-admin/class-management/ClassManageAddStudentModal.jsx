@@ -4,10 +4,10 @@ import { validateStudentRegistrationStep } from '../../../../utils/class-manage-
 import QRCode from "react-qr-code";
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
-import AvatarEditor from "react-avatar-editor"; // <-- ADDED CROPPER IMPORT
+import AvatarEditor from "react-avatar-editor";
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
-export default function ClassManageAddStudentModal({ isOpen, onClose }) {
+export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess }) {
   const qrRef = useRef(null);
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -215,8 +215,12 @@ export default function ClassManageAddStudentModal({ isOpen, onClose }) {
       const response = await axios.post('http://localhost:3000/api/students', data, {
         withCredentials: true
       });
-      alert("Student created successfully!");
+
+      if(onSuccess) {
+        onSuccess("Student created successfully!");
+      }
       handleCloseModal();
+
     } catch (error) {
       console.error("Crash Details:", error);
       if (error.response) {
