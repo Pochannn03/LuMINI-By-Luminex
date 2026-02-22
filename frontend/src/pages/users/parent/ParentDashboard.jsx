@@ -112,7 +112,6 @@ export default function Dashboard() {
       setLoading(true);
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
-      // 2. Send to Queue Endpoint
       const response = await axios.post('http://localhost:3000/api/queue', {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
