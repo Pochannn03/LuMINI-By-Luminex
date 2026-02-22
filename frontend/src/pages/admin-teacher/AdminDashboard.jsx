@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [transferSuccessData, setTransferSuccessData] = useState(null);
+  const [announcement, setAnnouncement] = useState("");
+  const [posting, setPosting] = useState(false);
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -85,6 +87,36 @@ export default function AdminDashboard() {
       setIsErrorModalOpen(true);
     } finally {
       setLoadingScan(false);
+    }
+  };
+
+  const handlePostAnnouncement = async () => {
+    if (!announcement.trim()) return;
+
+    try {
+      setPosting(true);
+      const response = await axios.post("http://localhost:3000/api/announcements", 
+        { announcement: announcement },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        setAnnouncement(""); 
+        setTransferSuccessData({
+          type: 'success',
+          title: 'Announcement Posted',
+          message: 'Your update has been shared with all parents.',
+          details: [
+            { label: 'Author', value: `${user.firstName} ${user.lastName}` },
+            { label: 'Status', value: 'Live' }
+          ]
+        });
+      }
+    } catch (err) {
+      setErrorMessage(err.response?.data?.error || "Failed to post announcement.");
+      setIsErrorModalOpen(true);
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -295,17 +327,22 @@ export default function AdminDashboard() {
             </div>
 
             <div className="announcement-box">
-              <textarea className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" placeholder="Write an announcement..."></textarea>
+              <textarea 
+                className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" 
+                placeholder="Write an announcement..."
+                value={announcement}
+                onChange={(e) => setAnnouncement(e.target.value)}
+                disabled={posting}
+              />
               <div className="flex justify-between items-center mt-2.5 pt-2.5 ">
-                <div className="flex gap-[5px]">
-                  <button className="text-cgray bg-none border-none p-1.5 rounded-lg cursor-pointer flex items-center justify-center transition-colors duration-200" title="Add Image">
-                    <span className="material-symbols-outlined">image</span>
-                  </button>
-                  <button className="text-cgray bg-none border-none p-1.5 rounded-lg cursor-pointer flex items-center justify-center transition-colors duration-200" title="Add Link">
-                    <span className="material-symbols-outlined">link</span>
-                  </button>
-                </div>
-                <button className="btn-post">Post</button>
+                <div></div>
+                <button 
+                  className={`btn-post ${posting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  onClick={handlePostAnnouncement}
+                  disabled={posting}
+                >
+                  {posting ? 'Posting...' : 'Post'}
+                </button>
               </div>
             </div>
           </div>
