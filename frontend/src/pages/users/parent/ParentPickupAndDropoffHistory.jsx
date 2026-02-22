@@ -15,6 +15,16 @@ const dateToInputString = (date) => {
   return localDate.toISOString().split('T')[0];
 };
 
+// --- ADDED IMAGE HELPER ---
+const BACKEND_URL = "http://localhost:3000";
+
+const getImageUrl = (path, fallbackName) => {
+  if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
+  if (path.startsWith("http")) return path;
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+// --------------------------
+
 export default function AdminDropAndPickHistory() {
   const [transferData, setTransferData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +109,7 @@ export default function AdminDropAndPickHistory() {
                 </div>
               </div>
 
-              {/* NEW COMBINED CONTROLS SECTION */}
+              {/* COMBINED CONTROLS SECTION */}
               <div className="flex flex-wrap items-center gap-3">
                 
                 {/* 1. FILTER SELECT */}
@@ -135,7 +145,7 @@ export default function AdminDropAndPickHistory() {
                       </div>
                       <div className="w-px h-3 bg-gray-300"></div>
                       <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                        {weekday.slice(0, 3)} {/* Shrunk day to 3 letters */}
+                        {weekday.slice(0, 3)} 
                       </span>
                     </button>
 
@@ -180,8 +190,9 @@ export default function AdminDropAndPickHistory() {
                         </td>
                         <td className="py-4 px-2">
                           <div className="flex items-center gap-3">
+                            {/* --- APPLIED HELPER TO STUDENT IMAGE --- */}
                             <img 
-                              src={record.student_details?.profile_picture || `https://ui-avatars.com/api/?name=${record.student_name}&background=random`} 
+                              src={getImageUrl(record.student_details?.profile_picture, record.student_name)} 
                               className="w-9 h-9 rounded-full object-cover border border-slate-200"
                               alt="student"
                             />
@@ -196,8 +207,9 @@ export default function AdminDropAndPickHistory() {
                         </td>
                         <td className="py-4 px-2">
                            <div className="flex items-center gap-2.5">
+                              {/* --- APPLIED HELPER TO PARENT IMAGE --- */}
                               <img 
-                                src={record.user_details?.profile_picture || `https://ui-avatars.com/api/?name=${record.user_name}&background=random`} 
+                                src={getImageUrl(record.user_details?.profile_picture, record.user_name)} 
                                 className="w-9 h-9 rounded-full object-cover border border-slate-200"
                                 alt="guardian"
                               />
