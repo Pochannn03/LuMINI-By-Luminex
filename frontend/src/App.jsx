@@ -24,6 +24,8 @@ import GuardianSetup from "./pages/users/guardian/GuardianSetup";
 import GuardianProfile from "./pages/users/guardian/GuardianProfile";
 import GuardianDashboard from "./pages/users/guardian/GuardianDashboard";
 import PickupAndDropoffHistory from "./pages/users/parent/ParentPickupAndDropoffHistory";
+import ParentEnrollment from "./pages/ParentEnrollment";
+import EnrollmentApproval from "./pages/admin-teacher/EnrollmentApproval";
 
 export default function App() {
   return (
@@ -31,6 +33,9 @@ export default function App() {
       <Routes>
         {/* Landing && Unauthorized */}
         <Route path="/" element={<Landing />} />
+        {/* --- NEW ROUTE --- */}
+        <Route path="/enroll" element={<ParentEnrollment />} />
+        {/* ----------------- */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Auth */}
@@ -56,6 +61,7 @@ export default function App() {
           <Route path="/admin/history" element={<AdminDropAndPickHistory />} />
           <Route path="/admin/profile" element={<TeacherProfile />} />
           <Route path="/admin/approvals" element={<ManageApprovals />} />
+          <Route path="/admin/enrollments" element={<EnrollmentApproval />} />
         </Route>
 
         {/* User (Parent) Routes */}

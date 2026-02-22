@@ -51,6 +51,12 @@ const NAV_ITEMS = [
     allowedRoles: ["admin"],
   },
   {
+    label: "Enrollments",
+    path: "/admin/enrollments",
+    icon: "assignment_ind", // A nice icon for student registration
+    allowedRoles: ["admin"],
+  },
+  {
     label: "Approvals",
     path: "/admin/approvals",
     icon: "verified_user",
