@@ -33,7 +33,10 @@ router.get('/api/attendance',
       }
 
       const todayDate = new Date().toISOString().split('T')[0];
+      
+      // --- FIX 2: ADDED POPULATE TO GET THE PROFILE PICTURE ---
       const records = await Attendance.find({  ...query, date: dateToUse  })
+                                      .populate('student_details') 
                                       .sort({ created_at: -1 });
       
       res.json({

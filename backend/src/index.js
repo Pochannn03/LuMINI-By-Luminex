@@ -10,6 +10,7 @@ import passport from "passport";
 import MongoStore from "connect-mongo";
 import router from "./routes/index.js";
 import "./config/passport.js";
+import path from "path"; // <-- ADDED PATH IMPORT
 
 const PORT = process.env.PORT || 3000;
 const app = express();
@@ -37,7 +38,10 @@ app.use(
   }),
 );
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
+
+// --- FIX 1: BULLETPROOFED STATIC UPLOADS PATH ---
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(
   session({

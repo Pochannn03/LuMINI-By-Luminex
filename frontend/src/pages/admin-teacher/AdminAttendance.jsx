@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
-// Removed path import as it's not needed on the frontend
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable'; // <-- CHANGED: Proper import for modern React
 
 // --- HELPERS ---
 const getDateParts = (date) => {
@@ -17,14 +18,13 @@ const dateToInputString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// --- ADDED IMAGE HELPER ---
+// --- IMAGE HELPER ---
 const BACKEND_URL = "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
   if (path.startsWith("http")) return path;
   
-  // Clean up backslashes and remove leading slash to prevent double-slashes
   let cleanPath = path.replace(/\\/g, "/");
   if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
   
@@ -86,21 +86,21 @@ export default function AdminAttendance() {
 
   // --- 2. FILTER & STATS CALCULATION ---
   const filteredRecords = React.useMemo(() => {
-  return attendanceData.filter(record => {
-    const selectedUIString = dateToInputString(currentDate);
-    const matchesDate = record.date === selectedUIString;
-    const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
-    return matchesDate && matchesSection;
-  });
-}, [attendanceData, currentDate, selectedSection]);
+    return attendanceData.filter(record => {
+      const selectedUIString = dateToInputString(currentDate);
+      const matchesDate = record.date === selectedUIString;
+      const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
+      return matchesDate && matchesSection;
+    });
+  }, [attendanceData, currentDate, selectedSection]);
 
   useEffect(() => {
-  const present = filteredRecords.filter(s => s.status === 'Present').length;
-  const late = filteredRecords.filter(s => s.status === 'Late').length;
-  const absent = filteredRecords.filter(s => s.status === 'Absent').length;
-  
-  setStats({ present, late, absent });
-}, [filteredRecords]);
+    const present = filteredRecords.filter(s => s.status === 'Present').length;
+    const late = filteredRecords.filter(s => s.status === 'Late').length;
+    const absent = filteredRecords.filter(s => s.status === 'Absent').length;
+    
+    setStats({ present, late, absent });
+  }, [filteredRecords]);
 
   // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
@@ -123,6 +123,62 @@ export default function AdminAttendance() {
       dismissal: "Afternoon Dismissal"
     };
     setActiveMode(modeLabels[selectedAction]);
+  };
+
+  // --- 4. PRINT TO PDF HELPER ---
+  const handlePrint = () => {
+    const doc = new jsPDF();
+    
+    // Add Title
+    doc.setFontSize(20);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text("Daily Attendance Log", 14, 22);
+    
+    // Add Date and Section Info
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Date: ${monthDay}, ${currentDate.getFullYear()}`, 14, 32);
+    doc.text(`Section: ${selectedSection === "all" ? "All Sections" : selectedSection}`, 14, 38);
+    
+    // Add Summary Stats
+    doc.text(`Summary: ${stats.present} Present | ${stats.late} Late | ${stats.absent} Absent`, 14, 44);
+
+    // Prepare Table Data
+    const tableColumn = ["Student ID", "Student Name", "Section", "Time In", "Status"];
+    const tableRows = [];
+
+    filteredRecords.forEach(record => {
+      const rowData = [
+        record.student_id || "---",
+        record.student_name,
+        record.section_name || "Unassigned",
+        record.time_in || "---",
+        record.status
+      ];
+      tableRows.push(rowData);
+    });
+
+    // CHANGED: Using autoTable() properly
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 52,
+      theme: 'grid',
+      headStyles: { fillColor: [57, 168, 237] }, // Matches LuMINI blue
+      styles: { fontSize: 10, cellPadding: 4 },
+      alternateRowStyles: { fillColor: [248, 250, 252] }, // slate-50
+      didParseCell: function(data) {
+        // Color code the status column text
+        if (data.section === 'body' && data.column.index === 4) {
+          if (data.cell.raw === 'Present') data.cell.styles.textColor = [22, 163, 74]; // green-600
+          if (data.cell.raw === 'Late') data.cell.styles.textColor = [202, 138, 4]; // yellow-600
+          if (data.cell.raw === 'Absent') data.cell.styles.textColor = [220, 38, 38]; // red-600
+        }
+      }
+    });
+
+    // Save PDF
+    doc.save(`Attendance_${selectedSection}_${dateToInputString(currentDate)}.pdf`);
   };
 
   const { monthDay, weekday } = getDateParts(currentDate);
@@ -240,7 +296,6 @@ export default function AdminAttendance() {
                         <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
                           <td className="py-4 px-2">
                             <div className="flex items-center gap-3">
-                              {/* --- APPLIED IMAGE HELPER HERE --- */}
                               <img 
                                 src={getImageUrl(record.student_details?.profile_picture || record.profile_picture, record.student_name)} 
                                 className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
@@ -286,7 +341,7 @@ export default function AdminAttendance() {
             </div>
           </div>
 
-          {/* SIDEBAR REMAINS SAME */}
+          {/* SIDEBAR */}
           <div className="flex flex-col gap-6">
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -309,10 +364,15 @@ export default function AdminAttendance() {
               </div>
             </div>
 
-            <button className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer">
-              <span className="material-symbols-outlined">save</span>
-              Save Attendance
+            <button 
+              className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handlePrint}
+              disabled={filteredRecords.length === 0}
+            >
+              <span className="material-symbols-outlined">print</span>
+              Print Attendance
             </button>
+
           </div>
         </div>
       </main>
