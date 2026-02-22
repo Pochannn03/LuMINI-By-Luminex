@@ -366,14 +366,19 @@ router.get("/api/students/teacher/totalStudents",
     try {
         const teacherId = Number(req.user.user_id); 
 
-        // Find sections and populate the virtual 'student_details' to get the actual student info
+        // --- UPDATED: Nested Populate to get Students AND their Guardians! ---
         const sections = await Section.find({ user_id: teacherId })
-                                      .populate('student_details'); 
+            .populate({
+                path: 'student_details',
+                populate: {
+                    path: 'user_details', // This grabs the parent/guardian profiles
+                    model: 'User' // Ensure this matches your User model name if needed
+                }
+            }); 
 
         let totalStudents = 0;
         const colors = ["blue", "orange", "green"]; // UI colors to cycle through
 
-        // Format the data exactly how our React frontend expects it
         const formattedSections = sections.map((section, index) => {
             const studentsList = section.student_details || [];
             totalStudents += studentsList.length;
@@ -382,10 +387,19 @@ router.get("/api/students/teacher/totalStudents",
                 id: section.section_id || section._id,
                 name: section.section_name,
                 time: section.class_schedule,
-                color: colors[index % colors.length], // Assigns a rotating color
+                color: colors[index % colors.length], 
+                // --- UPDATED: Send ALL the necessary data to the frontend ---
                 students: studentsList.map(student => ({
-                    id: student.student_id, // e.g., "2026-0001"
-                    name: `${student.last_name}, ${student.first_name}` // e.g., "Alvarez, Juan"
+                    _id: student._id,
+                    id: student.student_id, 
+                    name: `${student.first_name} ${student.last_name}`, 
+                    profile_picture: student.profile_picture,
+                    gender: student.gender,
+                    birthday: student.birthday,
+                    age: student.age,
+                    allergies: student.allergies,
+                    medical_history: student.medical_history,
+                    guardians: student.user_details || [] // Pass the populated parent data!
                 }))
             };
         });
@@ -395,7 +409,7 @@ router.get("/api/students/teacher/totalStudents",
             teacherId: teacherId,
             totalSections: sections.length,
             totalStudents: totalStudents,
-            sections: formattedSections // <-- THE NEW DATA!
+            sections: formattedSections 
         });
 
     } catch (error) {

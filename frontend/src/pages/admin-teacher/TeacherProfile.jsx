@@ -441,7 +441,7 @@ export default function TeacherProfile() {
                 {!isEditing ? (
                   <button
                     type="button"
-                    className="btn btn-primary profile-action-btn"
+                    className="btn btn-primary h-[42px] w-[190px] rounded-[10px]"
                     onClick={(e) => {
                       e.preventDefault();
                       handleEditClick();
@@ -458,7 +458,7 @@ export default function TeacherProfile() {
                     {/* --- SAVE BUTTON --- */}
                     <button 
                       type="button"
-                      className="btn btn-save profile-action-btn" 
+                      className="btn btn-save h-[42px] w-[190px] rounded-[10px]" 
                       onClick={(e) => {
                         e.preventDefault();
                         handleSave();
