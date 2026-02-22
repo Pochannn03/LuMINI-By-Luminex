@@ -65,7 +65,7 @@ export default function AdminConfirmPickUpAuth({ isOpen, onClose, data, onConfir
           <div className="modal-footer">
             <button className="btn btn-primary flex-1 flex items-center justify-center gap-2 h-12 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold" onClick={onConfirm}>
               <span class="material-symbols-outlined">check_circle</span>
-              Authorize Pickup
+              Authorize
             </button>
 
             <button  className="btn btn-cancel flex-1 h-12 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-600 hover:text-red-600 font-bold" onClick={onClose} >

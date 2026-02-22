@@ -351,7 +351,6 @@ export default function AdminDashboard() {
         buttonText={transferSuccessData?.type === 'error' ? 'Try Again' : 'Great'}
       />
 
-      
       <AdminActionFeedbackModal
         isOpen={isErrorModalOpen}
         onClose={() => setIsErrorModalOpen(false)}

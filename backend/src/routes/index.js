@@ -10,6 +10,8 @@ import passesRoutes from "./passes.js";
 import attendancesRoutes from "./attendances.js";
 import transfersRoutes from "./transfers.js";
 import queueRoutes from "./queues.js"
+import feedbacksRoutes from "./feedback.js"
+
 
 
 const router = Router();
@@ -25,8 +27,7 @@ router.use(passesRoutes);
 router.use(attendancesRoutes);
 router.use(transfersRoutes);
 router.use(queueRoutes);
-
-
+router.use(feedbacksRoutes);
 
 
 export default router;

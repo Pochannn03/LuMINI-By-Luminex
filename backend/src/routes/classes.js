@@ -9,7 +9,6 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// Router Import to Export this router to index.js
 const router = Router();
 
 // for Image/File Holder
