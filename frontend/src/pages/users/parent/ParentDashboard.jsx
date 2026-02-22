@@ -9,16 +9,20 @@ import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
+import SuccessModal from "../../../components/SuccessModal";
 
 export default function Dashboard() {
   // AUTH PROVIDER INFORMATION
   const { user } = useAuth();
+
   // STATES
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isParentOnQueue, setIsParentOnQueue] = useState(false);
   const [showNewDayModal, setShowNewDayModal] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
 
@@ -32,15 +36,12 @@ export default function Dashboard() {
           { withCredentials: true }
         );
 
-        // 1. Destructure the new object format from the backend
         const { success, children } = response.data; 
 
-        // 2. Trigger your Reminder Modal if it's a new day reset
         if (success === true) {
           setShowNewDayModal(true); 
         }
 
-        // 3. Use the 'children' array extracted above
         if (Array.isArray(children) && children.length > 0) {
           const firstChild = children[0];
           setRawStudentData(firstChild);
@@ -112,7 +113,7 @@ export default function Dashboard() {
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
       // 2. Send to Queue Endpoint
-      await axios.post('http://localhost:3000/api/queue', {
+      const response = await axios.post('http://localhost:3000/api/queue', {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
@@ -121,8 +122,9 @@ export default function Dashboard() {
       }, { withCredentials: true });
 
       setIsParentOnQueue(true);
+      setSuccessMessage(response.data.msg || `Status updated: ${statusLabel}`);
+      setIsSuccessModalOpen(true);
 
-      alert(`Status updated: ${statusLabel}`);
     } catch (err) {
       alert(err.response?.data?.msg || "Failed to join the queue");
     } finally {
@@ -405,6 +407,12 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+
+      <SuccessModal 
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        message={successMessage}
+      />
 
       <ParentDashboardQrScan 
         isOpen={showScanner}

@@ -217,5 +217,63 @@ router.put('/api/teacher/archive/:id',
     }
 });
 
+router.patch('/api/teacher/approval/:id', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+      const updatedTeacher = await User.findByIdAndUpdate(
+        teacherId, 
+        { is_archive: false }, 
+      );
+
+      if (!updatedTeacher) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
+
+      const io = req.app.get('socketio');
+      io.emit('teacher_processed', { 
+        id: teacherId, 
+        action: 'approved',
+        teacher: updatedTeacher 
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: `${updatedTeacher.first_name} ${updatedTeacher.last_name} has been approved.` 
+      });
+    } catch (err) {
+      return res.status(500).json({ success: false, msg: "Approval failed", error: err.message });
+    }
+});
+
+router.delete('/api/teacher/rejection/:id',
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+      const deletedTeacher = await User.findByIdAndDelete(teacherId);
+
+      if (!deletedTeacher) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
+
+      const io = req.app.get('socketio');
+      io.emit('teacher_processed', { 
+        id: teacherId, 
+        action: 'rejected' 
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        msg: "Registration request rejected and account deleted." 
+      });
+    } catch (err) {
+      return res.status(500).json({ success: false, msg: "Rejection failed", error: err.message });
+    }
+});
+
 
 export default router;

@@ -176,6 +176,7 @@ export default function GuardianRegistration() {
                     name="username"
                     type='text'
                     placeholder="johndoe12"
+                    className="form-input-modal"
                     value={formData.username}
                     onChange={handleChange}
                     error={errors.username}
@@ -189,6 +190,7 @@ export default function GuardianRegistration() {
                     name="password"
                     type='password'
                     placeholder="********"
+                    className="form-input-modal"
                     value={formData.password}
                     onChange={handleChange}
                     error={errors.password}
@@ -202,6 +204,7 @@ export default function GuardianRegistration() {
                     name="confirmPassword"
                     type='password'
                     placeholder="********"
+                    className="form-input-modal"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     error={errors.confirmPassword}
@@ -269,6 +272,7 @@ export default function GuardianRegistration() {
                       name="firstName"
                       type='text'
                       placeholder="John"
+                      className="form-input-modal"
                       value={formData.firstName}
                       onChange={handleChange}
                       error={errors.firstName}
@@ -282,6 +286,7 @@ export default function GuardianRegistration() {
                       name="lastName"
                       type='text'
                       placeholder="Doe"
+                      className="form-input-modal"
                       value={formData.lastName}
                       onChange={handleChange}
                       error={errors.lastName}

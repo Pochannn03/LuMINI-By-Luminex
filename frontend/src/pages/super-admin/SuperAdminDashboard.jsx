@@ -1,5 +1,6 @@
 import React, { useState, useEffect} from "react";
 import { Link } from 'react-router-dom';
+import { io } from "socket.io-client";
 import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
@@ -40,6 +41,31 @@ export default function SuperAdminDashboard() {
     };
 
     fetchDashboardStats();
+  }, []);
+
+  useEffect(() => {
+    const socket = io("http://localhost:3000", { withCredentials: true });
+
+    socket.on('teacher_processed', (data) => {
+      setPendingTeachers(prev => prev.filter(tch => tch._id !== data.id));
+
+      if (data.action === 'approved') {
+        setStats(prev => ({
+          ...prev,
+          totalTeachers: prev.totalTeachers + 1
+        }));
+      }
+    });
+
+    socket.on('teacher_registered', (newTeacher) => {
+      setPendingTeachers(prev => [newTeacher, ...prev]);
+    });
+
+    return () => {
+      socket.off('teacher_processed');
+      socket.off('teacher_registered');
+      socket.disconnect();
+    };
   }, []);
 
   return (
@@ -113,8 +139,7 @@ export default function SuperAdminDashboard() {
                 <DashboardPendingAccCard 
                   key={tch._id || tch.user_id} 
                   tch={tch}
-                  // onEdit={handleEditClass}
-                  // onDelete={handleDeleteClass}
+                  
                 />
               ))}
             </div>
