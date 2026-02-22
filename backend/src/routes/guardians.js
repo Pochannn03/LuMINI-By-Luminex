@@ -373,25 +373,45 @@ router.delete(
 // ==========================================
 router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
   try {
-    // Grab the custom numeric user_id of the logged-in Guardian
     const guardianNumericId = req.user.user_id;
+    const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-    // Search the Student collection and perform a "Deep Populate"
+    const studentToReset = await Student.findOne({ 
+      user_id: guardianNumericId, 
+      last_reset_date: { $ne: todayDate } 
+    });
+
+    let resetHappened = false;
+    if (studentToReset) {
+        await Student.updateMany(
+            { 
+              user_id: guardianNumericId, 
+              last_reset_date: { $ne: todayDate } 
+            },
+            { 
+              $set: { 
+                status: 'On the way', 
+                last_reset_date: todayDate 
+              } 
+            }
+        );
+        resetHappened = true;
+    }
+
     const assignedChildren = await Student.find({ 
       user_id: guardianNumericId 
     }).populate({
       path: 'section_details',
       populate: { 
-        path: 'user_details', // <-- THE FIX: This grabs the nested Teacher info!
-        select: 'first_name last_name email' // We only grab what we need for security
+        path: 'user_details',
+        select: 'first_name last_name email'
       }
     });
 
-    if (!assignedChildren || assignedChildren.length === 0) {
-      return res.status(200).json([]); // Return empty array if no kids are found
-    }
-
-    return res.status(200).json(assignedChildren);
+    return res.status(200).json({
+      success: resetHappened, 
+      children: assignedChildren || []
+    });
 
   } catch (error) {
     console.error("Error fetching guardian's children:", error);

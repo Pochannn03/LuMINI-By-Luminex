@@ -23,17 +23,15 @@ export default function AdminDropAndPickHistory() {
   const dateInputRef = useRef(null);
   const { monthDay, weekday } = getDateParts(currentDate);
 
-
   useEffect(() => {
     const fetchTransferHistory = async () => {
       try {
         setLoading(true);
-        // Format the date to YYYY-MM-DD to match your DB
         const dateString = dateToInputString(currentDate);
-
         const response = await axios.get('http://localhost:3000/api/transfer/parent', { 
           params: {
-            date: dateString
+            date: dateString,
+            purpose: filterType !== "all" ? filterType : undefined
           },
           withCredentials: true 
         });
@@ -43,13 +41,14 @@ export default function AdminDropAndPickHistory() {
         }
       } catch (error) {
         console.error("Error fetching history:", error);
+        setTransferData([]); // Clear data on error
       } finally {
         setLoading(false);
       }
     };
 
     fetchTransferHistory();
-  }, [currentDate]);
+  }, [currentDate, filterType]);
 
   const filteredData = transferData.filter(item => {
     const selectedDateString = dateToInputString(currentDate); 
