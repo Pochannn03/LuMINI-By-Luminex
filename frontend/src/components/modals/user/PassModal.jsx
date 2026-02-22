@@ -96,6 +96,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
     return () => clearInterval(timerId);
   }, [isOpen, timeLeft]);
 
+
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;

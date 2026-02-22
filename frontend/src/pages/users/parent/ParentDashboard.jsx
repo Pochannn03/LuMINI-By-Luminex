@@ -9,6 +9,7 @@ import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
+import ParentFeedbackModal from ".././../../components/modals/user/parent/dashboard/ParentFeedback";
 import SuccessModal from "../../../components/SuccessModal";
 
 export default function Dashboard() {
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [isParentOnQueue, setIsParentOnQueue] = useState(false);
   const [showNewDayModal, setShowNewDayModal] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
@@ -91,7 +93,11 @@ export default function Dashboard() {
     socket.on('student_status_updated', (data) => {
       if (data.student_id === rawStudentData?.student_id) {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
-        setIsParentOnQueue(false); 
+        setIsParentOnQueue(false);
+        setShowPassModal(false);
+        if (data.purpose === 'Pick up') {
+          setIsFeedbackModalOpen(true);
+        }
       }
     });
 
@@ -225,14 +231,14 @@ export default function Dashboard() {
                   <div className="absolute top-[18px] left-2.5 right-2.5 h-[3px] bg-[#cfd8dc] z-0 rounded-sm"></div>
 
                   <div className={`tracker-step ${childData?.status === 'On the way' ? 'active-onway' : ''}`}>
-                    <div className="step-circle">
+                    <div className="step-circle mr-2">
                       <span className="material-symbols-outlined text-[20px]">directions_walk</span>
                     </div>
                     <span className="step-label text-[12px]">On the Way</span>
                   </div>
 
                   <div className={`tracker-step ${childData?.status === 'Learning' ? 'active-learning' : ''}`}>
-                    <div className="step-circle">
+                    <div className="step-circle mr-1">
                       <span className="material-symbols-outlined text-[20px]">school</span>
                     </div>
                     <span className="step-label text-[12px]">Learning</span>
@@ -416,18 +422,14 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* =======================================================
-            ANTI-BUG: UNAUTH/UNASSIGNED ENROLLMENT BLOCKER MODAL
-            Position is ABSOLUTE so it only covers the Dashboard main area!
-            ======================================================= */}
         {isUnassigned && (
           <div 
             style={{
               position: 'absolute', inset: 0, zIndex: 50, 
-              background: 'rgba(255, 255, 255, 0.2)', // Light wash
+              background: 'rgba(255, 255, 255, 0.2)', 
               display: 'flex', justifyContent: 'center', 
-              alignItems: 'flex-start', /* <-- CHANGED: Anchors to the top */
-              paddingTop: '120px',      /* <-- CHANGED: Pushes it down into view */
+              alignItems: 'flex-start',
+              paddingTop: '120px', 
               paddingLeft: '20px', paddingRight: '20px', paddingBottom: '20px'
             }}
           >
@@ -466,6 +468,15 @@ export default function Dashboard() {
         onScanSuccess={handleGateScanSuccess}
       />
 
+      <ParentFeedbackModal 
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        onSuccess={(msg) => {
+          setSuccessMessage(msg);
+          setIsSuccessModalOpen(true);
+        }}
+      />
+
       <PassModal 
          isOpen={showPassModal} 
          onClose={() => setShowPassModal(false)} 
@@ -475,6 +486,8 @@ export default function Dashboard() {
         isOpen={showNewDayModal} 
         onClose={() => setShowNewDayModal(false)} 
       />
+
+      
     </div>
   );
 }
