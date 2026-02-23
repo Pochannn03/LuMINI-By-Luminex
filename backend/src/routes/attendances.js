@@ -3,6 +3,7 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Attendance } from "../models/attendances.js";
+import { Audit } from "../models/audits.js";
 
 const router = Router();
 
@@ -60,7 +61,8 @@ router.post('/api/attendance',
     const userRole = req.user.relationship?.toLowerCase()
     const now = new Date();
     const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-    
+    const userRoleSys = req.user.role;
+
     try {
         const student = await Student.findOne({ student_id: studentId }).populate('section_details');
         
@@ -135,6 +137,16 @@ router.post('/api/attendance',
             },
             { new: true, upsert: true }
         ).populate('student_details').lean();
+
+        const studentFullName = `${student.first_name} ${student.last_name}`;
+        const auditLog = new Audit({
+            user_id: currentUserId,
+            full_name: fullName,
+            role: userRole,
+            action: `Scanned Attendance (${status})`,
+            target: `Student: ${studentFullName} (ID: ${studentId})`
+        });
+        await auditLog.save();
 
         const finalData = {
             ...updated,

@@ -3,6 +3,7 @@ import { validationResult, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { createClassValidationSchema } from '../validation/classValidation.js';
 import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import multer from "multer";
@@ -59,6 +60,9 @@ router.post('/api/sections',
   ...checkSchema(createClassValidationSchema),
   async (req, res) => {
     const result = validationResult(req);
+    const currentUserId = req.user.user_id;
+    const fullName = `${req.user.first_name || "Admin"} ${req.user.last_name || ""}`.trim();
+    const userRole = req.user.role;
 
     if (!result.isEmpty()) {
       return res.status(400).send({ errors: result.array() });
@@ -69,15 +73,36 @@ router.post('/api/sections',
 
     try{
       const savedClass = await newClass.save();
+      
       if (data.student_id && data.student_id.length > 0) {
         await Student.updateMany(
           { student_id: { $in: data.student_id } },
           { $set: { section_id: newClass.section_id } }
         );
       }
+
+      let studentCount = 0;
+      if (data.student_id && data.student_id.length > 0) {
+        studentCount = data.student_id.length;
+        await Student.updateMany(
+          { student_id: { $in: data.student_id } },
+          { $set: { section_id: newClass.section_id } }
+        );
+      }
+
+      const auditLog = new Audit({
+        user_id: currentUserId,
+        full_name: fullName,
+        role: userRole,
+        action: "Class Created",
+        target: `Section: ${data.section_name} Enrolled ${studentCount} students`
+      });
+      await auditLog.save();
+
       const io = req.app.get('socketio');
       io.emit('section_added', savedClass);
       io.emit('students_updated');
+
       return res.status(201).send({ 
         msg: "Section created and students enrolled successfully", 
         user: savedClass 
@@ -101,6 +126,10 @@ router.put('/api/sections/archive/:id',
       }
 
       const numericSectionId = sectionToArchive.section_id;
+      const sectionName = sectionToArchive.section_name;
+      const currentUserId = req.user.user_id;
+      const fullName = `${req.user.first_name || "Admin"} ${req.user.last_name || ""}`.trim();
+
       const archivedSection = await Section.findByIdAndUpdate(
         mongoId,
         { 
@@ -115,6 +144,15 @@ router.put('/api/sections/archive/:id',
         { section_id: numericSectionId },
         { $set: { section_id: null } }
       );
+
+      const auditLog = new Audit({
+        user_id: currentUserId,
+        full_name: fullName,
+        role: req.user.role,
+        action: "Archive Section",
+        target: `Section: ${sectionName}`
+      });
+      await auditLog.save();
 
       const io = req.app.get('socketio');
       if (io) {
@@ -149,14 +187,16 @@ router.put('/api/sections/:id',
     
     const sectionId = req.params.id;
     const data = matchedData(req);
+    const currentUserId = req.user.user_id;
+    const fullName = `${req.user.first_name || "Admin"} ${req.user.last_name || ""}`.trim();
 
     try {
       const updatedClass = await Section.findByIdAndUpdate(
         sectionId, 
         data, 
         { 
-          new: true,           // Return the UPDATED document (not the old one)
-          runValidators: true  // Make sure rules (like required fields) are still checked
+          new: true,
+          runValidators: true
         }
       ).populate('user_details', 'first_name last_name'); // Optional: Return teacher info immediately
 
@@ -167,9 +207,6 @@ router.put('/api/sections/:id',
       const numericSectionId = updatedClass.section_id;
       const newStudentList = data.student_id || [];
 
-      // 2. THE "UNCHECK" LOGIC: 
-      // Find students who CURRENTLY have this section_id, 
-      // but are NOT in the new list sent from the frontend.
       await Student.updateMany(
         { 
           section_id: numericSectionId, 
@@ -178,13 +215,27 @@ router.put('/api/sections/:id',
         { $set: { section_id: null } }
       );
 
-      // 3. THE "ENROLL" LOGIC:
-      // Ensure all students in the new list are updated to have this section_id.
       if (newStudentList.length > 0) {
         await Student.updateMany(
           { student_id: { $in: newStudentList } },
           { $set: { section_id: numericSectionId } }
         );
+      }
+
+      const auditLog = new Audit({
+        user_id: currentUserId,
+        full_name: fullName,
+        role: req.user.role,
+        action: "Edit Section",
+        target: `Updated Section: ${updatedClass.section_name}. `
+      });
+      await auditLog.save();
+
+      const io = req.app.get('socketio');
+      if (io) {
+        io.emit('section_updated', updatedClass);
+        io.emit('students_updated'); 
+        io.emit('teachers_updated');
       }
 
       return res.status(200).json({ 

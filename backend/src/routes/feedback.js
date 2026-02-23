@@ -32,6 +32,15 @@ router.post('/api/feedback',
 
       await newFeedback.save();
 
+      const auditLog = new Audit({
+        user_id: parentId,
+        full_name: fullName,
+        role: req.user.role,
+        action: "Submit Feedback",
+        target: `Rating: ${ratingValue === 'up' ? 'Thumbs Up' : 'Thumbs Down'}`
+      });
+      await auditLog.save();
+
       return res.status(201).json({ 
         success: true, 
         message: "Thank you for your feedback!" 

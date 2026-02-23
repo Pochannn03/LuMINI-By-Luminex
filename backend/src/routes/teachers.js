@@ -5,6 +5,7 @@ import { hashPassword } from "../utils/passwordUtils.js";
 import { createUserValidationSchema } from "../validation/userValidation.js";
 import { createTeacherValidationSchema } from '../validation/teacherValidation.js'
 import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js";
 import bcrypt from 'bcrypt';
 import multer from "multer";
 import path from "path";
@@ -55,6 +56,14 @@ router.post('/api/teachers',
 
     try {
       const savedUser = await newUser.save();
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Register Teacher",
+        target: `Registered teacher ${savedUser.first_name} ${savedUser.last_name}`
+      });
+      await auditLog.save();
       return res.status(201).send({ msg: "Teacher registered successfully!", user: savedUser });
     } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
@@ -115,6 +124,14 @@ router.post('/api/teachers/modal',
 
     try{
       const savedUser = await newUser.save();
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Register Teacher",
+        target: `Registered teacher ${savedUser.first_name} ${savedUser.last_name}`
+      });
+      await auditLog.save();
       const io = req.app.get('socketio');
       io.emit('teacher_added', savedUser);
       return res.status(201).send({ msg: "Teacher registered successfully!", user: savedUser });
@@ -173,6 +190,15 @@ router.put('/api/teacher/:id',
         return res.status(404).json({ success: false, msg: "Class not found" });
       }
 
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Edit Teacher Info",
+        target: `Updated teacher ${updatedUser.first_name} ${updatedUser.last_name}`
+      });
+      await auditLog.save();
+
       return res.status(200).json({ 
         success: true, 
         msg: "Teacher updated successfully!", 
@@ -203,7 +229,15 @@ router.put('/api/teacher/archive/:id',
         return res.status(404).json({ success: false, msg: "Teacher not found" });
       }
 
-      console.log(`Teacher archived: ${archivedUser.username}`);
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Archive Teacher",
+        target: `Archived teacher ${archivedUser.first_name} ${archivedUser.last_name}`
+      });
+      await auditLog.save();
+
 
       return res.status(200).json({ 
         success: true, 
@@ -232,6 +266,15 @@ router.patch('/api/teacher/approval/:id',
         return res.status(404).json({ success: false, msg: "Teacher not found" });
       }
 
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Approve Teacher",
+        target: `Approved teacher ${updatedTeacher.first_name} ${updatedTeacher.last_name}`
+      });
+      await auditLog.save();
+
       const io = req.app.get('socketio');
       io.emit('teacher_processed', { 
         id: teacherId, 
@@ -259,6 +302,15 @@ router.delete('/api/teacher/rejection/:id',
       if (!deletedTeacher) {
         return res.status(404).json({ success: false, msg: "Teacher not found" });
       }
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Reject Teacher Registration",
+        target: `Rejected and Deleted ${deletedTeacher.first_name} ${deletedTeacher.last_name}`
+      });
+      await auditLog.save();
 
       const io = req.app.get('socketio');
       io.emit('teacher_processed', { 

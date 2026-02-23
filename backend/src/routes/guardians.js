@@ -1,14 +1,13 @@
-// backend/routes/guardians.js
-
-import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js'; // <-- ADD THIS
+import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { Router } from "express";
 import { createUserValidationSchema } from '../validation/userValidation.js'
 import { validationResult, matchedData, checkSchema} from "express-validator";
+import { hashPassword } from "../utils/passwordUtils.js";
 import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
+import { Audit } from "../models/audits.js";
 import GuardianRequest from "../models/guardianRequest.js"; 
-import { hashPassword } from "../utils/passwordUtils.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -89,6 +88,15 @@ router.post('/api/guardian-register',
       data.profile_picture = req.file.path; 
     }
 
+    const auditLog = new Audit({
+      user_id: savedUser.user_id,
+      full_name: `${savedUser.first_name} ${savedUser.last_name}`,
+      role: savedUser.role,
+      action: "Guardian Registration",
+      target: `Guardian account created ${savedUser.first_name} ${savedUser.last_name}`
+    });
+    await auditLog.save();
+
     try {
         const savedUser = await newUser.save();
         return res.status(201).send({ msg: "Guardian registered successfully!", user: savedUser });
@@ -160,6 +168,15 @@ router.post(
         });
 
         await newRequest.save();
+
+        const auditLog = new Audit({
+          user_id: req.user.user_id,
+          full_name: `${req.user.first_name} ${req.user.last_name}`,
+          role: req.user.role,
+          action: "Submit Guardian Request",
+          target: `Submitted request for ${firstName} ${lastName}`
+        });
+        await auditLog.save();
 
         return res.status(201).json({ 
             message: "Guardian request submitted successfully to the teacher!",
@@ -242,6 +259,15 @@ router.put('/api/teacher/guardian-requests/:id/approve', isAuthenticated, async 
         requestDoc.guardianDetails.createdUserId = savedGuardian._id; // <-- THE FIX
         await requestDoc.save();
 
+        const auditLog = new Audit({
+          user_id: req.user.user_id,
+          full_name: `${req.user.first_name} ${req.user.last_name}`,
+          role: req.user.role,
+          action: "Approve Guardian Request",
+          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name}`
+        });
+        await auditLog.save();
+
         return res.status(200).json({ message: "Guardian successfully approved and account created!" });
 
     } catch (error) {
@@ -263,9 +289,20 @@ router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
+        const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
+
         // 2. Mark request as rejected
         requestDoc.status = 'rejected';
         await requestDoc.save();
+
+        const auditLog = new Audit({
+          user_id: req.user.user_id,
+          full_name: `${req.user.first_name} ${req.user.last_name}`,
+          role: req.user.role,
+          action: "Reject Guardian Request",
+          target: `Rejected request for: ${guardianName}`
+        });
+        await auditLog.save();
 
         // 3. (Optional but recommended) Delete the ID photo to save server storage
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
@@ -340,6 +377,8 @@ router.delete(
     try {
         const requestId = req.params.id;
         const parentId = req.user._id;
+        const parentUserId = req.user.user_id; // Numeric ID from your User model
+        const fullName = `${req.user.first_name} ${req.user.last_name}`;
 
         // 1. Find the request. Ensure it belongs to this parent AND is still pending.
         const requestDoc = await GuardianRequest.findOne({
@@ -359,6 +398,15 @@ router.delete(
 
         // 3. Delete the request from the database
         await GuardianRequest.findByIdAndDelete(requestId);
+
+        const auditLog = new Audit({
+          user_id: parentUserId,
+          full_name: fullName,
+          role: req.user.role,
+          action: "Cancel Guardian Request",
+          target: `Cancelled request for: ${guardianName}`
+        });
+        await auditLog.save();
 
         return res.status(200).json({ message: "Guardian application successfully cancelled." });
 
@@ -467,6 +515,15 @@ router.put(
       // Save all changes to the database
       await user.save();
 
+      const auditLog = new Audit({
+        user_id: user.user_id,
+        full_name: `${user.first_name} ${user.last_name}`,
+        role: user.role,
+        action: "Account Setup",
+        target: `Completed initial security setup`
+      });
+      await auditLog.save();
+
       return res.status(200).json({ 
         message: "Security setup complete! Account fully verified.",
         user 
@@ -508,6 +565,8 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
     try {
         const requestId = req.params.id;
         const parentId = req.user._id;
+        const parentUserId = req.user.user_id;
+        const fullName = `${req.user.first_name} ${req.user.last_name}`;
 
         // 1. Find the approved request ensuring it belongs to this parent
         const requestDoc = await GuardianRequest.findOne({
@@ -519,7 +578,8 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         if (!requestDoc) {
             return res.status(404).json({ message: "Approved request not found." });
         }
-
+        
+        const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
         // 2. Find the active Guardian User account securely!
         // We use the hard-linked ID. (We keep the username search as a fallback just in case you test on older requests).
         let guardianUser;
@@ -543,6 +603,15 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         // 5. Update the request status to 'revoked' so it disappears from the Active list
         requestDoc.status = 'revoked';
         await requestDoc.save();
+
+        const auditLog = new Audit({
+          user_id: parentUserId,
+          full_name: fullName,
+          role: req.user.role,
+          action: "Revoke Guardian Access",
+          target: `Revoked access for ${guardianName}`
+        });
+        await auditLog.save();
 
         return res.status(200).json({ message: "Guardian access has been permanently revoked." });
 

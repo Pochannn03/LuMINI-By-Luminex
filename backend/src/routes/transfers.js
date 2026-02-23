@@ -4,6 +4,7 @@ import { Transfer } from "../models/transfers.js";
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
 import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js";
 import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
 
@@ -192,6 +193,15 @@ router.post('/api/transfer',
         newStatus: newStatus,
         purpose: purpose
       });
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Record Student Transfer",
+        target: `${purpose} ${studentName} by ${guardianName}`
+      });
+      await auditLog.save();
       
       return res.status(200).json({ 
             success: true,

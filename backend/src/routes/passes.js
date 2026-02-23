@@ -61,6 +61,15 @@ router.post('/api/pass/generate',
         student_name: fullNameStud,
       });
 
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: fullName,
+        role: req.user.role,
+        action: "Generate Access Pass",
+        target: `${autoPurpose} Pass for Student: ${fullNameStud}`
+      });
+      await auditLog.save();
+
       res.json({
         success: true,
         token: secretToken,
@@ -168,74 +177,74 @@ router.get('/api/scan/pass/:token',
 });
 
 // STUDENT SCANNED QR ATTENDANCE AND RECORD
-router.post('/api/scan/attendance', 
-  isAuthenticated,
-  hasRole('admin'),
-  async (req, res) => {
-    const { studentId } = req.body;
+// router.post('/api/scan/attendance', 
+//   isAuthenticated,
+//   hasRole('admin'),
+//   async (req, res) => {
+//     const { studentId } = req.body;
     
-    try {
-        const student = await Student.findOne({ student_id: studentId });
-        if (!student) {
-            return res.status(404).json({ msg: "Student not found" });
-        }
+//     try {
+//         const student = await Student.findOne({ student_id: studentId });
+//         if (!student) {
+//             return res.status(404).json({ msg: "Student not found" });
+//         }
 
-        const now = new Date();
-        const todayDate = now.toISOString().split('T')[0]; // "2026-02-13"
-        const currentTimeString = now.toLocaleTimeString('en-US', { 
-            hour: 'numeric', minute: '2-digit', hour12: true 
-        });
+//         const now = new Date();
+//         const todayDate = now.toISOString().split('T')[0]; // "2026-02-13"
+//         const currentTimeString = now.toLocaleTimeString('en-US', { 
+//             hour: 'numeric', minute: '2-digit', hour12: true 
+//         });
 
-        // 2. Check if student already scanned today
-        const existingRecord = await Attendance.findOne({ 
-            student_id: studentId, 
-            date: todayDate 
-        });
+//         // 2. Check if student already scanned today
+//         const existingRecord = await Attendance.findOne({ 
+//             student_id: studentId, 
+//             date: todayDate 
+//         });
 
-        if (existingRecord) {
-            return res.status(400).json({ 
-                msg: "Attendance already recorded for today",
-                student: {
-                    first_name: student.first_name,
-                    last_name: student.last_name,
-                    time_in: existingRecord.time_in
-                }
-            });
-        }
+//         if (existingRecord) {
+//             return res.status(400).json({ 
+//                 msg: "Attendance already recorded for today",
+//                 student: {
+//                     first_name: student.first_name,
+//                     last_name: student.last_name,
+//                     time_in: existingRecord.time_in
+//                 }
+//             });
+//         }
 
-        // 3. Determine Status (Example: Late if after 8:00 AM)
-        let status = "Present";
-        const hour = now.getHours();
-        if (hour >= 8) { status = "Late"; }
+//         // 3. Determine Status (Example: Late if after 8:00 AM)
+//         let status = "Present";
+//         const hour = now.getHours();
+//         if (hour >= 8) { status = "Late"; }
 
-        // 4. Create Attendance Record
-        const newAttendance = new Attendance({
-            student_id: student.student_id,
-            student_name: `${student.first_name} ${student.last_name}`,
-            status: status,
-            date: todayDate,
-            time_in: currentTimeString
-        });
+//         // 4. Create Attendance Record
+//         const newAttendance = new Attendance({
+//             student_id: student.student_id,
+//             student_name: `${student.first_name} ${student.last_name}`,
+//             status: status,
+//             date: todayDate,
+//             time_in: currentTimeString
+//         });
 
-        await newAttendance.save();
+//         await newAttendance.save();
 
-        res.status(200).json({
-            msg: `Attendance marked as ${status}`,
-            student: {
-                first_name: student.first_name,
-                last_name: student.last_name,
-                student_id: student.student_id,
-                profile_picture: student.profile_picture,
-                status: status,
-                time_in: currentTimeString
-            }
-        });
+//         res.status(200).json({
+//             msg: `Attendance marked as ${status}`,
+//             student: {
+//                 first_name: student.first_name,
+//                 last_name: student.last_name,
+//                 student_id: student.student_id,
+//                 profile_picture: student.profile_picture,
+//                 status: status,
+//                 time_in: currentTimeString
+//             }
+//         });
 
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ msg: "Server Error" });
-    }
-});
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ msg: "Server Error" });
+//     }
+// });
 
 
 export default router;

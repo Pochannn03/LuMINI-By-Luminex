@@ -138,6 +138,15 @@ router.put('/api/users/:id',
         return res.status(404).json({ success: false, msg: "Class not found" });
       }
 
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Edit User Info",
+        target: `Updated user ${updatedUser.first_name} ${updatedUser.last_name}`
+      });
+      await auditLog.save();
+
       return res.status(200).json({ 
         success: true, 
         msg: "Class updated successfully!", 
@@ -168,7 +177,14 @@ router.put('/api/users/archive/:id',
         return res.status(404).json({ success: false, msg: "User not found" });
       }
 
-      console.log(`User archived: ${archiveUser.username}`);
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Archive User",
+        target: `Archived user ${archiveUser.first_name} ${archiveUser.last_name}`
+      });
+      await auditLog.save();
 
       return res.status(200).json({ 
         success: true, 
@@ -255,6 +271,15 @@ router.put("/api/user/profile",
     if (!updatedUser) {
         return res.status(404).json({ message: "User not found in database." });
     }
+
+    const auditLog = new Audit({
+      user_id: req.user.user_id,
+      full_name: `${req.user.first_name} ${req.user.last_name}`,
+      role: req.user.role,
+      action: "Update Own Profile",
+      target: `Updated personal profile information`
+    });
+    await auditLog.save();
 
     res.status(200).json({ message: "Profile updated successfully", user: updatedUser });
     

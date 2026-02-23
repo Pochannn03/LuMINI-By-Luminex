@@ -130,6 +130,12 @@ export default function SuperAdminClassManagement() {
       fetchStudents();
     });
 
+    socket.on("section_updated", () => {
+      fetchClasses();
+      fetchStudents();
+      fetchTeachers();
+    });
+
     socket.on("section_added", (newSection) => {
       setClasses((prev) => [...prev, newSection]);
       fetchClasses();

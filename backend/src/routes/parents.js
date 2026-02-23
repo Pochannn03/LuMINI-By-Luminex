@@ -3,6 +3,7 @@ import { createUserValidationSchema } from "../validation/userValidation.js";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { validationResult, body, matchedData, checkSchema } from "express-validator";
 import { Attendance } from "../models/attendances.js";
+import { Audit } from "../models/audits.js";
 import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 import { hashPassword } from "../utils/passwordUtils.js";
@@ -95,7 +96,6 @@ router.post(
         password: hashedPassword,
         relationship: "Parent",
         role: "user",
-        // 👇 FIX: Replace backslashes with forward slashes before saving
         profile_picture: req.file ? req.file.path.replace(/\\/g, "/") : null,
         is_archive: false,
       });
@@ -107,6 +107,15 @@ router.post(
       student.invitation_used_at = Date.now();
 
       await student.save();
+
+      const auditLog = new Audit({
+        user_id: savedUser.user_id,
+        full_name: `${savedUser.first_name} ${savedUser.last_name}`,
+        role: savedUser.role,
+        action: "Parent Registration",
+        target: `Registered with Student: ${student.first_name} ${student.last_name}`
+      });
+      await auditLog.save();
 
       return res.status(201).send({
         msg: "Parent registered and linked to student successfully!",

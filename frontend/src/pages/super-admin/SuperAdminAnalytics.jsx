@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import NavBar from "../../components/navigation/NavBar";
 import "../../styles/super-admin/super-admin-analytics.css";
 
-// --- Mock Data ---
-
 // 1. Chart Data
 const attendanceData = [
   { day: "Mon", present: 85, absent: 15 },
@@ -11,7 +9,7 @@ const attendanceData = [
   { day: "Wed", present: 88, absent: 12 },
   { day: "Thu", present: 95, absent: 5 },
   { day: "Fri", present: 78, absent: 22 },
-  { day: "Sat", present: 45, absent: 55 }, // Weekend classes or activities
+  { day: "Sat", present: 45, absent: 55 }, 
 ];
 
 const userStats = {
