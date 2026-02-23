@@ -12,7 +12,12 @@ const AnnouncementSchema = new mongoose.Schema({
   },
   full_name: {
     type: String,
-    required: true, // Recommended to keep this required for the audit trail
+    required: true,
+  },
+  category: { 
+    type: String, 
+    enum: ['notifications_active', 'campaign', 'calendar_month'],
+    default: 'notifications_active' 
   },
   announcement: { 
     type: String, 
@@ -32,7 +37,6 @@ AnnouncementSchema.pre('save', async function () {
   const doc = this;
   if (doc.isNew) {
     try {
-      // ✅ Use a unique key for announcements
       const counterKey = 'announcement_id';
       const startSeq = 1;
 

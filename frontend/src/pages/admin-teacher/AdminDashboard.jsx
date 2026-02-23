@@ -16,11 +16,18 @@ export default function AdminDashboard() {
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
   const [queue, setQueue] = useState([]);
+  const [errorTitle, setErrorTitle] = useState("Error");
+  const [errorMainMsg, setErrorMainMsg] = useState("An error occurred");
   const [errorMessage, setErrorMessage] = useState("");
   const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
   const [transferSuccessData, setTransferSuccessData] = useState(null);
-  const [announcement, setAnnouncement] = useState("");
   const [posting, setPosting] = useState(false);
+
+  // STATE FOR ANNOUNCEMENT
+  const [announcementData, setAnnouncementData] = useState({
+    content: '',
+    category: 'notifications_active'
+  });
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -79,10 +86,9 @@ export default function AdminDashboard() {
       }
 
     } catch (error) {
-      const finalMessage = error.response?.data?.error || 
-                           error.response?.data?.msg || 
-                           error.message || 
-                           "An unexpected error occurred.";
+      const finalMessage = error.response?.data?.error || error.message || "An unexpected error occurred.";
+      setErrorTitle("Scan Error");
+      setErrorMainMsg("Could not process QR");
       setErrorMessage(finalMessage);
       setIsErrorModalOpen(true);
     } finally {
@@ -90,30 +96,40 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePostAnnouncement = async () => {
-    if (!announcement.trim()) return;
+  const handlePostAnnouncement = async (e) => {
+    if (!announcementData.content.trim()) return;
 
     try {
       setPosting(true);
+      
       const response = await axios.post("http://localhost:3000/api/announcements", 
-        { announcement: announcement },
+        { announcement: announcementData.content,
+          category: announcementData.category
+        },
         { withCredentials: true }
       );
 
       if (response.data.success) {
-        setAnnouncement(""); 
+        const newAnn = response.data.announcement; 
+        setAnnouncementData({ content: '', category: 'notifications_active' });
+        
         setTransferSuccessData({
           type: 'success',
           title: 'Announcement Posted',
           message: 'Your update has been shared with all parents.',
           details: [
-            { label: 'Author', value: `${user.firstName} ${user.lastName}` },
+            { label: 'Author', value: `${newAnn.user.first_name} ${newAnn.user.last_name}` },
             { label: 'Status', value: 'Live' }
           ]
         });
       }
     } catch (err) {
-      setErrorMessage(err.response?.data?.error || "Failed to post announcement.");
+      // Capture the specific backend error message
+      const backendError = err.response?.data?.error || "Failed to post announcement.";
+      
+      setErrorTitle("Post Failed");
+      setErrorMainMsg("Announcement Error");
+      setErrorMessage(backendError);
       setIsErrorModalOpen(true);
     } finally {
       setPosting(false);
@@ -217,6 +233,11 @@ export default function AdminDashboard() {
     setActiveScanMode(null);
   };
 
+  const handleAnnChange = (e) => {
+    const { name, value } = e.target;
+    setAnnouncementData(prev => ({ ...prev, [name]: value }));
+  };
+
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
@@ -317,29 +338,56 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="card action-card flex flex-col gap-5 p-6">
-            <div className="mb-6">
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined purple-icon text-[24px]">campaign</span>
-                <h2 className="text-cdark font-bold text-[18px]!">Class Announcement</h2>
+          <div className="card action-card flex flex-col p-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${
+                  announcementData.category === 'campaign' ? 'bg-red-50' : 
+                  announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'
+                }`}>
+                  <span className={`material-symbols-outlined text-[22px] ${
+                    announcementData.category === 'campaign' ? 'text-red-600' : 
+                    announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'
+                  }`}>
+                    {announcementData.category}
+                  </span>
+                </div>
+
+                <h2 className="text-cdark font-bold text-[18px]! -m-2">Class Announcement</h2>
               </div>
-              <p className="text-cgray leading-normal ml-0 text-[14px]!">Post updates to parents.</p>
+
+              <p className="text-cgray leading-normal text-[14px]! mb-3">Post updates to parents.</p>
+
+              <select 
+                name="category"
+                value={announcementData.category}
+                onChange={handleAnnChange}
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
+              >
+                <option value="notifications_active">General Announcement</option>
+                <option value="campaign">Emergency Alert</option>
+                <option value="calendar_month">Meeting / Event</option>
+              </select>
             </div>
 
-            <div className="announcement-box">
+            {/* Announcement Box: Textarea area */}
+            <div className="announcement-box mt-1">
               <textarea 
+                name="content"
                 className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" 
                 placeholder="Write an announcement..."
-                value={announcement}
-                onChange={(e) => setAnnouncement(e.target.value)}
+                value={announcementData.content}
+                onChange={handleAnnChange}
                 disabled={posting}
               />
-              <div className="flex justify-between items-center mt-2.5 pt-2.5 ">
-                <div></div>
+              <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
+                <div className="text-[12px] text-cgray">
+                  {announcementData.content.length} characters
+                </div>
                 <button 
                   className={`btn-post ${posting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handlePostAnnouncement}
-                  disabled={posting}
+                  disabled={posting || !announcementData.content.trim()}
                 >
                   {posting ? 'Posting...' : 'Post'}
                 </button>
@@ -392,8 +440,8 @@ export default function AdminDashboard() {
         isOpen={isErrorModalOpen}
         onClose={() => setIsErrorModalOpen(false)}
         type="error"
-        title="Scan Error"
-        message="Could not process QR"
+        title={errorTitle}
+        message={errorMainMsg}
         details={[
           { label: 'Reason', value: errorMessage } 
         ]}
