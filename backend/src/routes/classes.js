@@ -77,6 +77,7 @@ router.post('/api/sections',
       }
       const io = req.app.get('socketio');
       io.emit('section_added', savedClass);
+      io.emit('students_updated');
       return res.status(201).send({ 
         msg: "Section created and students enrolled successfully", 
         user: savedClass 
@@ -91,28 +92,46 @@ router.put('/api/sections/archive/:id',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
-
     try {
-      const sectionId = req.params.id;
-      const deletedSection = await Section.findByIdAndUpdate(
-        sectionId,
-        { is_archive: true }, 
-        { new: true }
-      );
+      const mongoId = req.params.id;
+      const sectionToArchive = await Section.findById(mongoId);
 
-      if (!deletedSection) {
+      if (!sectionToArchive) {
         return res.status(404).json({ success: false, msg: "Class not found" });
       }
 
-      res.status(200).json({ success: true, msg: "Class deleted successfully" });
+      const numericSectionId = sectionToArchive.section_id;
+      const archivedSection = await Section.findByIdAndUpdate(
+        mongoId,
+        { 
+          is_archive: true,
+          user_id: null,
+          student_id: []
+        }, 
+        { new: true }
+      );
+
+      await Student.updateMany(
+        { section_id: numericSectionId },
+        { $set: { section_id: null } }
+      );
+
+      const io = req.app.get('socketio');
+      if (io) {
+        io.emit("section_archived", { section_id: numericSectionId });
+        io.emit("students_updated");
+      }
+
+      res.status(200).json({ 
+        success: true, 
+        msg: "Class archived and students/teacher unlinked successfully" 
+      });
 
     } catch (err) {
-      console.error("Error deleting class:", err);
-
+      console.error("❌ Error archiving class:", err);
       if (err.kind === 'ObjectId') {
          return res.status(404).json({ success: false, msg: "Class not found" });
       }
-
       res.status(500).json({ success: false, msg: "Server error" });
     }
 });
