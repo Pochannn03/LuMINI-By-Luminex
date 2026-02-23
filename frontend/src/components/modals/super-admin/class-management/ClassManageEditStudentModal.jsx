@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
 import { validateStudentRegistrationStep } from '../../../../utils/class-manage-modal/studentModalValidation';
-import AvatarEditor from "react-avatar-editor"; // <-- ADDED CROPPER IMPORT
+import AvatarEditor from "react-avatar-editor"; 
 
 // --- ADDED HELPER ---
 const BACKEND_URL = "http://localhost:3000";
@@ -27,11 +27,17 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
     birthdate: '', 
     age: '',
     gender: '',
+    allergies: 'None',
+    medical_history: 'None',
     studentId: '', 
     invitationCode: '', 
+    // --- NEW: PASSIVE PARENT FIELDS ---
+    parentName: '',
+    parentPhone: '',
+    parentEmail: ''
   });
 
-  // --- NEW: CROPPER STATES ---
+  // --- CROPPER STATES ---
   const editorRef = useRef(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImage, setTempImage] = useState(null);
@@ -51,13 +57,17 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         birthdate: formattedBday,
         gender: std.gender || '',
         age: std.age || calculateAge(formattedBday),
+        allergies: std.allergies || 'None',
+        medical_history: std.medical_history || 'None',
         studentId: std.student_id || 'No ID Assigned',
         invitationCode: std.invitation_code || '',
+        // --- POPULATE PASSIVE PARENT FIELDS ---
+        parentName: std.passive_parent?.name || '',
+        parentPhone: std.passive_parent?.phone || '',
+        parentEmail: std.passive_parent?.email || ''
       });
 
-      // --- APPLIED HELPER HERE SO IT LOADS THE EXISTING IMAGE ---
       setPreviewUrl(getImageUrl(std.profile_picture, std.first_name));
-      
       setProfileImage(null);
       setErrors({});
       setShowCropModal(false);
@@ -93,16 +103,15 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
-  // --- UPDATED IMAGE HANDLERS FOR CROPPER ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setTempImage(imageUrl);
-      setShowCropModal(true); // Open cropper instead of saving immediately
+      setShowCropModal(true); 
       setZoom(1);
     }
-    e.target.value = null; // reset input
+    e.target.value = null; 
     if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
   };
 
@@ -112,8 +121,8 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       canvas.toBlob((blob) => {
         if (blob) {
           const croppedFile = new File([blob], "student_photo.jpg", { type: "image/jpeg" });
-          setProfileImage(croppedFile); // This is what gets sent to backend
-          setPreviewUrl(URL.createObjectURL(croppedFile)); // Update the UI preview
+          setProfileImage(croppedFile); 
+          setPreviewUrl(URL.createObjectURL(croppedFile)); 
           setShowCropModal(false);
           setTempImage(null);
         }
@@ -146,8 +155,12 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('gender', formData.gender);
       data.append('allergies', formData.allergies);
       data.append('medical_history', formData.medical_history);
+      
+      // --- NEW: APPEND PASSIVE PARENT DATA ---
+      data.append('passive_parent_name', formData.parentName);
+      data.append('passive_parent_phone', formData.parentPhone);
+      data.append('passive_parent_email', formData.parentEmail);
 
-      // Append Image ONLY if a new one was selected/cropped
       if (profileImage) {
         data.append('profile_photo', profileImage);
       }
@@ -189,7 +202,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                 width={220}
                 height={220}
                 border={20}
-                borderRadius={110} // Makes the crop guide a circle!
+                borderRadius={110} 
                 color={[15, 23, 42, 0.6]}
                 scale={zoom}
                 rotate={0}
@@ -244,12 +257,12 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
-              <span class="material-symbols-outlined header-icon blue-icon">edit_square</span>
+              <span className="material-symbols-outlined header-icon blue-icon">edit_square</span>
               <h2 className="text-cdark text-[18px] font-bold">Edit Student Profile</h2>
             </div>
           </div>
 
-          <div className="modal-body">
+          <div className="modal-body custom-scrollbar pr-2 overflow-y-auto max-h-[65vh]">
             <input type="hidden" id="editStudentDbId" />
             <div className="flex flex-col items-center gap-2">
               <img 
@@ -308,7 +321,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                     expand_more
                   </span>
                 </div>
-
                 {errors.gender && (
                   <span className="text-red-500 text-[11px] ml-1">{errors.gender}</span>
                 )}
@@ -318,7 +330,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
             <div className="flex flex-col gap-2">
               <label htmlFor="birthdateAge" className="text-cgray text-[13px] font-medium">Birthdate & Age</label>
               <div className="flex gap-2.5 w-full">
-                <div className="flex-2">
+                <div className="flex flex-col flex-1">
                   <input 
                     type="date"
                     name="birthdate"
@@ -326,7 +338,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                     onChange={handleChange}
                     className={`form-input-modal w-full ${errors.birthdate ? 'border-red-500 bg-red-50' : ''}`}
                   />
-                  {errors.birthdate && <span className="text-red-500 text-[11px] ml-1">{errors.birthdate}</span>}
+                  {errors.birthdate && <span className="text-red-500 text-[11px] ml-1 mt-1">{errors.birthdate}</span>}
                 </div>
                 <div className="flex-1">
                   <input 
@@ -341,14 +353,14 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-2">
               <FormInputRegistration
                 label="Allergies"
                 name="allergies" 
                 value={formData.allergies}
                 onChange={handleChange} 
                 placeholder="Allergies" 
-                error={errors.allergies} // Pass Error
+                error={errors.allergies} 
                 className="form-input-modal"
               />
             </div>
@@ -366,6 +378,43 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                 className="form-input-modal"
               />
             </div>
+
+            {/* --- NEW: PARENT DETAILS SECTION --- */}
+            <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
+              <span className="material-symbols-outlined orange-icon">family_restroom</span>
+              <h3 className="text-cdark text-[16px] font-bold">Parent / Guardian Details</h3>
+            </div>
+            <p className="text-slate-400 text-[12px] mb-2 leading-tight">Edit the parent details for the temporary unverified profile link.</p>
+            
+            <div className="flex flex-col gap-3">
+              <FormInputRegistration 
+                label="Parent's Full Name"
+                name="parentName" 
+                value={formData.parentName}
+                onChange={handleChange} 
+                placeholder="e.g. Maria Clara" 
+                className="form-input-modal"
+              />
+              <div className="flex gap-2.5">
+                <FormInputRegistration 
+                  label="Contact Number"
+                  name="parentPhone" 
+                  value={formData.parentPhone}
+                  onChange={handleChange} 
+                  placeholder="e.g. 09123456789" 
+                  className="form-input-modal flex-1"
+                />
+                <FormInputRegistration 
+                  label="Email Address"
+                  name="parentEmail" 
+                  value={formData.parentEmail}
+                  onChange={handleChange} 
+                  placeholder="e.g. maria@email.com" 
+                  className="form-input-modal flex-1"
+                />
+              </div>
+            </div>
+            
           </div>
 
           <div className="modal-footer">

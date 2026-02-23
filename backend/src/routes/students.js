@@ -153,6 +153,8 @@ router.put('/api/students/:id',
     }
     
     const studentId = req.params.id;
+    
+    // --- BUILD THE UPDATE OBJECT ---
     const updateData = {
         ...req.body
     };
@@ -161,18 +163,31 @@ router.put('/api/students/:id',
         updateData.profile_picture = req.file.path; 
     }
 
+    // --- NEW: Handle Nested Passive Parent Update ---
+    // Mongoose dot notation lets us update specific fields inside an object 
+    // without wiping out other fields (like is_verified)
+    if (req.body.passive_parent_name !== undefined) {
+      updateData['passive_parent.name'] = req.body.passive_parent_name;
+    }
+    if (req.body.passive_parent_phone !== undefined) {
+      updateData['passive_parent.phone'] = req.body.passive_parent_phone;
+    }
+    if (req.body.passive_parent_email !== undefined) {
+      updateData['passive_parent.email'] = req.body.passive_parent_email;
+    }
+
     try {
       const updatedStudent = await Student.findByIdAndUpdate(
         studentId, 
-        updateData, 
+        { $set: updateData }, // Ensure we use $set to properly handle dot notation
         { 
-          new: true,           
+          new: true,          
           runValidators: true  
         }
       )
 
       if (!updatedStudent) {
-        return res.status(404).json({ success: false, msg: "Class not found" });
+        return res.status(404).json({ success: false, msg: "Student not found" });
       }
 
       return res.status(200).json({ 
@@ -253,7 +268,9 @@ router.get('/api/students/available',
 });
 
 
-// CREATE STUDENT
+// ==========================================
+// CREATE STUDENT (MANUAL REGISTRATION)
+// ==========================================
 router.post('/api/students', 
   isAuthenticated,
   hasRole('superadmin'),
@@ -276,6 +293,16 @@ router.post('/api/students',
     if (req.file) {
       data.profile_picture = req.file.path; 
     }
+
+    // --- NEW: Attach the Passive Parent Data from req.body ---
+    // Because express-validator's matchedData() strips out fields not in the schema,
+    // we pull these directly from req.body!
+    data.passive_parent = {
+      name: req.body.passive_parent_name || null,
+      phone: req.body.passive_parent_phone || null,
+      email: req.body.passive_parent_email || null,
+      is_verified: false
+    };
 
     const newStudent = new Student(data);
 

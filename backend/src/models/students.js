@@ -27,7 +27,7 @@ const StudentSchema = new mongoose.Schema({
     required: true,
   },
   birthday: {
-    type: Date, // Or Date
+    type: Date, 
     required: true,
   },
   gender: {
@@ -39,7 +39,8 @@ const StudentSchema = new mongoose.Schema({
     type: Number,
     required: false, 
   },
-  // --- NEW: Add Medical Fields ---
+  
+  // --- MEDICAL FIELDS ---
   allergies: {
     type: String,
     default: "N/A"
@@ -50,18 +51,18 @@ const StudentSchema = new mongoose.Schema({
     },
   profile_picture: {
     type: String,
-    required: false, // Make optional in case they don't upload one
+    required: false, 
   },
 
-  // 3. OPTIONAL FIELDS (Fill these later)
+  // 3. OPTIONAL FIELDS
   address: {
     type: String,
-    required: false, // Changed to false
+    required: false, 
     default: ""
   },
   qr_code: {
     type: String,
-    required: false, // Changed to false
+    required: false, 
   },
   status: {
     type: String,
@@ -84,6 +85,15 @@ const StudentSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
+
+  // --- 5. NEW: PASSIVE PARENT TAG (From Pre-Enrollment) ---
+  passive_parent: {
+    name: { type: String, default: null },
+    phone: { type: String, default: null },
+    email: { type: String, default: null },
+    is_verified: { type: Boolean, default: false } // Turns true when they use the invitation code
+  },
+
   is_archive: {
     type: Boolean,
     default: false,
@@ -109,12 +119,8 @@ const StudentSchema = new mongoose.Schema({
     default: "System" 
   }
 }, {
-    toJSON: { 
-      virtuals: true 
-    }, // Important: Ensure virtuals show up when you query
-    toObject: { 
-      virtuals: true 
-    }
+    toJSON: { virtuals: true }, 
+    toObject: { virtuals: true }
   }
 );
 
@@ -125,18 +131,14 @@ StudentSchema.pre('save', async function() {
     try {
       const currentYear = new Date().getFullYear();
       
-      // DYNAMIC COUNTER NAME: "student_id_2025", "student_id_2026"
-      // This automatically resets the count to 1 when a new year starts!
       const counterName = `student_id_${currentYear}`;
 
       const counter = await Counter.findByIdAndUpdate(
         counterName,                
         { $inc: { seq: 1 } }, 
-        { new: true, upsert: true } // Creates the counter for the new year automatically
+        { new: true, upsert: true } 
       );
 
-      // Format: YYYY-0001
-      // String(counter.seq).padStart(4, '0') turns 1 into "0001"
       const sequenceStr = String(counter.seq).padStart(4, '0');
       doc.student_id = `${currentYear}-${sequenceStr}`; 
 
@@ -149,17 +151,17 @@ StudentSchema.pre('save', async function() {
 });
 
 StudentSchema.virtual('user_details', {
-  ref: 'User',           
+  ref: 'User',          
   localField: 'user_id',
   foreignField: 'user_id',
   justOne: false
 });
 
 StudentSchema.virtual('section_details', {
-  ref: 'Section',           // The Model to use
-  localField: 'section_id', // The field in StudentSchema
-  foreignField: 'section_id', // The field in UserSchema (The Primary Key)
-  justOne: true          // Since one student has only one user account
+  ref: 'Section',          
+  localField: 'section_id', 
+  foreignField: 'section_id', 
+  justOne: true          
 });
 
 export const Student = mongoose.model("Student", StudentSchema, "chd.kindergarten_student");

@@ -1,15 +1,46 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import NavBar from "../../components/navigation/NavBar";
+
+const BACKEND_URL = "http://localhost:3000";
 
 export default function SuperAdminBulkRegistration() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
   
+  // --- REAL DATA STATES ---
+  const [teachersQueue, setTeachersQueue] = useState([]);
+
   // --- DRILL-DOWN STATE ---
   const [selectedTeacher, setSelectedTeacher] = useState(null);
 
   // --- SELECTION & REVIEW STATES ---
   const [selectedRequests, setSelectedRequests] = useState([]);
   const [reviewingRequest, setReviewingRequest] = useState(null);
+  const [viewImage, setViewImage] = useState(null); // <-- NEW: Lightbox state
+
+  // ==========================================
+  // FETCH DATA ON MOUNT
+  // ==========================================
+  useEffect(() => {
+    fetchAdminQueue();
+  }, []);
+
+  const fetchAdminQueue = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${BACKEND_URL}/api/admin/enrollments/approved`, {
+        withCredentials: true
+      });
+      if (response.data.success) {
+        setTeachersQueue(response.data.teacherQueue);
+      }
+    } catch (error) {
+      console.error("Failed to fetch admin queue:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Clear selections if we go back to the teacher list
   useEffect(() => {
@@ -18,43 +49,15 @@ export default function SuperAdminBulkRegistration() {
     }
   }, [selectedTeacher]);
 
-  // --- DUMMY DATA FOR TEACHERS ---
-  const dummyTeachers = [
-    { 
-      id: 1, 
-      name: "Maria Clara", 
-      section: "Adviser - Sampaguita", 
-      pendingRequests: 5 
-    },
-    { 
-      id: 2, 
-      name: "Juan Dela Cruz", 
-      section: "Adviser - Rosas", 
-      pendingRequests: 2 
-    },
-    { 
-      id: 3, 
-      name: "Ana Santos", 
-      section: "Adviser - Ilang-Ilang", 
-      pendingRequests: 0 
-    }
-  ];
 
-  // --- DUMMY DATA FOR APPROVED REQUESTS (Waiting for SuperAdmin) ---
-  const dummyApprovedRequests = [
-    { id: "APP-001", teacherId: 1, parent: { name: "Maria Clara", phone: "09123456789", email: "maria@email.com" }, student: { name: "Arvin Dela Cruz", birthdate: "October 14, 2019", age: 6, gender: "Male", suffix: "" }, section: "Sampaguita", dateApproved: "Feb 23, 2026" },
-    { id: "APP-002", teacherId: 1, parent: { name: "Leonor Rivera", phone: "09987654321", email: "leonor@email.com" }, student: { name: "Jose Rizal", birthdate: "June 19, 2018", age: 7, gender: "Male", suffix: "Jr" }, section: "Sampaguita", dateApproved: "Feb 23, 2026" },
-    { id: "APP-003", teacherId: 1, parent: { name: "Andres Bonifacio", phone: "09112223333", email: "andres@email.com" }, student: { name: "Emilio Jacinto", birthdate: "Dec 15, 2018", age: 7, gender: "Male", suffix: "" }, section: "Sampaguita", dateApproved: "Feb 24, 2026" },
-    { id: "APP-004", teacherId: 2, parent: { name: "Apolinario Mabini", phone: "09334445555", email: "apolinario@email.com" }, student: { name: "Antonio Luna", birthdate: "Oct 29, 2018", age: 7, gender: "Male", suffix: "" }, section: "Rosas", dateApproved: "Feb 24, 2026" },
-  ];
-
-  const filteredTeachers = dummyTeachers.filter(teacher => 
+  // Filter teachers based on search
+  const filteredTeachers = teachersQueue.filter(teacher =>
     teacher.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     teacher.section.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Get requests only for the currently selected teacher
-  const currentTeacherRequests = dummyApprovedRequests.filter(req => req.teacherId === selectedTeacher?.id);
+  const currentTeacherRequests = selectedTeacher ? selectedTeacher.requests : [];
   
   // Checkbox logic
   const allSelected = currentTeacherRequests.length > 0 && selectedRequests.length === currentTeacherRequests.length;
@@ -63,7 +66,7 @@ export default function SuperAdminBulkRegistration() {
     if (allSelected) {
       setSelectedRequests([]);
     } else {
-      setSelectedRequests(currentTeacherRequests.map(r => r.id));
+      setSelectedRequests(currentTeacherRequests.map(r => r._id));
     }
   };
 
@@ -75,9 +78,54 @@ export default function SuperAdminBulkRegistration() {
     }
   };
 
-  const handleRegisterSelected = () => {
-    alert(`Registering ${selectedRequests.length} students into the system database!`);
-    setSelectedRequests([]);
+  // --- HELPER FUNCTIONS ---
+  const formatDate = (dateString) => {
+    if (!dateString) return "Unknown Date";
+    return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const calculateAge = (dob) => {
+    if (!dob) return 0;
+    const diff = Date.now() - new Date(dob).getTime();
+    return Math.abs(new Date(diff).getUTCFullYear() - 1970);
+  };
+
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http")) return path;
+    return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+  };
+
+  // ==========================================
+  // FINAL REGISTRATION ACTION
+  // ==========================================
+  const handleRegisterSelected = async () => {
+    if (selectedRequests.length === 0) return;
+
+    try {
+      setLoading(true);
+      const response = await axios.post(`${BACKEND_URL}/api/admin/enrollments/bulk-register`, {
+        requestIds: selectedRequests
+      }, {
+        withCredentials: true
+      });
+
+      if (response.data.success) {
+        // 1. Clear the checkboxes
+        setSelectedRequests([]);
+        
+        // 2. Re-fetch the queue (this will make the registered students disappear from the pending list!)
+        fetchAdminQueue();
+        
+        // 3. Show success message
+        alert(response.data.msg); // You can replace this with your SuccessModal if you prefer!
+      }
+    } catch (error) {
+      console.error("Registration failed:", error);
+      alert(error.response?.data?.msg || "Failed to register students.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,9 +164,9 @@ export default function SuperAdminBulkRegistration() {
 
                   <div className="search-bar-small flex items-center gap-2 w-full md:w-auto md:min-w-[300px]">
                     <span className="material-symbols-outlined">search</span>
-                    <input 
-                      type="text" 
-                      placeholder="Search teacher or section..." 
+                    <input
+                      type="text"
+                      placeholder="Search teacher or section..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -126,22 +174,24 @@ export default function SuperAdminBulkRegistration() {
                 </div>
 
                 <div className="flex flex-col gap-3">
-                  {filteredTeachers.length === 0 ? (
+                  {loading ? (
+                     <div className="text-center py-10 text-slate-500 font-medium">Loading teacher queues...</div>
+                  ) : filteredTeachers.length === 0 ? (
                     <div className="text-center py-10 text-slate-500">
-                      No teachers found matching "{searchQuery}"
+                      {searchQuery ? `No teachers found matching "${searchQuery}"` : "All caught up! No approved enrollments waiting."}
                     </div>
                   ) : (
                     filteredTeachers.map((teacher) => (
-                      <div 
-                        key={teacher.id} 
+                      <div
+                        key={teacher.id}
                         onClick={() => setSelectedTeacher(teacher)}
                         className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:-translate-y-[2px] hover:shadow-md transition-all border border-slate-200 rounded-xl hover:border-blue-300 bg-white group"
                       >
                         <div className="flex items-center gap-4">
                           <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0">
-                            <img 
-                              src={`https://api.dicebear.com/7.x/initials/svg?seed=${teacher.name}`} 
-                              alt={teacher.name} 
+                            <img
+                              src={`https://api.dicebear.com/7.x/initials/svg?seed=${teacher.name}`}
+                              alt={teacher.name}
                               className="w-full h-full object-cover"
                             />
                           </div>
@@ -157,8 +207,8 @@ export default function SuperAdminBulkRegistration() {
 
                         <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-slate-100 sm:border-0 pt-3 sm:pt-0">
                           {teacher.pendingRequests > 0 ? (
-                            <div className="bg-amber-50 border border-amber-200 text-amber-700 font-bold px-3 py-1 rounded-lg text-[12px] flex items-center gap-1.5">
-                              <span className="material-symbols-outlined text-[15px]">pending_actions</span>
+                            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold px-3 py-1 rounded-lg text-[12px] flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-[15px]">verified</span>
                               {teacher.pendingRequests} Ready to Register
                             </div>
                           ) : (
@@ -195,7 +245,7 @@ export default function SuperAdminBulkRegistration() {
                   {selectedTeacher.name}'s Approvals
                 </h1>
                 <p className="text-[white]! opacity-80 text-[15px]! m-0">
-                  Reviewing approved students for {selectedTeacher.section}
+                  Reviewing approved students for {selectedTeacher.section.replace('Adviser - ', '')}
                 </p>
               </div>
             </div>
@@ -207,7 +257,7 @@ export default function SuperAdminBulkRegistration() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
                   
                   {/* Left: Back Button */}
-                  <button 
+                  <button
                     onClick={() => setSelectedTeacher(null)}
                     className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors font-semibold text-[13px] bg-slate-50 hover:bg-slate-100 px-4 py-2 rounded-lg"
                   >
@@ -218,8 +268,8 @@ export default function SuperAdminBulkRegistration() {
                   {/* Right: Selection Actions */}
                   <div className="flex items-center gap-5 w-full sm:w-auto">
                     <label className="flex items-center gap-2 cursor-pointer text-[13px] font-semibold text-slate-700 select-none">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="w-[18px] h-[18px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         checked={allSelected}
                         onChange={toggleSelectAll}
@@ -228,7 +278,7 @@ export default function SuperAdminBulkRegistration() {
                       Select All
                     </label>
 
-                    <button 
+                    <button
                       className="bg-[#39a8ed] hover:bg-[#2c8ac4] text-white h-9 px-5 rounded-lg text-[13px] font-bold shadow-sm transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                       disabled={selectedRequests.length === 0}
                       onClick={handleRegisterSelected}
@@ -249,31 +299,31 @@ export default function SuperAdminBulkRegistration() {
                     </div>
                   ) : (
                     currentTeacherRequests.map((req) => (
-                      <div 
-                        key={req.id} 
-                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 border rounded-xl transition-all ${selectedRequests.includes(req.id) ? 'border-blue-400 bg-blue-50/40 shadow-sm' : 'border-slate-200 hover:border-blue-200 bg-white'}`}
+                      <div
+                        key={req._id}
+                        className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 border rounded-xl transition-all ${selectedRequests.includes(req._id) ? 'border-blue-400 bg-blue-50/40 shadow-sm' : 'border-slate-200 hover:border-blue-200 bg-white'}`}
                       >
                         
                         {/* Checkbox & Student Info */}
                         <div className="flex items-center gap-4">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="w-[18px] h-[18px] rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer flex-shrink-0 ml-1"
-                            checked={selectedRequests.includes(req.id)}
-                            onChange={() => toggleSelect(req.id)}
+                            checked={selectedRequests.includes(req._id)}
+                            onChange={() => toggleSelect(req._id)}
                           />
                           
                           <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200">
-                            <img src={`https://api.dicebear.com/7.x/initials/svg?seed=${req.student.name}`} alt={req.student.name} />
+                            <img src={getImageUrl(req.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${req.student_first_name}`} alt="Student" className="w-full h-full object-cover" />
                           </div>
                           
                           <div>
                             <p className="text-[14px] font-bold text-slate-900 leading-tight mb-0.5">
-                              {req.student.name} {req.student.suffix}
+                              {req.student_first_name} {req.student_last_name} {req.student_suffix}
                             </p>
                             <p className="text-[12px] font-medium text-slate-500 flex items-center gap-1">
                               <span className="material-symbols-outlined text-[13px] opacity-70">family_restroom</span>
-                              Parent: <span className="text-slate-600">{req.parent.name}</span>
+                              Parent: <span className="text-slate-600">{req.parent_name}</span>
                             </p>
                           </div>
                         </div>
@@ -281,13 +331,12 @@ export default function SuperAdminBulkRegistration() {
                         {/* Metadata & Review Button */}
                         <div className="flex items-center justify-between sm:justify-end gap-6 pl-9 sm:pl-0">
                           
-                          {/* --- UPDATED: Smaller and Opaque Date Label --- */}
                           <div className="text-left sm:text-right hidden md:block opacity-70">
-                            <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Approved On</p>
-                            <p className="text-[11px] font-medium text-slate-600">{req.dateApproved}</p>
+                            <p className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5">Teacher Approved</p>
+                            <p className="text-[11px] font-medium text-slate-600">{formatDate(req.updated_at)}</p>
                           </div>
                           
-                          <button 
+                          <button
                             onClick={() => setReviewingRequest(req)}
                             className="text-[#39a8ed] font-bold text-[12px] bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 border border-transparent hover:border-blue-200"
                           >
@@ -321,7 +370,7 @@ export default function SuperAdminBulkRegistration() {
               <h2 className="text-[18px] font-bold text-slate-900">
                 Enrollment Application Review
               </h2>
-              <button 
+              <button
                 className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors"
                 onClick={() => setReviewingRequest(null)}
               >
@@ -330,6 +379,24 @@ export default function SuperAdminBulkRegistration() {
             </div>
 
             <div className="flex flex-col gap-6">
+              
+              {/* --- NEW: CENTERED HERO PROFILE PICTURE --- */}
+              <div className="flex flex-col items-center">
+                <img 
+                  src={getImageUrl(reviewingRequest.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${reviewingRequest.student_first_name}`} 
+                  alt="Student Profile" 
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-md object-cover bg-slate-100 cursor-zoom-in hover:scale-105 transition-transform"
+                  onClick={() => setViewImage(getImageUrl(reviewingRequest.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${reviewingRequest.student_first_name}`)}
+                  title="Click to enlarge"
+                />
+                <h3 className="text-[18px] font-bold text-slate-800 mt-3">
+                  {reviewingRequest.student_first_name} {reviewingRequest.student_last_name} {reviewingRequest.student_suffix}
+                </h3>
+                <p className="text-[13px] font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full mt-1 border border-blue-100">
+                  New Enrollment
+                </p>
+              </div>
+
               {/* STUDENT DETAILS LIST */}
               <div>
                 <h4 className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
@@ -338,19 +405,19 @@ export default function SuperAdminBulkRegistration() {
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-2">
                   <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
                     <span className="text-[12px] font-semibold text-slate-500">Name:</span>
-                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.student.name} {reviewingRequest.student.suffix}</span>
+                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.student_first_name} {reviewingRequest.student_last_name} {reviewingRequest.student_suffix}</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
                     <span className="text-[12px] font-semibold text-slate-500">Birthdate:</span>
-                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.student.birthdate}</span>
+                    <span className="text-[13px] font-bold text-slate-900">{formatDate(reviewingRequest.student_dob)}</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
                     <span className="text-[12px] font-semibold text-slate-500">Age:</span>
-                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.student.age} yrs old</span>
+                    <span className="text-[13px] font-bold text-slate-900">{calculateAge(reviewingRequest.student_dob)} yrs old</span>
                   </div>
                   <div className="flex justify-between items-center pb-1">
                     <span className="text-[12px] font-semibold text-slate-500">Gender:</span>
-                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.student.gender}</span>
+                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.student_gender}</span>
                   </div>
                 </div>
               </div>
@@ -363,22 +430,22 @@ export default function SuperAdminBulkRegistration() {
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col gap-2">
                   <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
                     <span className="text-[12px] font-semibold text-slate-500">Name:</span>
-                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.parent.name}</span>
+                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.parent_name}</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-dashed border-slate-200 pb-2">
                     <span className="text-[12px] font-semibold text-slate-500">Contact Number:</span>
-                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.parent.phone}</span>
+                    <span className="text-[13px] font-bold text-slate-900">{reviewingRequest.parent_phone}</span>
                   </div>
                   <div className="flex justify-between items-center pb-1">
                     <span className="text-[12px] font-semibold text-slate-500">Email Address:</span>
-                    <span className="text-[13px] font-bold text-slate-900 break-all">{reviewingRequest.parent.email}</span>
+                    <span className="text-[13px] font-bold text-slate-900 break-all">{reviewingRequest.parent_email}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-8 flex justify-end">
-              <button 
+              <button
                 className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-6 py-2.5 rounded-lg transition-colors text-[13px]"
                 onClick={() => setReviewingRequest(null)}
               >
@@ -386,6 +453,27 @@ export default function SuperAdminBulkRegistration() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* --- IMAGE LIGHTBOX OVERLAY --- */}
+      {viewImage && (
+        <div 
+          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-sm flex justify-center items-center p-6 cursor-zoom-out transition-all"
+          onClick={() => setViewImage(null)}
+        >
+          <img 
+            src={viewImage} 
+            alt="Fullscreen View" 
+            className="max-w-full max-h-full rounded-2xl shadow-2xl border-[6px] border-white/10"
+            onClick={(e) => e.stopPropagation()} 
+          />
+          <button 
+            className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors cursor-pointer"
+            onClick={() => setViewImage(null)}
+          >
+            <span className="material-symbols-outlined text-[28px]">close</span>
+          </button>
         </div>
       )}
 
