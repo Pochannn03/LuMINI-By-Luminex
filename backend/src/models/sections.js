@@ -6,6 +6,12 @@ const SectionSchema = new mongoose.Schema({
     type: Number,
     unique: true,
   },  
+  // --- FIX: ADDED SPARSE: TRUE ---
+  section_code: {
+    type: String,
+    unique: true,
+    sparse: true, // Tells MongoDB: "It's unique, but it's okay if older docs don't have it at all"
+  },
   section_name: {
     type: String,
     required: true,
@@ -41,28 +47,25 @@ const SectionSchema = new mongoose.Schema({
     default: Date.now,
   },
 }, {
-  toJSON: { 
-    virtuals: true 
-  },
-  toObject: { 
-    virtuals: true 
-  }
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 SectionSchema.virtual('user_details', {
-  ref: 'User',           // The Model to use
-  localField: 'user_id', // The field in StudentSchema
-  foreignField: 'user_id', // The field in UserSchema (The Primary Key)
-  justOne: true          // Since one student has only one user account
+  ref: 'User',          
+  localField: 'user_id', 
+  foreignField: 'user_id', 
+  justOne: true          
 });
 
 SectionSchema.virtual('student_details', {
-  ref: 'Student',           // Point this to the Student model
-  localField: 'student_id',  // The ["2026-0001", ...] array
-  foreignField: 'student_id',// The matching field in StudentSchema
+  ref: 'Student',          
+  localField: 'student_id',  
+  foreignField: 'student_id',
   justOne: false             
 });
 
+// Reverted to your original async promise style
 SectionSchema.pre('save', async function() { 
   const doc = this;
 
@@ -70,26 +73,34 @@ SectionSchema.pre('save', async function() {
     try {
       if (!Counter) throw new Error("Counter model is missing");
 
+      // 1. Generate Section ID
       const counter = await Counter.findByIdAndUpdate(
         'section_id_seq', 
         { $inc: { seq: 1 } }, 
         { new: true, upsert: true }
       );
-
       doc.section_id = counter.seq;
-
-      // Use doc.section_id instead of newId
       console.log(`✅ Generated section_id: ${doc.section_id}`);
+
+      // 2. Generate Unique 6-Alphanumeric section_code safely
+      let isUnique = false;
+      while (!isUnique) {
+        const generatedCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        // Use doc.constructor to safely reference the model during pre-save
+        const existingCode = await doc.constructor.findOne({ section_code: generatedCode });
+        if (!existingCode) {
+          doc.section_code = generatedCode;
+          isUnique = true;
+        }
+      }
+      console.log(`✅ Generated section_code: ${doc.section_code}`);
       
     } catch (error) {
-      console.error("❌ ID Generation Failed:", error);
+      console.error("❌ ID/Code Generation Failed:", error);
       throw error; 
     }
   }
-
 });
 
 export const Section = mongoose.model("Section", SectionSchema, "sec.section");
-
-
-
