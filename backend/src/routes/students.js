@@ -390,6 +390,10 @@ router.get("/api/students/teacher/totalStudents",
                 name: section.section_name,
                 time: section.class_schedule,
                 color: colors[index % colors.length], 
+                
+                // 👇 THIS IS THE MISSING PIECE! 👇
+                code: section.section_code, 
+                
                 // --- UPDATED: Send ALL the necessary data to the frontend ---
                 students: studentsList.map(student => ({
                     _id: student._id,
