@@ -20,6 +20,12 @@ const NAV_ITEMS = [
     allowedRoles: ["superadmin"],
   },
   {
+    label: "Bulk Enroll",
+    path: "/superadmin/bulk-registration",
+    icon: "group_add",
+    allowedRoles: ["superadmin"],
+  },
+  {
     label: "Analytics",
     path: "/superadmin/analytics",
     icon: "analytics",

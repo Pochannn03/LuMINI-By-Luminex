@@ -11,6 +11,7 @@ import attendancesRoutes from "./attendances.js";
 import transfersRoutes from "./transfers.js";
 import queueRoutes from "./queues.js"
 import feedbacksRoutes from "./feedback.js"
+import enrollmentRoutes from "./enrollmentRoutes.js";
 import announcementsRoutes from "./announcements.js"
 
 
@@ -28,6 +29,7 @@ router.use(attendancesRoutes);
 router.use(transfersRoutes);
 router.use(queueRoutes);
 router.use(feedbacksRoutes);
+router.use(enrollmentRoutes); 
 router.use(announcementsRoutes);
 
 

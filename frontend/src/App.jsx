@@ -26,6 +26,7 @@ import GuardianDashboard from "./pages/users/guardian/GuardianDashboard";
 import PickupAndDropoffHistory from "./pages/users/parent/ParentPickupAndDropoffHistory";
 import ParentEnrollment from "./pages/ParentEnrollment";
 import EnrollmentApproval from "./pages/admin-teacher/EnrollmentApproval";
+import SuperAdminBulkRegistration from "./pages/super-admin/SuperAdminBulkRegistration";
 
 export default function App() {
   return (
@@ -50,6 +51,7 @@ export default function App() {
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
+          <Route path="/superadmin/bulk-registration" element={<SuperAdminBulkRegistration />} />
           <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
           <Route path="/superadmin/analytics" element={<SuperAdminAnalytics />} />
         </Route>
