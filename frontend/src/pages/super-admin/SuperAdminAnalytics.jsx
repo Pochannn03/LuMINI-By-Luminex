@@ -3,16 +3,6 @@ import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import "../../styles/super-admin/super-admin-analytics.css";
 
-// 1. Chart Data
-const attendanceData = [
-  { day: "Mon", present: 85, absent: 15 },
-  { day: "Tue", present: 92, absent: 8 },
-  { day: "Wed", present: 88, absent: 12 },
-  { day: "Thu", present: 95, absent: 5 },
-  { day: "Fri", present: 78, absent: 22 },
-  { day: "Sat", present: 45, absent: 55 }, 
-];
-
 export default function SuperAdminAnalytics() {
   // AUDIT STATE
   const [auditLogs, setAuditLogs] = useState([]);
@@ -41,6 +31,9 @@ export default function SuperAdminAnalytics() {
 
   // TRANSFER STATE
   const [todayTransfers, setTodayTransfers] = useState(0);
+
+  // WEEKLY ATTENDANCE STATE
+  const [weeklyTraffic, setWeeklyTraffic] = useState([]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -130,6 +123,22 @@ export default function SuperAdminAnalytics() {
     };
 
     fetchTodayTransfers();
+  }, []);
+
+  useEffect(() => {
+    const fetchWeeklyStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/attendance/weekly-stats', { 
+          withCredentials: true 
+        });
+        if (response.data.success) {
+          setWeeklyTraffic(response.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching weekly stats:", err);
+      }
+    };
+    fetchWeeklyStats();
   }, []);
 
   // --- Calculations for Donut Chart ---
@@ -226,17 +235,34 @@ export default function SuperAdminAnalytics() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-cgray">bar_chart</span>
-                  <h2 className="text-cdark text-[18px] font-bold">Weekly Traffic</h2>
+                  <h2 className="text-cdark text-[18px] font-bold">Weekly Attendance Traffic</h2>
                 </div>
               </div>
             </div>
-            <div className="chart-container">
-              {attendanceData.map((data, index) => (
-                <div key={index} className="chart-bar-group group w-full">
-                  <div className="chart-bar mx-auto" style={{ height: `${data.present}%` }}>
-                    <span className="chart-tooltip">{data.present}% Present</span>
+            <div className="chart-container flex items-end justify-between h-[200px] pt-8">
+              {weeklyTraffic.map((data, index) => (
+                <div key={index} className="chart-bar-group group flex flex-col items-center w-full">
+                  <div className="relative w-full flex justify-center items-end h-[150px]">
+                    {/* Tooltip */}
+                    <span className="chart-tooltip absolute -top-8 bg-cdark text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {data.present}% Present
+                    </span>
+                    
+                    {/* The Bar */}
+                    <div 
+                      className={`chart-bar w-8 rounded-t-sm transition-all duration-700 ease-out ${
+                        data.isToday ? 'bg-[#3ab0f9]' : 'bg-[#e2e8f0]'
+                      }`} 
+                      style={{ height: `${data.present || 5}%` }} // Min 5% height so the bar is visible even if 0
+                    ></div>
                   </div>
-                  <span className="chart-bar-label">{data.day}</span>
+                  
+                  {/* Label */}
+                  <span className={`chart-bar-label mt-2 text-xs font-semibold ${
+                    data.isToday ? 'text-[#3ab0f9]' : 'text-cgray'
+                  }`}>
+                    {data.day}
+                  </span>
                 </div>
               ))}
             </div>
