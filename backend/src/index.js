@@ -39,7 +39,6 @@ app.use(
 );
 app.use(express.json());
 
-// --- FIX 1: BULLETPROOFED STATIC UPLOADS PATH ---
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(cookieParser(process.env.COOKIE_SECRET));

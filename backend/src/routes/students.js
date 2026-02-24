@@ -315,8 +315,10 @@ router.post('/api/students',
           target: `Registered student ${savedStudent.first_name} ${savedStudent.last_name}`
         });
         await auditLog.save();
+
         const io = req.app.get('socketio');
         io.emit('student_added', savedStudent);
+        
         return res.status(201).send({ msg: "Student registered successfully!", user: savedStudent });
     } catch (err) {
         if (req.file) fs.unlinkSync(req.file.path);

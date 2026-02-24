@@ -289,4 +289,47 @@ router.put("/api/user/profile",
   }
 });
 
+// USERS DEMOGRAPHICS
+router.get('/api/users/demographics', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+    try {
+      // 1. We only want 'admin' (Teachers) and 'user' (Parents/Guardians)
+      const query = { role: { $in: ['admin', 'user'] } };
+
+      const demographics = await User.aggregate([
+        { $match: query },
+        {
+          $group: {
+            _id: "$role", // Groups by 'admin' and 'user'
+            count: { $sum: 1 }
+          }
+        }
+      ]);
+
+      const totalCount = await User.countDocuments(query);
+
+      const stats = {
+        teachers: { count: 0, color: "#f59e0b" },
+        users: { count: 0, color: "#39a8ed" } 
+      };
+
+      demographics.forEach(item => {
+        if (item._id === 'admin') stats.teachers.count = item.count;
+        if (item._id === 'user') stats.users.count = item.count;
+      });
+
+      res.status(200).json({ 
+        success: true, 
+        total: totalCount,
+        stats: stats
+      });
+  
+    } catch(err) {
+      console.error("Demographics Fetch Error:", err);
+      res.status(500).json({ msg: "Failed to fetch user demographics" });
+    }
+});
+
 export default router;

@@ -61,6 +61,7 @@ router.post('/api/attendance',
     const userRole = req.user.relationship?.toLowerCase()
     const now = new Date();
     const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+    const fullName = `${req.user.first_name} ${req.user.last_name}`;
     const userRoleSys = req.user.role;
 
     try {
@@ -142,7 +143,7 @@ router.post('/api/attendance',
         const auditLog = new Audit({
             user_id: currentUserId,
             full_name: fullName,
-            role: userRole,
+            role: userRoleSys,
             action: `Scanned Attendance (${status})`,
             target: `Student: ${studentFullName} (ID: ${studentId})`
         });

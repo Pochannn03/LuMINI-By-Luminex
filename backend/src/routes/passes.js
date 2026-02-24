@@ -3,6 +3,7 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { AccessPass } from "../models/accessPass.js"; 
 import { Student } from "../models/students.js"; 
 import { Attendance } from "../models/attendances.js";
+import { Audit } from "../models/audits.js";
 import { Section } from "../models/sections.js";
 import { Transfer } from "../models/transfers.js";
 import crypto from "crypto"; 

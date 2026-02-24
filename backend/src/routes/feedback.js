@@ -2,11 +2,33 @@ import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js";
 import { Feedback } from "../models/feedback.js";
 
 const router = Router();
 
-// routes/feedback.js
+
+router.get('/api/feedback/stats', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+    try {
+      const total = await Feedback.countDocuments();
+      const positive = await Feedback.countDocuments({ rating: 1 }); 
+      const negative = await Feedback.countDocuments({ rating: 0 });
+
+      res.status(200).json({ 
+        success: true, 
+        total,
+        positive,
+        negative,
+        satisfactionRate: total > 0 ? Math.round((positive / total) * 100) : 0
+      });
+    } catch (err) {
+      console.error("Error fetching feedback stats:", err);
+      res.status(500).json({ msg: "Server error" });
+    }
+});
 
 router.post('/api/feedback',
   isAuthenticated,
@@ -37,7 +59,7 @@ router.post('/api/feedback',
         full_name: fullName,
         role: req.user.role,
         action: "Submit Feedback",
-        target: `Rating: ${ratingValue === 'up' ? 'Thumbs Up' : 'Thumbs Down'}`
+        target: `Rating: ${ratingValue === 1 ? 'Thumbs Up' : 'Thumbs Down'}`
       });
       await auditLog.save();
 

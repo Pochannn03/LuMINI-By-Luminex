@@ -398,6 +398,7 @@ router.delete(
 
         // 3. Delete the request from the database
         await GuardianRequest.findByIdAndDelete(requestId);
+        const guardianFullName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`
 
         const auditLog = new Audit({
           user_id: parentUserId,

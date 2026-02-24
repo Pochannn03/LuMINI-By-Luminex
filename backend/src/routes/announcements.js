@@ -8,6 +8,7 @@ import { User } from '../models/users.js';
 
 const router = Router();
 
+// ANNOUNCEMENT DISPLAYED ON PARENTS/GUARDIAN
 router.get('/api/announcement',
   isAuthenticated,
   hasRole('user'),

@@ -92,6 +92,31 @@ router.get('/api/transfer/parent',
     }
 });
 
+// FOR ANALLYTICS 
+router.get('/api/transfers/today-count', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+    try {
+      // Correctly format today's date for Asia/Manila (YYYY-MM-DD)
+      const manilaDate = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Manila'
+      }); 
+      // 'en-CA' is a trick to get YYYY-MM-DD format easily
+
+      const count = await Transfer.countDocuments({ date: manilaDate });
+
+      res.status(200).json({ 
+        success: true, 
+        count: count,
+        dateRef: manilaDate // Useful for debugging
+      });
+    } catch (err) {
+      console.error("Error fetching Manila today count:", err);
+      res.status(500).json({ success: false });
+    }
+});
+
 /// CONFIRM PICKUP/DROPOFF AUTHORIZATION
 router.post('/api/transfer', 
   isAuthenticated, 

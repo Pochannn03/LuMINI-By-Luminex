@@ -9,9 +9,11 @@ import usersRoutes from "./users.js";
 import passesRoutes from "./passes.js";
 import attendancesRoutes from "./attendances.js";
 import transfersRoutes from "./transfers.js";
-import queueRoutes from "./queues.js"
-import feedbacksRoutes from "./feedback.js"
-import announcementsRoutes from "./announcements.js"
+import queueRoutes from "./queues.js";
+import feedbacksRoutes from "./feedback.js";
+import announcementsRoutes from "./announcements.js";
+import auditsRoutes from "./audits.js";
+
 
 
 const router = Router();
@@ -29,6 +31,8 @@ router.use(transfersRoutes);
 router.use(queueRoutes);
 router.use(feedbacksRoutes);
 router.use(announcementsRoutes);
+router.use(auditsRoutes);
+
 
 
 export default router;
