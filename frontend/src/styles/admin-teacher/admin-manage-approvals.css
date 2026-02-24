@@ -488,3 +488,49 @@
   background: #e2e8f0;
   color: #1e293b;
 }
+
+/* =========================================
+   6. MOBILE RESPONSIVENESS (@MEDIA)
+   ========================================= */
+@media (max-width: 768px) {
+  /* Banner adjustments */
+  .header-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px;
+    gap: 16px;
+  }
+  
+  /* Controls bar stacking */
+  .controls-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .controls-left, .controls-right, .search-mini {
+    width: 100%;
+  }
+  .tab-group {
+    width: 100%;
+    display: flex;
+  }
+  .tab-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Card Split Header stacking */
+  .card-split-header {
+    grid-template-columns: 1fr; /* Stacks Parent on top of Student */
+  }
+  .header-left {
+    border-right: none;
+    border-bottom: 1px dashed #cbd5e1;
+  }
+
+  /* Modal Padding adjustments */
+  .approval-modal-card {
+    padding: 20px;
+    margin: 16px;
+  }
+}

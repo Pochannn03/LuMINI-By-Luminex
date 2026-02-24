@@ -20,6 +20,12 @@ const NAV_ITEMS = [
     allowedRoles: ["superadmin"],
   },
   {
+    label: "Bulk Enroll",
+    path: "/superadmin/bulk-registration",
+    icon: "group_add",
+    allowedRoles: ["superadmin"],
+  },
+  {
     label: "Analytics",
     path: "/superadmin/analytics",
     icon: "analytics",
@@ -48,6 +54,12 @@ const NAV_ITEMS = [
     label: "Dismissal History",
     path: "/admin/history",
     icon: "archive",
+    allowedRoles: ["admin"],
+  },
+  {
+    label: "Enrollments",
+    path: "/admin/enrollments",
+    icon: "assignment_ind", // A nice icon for student registration
     allowedRoles: ["admin"],
   },
   {
