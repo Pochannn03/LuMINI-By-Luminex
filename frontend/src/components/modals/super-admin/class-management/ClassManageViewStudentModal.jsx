@@ -4,7 +4,7 @@ import QRCode from "react-qr-code";
 import axios from "axios";
 import ClassManageDeleteStudentModal from './ClassManageDeleteStudentModal';
 import FormInputRegistration from '../../../FormInputRegistration';
-import ConfirmModal from '../../../ConfirmModal'; // <-- Make sure this path matches your folder structure!
+import ConfirmModal from '../../../ConfirmModal'; 
 
 // --- ADDED HELPER ---
 const BACKEND_URL = "http://localhost:3000";
@@ -114,12 +114,12 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
       const response = await axios.post(`${BACKEND_URL}/api/students/send-invitation`, {
         student_id: std.student_id
       }, {
-        withCredentials: true // Important for auth routes
+        withCredentials: true 
       });
       
       if (response.data.success) {
-        if(onSuccess) onSuccess(response.data.msg); // This triggers the SuccessModal in your parent page!
-        onClose(); // Close this view modal
+        if(onSuccess) onSuccess(response.data.msg); 
+        onClose(); 
       }
     } catch (error) {
       console.error("Email error:", error);
@@ -244,18 +244,25 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
                 </div>
               )}
 
-              <div className="shrink-0 flex flex-col items-center justify-center gap-1.5">
-                <div ref={qrRef} className="bg-white p-1.5 rounded-lg shadow-sm border border-slate-200">
+              {/* --- NEW CLICKABLE QR CODE --- */}
+              <div 
+                className={`shrink-0 flex flex-col items-center justify-center relative group bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm ${std.student_id ? 'cursor-pointer hover:border-blue-400 transition-all hover:shadow-md' : ''}`}
+                onClick={std.student_id ? downloadQRCode : undefined}
+                title={std.student_id ? "Click to download QR Code" : "No ID available"}
+              >
+                <div ref={qrRef}>
                   {std.student_id ? (
                     <QRCode size={48} value={std.student_id} viewBox={`0 0 256 256`} style={{ height: "auto", width: "100%" }} />
                   ) : (
                     <div className="w-[48px] h-[48px] flex items-center justify-center bg-slate-50"><span className="material-symbols-outlined text-slate-300">qr_code</span></div>
                   )}
                 </div>
+                
+                {/* Hover Overlay with Download Icon */}
                 {std.student_id && (
-                  <button type="button" onClick={downloadQRCode} className="text-[9px] font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-0.5 transition-colors">
-                    <span className="material-symbols-outlined text-[12px]">download</span> Save
-                  </button>
+                  <div className="absolute inset-0 bg-slate-900/60 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <span className="material-symbols-outlined text-white text-[24px]">download</span>
+                  </div>
                 )}
               </div>
 
