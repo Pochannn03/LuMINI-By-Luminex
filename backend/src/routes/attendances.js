@@ -4,6 +4,8 @@ import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Attendance } from "../models/attendances.js";
 import { Audit } from "../models/audits.js";
+import { Transfer } from "../models/transfers.js";
+import { Queue } from "../models/queues.js";
 
 const router = Router();
 
@@ -152,7 +154,6 @@ router.post('/api/attendance',
             }
         }
 
-        // 3. Time calculation
         const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
         const isMorning = student.section_details?.class_schedule?.includes("Morning");
         const startHr = isMorning ? 8 : 13;
@@ -181,6 +182,73 @@ router.post('/api/attendance',
             { new: true, upsert: true }
         ).populate('student_details').lean();
 
+        const existingTransfer = await Transfer.exists({
+            student_id: studentId,
+            date: todayDate,
+            purpose: 'Drop off'
+        });
+
+        if (!existingTransfer) {
+            const queueEntry = await Queue.findOne({ 
+                student_id: studentId, 
+                purpose: 'Drop off', 
+                on_queue: true 
+            }).populate('user_details');
+
+            let transferData = {
+                student_id: studentId,
+                student_name: `${student.first_name} ${student.last_name}`,
+                section_id: student.section_id,
+                section_name: student.section_details?.section_name || "Unassigned",
+                purpose: 'Drop off',
+                time: currentTimeString,
+                date: todayDate
+            };
+
+            if (queueEntry && queueEntry.user_details && queueEntry.user_details.length > 0) {
+                const parent = queueEntry.user_details[0];
+                transferData.user_id = parent.user_id;
+                transferData.user_name = `${parent.first_name} ${parent.last_name}`;
+
+                await Queue.findOneAndUpdate({ _id: queueEntry._id }, { on_queue: false });
+                req.app.get('socketio').emit('remove_queue_entry', parent.user_id);
+            } else {
+                transferData.user_id = 0; 
+                transferData.user_name = "Unattended"; 
+            }
+
+            const newTransfer = new Transfer(transferData);
+            await newTransfer.save();
+
+            await Student.findOneAndUpdate(
+                { student_id: studentId },
+                { status: "Learning" }
+            );
+
+            req.app.get('socketio').emit('student_status_updated', { 
+                student_id: studentId,
+                newStatus: "Learning",
+                purpose: "Drop off" 
+            });
+            
+            const auditData = {
+                user_id: currentUserId,
+                full_name: fullName,
+                role: userRoleSys,
+                target: `Student: ${transferData.student_name}`
+            };
+
+            if (transferData.user_id === 0) {
+                auditData.action = "Unattended Drop-off";
+            } else {
+                auditData.action = "Drop-off ";
+                auditData.target += ` Drop off By ${transferData.user_name}`;
+            }
+
+            const auditLog = new Audit(auditData);
+            await auditLog.save();
+        }
+
         const studentFullName = `${student.first_name} ${student.last_name}`;
         const auditLog = new Audit({
             user_id: currentUserId,
@@ -208,5 +276,74 @@ router.post('/api/attendance',
         res.status(500).json({ msg: "Server Error" });
     }
 });
+
+router.post('/api/attendance/absence', 
+    isAuthenticated,
+    hasRole('user'),
+    async (req, res) => {
+        try {
+            const { reason, details } = req.body;
+            const parentId = Number(req.user.user_id);
+            const fullName = `${req.user.first_name} ${req.user.last_name}`;
+            const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+
+            const students = await Student.find({ user_id: parentId, is_archive: false })
+                                          .populate('section_details');
+
+            if (!students || students.length === 0) {
+                return res.status(404).json({ error: "No students linked to your account found." });
+            }
+
+            const newStatus = "Dismissed";
+
+            for (const student of students) {
+                await Attendance.findOneAndUpdate(
+                    { 
+                        student_id: student.student_id, 
+                        date: todayDate 
+                    },
+                    { 
+                        status: 'Absent',
+                        details: `Parent Note: ${details || 'No additional info'}`,
+                        $setOnInsert: {
+                            student_name: `${student.first_name} ${student.last_name}`,
+                            section_id: student.section_id,
+                            section_name: student.section_details?.section_name || "Unassigned",
+                            date: todayDate,
+                            time_in: "---"
+                        }
+                    },
+                    { upsert: true, new: true }
+                );
+
+                await Student.findOneAndUpdate(
+                    { student_id: student.student_id },
+                    { status: newStatus }
+                );
+
+                const auditLog = new Audit({
+                    user_id: parentId,
+                    full_name: fullName,
+                    role: req.user.role,
+                    action: `Reported Absence`,
+                    target: `Student: ${student.first_name} ${student.last_name}`
+                });
+                await auditLog.save();
+
+                req.app.get('socketio').emit('student_status_updated', { 
+                    student_id: student.student_id,
+                    newStatus: newStatus,
+                    purpose: 'Absence' 
+                });
+            }
+
+            res.status(200).json({ success: true, msg: "Absence reported successfully." });
+
+        } catch (err) {
+            console.error("Absence Report Error:", err);
+            res.status(500).json({ error: "Failed to submit absence report." });
+        }
+    }
+);
 
 export default router;

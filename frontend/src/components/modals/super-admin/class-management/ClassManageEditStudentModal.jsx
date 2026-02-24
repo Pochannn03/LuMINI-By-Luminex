@@ -61,7 +61,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
         medical_history: std.medical_history || 'None',
         studentId: std.student_id || 'No ID Assigned',
         invitationCode: std.invitation_code || '',
-        // --- POPULATE PASSIVE PARENT FIELDS ---
         parentName: std.passive_parent?.name || '',
         parentPhone: std.passive_parent?.phone || '',
         parentEmail: std.passive_parent?.email || ''
@@ -155,8 +154,6 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       data.append('gender', formData.gender);
       data.append('allergies', formData.allergies);
       data.append('medical_history', formData.medical_history);
-      
-      // --- NEW: APPEND PASSIVE PARENT DATA ---
       data.append('passive_parent_name', formData.parentName);
       data.append('passive_parent_phone', formData.parentPhone);
       data.append('passive_parent_email', formData.parentEmail);

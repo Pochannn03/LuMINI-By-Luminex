@@ -49,7 +49,7 @@ QueueingSchema.virtual('user_details', {
   ref: 'User',
   localField: 'user_id',
   foreignField: 'user_id',
-  justOne: false
+  justOne: true
 });
 
 QueueingSchema.virtual('student_details', {

@@ -10,7 +10,9 @@ import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
 import ParentFeedbackModal from ".././../../components/modals/user/parent/dashboard/ParentFeedback";
+import ParentAbsenceModal from ".././../../components/modals/user/parent/dashboard/ParentAbsenceModal";
 import SuccessModal from "../../../components/SuccessModal";
+import WarningModal from "../../../components/WarningModal";
 
 export default function Dashboard() {
   // AUTH PROVIDER INFORMATION
@@ -24,11 +26,14 @@ export default function Dashboard() {
   const [showNewDayModal, setShowNewDayModal] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
 
   // USEEFFECT
   useEffect(() => {
@@ -112,14 +117,15 @@ export default function Dashboard() {
     });
 
     socket.on('student_status_updated', (data) => {
-      if (data.student_id === rawStudentData?.student_id) {
+      if (String(data.student_id) === String(rawStudentData?.student_id)) {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
         setIsParentOnQueue(false);
         setShowPassModal(false);
+
         if (data.purpose === 'Pick up') {
-          setIsFeedbackModalOpen(true);
+            setIsFeedbackModalOpen(true);
         }
-      }
+    }
     });
 
     socket.on('new_announcement', (newAnn) => {
@@ -166,7 +172,12 @@ export default function Dashboard() {
       setIsSuccessModalOpen(true);
 
     } catch (err) {
-      alert(err.response?.data?.msg || "Failed to join the queue");
+      if (err.response?.status === 403) {
+      setWarningMessage(err.response.data.msg);
+      setIsWarningModalOpen(true);
+      } else {
+        alert(err.response?.data?.msg || "Failed to join the queue");
+      }
     } finally {
       setLoading(false);
     }
@@ -305,7 +316,7 @@ export default function Dashboard() {
               <div className="card action-card">
                 <div className="mb-6">
                   <div className="flex items-center gap-2.5 mb-2">
-                    <span class="material-symbols-outlined blue-icon text-[24px]">tune</span>
+                    <span className="material-symbols-outlined blue-icon text-[24px]">tune</span>
                     <h2 className="text-cdark text-[18px] font-bold">Quick Actions</h2>
                   </div>
                   <p className="text-cgray text-[14px]! leading-normal">Access the most important tasks instantly.</p>
@@ -322,7 +333,7 @@ export default function Dashboard() {
                         <span className="qa-desc">Manage authorized guardians</span>
                       </div>
                     </div>
-                    <span class="material-symbols-outlined arrow">chevron_right</span>
+                    <span className="material-symbols-outlined arrow">chevron_right</span>
                   </button>
 
                   <button className="quick-action-item">
@@ -335,10 +346,13 @@ export default function Dashboard() {
                         <span className="qa-desc">View past pickups and approvals</span>
                       </div>
                     </div>
-                    <span class="material-symbols-outlined arrow">chevron_right</span>
+                    <span className="material-symbols-outlined arrow">chevron_right</span>
                   </button>
 
-                  <button className="quick-action-item">
+                  <button 
+                    className="quick-action-item" 
+                    onClick={() => setIsAbsenceModalOpen(true)} // Add this line
+                  >
                     <div className="flex flex-row items-center">
                       <div className="qa-icon">
                         <span className="material-symbols-outlined mt-1">notification_important</span>
@@ -348,7 +362,7 @@ export default function Dashboard() {
                         <span className="qa-desc">Notify school about absence or delay</span>
                       </div>
                     </div>
-                    <span class="material-symbols-outlined arrow">chevron_right</span>
+                    <span className="material-symbols-outlined arrow">chevron_right</span>
                   </button>
                 </div>
               </div>
@@ -519,6 +533,13 @@ export default function Dashboard() {
         message={successMessage}
       />
 
+      <WarningModal 
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        title="Too Early"
+        message={warningMessage}
+      />
+
       <ParentDashboardQrScan 
         isOpen={showScanner}
         onClose={() => setShowScanner(false)}
@@ -544,6 +565,14 @@ export default function Dashboard() {
         onClose={() => setShowNewDayModal(false)} 
       />
 
+      <ParentAbsenceModal 
+        isOpen={isAbsenceModalOpen}
+        onClose={() => setIsAbsenceModalOpen(false)}
+        onSuccess={(msg) => {
+          setSuccessMessage(msg);
+          setIsSuccessModalOpen(true);
+        }}
+      />
       
     </div>
   );

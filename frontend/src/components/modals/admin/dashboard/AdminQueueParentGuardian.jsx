@@ -5,7 +5,7 @@ import AdminConfirmModal from '../TeacherConfirmationModal';
 export default function AdminQueueParentGuardian ({ item, setQueue }) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  const parent = item.user_details?.[0] || {};
+  const parent = item.user_details || {};
   const parentName = `${parent.first_name || 'Unknown'} ${parent.last_name || 'Parent'}`;
   
   const arrivalTime = new Date(item.created_at).toLocaleTimeString([], { 
@@ -84,7 +84,6 @@ export default function AdminQueueParentGuardian ({ item, setQueue }) {
         </div>
       </div>
 
-      {/* 2. The Confirmation Modal */}
       <AdminConfirmModal 
         isOpen={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}

@@ -10,7 +10,7 @@ const SectionSchema = new mongoose.Schema({
   section_code: {
     type: String,
     unique: true,
-    sparse: true, // Tells MongoDB: "It's unique, but it's okay if older docs don't have it at all"
+    sparse: true, 
   },
   section_name: {
     type: String,

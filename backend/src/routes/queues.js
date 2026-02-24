@@ -16,6 +16,29 @@ router.post('/api/queue',
   const { student_id, section_id, status, purpose } = req.body;
 
     try {
+      if (purpose === 'Pick up') {
+        const student = await Student.findOne({ student_id }).populate('section_details');
+        
+        if (!student || !student.section_details) {
+          return res.status(400).json({ msg: "Student or Section data not found." });
+        }
+
+        const schedule = student.section_details.class_schedule;
+        
+        const now = new Date();
+        const manilaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+        const currentMins = (manilaTime.getHours() * 60) + manilaTime.getMinutes();
+
+        const dismissalMins = (schedule === 'Morning') ? (11 * 60 + 30) : (16 * 60 + 30);
+        const windowOpenMins = dismissalMins - 20;
+
+        if (currentMins < windowOpenMins) {
+          return res.status(403).json({ 
+            msg: `Pick-up window for the ${schedule} session hasn't opened yet. Please try again 20 minutes before class ends.` 
+          });
+        }
+      }
+
       const queueEntry = await Queue.findOneAndUpdate(
       { user_id: req.user.user_id },
       { 
@@ -123,15 +146,22 @@ router.patch('/api/queue/remove/:userId',
   async (req, res) => {
     try {
       const { userId } = req.params;
-      
-      await Queue.findOneAndUpdate(
-        { user_id: userId, on_queue: true }, 
-        { on_queue: false }
-      );
 
-      const targetName = queueData?.user_details 
-        ? `${queueData.user_details.first_name} ${queueData.user_details.last_name}` 
-        : `User ID: ${userId}`;
+      const queueEntry = await Queue.findOne({ user_id: userId, on_queue: true });
+
+      if (!queueEntry) {
+        return res.status(404).json({ success: false, msg: "Active queue entry not found" });
+      }
+
+      queueEntry.on_queue = false;
+      await queueEntry.save();
+      
+      let targetName = `User ID: ${userId}`;
+      if (queueEntry.first_name) {
+        targetName = `${queueEntry.first_name} ${queueEntry.last_name}`;
+      } else if (queueEntry.user_details?.first_name) {
+        targetName = `${queueEntry.user_details.first_name} ${queueEntry.user_details.last_name}`;
+      }
 
       const auditLog = new Audit({
         user_id: req.user.user_id,
