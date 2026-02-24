@@ -24,9 +24,11 @@ export default function Dashboard() {
   const [showNewDayModal, setShowNewDayModal] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [announcements, setAnnouncements] = useState([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // USEEFFECT
   useEffect(() => {
@@ -79,6 +81,25 @@ export default function Dashboard() {
     };
     checkQueueStatus();
   }, []);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/announcement', {
+          withCredentials: true
+        });
+        if (response.data.success) {
+          setAnnouncements(response.data.announcements);
+        }
+      } catch (err) {
+        console.error("Failed to fetch announcements:", err);
+      } finally {
+        setLoadingAnnouncements(false);
+      }
+    };
+
+    fetchAnnouncements();
+  }, [rawStudentData]);
   
 
   useEffect(() => {
@@ -389,33 +410,55 @@ export default function Dashboard() {
               <div className="card queue-card">
                 <div className="mb-6">
                   <div className="flex center gap-2.5 mb-2">
-                    <span class="material-symbols-outlined purple-icon text-[24px]">notifications_active</span>
+                    <span className="material-symbols-outlined purple-icon text-[24px]">notifications_active</span>
                     <h2 className="text-cdark text-[18px] font-bold">Recent Updates</h2>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-4"> 
-                  <div className="bg-[white] flex items-start p-4 rounded-xl border-b-[#f0f0f0] gap-4 hover:bg-[#fafafa]">
-                    <div className="bg-[#fff1f2] text-[#f43f5e] flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px]">
-                      <span className="material-symbols-outlined">campaign</span>
+                {/* Added max-h and overflow-y-auto here */}
+                <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar"> 
+                  {loadingAnnouncements ? (
+                    <p className="text-center text-cgray py-4">Loading updates...</p>
+                  ) : announcements.length === 0 ? (
+                    <div className="text-center py-6 opacity-60">
+                      <span className="material-symbols-outlined text-[40px] mb-2 text-slate-300">notifications_off</span>
+                      <p className="text-cgray text-[14px]">No announcements from your teacher yet.</p>
                     </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-cdark text-[15px] font-bold">Early Dismissal</span>
-                      <span className="text-cgray text-[13px]" >Classes end at 1:00 PM today due to faculty meeting.</span>
-                      <span className="text-[#94a3b8] text-[11px] font-medium mt-2">2 hours ago</span>
-                    </div>
-                  </div>
+                  ) : (
+                    announcements.map((ann) => (
+                      <div key={ann._id} className="bg-[white] flex items-start p-4 rounded-xl border border-[#f1f5f9] gap-4 hover:bg-[#fafafa] transition-colors shrink-0">
+                        <div className={`flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px] ${
+                          ann.category === 'campaign' ? 'bg-[#fff1f2] text-[#f43f5e]' : 
+                          ann.category === 'calendar_month' ? 'bg-[#f0fdf4] text-[#22c55e]' : 
+                          'bg-[#eff6ff] text-[#3b82f6]'
+                        }`}>
+                          <span className="material-symbols-outlined">
+                            {ann.category || 'campaign'}
+                          </span>
+                        </div>
 
-                  <div className="bg-[white] flex items-start p-4 rounded-xl border-b-[#f0f0f0] gap-4 hover:bg-[#fafafa]">
-                    <div className="bg-[#f0fdf4] text-[#22c55e] flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px]">
-                      <span className="material-symbols-outlined">event</span>
-                    </div>
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-cdark text-[15px] font-bold">Parent-Teacher Conference</span>
-                      <span className="text-cgray text-[13px]" >Schedule posted. Check your calendar.</span>
-                      <span className="text-[#94a3b8] text-[11px] font-medium mt-2">Yesterday</span>
-                    </div>
-                  </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-cdark text-[15px] font-bold">
+                            {ann.category === 'campaign' ? 'Emergency Alert' : 
+                            ann.category === 'calendar_month' ? 'Class Event' : 
+                            'General Announcement'}
+                          </span>
+                          <span className="text-cgray text-[13px] leading-relaxed">
+                            {ann.announcement}
+                          </span>
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-[#94a3b8] text-[11px] font-medium">
+                              By Teacher {ann.full_name}
+                            </span>
+                            <span className="text-[#cbd5e1]">•</span>
+                            <span className="text-[#94a3b8] text-[11px] font-medium">
+                              {new Date(ann.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
