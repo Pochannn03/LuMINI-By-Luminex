@@ -31,6 +31,37 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
+// ==================================================
+// NEW PUBLIC ROUTE: VERIFY SECTION CODE (For Parents)
+// ==================================================
+router.get('/api/sections/verify-code/:code', async (req, res) => {
+  try {
+    const code = req.params.code.toUpperCase();
+    
+    // Find the section by code and populate the teacher's details
+    const section = await Section.findOne({ section_code: code, is_archive: false })
+                                 .populate('user_details', 'first_name last_name');
+
+    if (!section) {
+      return res.status(404).json({ success: false, msg: "Invalid Section Code. Please try again." });
+    }
+
+    // Return success along with the basic info to reassure the parent
+    return res.status(200).json({
+      success: true,
+      data: {
+        section_id: section.section_id,
+        section_name: section.section_name,
+        teacher_name: section.user_details ? `${section.user_details.first_name} ${section.user_details.last_name}` : "Unknown Teacher"
+      }
+    });
+
+  } catch (err) {
+    console.error("Error verifying code:", err);
+    res.status(500).json({ success: false, msg: "Server error while verifying code." });
+  }
+});
+
 // CLASSES
 router.get('/api/sections',
   isAuthenticated,

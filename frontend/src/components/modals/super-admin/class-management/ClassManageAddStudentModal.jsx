@@ -24,9 +24,13 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     medical_history: 'None',
     studentId: 'Generating...', 
     invitationCode: '',
+    // --- NEW: Passive Parent Fields ---
+    parentName: '',
+    parentPhone: '',
+    parentEmail: ''
   })
 
-  // --- NEW: CROPPER STATES ---
+  // --- CROPPER STATES ---
   const editorRef = useRef(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImage, setTempImage] = useState(null);
@@ -134,6 +138,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     setFormData({
       firstName: '', lastName: '', birthdate: '', age: '', gender: '',
       allergies: 'None', medical_history: 'None', studentId: 'Generating...', invitationCode: '',
+      parentName: '', parentPhone: '', parentEmail: '' // Reset these too!
     });
     setProfileImage(null);
     setPreviewUrl(null);
@@ -153,16 +158,15 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     return Object.keys(newErrors).length === 0;
   };
 
-  // --- UPDATED IMAGE HANDLERS FOR CROPPER ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setTempImage(imageUrl);
-      setShowCropModal(true); // Open cropper instead of saving immediately
+      setShowCropModal(true); 
       setZoom(1);
     }
-    e.target.value = null; // reset input
+    e.target.value = null; 
     if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
   };
 
@@ -203,9 +207,14 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     data.append('birthday', formData.birthdate);
     data.append('age', formData.age);
     data.append('gender', formData.gender);
-    data.append('allergies', formData.allergies)
-    data.append('medical_history', formData.medical_history)
+    data.append('allergies', formData.allergies);
+    data.append('medical_history', formData.medical_history);
     data.append('invitation_code', formData.invitationCode);
+    
+    // --- NEW: Append the parent data ---
+    data.append('passive_parent_name', formData.parentName);
+    data.append('passive_parent_phone', formData.parentPhone);
+    data.append('passive_parent_email', formData.parentEmail);
 
     if (profileImage) {
       data.append('profile_photo', profileImage);
@@ -259,7 +268,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
                 width={220}
                 height={220}
                 border={20}
-                borderRadius={110} // Makes the crop guide a circle!
+                borderRadius={110}
                 color={[15, 23, 42, 0.6]}
                 scale={zoom}
                 rotate={0}
@@ -323,7 +332,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
             </div>
           </div>
 
-          <div className="modal-body">
+          <div className="modal-body custom-scrollbar pr-2 overflow-y-auto max-h-[65vh]">
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Student Photo</label>
               <input 
@@ -423,7 +432,6 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
               </div>
             </div>
             
-
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Birthdate & Age</label>
               <div className="flex gap-2.5">
@@ -476,12 +484,49 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
               />
             </div>
 
-            <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
-              <span className="material-symbols-outlined orange-icon">vpn_key</span>
-              <h3>Parent Access</h3>
+            {/* --- NEW: PARENT DETAILS SECTION --- */}
+            <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
+              <span className="material-symbols-outlined orange-icon">family_restroom</span>
+              <h3 className="text-cdark text-[16px] font-bold">Parent / Guardian Details</h3>
+            </div>
+            <p className="text-slate-400 text-[12px] mb-2 leading-tight">Optional: Enter parent details to create a temporary link before they register their app account.</p>
+            
+            <div className="flex flex-col gap-3">
+              <FormInputRegistration 
+                label="Parent's Full Name"
+                name="parentName" 
+                value={formData.parentName}
+                onChange={handleChange} 
+                placeholder="e.g. Maria Clara" 
+                className="form-input-modal"
+              />
+              <div className="flex gap-2.5">
+                <FormInputRegistration 
+                  label="Contact Number"
+                  name="parentPhone" 
+                  value={formData.parentPhone}
+                  onChange={handleChange} 
+                  placeholder="e.g. 09123456789" 
+                  className="form-input-modal flex-1"
+                />
+                <FormInputRegistration 
+                  label="Email Address"
+                  name="parentEmail" 
+                  value={formData.parentEmail}
+                  onChange={handleChange} 
+                  placeholder="e.g. maria@email.com" 
+                  className="form-input-modal flex-1"
+                />
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* --- INVITATION CODE SECTION --- */}
+            <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
+              <span className="material-symbols-outlined blue-icon">vpn_key</span>
+              <h3 className="text-cdark text-[16px] font-bold">Parent Access</h3>
+            </div>
+
+            <div className="flex flex-col gap-2 mt-2">
               <div className="flex justify-between items-center mb-1">
                 <label className="text-cgray text-[13px] font-medium mb-0">Invitation Code</label>
                 <button 
