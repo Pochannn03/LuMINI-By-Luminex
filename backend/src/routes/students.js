@@ -285,7 +285,8 @@ router.get('/api/students/available',
       query.$or.push({ section_id: sectionIdNum });
     }
 
-    const students = await Student.find(query);
+    // --- THE FIX: ADD POPULATE HERE ---
+    const students = await Student.find(query).populate('section_details');
 
     res.status(200).json({ success: true, students });
   } catch (err) {
