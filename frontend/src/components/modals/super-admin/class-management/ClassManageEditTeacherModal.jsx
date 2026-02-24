@@ -1,11 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { validateRegistrationStep } from '../../../../utils/class-manage-modal/teacherModalValidation';
 import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
+import AvatarEditor from "react-avatar-editor"; // <-- ADDED CROPPER IMPORT
+
+// --- ADDED HELPER ---
+const BACKEND_URL = "http://localhost:3000";
+
+const getImageUrl = (path, firstName) => {
+  if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'Teacher'}`; 
+  if (path.startsWith("http")) return path;
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+// --------------------
 
 export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherData, onSuccess }) {
-  const backendBaseUrl = import.meta.env.VITE_BACKEND_URL;
   const [profileImage, setProfileImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -25,10 +35,15 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
     zipCode: '',
   });
 
+  // --- CROPPER STATES ---
+  const editorRef = useRef(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImage, setTempImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
+
   // 1. Populate Form Data when modal opens
   useEffect(() => {
     if (isOpen && teacherData) {
-
       let addrParts = ["", "", "", "", ""];
       if (teacherData.address) {
         // Split by comma (handling potential spaces)
@@ -42,21 +57,23 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
         phoneNumber: teacherData.phone_number || '',
         username: teacherData.username || '',
         password: '',
-        realationship: teacherData.relationship || 'Teacher',
+        relationship: teacherData.relationship || 'Teacher',
         houseUnit: addrParts[0] || '',
         street: addrParts[1] || '',
         barangay: addrParts[2] || '',
         city: addrParts[3] || '',
         zipCode: addrParts[4] || '',
       });
-      const existingPhoto = teacherData.profile_picture 
-      ? `${backendBaseUrl}/${teacherData.profile_picture.replace(/\\/g, '/')}` 
-      : null;
-      setPreviewUrl(existingPhoto);
+      
+      // Use the robust helper function!
+      setPreviewUrl(getImageUrl(teacherData.profile_picture, teacherData.first_name));
+      
       setProfileImage(null);
-      setErrors({}); // Clear old errors
+      setTempImage(null);
+      setShowCropModal(false);
+      setErrors({}); 
     }
-  }, [isOpen, teacherData, backendBaseUrl]);
+  }, [isOpen, teacherData]);
 
   // HANDLERS
   const handleChange = (e) => {
@@ -68,22 +85,37 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
     }
   };
 
+  // --- CROPPER LOGIC ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setProfileImage(file); // Store file to send to backend
-      setPreviewUrl(URL.createObjectURL(file)); // Create local URL for preview
-      
-      // Clear image error if it exists
-      if (errors.profileImage) {
-        setErrors(prev => ({ ...prev, profileImage: null }));
-      }
+      const imageUrl = URL.createObjectURL(file);
+      setTempImage(imageUrl);
+      setShowCropModal(true); // Open cropper instead of saving immediately
+      setZoom(1);
+    }
+    e.target.value = null; // reset input
+    if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
+  };
+
+  const handleCropSave = () => {
+    if (editorRef.current) {
+      const canvas = editorRef.current.getImageScaledToCanvas();
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "teacher_photo.jpg", { type: "image/jpeg" });
+          setProfileImage(croppedFile); // This is what gets sent to backend
+          setPreviewUrl(URL.createObjectURL(croppedFile)); // Update the UI preview
+          setShowCropModal(false);
+          setTempImage(null);
+        }
+      }, "image/jpeg", 0.95);
     }
   };
 
   // 3. Submit Changes
   const handleSubmit = async () => {
-    const newErrors = validateRegistrationStep(formData);
+    const newErrors = validateRegistrationStep(formData, profileImage); // Added profileImage!
 
     if (!formData.password) {
       delete newErrors.password;
@@ -99,6 +131,7 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
       console.log("Validation blocked submission. Errors:", newErrors);
       return;
     }
+  // ... rest of the code stays the same
 
     setLoading(true);
 
@@ -122,11 +155,10 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
         data.append('profile_photo', profileImage);
       }
 
-      const response = await axios.put(`${backendBaseUrl}/api/teacher/${teacherData._id}`, data, {
+      const response = await axios.put(`${BACKEND_URL}/api/teacher/${teacherData._id}`, data, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" }
       });
-
 
       if (response.data.success) {
         onSuccess(response.data.msg); 
@@ -146,63 +178,87 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
 
   return createPortal(
     <>
-      {/* No Logic Yet soon to be implemented */}
-      <div className="modal-overlay active" id="editStudentModal">
-        <div className="modal-container">
+      {/* --- CROPPER SUB-MODAL --- */}
+      {showCropModal && (
+        <div className="fixed inset-0 z-[999999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center animate-[fadeIn_0.2s_ease-out]">
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Crop Photo</h3>
+            
+            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-inner">
+              <AvatarEditor
+                ref={editorRef}
+                image={tempImage}
+                width={200}
+                height={200}
+                border={20}
+                borderRadius={100} 
+                color={[15, 23, 42, 0.5]}
+                scale={zoom}
+                rotate={0}
+              />
+            </div>
+
+            <div className="flex items-center w-full gap-3 mt-5 mb-6 px-2">
+              <span className="material-symbols-outlined text-slate-400 text-[18px]">zoom_out</span>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.01" 
+                value={zoom} 
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="flex-1 accent-orange-500 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+              />
+              <span className="material-symbols-outlined text-slate-400 text-[18px]">zoom_in</span>
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" onClick={() => { setShowCropModal(false); setTempImage(null); }}>
+                Cancel
+              </button>
+              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-md transition-colors" onClick={handleCropSave}>
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MAIN EDIT MODAL --- */}
+      <div className="modal-overlay active" id="editTeacherModal" onClick={onClose}>
+        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
-              <span class="material-symbols-outlined orange-icon text-[24px]">manage_accounts</span>
+              <span className="material-symbols-outlined orange-icon text-[24px]">manage_accounts</span>
               <h2 className="text-cdark text-[18px] font-bold">Edit Teacher Profile</h2>
             </div>
           </div>
 
-          <div className="modal-body">
-            <div className="flex flex-col gap-2">
-                <label className="text-cgray text-[13px] font-medium">Profile Photo</label>
-                <input 
-                  type="file" 
-                  id="addTeacherPhoto" 
-                  accept="image/*"
-                  hidden
-                  onChange={handleImageChange} 
-                />
-              
-                <div className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} onClick={() => document.getElementById('addTeacherPhoto').click()}>
-                  {!previewUrl ? (
-                    <div className="text-cdark mt-2 mb-1 font-medium text-center">
-                      <span className="material-symbols-outlined blue-icon text-[32px]">face</span>
-                      <p className="text-cdark! font-medium! mt-2 mx-0 mb-1">Click to upload photo</p>
-                      <span className="text-cgray text-[12px]">PNG, JPG (Max 5MB)</span>
-                    </div>
+          <div className="modal-body custom-scrollbar pr-2 overflow-y-auto max-h-[65vh]">
+            
+            {/* 1. SLEEK PROFILE PICTURE UPLOAD */}
+            <div className="flex flex-col items-center justify-center mb-2 mt-2">
+              <input type="file" id="editTeacherPhoto" accept="image/*" hidden onChange={handleImageChange} />
+              <div 
+                className="relative group cursor-pointer"
+                onClick={() => document.getElementById('editTeacherPhoto').click()}
+              >
+                <div className={`w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-100 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:shadow-xl ${errors.profileImage ? 'ring-2 ring-red-500' : ''}`}>
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="flex justify-between items-center p-[5px]">
-                      <div className="flex items-center gap-2.5">
-                        <img 
-                          src={previewUrl} 
-                          alt="Preview" 
-                          className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                          onError={(e) => {
-                            e.target.onerror = null; 
-                            e.target.src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.firstName}`;
-                          }}
-                        />
-                        <span className="text-cdark font-medium max-w-[250px] truncate">
-                          {/* Show new file name if selected, otherwise show 'Current Photo' */}
-                          {profileImage ? profileImage.name : "Current Photo"}
-                        </span>
-                      </div>
-                      <span className="material-symbols-outlined text-base text-[#22c55e]">check_circle</span>
-                    </div>
+                    <span className="material-symbols-outlined text-[40px] text-slate-300 group-hover:scale-110 transition-transform duration-300">add_a_photo</span>
                   )}
                 </div>
-                {errors.profileImage && (
-                  <span className="text-red-500 text-[11px] ml-1 mt-1 block text-left">
-                    {errors.profileImage}
-                  </span>
-                )}
+                {/* Hover Overlay */}
+                <div className="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <span className="material-symbols-outlined text-white text-[24px]">edit</span>
+                </div>
               </div>
+              <p className="text-slate-500 text-[12px] font-medium mt-3">Click to change photo</p>
+              {errors.profileImage && <span className="text-red-500 text-[11px] font-bold mt-1">{errors.profileImage}</span>}
+            </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-4">
               <label htmlFor="editTeacherFirst" className="text-cgray text-[13px] font-medium">Contact Details</label>
               <div className="flex gap-2.5">
                 <FormInputRegistration 
@@ -210,22 +266,21 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="First Name" 
-                  error={errors.firstName} // Pass Error
-                  className="form-input-modal"
+                  error={errors.firstName} 
+                  className="form-input-modal w-full"
                 />
                 <FormInputRegistration 
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
                   placeholder="Last Name" 
-                  error={errors.lastName} // Pass Error
-                  className="form-input-modal" 
+                  error={errors.lastName} 
+                  className="form-input-modal w-full" 
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="editTeacherFirst" className="text-cgray text-[13px] font-medium">Full Name</label>
+            <div className="flex flex-col gap-2 mt-1">
                 <FormInputRegistration 
                   name="email"
                   type="email"
@@ -245,12 +300,12 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
                 />
             </div>
 
-            <div className="flex items-center gap-2 mt-2 pb-2 border-b border-[#f0f0f0]">
+            <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
               <span className="material-symbols-outlined orange-icon">lock</span>
               <h3 className="text-cdark text-[16px] font-semibold">Login Credentials</h3>
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-2">
               <label className="text-cgray text-[13px] font-medium">Username</label>
                 <FormInputRegistration 
                 name="username"
@@ -276,7 +331,7 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
             </div>
           </div>
 
-          <div class="modal-footer">
+          <div className="modal-footer">
             <button className="btn-cancel" onClick={onClose}>Cancel</button>
             <button className="btn-save" onClick={handleSubmit} disabled={loading}>
               {loading ? "Saving..." : "Save Changes"}

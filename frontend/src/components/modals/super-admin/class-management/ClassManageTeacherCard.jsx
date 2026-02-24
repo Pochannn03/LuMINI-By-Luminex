@@ -1,14 +1,22 @@
 import React from 'react';
 
+// --- ADDED HELPER (Consistent with Student Cards) ---
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+const getImageUrl = (path, firstName) => {
+  if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'Teacher'}`; 
+  if (path.startsWith("http")) return path;
+  
+  // This replace() fixes the Windows backslash issue!
+  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+};
+// --------------------
+
 export default function ClassManageTeacherCard({ tch, onEdit, onDelete }) {
-  const backendBaseUrl = import.meta.env.VITE_BACKEND_URL;
   const fullName = `${tch.first_name || ''} ${tch.last_name || ''}`;
   
-  const photoUrl = tch.profile_picture 
-    ? `${backendBaseUrl}/${tch.profile_picture}` 
-    : `https://api.dicebear.com/7.x/avataaars/svg?seed=${tch.first_name}`;
-
-    console.log("Teacher Name:", fullName, "| Image URL:", photoUrl);
+  // Apply our robust helper function here
+  const photoUrl = getImageUrl(tch.profile_picture, tch.first_name);
 
   return (
       <div className="flex items-center p-4 rounded-xl bg-(--white) border border-(--border-color) gap-4 transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm)">

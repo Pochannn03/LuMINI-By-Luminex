@@ -86,6 +86,28 @@
   text-decoration: underline;
 }
 
+/* Restores the soft gray background and shape to the cards */
+.card-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f8fafc; /* Soft background */
+  border-radius: 20px;
+  height: 130px;
+  width: 130px;
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  border: 2px solid transparent;
+}
+
+.card-wrapper:hover {
+  background-color: #ffffff;
+  border-color: #e0f2fe;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+  transform: translateY(-3px);
+}
+
 @keyframes floatIn {
   from { transform: translateY(40px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

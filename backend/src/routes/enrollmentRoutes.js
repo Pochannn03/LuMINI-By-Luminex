@@ -296,10 +296,11 @@ router.post('/api/admin/enrollments/bulk-register', isAuthenticated, async (req,
       // Mongoose pre-save hook will auto-generate the ID!
       const savedStudent = await newStudent.save();
 
-      // IMPORTANT: Push the new student into the Section's student_id array
+      // --- THE FIX IS HERE ---
+      // Push the clean string ID (e.g., '2026-0003') into the Section array, NOT the ObjectId
       await Section.findOneAndUpdate(
         { section_id: reqData.section_id },
-        { $push: { student_id: savedStudent._id } } // Assuming the Section schema stores ObjectIds
+        { $push: { student_id: savedStudent.student_id } } 
       );
 
       // Finally, mark the enrollment request as 'Registered'
