@@ -3,6 +3,7 @@ import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Attendance } from "../models/attendances.js";
+import { Audit } from "../models/audits.js";
 
 const router = Router();
 
@@ -50,6 +51,48 @@ router.get('/api/attendance',
     }
 });
 
+router.get('/api/attendance/weekly-stats', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
+    try {
+      const stats = [];
+      const daysToTrack = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+      const now = new Date();
+      const currentDay = now.getDay(); 
+      const diffToMonday = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+      const monday = new Date(now.setDate(diffToMonday));
+
+      for (let i = 0; i < 5; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        
+        const dateStr = d.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+        const dayName = daysToTrack[i];
+
+        // LOGIC: Count both 'Present' AND 'Late' as part of the bar height
+        const presentCount = await Attendance.countDocuments({ 
+          date: dateStr, 
+          status: { $in: ['Present', 'Late'] } 
+        });
+
+        const totalCount = await Attendance.countDocuments({ date: dateStr });
+        const percentage = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+        stats.push({
+          day: dayName,
+          present: percentage,
+          isToday: dateStr === new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+        });
+      }
+
+      res.json({ success: true, data: stats });
+    } catch (error) {
+      console.error("Weekly Stats Error:", error);
+      res.status(500).json({ success: false });
+    }
+});
+
 // STUDENT SCANNED QR ATTENDANCE AND RECORD
 router.post('/api/attendance', 
     isAuthenticated, 
@@ -60,7 +103,9 @@ router.post('/api/attendance',
     const userRole = req.user.relationship?.toLowerCase()
     const now = new Date();
     const todayDate = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
-    
+    const fullName = `${req.user.first_name} ${req.user.last_name}`;
+    const userRoleSys = req.user.role;
+
     try {
         const student = await Student.findOne({ student_id: studentId }).populate('section_details');
         
@@ -135,6 +180,16 @@ router.post('/api/attendance',
             },
             { new: true, upsert: true }
         ).populate('student_details').lean();
+
+        const studentFullName = `${student.first_name} ${student.last_name}`;
+        const auditLog = new Audit({
+            user_id: currentUserId,
+            full_name: fullName,
+            role: userRoleSys,
+            action: `Scanned Attendance (${status})`,
+            target: `Student: ${studentFullName} (ID: ${studentId})`
+        });
+        await auditLog.save();
 
         const finalData = {
             ...updated,

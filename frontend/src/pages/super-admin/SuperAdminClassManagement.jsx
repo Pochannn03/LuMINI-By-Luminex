@@ -130,14 +130,31 @@ export default function SuperAdminClassManagement() {
       fetchStudents();
     });
 
+    socket.on("section_updated", () => {
+      fetchClasses();
+      fetchStudents();
+      fetchTeachers();
+    });
+
     socket.on("section_added", (newSection) => {
       setClasses((prev) => [...prev, newSection]);
       fetchClasses();
+      fetchStudents();
+      fetchTeachers();
+    });
+
+    socket.on("section_archived", () => {
+      fetchClasses();
+      fetchStudents(); 
+      fetchTeachers();
     });
 
     // 4. Cleanup on unmount
     return () => {
       socket.off("teacher_added");
+      socket.off("student_added");
+      socket.off("section_added");
+      socket.off("section_archived");
       socket.disconnect();
     };
   }, [fetchTeachers, fetchStudents, fetchClasses]);

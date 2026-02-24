@@ -4,6 +4,7 @@ import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { createStudentValidationSchema } from '../validation/studentValidation.js';
 import { updateStudentValidationSchema } from '../validation/editStudentValidation.js';
 import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';
@@ -66,6 +67,15 @@ router.put('/api/student/:id/profile-picture',
       student.profile_picture = req.file.path;
       const updatedStudent = await student.save();
 
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Update Student Photo",
+        target: `Updated photo student ${student.first_name} ${student.last_name}`
+      });
+      await auditLog.save();
+
       res.status(200).json({ 
         success: true, 
         message: "Student profile picture updated successfully!", 
@@ -103,6 +113,15 @@ router.put('/api/student/:id/medical', isAuthenticated, async (req, res) => {
     if (!updatedStudent) {
       return res.status(404).json({ message: "Student not found." });
     }
+
+    const auditLog = new Audit({
+      user_id: req.user.user_id,
+      full_name: `${req.user.first_name} ${req.user.last_name}`,
+      role: req.user.role,
+      action: "Update Medical Info",
+      target: `Updated medical records ${updatedStudent.first_name} ${updatedStudent.last_name}`
+    });
+    await auditLog.save();
 
     res.status(200).json({ 
       success: true, 
@@ -221,7 +240,14 @@ router.put('/api/students/archive/:id',
         return res.status(404).json({ success: false, msg: "Teacher not found" });
       }
 
-      console.log(`Student archived: ${archivedStudent.username}`);
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Edit Student Info",
+        target: `Updated student ${updatedStudent.first_name} ${updatedStudent.last_name}`
+      });
+      await auditLog.save();
 
       return res.status(200).json({ 
         success: true, 
@@ -309,8 +335,18 @@ router.post('/api/students',
 
     try {
         const savedStudent = await newStudent.save();
+        const auditLog = new Audit({
+          user_id: req.user.user_id,
+          full_name: `${req.user.first_name} ${req.user.last_name}`,
+          role: req.user.role,
+          action: "Register Student",
+          target: `Registered student ${savedStudent.first_name} ${savedStudent.last_name}`
+        });
+        await auditLog.save();
+
         const io = req.app.get('socketio');
         io.emit('student_added', savedStudent);
+        
         return res.status(201).send({ msg: "Student registered successfully!", user: savedStudent });
     } catch (err) {
         if (req.file) fs.unlinkSync(req.file.path);

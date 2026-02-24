@@ -3,9 +3,12 @@ import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { Announcement } from "../models/announcements.js";
 import { Student } from '../models/students.js';
 import { Section } from '../models/sections.js';
+import { Audit } from '../models/audits.js';
+import { User } from '../models/users.js';
 
 const router = Router();
 
+// ANNOUNCEMENT DISPLAYED ON PARENTS/GUARDIAN
 router.get('/api/announcement',
   isAuthenticated,
   hasRole('user'),
@@ -43,7 +46,7 @@ router.post('/api/announcements',
   isAuthenticated,
   hasRole('admin'),
   async (req, res) => {
-    const { announcement, category } = req.body; // Add category here
+    const { announcement, category } = req.body;
     const authorId = req.user.user_id;
     const firstName = req.user.first_name || "Admin";
     const lastName = req.user.last_name || "";
@@ -67,6 +70,18 @@ router.post('/api/announcements',
         ...newAnnouncement.toObject(),
         user: { first_name: firstName, last_name: lastName }
       };
+
+      const userDoc = await User.findOne({ user_id: authorId });
+
+      const auditLog = new Audit({
+        user_id: authorId,
+        full_name: fullName,
+        role: userDoc ? userDoc.role : 'user',
+        action: "Posted Announcement",
+        target: 'Parent/Guardian'
+      });
+
+      await auditLog.save();
 
       req.app.get('socketio').emit('new_announcement', payload);
 

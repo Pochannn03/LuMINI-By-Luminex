@@ -122,6 +122,20 @@ export default function Dashboard() {
       }
     });
 
+    socket.on('new_announcement', (newAnn) => {
+      const childTeacherId = rawStudentData?.section_details?.user_id;
+
+      if (Number(newAnn.user_id) === Number(childTeacherId)) {
+        setAnnouncements(prev => {
+          const isDuplicate = prev.some(ann => ann.announcement_id === newAnn.announcement_id);
+          if (isDuplicate) return prev;
+          
+          // Add new announcement to the top of the list
+          return [newAnn, ...prev];
+        });
+      }
+    });
+
     return () => {
       socket.off('new_queue_entry');
       socket.off('student_status_updated');
@@ -416,7 +430,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Added max-h and overflow-y-auto here */}
-                <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar"> 
+                <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"> 
                   {loadingAnnouncements ? (
                     <p className="text-center text-cgray py-4">Loading updates...</p>
                   ) : announcements.length === 0 ? (
@@ -446,7 +460,7 @@ export default function Dashboard() {
                           <span className="text-cgray text-[13px] leading-relaxed">
                             {ann.announcement}
                           </span>
-                          <div className="flex items-center gap-2 mt-2">
+                          <div className="flex items-center gap-2 mt-1">
                             <span className="text-[#94a3b8] text-[11px] font-medium">
                               By Teacher {ann.full_name}
                             </span>

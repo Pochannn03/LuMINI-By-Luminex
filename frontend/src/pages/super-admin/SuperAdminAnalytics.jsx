@@ -1,45 +1,149 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import "../../styles/super-admin/super-admin-analytics.css";
 
-// --- Mock Data ---
-
-// 1. Chart Data
-const attendanceData = [
-  { day: "Mon", present: 85, absent: 15 },
-  { day: "Tue", present: 92, absent: 8 },
-  { day: "Wed", present: 88, absent: 12 },
-  { day: "Thu", present: 95, absent: 5 },
-  { day: "Fri", present: 78, absent: 22 },
-  { day: "Sat", present: 45, absent: 55 }, // Weekend classes or activities
-];
-
-const userStats = {
-  students: { count: 850, color: "#39a8ed" }, // Brand Blue
-  parents: { count: 620, color: "#2ecc71" },  // Green
-  teachers: { count: 85, color: "#f59e0b" },  // Orange
-  admins: { count: 12, color: "#9b59b6" }     // Purple
-};
-
-// 2. Audit Trail Mock Data
-const initialAuditLogs = [
-  { id: 101, user: "Super Admin", role: "SuperAdmin", action: "System Backup", target: "Database", status: "success", time: "10:00 AM", date: "2026-02-11" },
-  { id: 102, user: "Jane Doe", role: "Teacher", action: "Update Grades", target: "Class 10-A", status: "success", time: "09:45 AM", date: "2026-02-11" },
-  { id: 103, user: "John Smith", role: "Parent", action: "Login Attempt", target: "Mobile App", status: "error", time: "09:12 AM", date: "2026-02-11" },
-  { id: 104, user: "Guard 01", role: "Staff", action: "QR Scan", target: "Gate 1", status: "success", time: "08:30 AM", date: "2026-02-11" },
-  { id: 105, user: "Admin_02", role: "Admin", action: "Edit Schedule", target: "Faculty Roster", status: "warning", time: "08:15 AM", date: "2026-02-11" },
-  { id: 106, user: "Maria Clara", role: "Student", action: "Library Checkout", target: "Book #4421", status: "success", time: "08:00 AM", date: "2026-02-11" },
-  { id: 107, user: "System", role: "Bot", action: "Auto-Maintenance", target: "Server Cache", status: "success", time: "02:00 AM", date: "2026-02-11" },
-];
-
 export default function SuperAdminAnalytics() {
+  // AUDIT STATE
+  const [auditLogs, setAuditLogs] = useState([]);
   const [filterRole, setFilterRole] = useState("All");
-  const [filterStatus, setFilterStatus] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // AUDIT PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const logsPerPage = 10;
+
+  // DEMOGRAPHIC STATE
+  const [userStats, setUserStats] = useState({
+    teachers: { count: 0, color: "#f59e0b" },
+    users: { count: 0, color: "#39a8ed" }
+  });
+
+  // FEEDBACK STATE
+  const [feedbackStats, setFeedbackStats] = useState({
+    total: 0,
+    positive: 0,
+    negative: 0,
+    satisfactionRate: 0
+  });
+
+  // TRANSFER STATE
+  const [todayTransfers, setTodayTransfers] = useState(0);
+
+  // WEEKLY ATTENDANCE STATE
+  const [weeklyTraffic, setWeeklyTraffic] = useState([]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      const fetchLogs = async () => {
+        setLoading(true);
+        try {
+          const { data, headers } = await axios.get(`http://localhost:3000/api/audit`, {
+            params: { 
+              role: filterRole === "All" ? "" : filterRole, 
+              search: searchQuery,
+              page: currentPage,
+              limit: logsPerPage
+            }, 
+            withCredentials: true
+          });
+
+          if (Array.isArray(data)) {
+            setAuditLogs(data);
+            const totalCount = parseInt(headers['x-total-count']) || 0;
+            setTotalPages(Math.ceil(totalCount / logsPerPage));
+          }
+        } catch (err) {
+          console.error("Error fetching logs:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchLogs();
+    }, 500); 
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [filterRole, searchQuery, currentPage]);
+
+  useEffect(() => {
+    const fetchDemographics = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/users/demographics', { 
+          withCredentials: true 
+        });
+        
+        if (response.data.success) {
+          setUserStats(response.data.stats);
+        }
+      } catch (err) {
+        console.error("Error loading demographics:", err);
+      }
+    };
+
+    fetchDemographics();
+  }, []);
+
+  useEffect(() => {
+    const fetchFeedbackStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/feedback/stats', { 
+          withCredentials: true 
+        });
+        
+        if (response.data.success) {
+          setFeedbackStats({
+            total: response.data.total,
+            positive: response.data.positive,
+            negative: response.data.negative,
+            satisfactionRate: response.data.satisfactionRate
+          });
+        }
+      } catch (err) {
+        console.error("Error loading feedback stats:", err);
+      }
+    };
+
+    fetchFeedbackStats();
+  }, []);
+
+  useEffect(() => {
+    const fetchTodayTransfers = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/transfers/today-count', { 
+          withCredentials: true 
+        });
+        if (response.data.success) {
+          setTodayTransfers(response.data.count);
+        }
+      } catch (err) {
+        console.error("Error loading today's transfers:", err);
+      }
+    };
+
+    fetchTodayTransfers();
+  }, []);
+
+  useEffect(() => {
+    const fetchWeeklyStats = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/attendance/weekly-stats', { 
+          withCredentials: true 
+        });
+        if (response.data.success) {
+          setWeeklyTraffic(response.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching weekly stats:", err);
+      }
+    };
+    fetchWeeklyStats();
+  }, []);
 
   // --- Calculations for Donut Chart ---
-  const totalUsers = Object.values(userStats).reduce((acc, curr) => acc + curr.count, 0);
+  const totalUsers = Object.values(userStats).reduce((acc, curr) => acc + curr.count, 0) || 1; 
   
-  // Create conic-gradient string dynamically
   let currentDeg = 0;
   const gradientParts = Object.values(userStats).map(stat => {
     const deg = (stat.count / totalUsers) * 360;
@@ -49,12 +153,22 @@ export default function SuperAdminAnalytics() {
   });
   const donutGradient = `conic-gradient(${gradientParts.join(", ")})`;
 
-  // --- Filtering Audit Logs ---
-  const filteredLogs = initialAuditLogs.filter(log => {
-    const roleMatch = filterRole === "All" || log.role === filterRole;
-    const statusMatch = filterStatus === "All" || log.status === filterStatus;
-    return roleMatch && statusMatch;
-  });
+  const getPageNumbers = () => {
+    const maxVisible = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    // Adjust if we are near the end
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    const pages = [];
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -73,11 +187,6 @@ export default function SuperAdminAnalytics() {
                 Deep dive into system performance and user activities.
               </p>
             </div>
-            <div className="hidden md:block">
-              <span className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-lg text-sm font-medium border border-white/10">
-                Today: Feb 11, 2026
-              </span>
-            </div>
           </div>
         </section>
 
@@ -85,88 +194,89 @@ export default function SuperAdminAnalytics() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 w-full max-w-[1200px] mx-auto mb-8">
           <div className="card stat-card">
             <div className="stat-icon blue-bg">
-              <span className="material-symbols-outlined">monitoring</span>
+              <span className="material-symbols-outlined">swap_horiz</span>
             </div>
             <div className="stat-info">
-              <h3>99.9%</h3>
-              <p>System Uptime</p>
+              <h3>{todayTransfers}</h3>
+              <p>Transfers Today</p>
             </div>
           </div>
-
           <div className="card stat-card">
             <div className="stat-icon purple-bg">
               <span className="material-symbols-outlined">verified_user</span>
             </div>
             <div className="stat-info">
               <h3>{totalUsers.toLocaleString()}</h3>
-              <p>Total Users</p>
-            </div>
+              <p>Total Users</p></div>
           </div>
-
           <div className="card stat-card">
             <div className="stat-icon orange-bg">
-              <span className="material-symbols-outlined">warning</span>
+              <span className="material-symbols-outlined">feedback</span>
             </div>
             <div className="stat-info">
-              <h3>3</h3>
-              <p>Flags Today</p>
-            </div>
+              <h3>{feedbackStats.total}</h3>
+              <p>Feedbacks</p></div>
           </div>
-
           <div className="card stat-card">
-            <div className="stat-icon" style={{ background: "#10b981" }}> {/* Custom Green */}
-              <span className="material-symbols-outlined">database</span>
+            <div className="stat-icon" style={{ background: "#10b981" }}>
+              <span className="material-symbols-outlined">thumb_up</span>
             </div>
             <div className="stat-info">
-              <h3>Healthy</h3>
-              <p>Database Status</p>
-            </div>
+              <h3>{feedbackStats.satisfactionRate} %</h3>
+              <p>Feedback Satisfaction</p></div>
           </div>
         </div>
 
-        {/* --- Visualizations Section --- */}
+        {/* --- Visualizations --- */}
         <div className="w-full max-w-[1200px] mx-auto analytics-grid">
-          
-          {/* Left: Attendance Bar Chart */}
+          {/* Attendance Bar Chart */}
           <div className="card p-6 flex flex-col justify-between">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-cgray">bar_chart</span>
-                  <h2 className="text-cdark text-[18px] font-bold">Weekly Traffic</h2>
+                  <h2 className="text-cdark text-[18px] font-bold">Weekly Attendance Traffic</h2>
                 </div>
-                <p className="text-cgray text-sm mt-1">Student attendance & Gate scans</p>
               </div>
-              <button className="btn-icon-tool">
-                <span className="material-symbols-outlined text-[20px]">more_horiz</span>
-              </button>
             </div>
-            
-            <div className="chart-container">
-              {attendanceData.map((data, index) => (
-                <div key={index} className="chart-bar-group group w-full">
-                  <div 
-                    className="chart-bar mx-auto" 
-                    style={{ height: `${data.present}%` }}
-                  >
-                    <span className="chart-tooltip">{data.present}% Present</span>
+            <div className="chart-container flex items-end justify-between h-[200px] pt-8">
+              {weeklyTraffic.map((data, index) => (
+                <div key={index} className="chart-bar-group group flex flex-col items-center w-full">
+                  <div className="relative w-full flex justify-center items-end h-[150px]">
+                    {/* Tooltip */}
+                    <span className="chart-tooltip absolute -top-8 bg-cdark text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {data.present}% Present
+                    </span>
+                    
+                    {/* The Bar */}
+                    <div 
+                      className={`chart-bar w-8 rounded-t-sm transition-all duration-700 ease-out ${
+                        data.isToday ? 'bg-[#3ab0f9]' : 'bg-[#e2e8f0]'
+                      }`} 
+                      style={{ height: `${data.present || 5}%` }} // Min 5% height so the bar is visible even if 0
+                    ></div>
                   </div>
-                  <span className="chart-bar-label">{data.day}</span>
+                  
+                  {/* Label */}
+                  <span className={`chart-bar-label mt-2 text-xs font-semibold ${
+                    data.isToday ? 'text-[#3ab0f9]' : 'text-cgray'
+                  }`}>
+                    {data.day}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Right: User Demographics Donut */}
+          {/* Demographics Donut */}
           <div className="card p-6">
             <div className="mb-6">
                <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-cgray">pie_chart</span>
                   <h2 className="text-cdark text-[18px] font-bold">Demographics</h2>
                </div>
-               <p className="text-cgray text-sm mt-1">User distribution by role</p>
             </div>
-            
+
             <div className="flex flex-col items-center">
               <div className="donut-chart-wrapper mb-8">
                 <div className="donut-chart" style={{ background: donutGradient }}></div>
@@ -177,29 +287,21 @@ export default function SuperAdminAnalytics() {
               </div>
 
               <div className="w-full chart-legend">
-                <div className="legend-item">
-                  <div className="legend-indicator">
-                    <div className="legend-color" style={{background: userStats.students.color}}></div>
-                    <span>Students</span>
+                {Object.entries(userStats).map(([key, stat]) => (
+                  <div className="legend-item" key={key}>
+                    <div className="legend-indicator">
+                      <div className="legend-color" style={{ background: stat.color }}></div>
+                      <span className="capitalize">
+                        {/* Maps 'users' to 'Parents & Guardians' and 'teachers' to 'Teachers' */}
+                        {key === 'users' ? 'Parents & Guardians' : 'Teachers'}
+                      </span>
+                    </div>
+                    <span className="legend-value">{stat.count.toLocaleString()}</span>
                   </div>
-                  <span className="legend-value">{userStats.students.count}</span>
-                </div>
-                <div className="legend-item">
-                  <div className="legend-indicator">
-                    <div className="legend-color" style={{background: userStats.parents.color}}></div>
-                    <span>Parents</span>
-                  </div>
-                  <span className="legend-value">{userStats.parents.count}</span>
-                </div>
-                <div className="legend-item">
-                  <div className="legend-indicator">
-                    <div className="legend-color" style={{background: userStats.teachers.color}}></div>
-                    <span>Teachers</span>
-                  </div>
-                  <span className="legend-value">{userStats.teachers.count}</span>
-                </div>
+                ))}
               </div>
             </div>
+            
           </div>
         </div>
 
@@ -213,23 +315,15 @@ export default function SuperAdminAnalytics() {
                   <span className="material-symbols-outlined text-cgray">history</span>
                   <h2 className="text-cdark text-[18px] font-bold">System Audit Trail</h2>
                 </div>
-                <p className="text-cgray text-sm mt-1">
-                  Comprehensive log of all user activities and system events.
-                </p>
               </div>
-              
-              <div className="flex gap-2">
-                <button className="btn btn-outline text-sm h-[38px] px-3">
-                  <span className="material-symbols-outlined text-[18px] mr-1">download</span>
-                  Export
-                </button>
-              </div>
+              <button className="btn btn-outline text-sm h-[38px] px-3">
+                <span className="material-symbols-outlined text-[18px] mr-1">download</span>
+                Export
+              </button>
             </div>
 
             {/* Filter Bar */}
             <div className="filter-bar">
-              
-              {/* Role Filter */}
               <div className="filter-container">
                  <span className="material-symbols-outlined filter-icon">filter_list</span>
                  <select 
@@ -238,35 +332,21 @@ export default function SuperAdminAnalytics() {
                    onChange={(e) => setFilterRole(e.target.value)}
                  >
                    <option value="All">All Roles</option>
-                   <option value="SuperAdmin">Super Admin</option>
-                   <option value="Admin">Admin</option>
-                   <option value="Teacher">Teacher</option>
-                   <option value="Parent">Parent</option>
+                   <option value="superadmin">Super Admin</option>
+                   <option value="admin">Teacher</option>
+                   <option value="user">Users</option>
                  </select>
               </div>
 
-              {/* Status Filter */}
-              <div className="filter-container">
-                 <span className="material-symbols-outlined filter-icon">tune</span>
-                 <select 
-                   className="filter-select"
-                   value={filterStatus}
-                   onChange={(e) => setFilterStatus(e.target.value)}
-                 >
-                   <option value="All">All Status</option>
-                   <option value="success">Success</option>
-                   <option value="warning">Warning</option>
-                   <option value="error">Error</option>
-                 </select>
-              </div>
-              
-              {/* Search Filter */}
+              {/* Search Filter - Connected to State */}
               <div className="filter-container search-wrapper ml-auto">
                 <span className="material-symbols-outlined filter-icon">search</span>
                 <input 
                   type="text" 
                   placeholder="Search logs..." 
-                  className="filter-select md:w-[300px]"
+                  className="filter-select md:w-[300px] cursor-text!"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
@@ -276,29 +356,25 @@ export default function SuperAdminAnalytics() {
               <table className="audit-table">
                 <thead>
                   <tr>
-                    <th>Timestamp</th>
                     <th>User</th>
                     <th>Role</th>
                     <th>Action</th>
                     <th>Target / Details</th>
-                    <th>Status</th>
-                    <th></th>
+                    <th>Timestamp</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLogs.length > 0 ? (
-                    filteredLogs.map((log) => (
-                      <tr key={log.id}>
-                        <td className="text-cgray font-mono text-xs">
-                          <div>{log.date}</div>
-                          <div className="text-cdark font-semibold">{log.time}</div>
-                        </td>
+                  {loading ? (
+                    <tr><td colSpan="5" className="text-center py-8">Loading logs...</td></tr>
+                  ) : (Array.isArray(auditLogs) && auditLogs.length > 0) ? (
+                    auditLogs.map((log) => (
+                      <tr key={log._id}>
                         <td>
                           <div className="user-cell">
                             <div className="user-avatar-sm">
-                              {log.user.charAt(0)}
+                              {log.full_name ? log.full_name.charAt(0) : "?"}
                             </div>
-                            <span className="font-medium">{log.user}</span>
+                            <span className="font-medium">{log.full_name}</span>
                           </div>
                         </td>
                         <td>
@@ -308,44 +384,89 @@ export default function SuperAdminAnalytics() {
                         </td>
                         <td className="font-medium text-brand-dark">{log.action}</td>
                         <td className="text-cgray">{log.target}</td>
-                        <td>
-                          <span className={`status-badge ${log.status}`}>
-                            <span className="status-dot"></span>
-                            {log.status.charAt(0).toUpperCase() + log.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="text-right">
-                          <button className="text-cgray hover:text-brand-blue transition-colors">
-                            <span className="material-symbols-outlined text-[20px]">info</span>
-                          </button>
-                        </td>
+                        <td className="text-cgray text-xs flex flex-col gap-0.5 justify-center">
+                        {(log.createdAt || log.created_at || log.timestamp) ? (
+                          <>
+                            <div className="font-semibold">
+                              {new Date(log.createdAt || log.created_at || log.timestamp).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </div>
+                            <div className="text-cdark text-xd">
+                              {new Date(log.createdAt || log.created_at || log.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: true,
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-red-400">Date Missing</div>
+                        )}
+                      </td>
                       </tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan="7" className="text-center py-8 text-cgray">
-                        No logs found matching your filters.
-                      </td>
-                    </tr>
+                    <tr><td colSpan="5" className="text-center py-8">No logs found.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Pagination Mockup */}
+            {/* Pagination */}
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs text-cgray">Showing {filteredLogs.length} results</p>
-              <div className="flex gap-2">
-                <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-lg" disabled>
+              <p className="text-xs text-cgray">
+                Showing page <b>{currentPage}</b> of <b>{totalPages}</b>
+              </p>
+              
+              <div className="flex gap-1">
+                {/* Previous Button */}
+                <button 
+                  className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => prev - 1)}
+                >
                   <span className="material-symbols-outlined text-[16px]">chevron_left</span>
                 </button>
-                <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-lg bg-blue-50 border-blue-200 text-blue-600">
-                  1
-                </button>
-                <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-lg">
-                  2
-                </button>
-                <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-lg">
+
+                {/* First Page Quick Link (Optional: only if start > 1) */}
+                {getPageNumbers()[0] > 1 && (
+                  <>
+                    <button className="btn btn-outline h-8 w-8 p-0!" onClick={() => setCurrentPage(1)}>1</button>
+                    <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                  </>
+                )}
+
+                {/* Sliding Page Numbers */}
+                {getPageNumbers().map(pageNum => (
+                  <button 
+                    key={pageNum}
+                    className={`btn btn-outline h-8 w-8 p-0! transition-colors flex items-center justify-center font-medium ${ currentPage === pageNum  
+                        ? 'bg-[#3ab0f9]! text-white! border-[#3ab0f9]! shadow-sm' 
+                        : 'hover:bg-blue-50 text-gray-600 border-gray-200'
+                    }`}
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                {/* Last Page Quick Link (Optional: only if end < totalPages) */}
+                {getPageNumbers().slice(-1)[0] < totalPages && (
+                  <>
+                    <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                    <button className="btn btn-outline h-8 w-8 p-0!" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                  </>
+                )}
+
+                {/* Next Button */}
+                <button 
+                  className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50"
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  onClick={() => setCurrentPage(prev => prev + 1)}
+                >
                   <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                 </button>
               </div>
@@ -353,7 +474,6 @@ export default function SuperAdminAnalytics() {
 
           </div>
         </div>
-
       </main>
     </div>
   );

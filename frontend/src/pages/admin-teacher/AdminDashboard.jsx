@@ -96,7 +96,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const handlePostAnnouncement = async (e) => {
+  const handlePostAnnouncement = async () => {
     if (!announcementData.content.trim()) return;
 
     try {
