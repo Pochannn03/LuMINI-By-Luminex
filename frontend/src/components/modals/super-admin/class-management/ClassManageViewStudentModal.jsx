@@ -1,7 +1,10 @@
 import React, { useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import QRCode from "react-qr-code"; 
+import axios from "axios";
 import ClassManageDeleteStudentModal from './ClassManageDeleteStudentModal';
+import FormInputRegistration from '../../../FormInputRegistration';
+import ConfirmModal from '../../../ConfirmModal'; // <-- Make sure this path matches your folder structure!
 
 // --- ADDED HELPER ---
 const BACKEND_URL = "http://localhost:3000";
@@ -17,6 +20,10 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
   const qrRef = useRef(null);
   const [isOpenDeleteStudentModal, setIsOpenDeleteStudentModal] = useState(false);
   const [viewImage, setViewImage] = useState(null); // Zoom State
+  
+  // --- NEW STATES FOR EMAIL FEATURE ---
+  const [isSendCodeModalOpen, setIsSendCodeModalOpen] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const std = studentData || {};
   const fullName = `${std.first_name || ''} ${std.last_name || ''}`;
@@ -36,7 +43,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
   const sectionName = std.section_details?.section_name || "Unassigned";
 
   // ==========================================
-  // SMART PARENT LOGIC (Passive vs Verified)
+  // SMART PARENT LOGIC
   // ==========================================
   let parentDisplayName = "---";
   let isVerified = false;
@@ -98,12 +105,35 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
 
   const handleDeleteClick = () => setIsOpenDeleteStudentModal(true);
 
+  // ==========================================
+  // SEND INVITATION EMAIL LOGIC
+  // ==========================================
+  const handleSendEmail = async () => {
+    setIsSendingEmail(true);
+    try {
+      const response = await axios.post(`${BACKEND_URL}/api/students/send-invitation`, {
+        student_id: std.student_id
+      }, {
+        withCredentials: true // Important for auth routes
+      });
+      
+      if (response.data.success) {
+        if(onSuccess) onSuccess(response.data.msg); // This triggers the SuccessModal in your parent page!
+        onClose(); // Close this view modal
+      }
+    } catch (error) {
+      console.error("Email error:", error);
+      alert(error.response?.data?.msg || "Failed to send email. Ensure the backend is running and configured.");
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return createPortal(
     <>
       <div className="modal-overlay active" onClick={onClose}>
-        {/* SLIMMER MODAL: max-w-[400px] and extra rounded corners */}
         <div className="modal-container max-w-[400px] w-[95%] p-0 overflow-hidden shadow-2xl rounded-[24px]" onClick={(e) => e.stopPropagation()}>
           
           {/* HERO HEADER */}
@@ -134,7 +164,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
 
           <div className="p-5 overflow-y-auto max-h-[55vh] custom-scrollbar flex flex-col gap-4 bg-white">
             
-            {/* COMPACT DATA GRID: Academics & Age */}
+            {/* COMPACT DATA GRID */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 flex flex-col justify-center transition-colors hover:border-slate-200">
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">Current Class</span>
@@ -202,7 +232,18 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
             </div>
 
             {/* UNIFIED SYSTEM ACCESS (QR + CODE) */}
-            <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3.5 flex items-stretch gap-3">
+            <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3.5 flex items-stretch gap-3 relative overflow-hidden">
+              
+              {/* Overlay Loader while sending email */}
+              {isSendingEmail && (
+                <div className="absolute inset-0 z-10 bg-white/70 backdrop-blur-[2px] flex items-center justify-center transition-all duration-300">
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="material-symbols-outlined animate-spin text-blue-600 text-[32px]">progress_activity</span>
+                    <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Sending Email...</span>
+                  </div>
+                </div>
+              )}
+
               <div className="shrink-0 flex flex-col items-center justify-center gap-1.5">
                 <div ref={qrRef} className="bg-white p-1.5 rounded-lg shadow-sm border border-slate-200">
                   {std.student_id ? (
@@ -224,20 +265,32 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
                   <span className="flex-1 font-mono font-bold tracking-[3px] text-center bg-white text-[13px] text-blue-700 py-1.5 rounded-lg border border-blue-200 shadow-sm truncate">
                     {std.invitation_code || "---"}
                   </span>
-                  <button 
-                    className="w-[32px] h-[32px] shrink-0 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-transform active:scale-95" 
-                    title="Copy Code" 
-                    onClick={() => navigator.clipboard.writeText(std.invitation_code)}
-                  >
-                    <span className="material-symbols-outlined text-[16px]">content_copy</span>
-                  </button>
+                  
+                  {/* DYNAMIC BUTTON: If email exists and NOT verified, show SEND. Otherwise, show COPY. */}
+                  {contactEmail && !isVerified ? (
+                    <button 
+                      className="w-[32px] h-[32px] shrink-0 flex items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-transform active:scale-95" 
+                      title="Send Code to Parent Email" 
+                      onClick={() => setIsSendCodeModalOpen(true)}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">send</span>
+                    </button>
+                  ) : (
+                    <button 
+                      className="w-[32px] h-[32px] shrink-0 flex items-center justify-center rounded-lg bg-slate-200 text-slate-600 hover:bg-slate-300 shadow-sm transition-transform active:scale-95" 
+                      title="Copy Code" 
+                      onClick={() => navigator.clipboard.writeText(std.invitation_code)}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                    </button>
+                  )}
+
                 </div>
               </div>
             </div>
 
           </div>
           
-          {/* GROUPED BUTTONS ON THE RIGHT */}
           <div className="modal-footer flex flex-row justify-end items-center gap-3 border-t border-slate-100 p-4 bg-slate-50">
             <button className="text-[12px] font-bold text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors flex items-center gap-1.5 px-4 py-2 rounded-xl" onClick={handleDeleteClick}>
               <span className="material-symbols-outlined text-[16px]">delete</span> Delete
@@ -269,6 +322,17 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
           </button>
         </div>
       )}
+
+      {/* --- CONFIRMATION MODAL FOR EMAILING --- */}
+      <ConfirmModal 
+        isOpen={isSendCodeModalOpen}
+        onClose={() => setIsSendCodeModalOpen(false)}
+        onConfirm={handleSendEmail}
+        title="Send Invitation?"
+        message={`Are you sure you want to email the system invitation code to ${contactEmail}?`}
+        confirmText="Yes, Send Email"
+        cancelText="Cancel"
+      />
 
       <ClassManageDeleteStudentModal
         isOpen={isOpenDeleteStudentModal}

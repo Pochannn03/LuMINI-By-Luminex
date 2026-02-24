@@ -7,6 +7,7 @@ import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Counter } from '../models/counter.js';
+import { sendInvitationEmail } from "../utils/emailService.js";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -449,6 +450,50 @@ router.get("/api/students/teacher/totalStudents",
         console.error("Error fetching teacher totals:", error);
         res.status(500).json({ error: "Server Error" });
     }
+});
+
+// ==================================================
+// NEW ROUTE: SEND INVITATION CODE TO PARENT
+// ==================================================
+router.post('/api/students/send-invitation', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
+  try {
+    const { student_id } = req.body;
+
+    if (!student_id) {
+      return res.status(400).json({ success: false, msg: "Student ID is required." });
+    }
+
+    // 1. Get the student from the DB
+    const student = await Student.findOne({ student_id });
+    if (!student) {
+      return res.status(404).json({ success: false, msg: "Student not found." });
+    }
+
+    // 2. Extract parent details from the passive_parent tag
+    const parentEmail = student.passive_parent?.email;
+    const parentName = student.passive_parent?.name || "Parent/Guardian";
+    const studentName = `${student.first_name} ${student.last_name}`;
+
+    if (!parentEmail) {
+      return res.status(400).json({ success: false, msg: "No email address found for this student's parent." });
+    }
+
+    // 3. Trigger the email service!
+    const emailSent = await sendInvitationEmail(parentEmail, student.invitation_code, parentName, studentName);
+
+    if (emailSent) {
+      return res.status(200).json({ success: true, msg: `Invitation successfully sent to ${parentEmail}` });
+    } else {
+      return res.status(500).json({ success: false, msg: "Failed to send email. Check server logs." });
+    }
+
+  } catch (error) {
+    console.error("Send Invitation Route Error:", error);
+    return res.status(500).json({ success: false, msg: "Server error while sending email." });
+  }
 });
 
 export default router;

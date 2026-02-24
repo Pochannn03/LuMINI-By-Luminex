@@ -39,6 +39,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     }
   }, [isOpen]);
 
+  // 2. Load Class Data when Modal Opens
   useEffect(() => {
     if (classData && isOpen) {
       setFormData({
@@ -49,7 +50,21 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         assignedTeacher: classData.user_details ? classData.user_details.user_id : (classData.user_id || ''),
         studentIds: classData.students || [] 
       });
-      setSelectedStudentIds(classData.student_id || []);
+
+      // --- THE FIX: SANITIZE STUDENT IDs ---
+      // Check all possible places the backend might have stored the students
+      const rawStudents = classData.student_details || classData.students || classData.student_id || [];
+      
+      const cleanIds = rawStudents.map(item => {
+        // If the backend sent populated objects, extract the string
+        if (typeof item === 'object' && item !== null && item.student_id) {
+          return String(item.student_id);
+        }
+        // Otherwise, assume it's already a string
+        return String(item);
+      }).filter(id => /^\d{4}-\d{4}$/.test(id)); // STRICTLY enforce YYYY-XXXX format!
+
+      setSelectedStudentIds(cleanIds);
       setErrors({});
     }
   }, [classData, isOpen]);
@@ -77,20 +92,22 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
   };
 
   const handleSubmit = async () => {
-    setLoading(true);
-
     if (!validateStep()) {
       return;
     }
 
+    setLoading(true);
+
     try {
+      // --- FIX 2: Double check payload types before sending ---
       const payload = {
         section_name: formData.sectionName,
         class_schedule: formData.classSchedule,
-        max_capacity: formData.maxCapacity,
+        max_capacity: Number(formData.maxCapacity),
         description: formData.description,
-        user_id: formData.assignedTeacher,
-        student_id: selectedStudentIds,
+        user_id: Number(formData.assignedTeacher),
+        // Filter one last time just to be absolutely safe against the regex error
+        student_id: selectedStudentIds.filter(id => /^\d{4}-\d{4}$/.test(id)),
       };
 
       // Use the ID from classData to target the update
@@ -104,8 +121,12 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
       onClose();
 
     } catch (error) {
-      console.error("Update failed:", error);
-      alert("Failed to update class. Check console for details.");
+      // Detailed error logging
+      console.error("Backend Rejection Details:", error.response?.data);
+      const specificError = error.response?.data?.errors?.[0]?.msg 
+                         || error.response?.data?.msg 
+                         || "Failed to update class.";
+      alert(`Update Failed: ${specificError}`);
     } finally {
       setLoading(false);
     }
@@ -140,7 +161,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
 
               <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-semibold">Class Schedule</label>
-                <div class="relative">
+                <div className="relative">
                   <select 
                     className="form-input-modal appearance-none" 
                     name="classSchedule"
@@ -183,7 +204,6 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
                 ></textarea>
               </div>
 
-              {/* Needs a logic for options css due to data will be on server/database which will be looped inside */}
               <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-semibold">Assign Teacher</label>
                 <div className="relative">
@@ -225,7 +245,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
                 </div>
             </div>
 
-            <div class="modal-footer">
+            <div className="modal-footer">
               <button className="btn-cancel" onClick={onClose}>Cancel</button>
               <button className="btn-save" onClick={handleSubmit} disabled={loading}>
                 {loading ? "Saving..." : "Save Changes"}
