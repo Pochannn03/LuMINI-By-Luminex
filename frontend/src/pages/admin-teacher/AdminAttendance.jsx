@@ -144,7 +144,7 @@ export default function AdminAttendance() {
     doc.text(`Summary: ${stats.present} Present | ${stats.late} Late | ${stats.absent} Absent`, 14, 44);
 
     // Prepare Table Data
-    const tableColumn = ["Student ID", "Student Name", "Section", "Time In", "Status"];
+    const tableColumn = ["Student ID", "Student Name", "Section", "Time In", "Status", "Details"];
     const tableRows = [];
 
     filteredRecords.forEach(record => {
@@ -153,7 +153,8 @@ export default function AdminAttendance() {
         record.student_name,
         record.section_name || "Unassigned",
         record.time_in || "---",
-        record.status
+        record.status,
+        record.details || ""
       ];
       tableRows.push(rowData);
     });
@@ -165,7 +166,7 @@ export default function AdminAttendance() {
       startY: 52,
       theme: 'grid',
       headStyles: { fillColor: [57, 168, 237] }, // Matches LuMINI blue
-      styles: { fontSize: 10, cellPadding: 4 },
+      styles: { fontSize: 8, cellPadding: 3 },
       alternateRowStyles: { fillColor: [248, 250, 252] }, // slate-50
       didParseCell: function(data) {
         // Color code the status column text
@@ -279,13 +280,14 @@ export default function AdminAttendance() {
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
+              <div className="overflow-visible">
+                <table className="w-full text-left border-separate border-spacing-0">
                   <thead>
                     <tr className="border-b border-gray-100">
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%]">Student</th>
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[20%] text-center">Time</th>
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%] text-center">Status</th>
+                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%] text-center">Remarks</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -322,6 +324,50 @@ export default function AdminAttendance() {
                             }`}>
                               {record.status}
                             </span>
+                          </td>
+                          <td className="py-3 px-2 text-center relative overflow-visible">
+                            {record.details ? (
+                              <div className="inline-flex items-center justify-center relative group/note">
+                                {/* The Info Icon */}
+                                <span className="material-symbols-outlined text-blue-500 cursor-help text-[22px] transition-all duration-200 group-hover/note:scale-110">
+                                  info
+                                </span>
+
+                                {/* The Expanding Bubble */}
+                                <div className="invisible opacity-0 scale-95 group-hover/note:visible group-hover/note:opacity-100 group-hover/note:scale-100
+                                                absolute z-[9999] bottom-[130%] left-1/2 -translate-x-1/2 mb-2
+                                                w-[260px] h-auto pointer-events-none transition-all duration-200 ease-out origin-bottom">
+                                  
+                                  {/* Changed background to Primary Blue (bg-[#39A8ED] or similar) */}
+                                  <div className="bg-[#39A8ED] text-white p-4 rounded-2xl shadow-[0_10px_30px_-5px_rgba(57,168,237,0.4)] border border-blue-300/30 relative">
+                                    
+                                    {/* Header */}
+                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/20">
+                                      <span className="material-symbols-outlined text-white text-[16px]">chat_bubble</span>
+                                      <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white">Absence Note</span>
+                                    </div>
+
+                                    {/* Note Content - Wraps and expands naturally */}
+                                    <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
+                                      <p className="text-[11px]! leading-normal text-white! font-medium italic text-left whitespace-normal wrap-break-word">
+                                        "{record.details}"
+                                      </p>
+                                    </div>
+
+                                    {/* The Pointy Arrow (Colored to match the Primary Blue) */}
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 
+                                                    border-l-10 border-l-transparent 
+                                                    border-r-10 border-r-transparent 
+                                                    border-t-10 border-t-[#39A8ED]">
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="material-symbols-outlined text-gray-200 text-[22px] select-none">
+                                info
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))

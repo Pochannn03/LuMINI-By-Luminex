@@ -204,7 +204,6 @@ export default function AdminDashboard() {
 
     fetchInitialQueue();
 
-    // 2. Setup Socket Listener
     const socket = io("http://localhost:3000");
     
     socket.on("new_queue_entry", (newEntry) => {
@@ -258,7 +257,7 @@ export default function AdminDashboard() {
             <div className="mb-6">
               <div className="flex items-center gap-2.5 mb2">
                 <span className="material-symbols-outlined blue-icon text-[24px]">schedule</span>
-                <h2 className="text-cdark text-[18px] font-bold" id="queueTitle">Drop-off Queue</h2>
+                <h2 className="text-cdark text-[18px] font-bold" id="queueTitle">Queue</h2>
               </div>
               <p className="text-cgray text-[14px]! leading-normal ml-0">Real-time updates from parents.</p>
             </div>
