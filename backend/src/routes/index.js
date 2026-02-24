@@ -13,6 +13,7 @@ import queueRoutes from "./queues.js"
 import feedbacksRoutes from "./feedback.js"
 import enrollmentRoutes from "./enrollmentRoutes.js";
 import announcementsRoutes from "./announcements.js"
+import auditsRoutes from "./audits.js";
 
 
 const router = Router();
@@ -31,6 +32,8 @@ router.use(queueRoutes);
 router.use(feedbacksRoutes);
 router.use(enrollmentRoutes); 
 router.use(announcementsRoutes);
+router.use(auditsRoutes);
+
 
 
 export default router;

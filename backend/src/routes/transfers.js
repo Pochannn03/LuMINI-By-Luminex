@@ -4,6 +4,7 @@ import { Transfer } from "../models/transfers.js";
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
 import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js";
 import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
 
@@ -88,6 +89,31 @@ router.get('/api/transfer/parent',
     } catch (err) {
       console.error("CRITICAL ERROR:", err);
       res.status(500).json({ success: false, error: "Internal Server Error" });
+    }
+});
+
+// FOR ANALLYTICS 
+router.get('/api/transfers/today-count', 
+  isAuthenticated,
+  hasRole('superadmin'),
+  async (req, res) => {
+    try {
+      // Correctly format today's date for Asia/Manila (YYYY-MM-DD)
+      const manilaDate = new Date().toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Manila'
+      }); 
+      // 'en-CA' is a trick to get YYYY-MM-DD format easily
+
+      const count = await Transfer.countDocuments({ date: manilaDate });
+
+      res.status(200).json({ 
+        success: true, 
+        count: count,
+        dateRef: manilaDate // Useful for debugging
+      });
+    } catch (err) {
+      console.error("Error fetching Manila today count:", err);
+      res.status(500).json({ success: false });
     }
 });
 
@@ -192,6 +218,15 @@ router.post('/api/transfer',
         newStatus: newStatus,
         purpose: purpose
       });
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Record Student Transfer",
+        target: `${purpose} ${studentName} by ${guardianName}`
+      });
+      await auditLog.save();
       
       return res.status(200).json({ 
             success: true,

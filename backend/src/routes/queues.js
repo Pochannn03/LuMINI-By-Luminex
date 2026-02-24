@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
-import { Transfer } from "../models/transfers.js"; 
+import { Transfer } from "../models/transfers.js";
+import { Audit } from "../models/audits.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
 import { Queue } from "../models/queues.js";
@@ -14,20 +15,29 @@ router.post('/api/queue',
   async (req, res) => {
   const { student_id, section_id, status, purpose } = req.body;
 
-  try {
-    const queueEntry = await Queue.findOneAndUpdate(
-    { user_id: req.user.user_id },
-    { 
-      student_id, 
-      section_id, 
-      status, 
-      purpose, 
-      on_queue: true,
-      created_at: new Date() 
-    },
-    { upsert: true, new: true }
-  ).populate('user_details');
+    try {
+      const queueEntry = await Queue.findOneAndUpdate(
+      { user_id: req.user.user_id },
+      { 
+        student_id, 
+        section_id, 
+        status, 
+        purpose, 
+        on_queue: true,
+        created_at: new Date() 
+      },
+      { upsert: true, new: true }
+    ).populate('user_details');
 
+    const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Queue Update",
+        target: `Status: ${status} | Purpose: ${purpose}`
+      });
+      await auditLog.save();
+      
     req.app.get('socketio').emit('new_queue_entry', queueEntry);
 
     res.json({ success: true });
@@ -118,6 +128,19 @@ router.patch('/api/queue/remove/:userId',
         { user_id: userId, on_queue: true }, 
         { on_queue: false }
       );
+
+      const targetName = queueData?.user_details 
+        ? `${queueData.user_details.first_name} ${queueData.user_details.last_name}` 
+        : `User ID: ${userId}`;
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Remove from Queue",
+        target: `Removed ${targetName} from the active queue`
+      });
+      await auditLog.save();
 
       req.app.get('socketio').emit('remove_queue_entry', Number(userId));
 
