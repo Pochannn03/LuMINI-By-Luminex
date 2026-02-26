@@ -58,7 +58,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   };
 
   const photoUrl = tch.profile_picture 
-    ? `http://localhost:3000/${tch.profile_picture}` 
+    ? `http://localhost:3000/${tch.profile_picture.replace(/\\/g, "/")}` 
     : "https://via.placeholder.com/45";
 
   const dateString = new Date(tch.created_at).toLocaleDateString();
@@ -131,8 +131,8 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
         onView={viewPendingAccModal}
         isClose={() => setViewPendingAccModal(false)}
         tch={tch} 
+        onSuccess={onSuccess} // <-- NEW: Passes the success function down to the review modal
       />
-
     </>
   );
 }
