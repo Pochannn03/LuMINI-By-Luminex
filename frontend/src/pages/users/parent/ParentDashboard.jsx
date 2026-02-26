@@ -13,6 +13,7 @@ import ParentFeedbackModal from ".././../../components/modals/user/parent/dashbo
 import ParentAbsenceModal from ".././../../components/modals/user/parent/dashboard/ParentAbsenceModal";
 import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal";
+import UserConfirmModal from "../../../components/modals/user/UserConfirmationModal";
 
 export default function Dashboard() {
   // AUTH PROVIDER INFORMATION
@@ -34,6 +35,7 @@ export default function Dashboard() {
   const [successMessage, setSuccessMessage] = useState("");
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [warningMessage, setWarningMessage] = useState("");
+  const [isEarlyPickupConfirmOpen, setIsEarlyPickupConfirmOpen] = useState(false);
 
   // USEEFFECT
   useEffect(() => {
@@ -149,21 +151,28 @@ export default function Dashboard() {
     };
   }, [rawStudentData, user]);
 
-  const handleStatusUpdate = async (statusLabel) => {
+  const handleStatusUpdate = async (statusLabel, isEarlyPickup = false) => {
     if (!rawStudentData) {
       console.error("Student data not loaded yet");
       return; 
     }
 
+    if (isEarlyPickup && childData?.status !== 'Learning') {
+      setWarningMessage("You can only request an Early Pickup if the student is currently 'Learning' at school.");
+      setIsWarningModalOpen(true);
+      return;
+    }
+
     try {
       setLoading(true);
-      const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
+      const transferType = isEarlyPickup ? 'Pick up' : (childData?.status === 'Learning' ? 'Pick up' : 'Drop off');
 
       const response = await axios.post('http://localhost:3000/api/queue', {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
         purpose: transferType,
+        isEarly: isEarlyPickup,
         on_queue: true
       }, { withCredentials: true });
 
@@ -344,6 +353,22 @@ export default function Dashboard() {
                       <div className="flex flex-col">
                         <span className="qa-title">Pickup History</span>
                         <span className="qa-desc">View past pickups and approvals</span>
+                      </div>
+                    </div>
+                    <span className="material-symbols-outlined arrow">chevron_right</span>
+                  </button>
+
+                  <button 
+                    className="quick-action-item"
+                    onClick={() => setIsEarlyPickupConfirmOpen(true)}
+                  >
+                    <div className="flex flex-row items-center">
+                      <div className="qa-icon">
+                        <span className="material-symbols-outlined mt-1">schedule</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="qa-title">Early Pickup</span>
+                        <span className="qa-desc">Notify school for immediate early departure</span>
                       </div>
                     </div>
                     <span className="material-symbols-outlined arrow">chevron_right</span>
@@ -538,6 +563,19 @@ export default function Dashboard() {
         onClose={() => setIsWarningModalOpen(false)}
         title="Too Early"
         message={warningMessage}
+      />
+
+      <UserConfirmModal
+        isOpen={isEarlyPickupConfirmOpen}
+        onClose={() => setIsEarlyPickupConfirmOpen(false)}
+        onConfirm={() => {
+          setIsEarlyPickupConfirmOpen(false);
+          handleStatusUpdate('At School', true);
+        }}
+        title="Request Early Pickup?"
+        message="By proceeding, you agree to further explain the reason for this early departure to the teacher-in-charge upon arrival."
+        confirmText="Confirm Request"
+        type="info"
       />
 
       <ParentDashboardQrScan 

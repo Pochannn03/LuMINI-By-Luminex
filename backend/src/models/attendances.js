@@ -57,10 +57,3 @@ AttendanceSchema.virtual('student_details', {
 
 export const Attendance = mongoose.model("Attendance", AttendanceSchema, "atn.attendance_student");
 
-
-  // accompanied_by: {
-  //   type: mongoose.Schema.Types.String,
-  //   required: true,
-  // },
-
-
