@@ -5,6 +5,7 @@ import { DashboardPendingAccCard } from "../../components/modals/super-admin/das
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import '../../styles/super-admin/super-admin-dashboard.css';
+import SuccessModal from "../../components/SuccessModal"; // <-- NEW: Imported Success Modal
 
 export default function SuperAdminDashboard() {
   const [loadingTeachers, setLoadingTeachers] = useState(true);
@@ -14,6 +15,12 @@ export default function SuperAdminDashboard() {
     totalTeachers: 0,
     totalParents: 0,
     loading: true
+  });
+
+  // --- NEW: SUCCESS MODAL STATE ---
+  const [successModalConfig, setSuccessModalConfig] = useState({
+    isOpen: false,
+    message: ""
   });
 
   useEffect(() => {
@@ -71,6 +78,13 @@ export default function SuperAdminDashboard() {
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
 
+      {/* --- NEW: RENDER THE SUCCESS MODAL --- */}
+      <SuccessModal 
+        isOpen={successModalConfig.isOpen}
+        onClose={() => setSuccessModalConfig({ isOpen: false, message: "" })}
+        message={successModalConfig.message}
+      />
+
       <NavBar />
 
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
@@ -90,7 +104,7 @@ export default function SuperAdminDashboard() {
                 <span className="material-symbols-outlined">groups</span>
               </div>
               <div className="stat-info">
-                <h3 id="statTotalStudents">{stats.loading ? "--" : stats.totalStudents}</h3> {/* This is where the data will be displayed */}
+                <h3 id="statTotalStudents">{stats.loading ? "--" : stats.totalStudents}</h3>
                 <p>Total Students</p>
               </div>
             </div>
@@ -102,7 +116,7 @@ export default function SuperAdminDashboard() {
                   >
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalTeachers">{stats.loading ? "--" : stats.totalTeachers}</h3> {/* This is where the data will be displayed */}
+                  <h3 id="statTotalTeachers">{stats.loading ? "--" : stats.totalTeachers}</h3> 
                   <p>Active Teachers</p>
                 </div>
               </div>
@@ -112,7 +126,7 @@ export default function SuperAdminDashboard() {
                   <span className="material-symbols-outlined">family_restroom</span>
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalParents">{stats.loading ? "--" : stats.totalParents}</h3> {/* This is where the data will be displayed */}
+                  <h3 id="statTotalParents">{stats.loading ? "--" : stats.totalParents}</h3>
                   <p>Parents and Guardians Registered</p>
                 </div>
             </div>
@@ -139,7 +153,8 @@ export default function SuperAdminDashboard() {
                 <DashboardPendingAccCard 
                   key={tch._id || tch.user_id} 
                   tch={tch}
-                  
+                  // --- NEW: Triggers the dashboard's success modal ---
+                  onSuccess={(msg) => setSuccessModalConfig({ isOpen: true, message: msg })}
                 />
               ))}
             </div>
@@ -219,7 +234,7 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
             
-            {/* Content Below is for Quick System Notification Hence Data Activities will replaced the static information below*/}
+            {/* Content Below is for Quick System Notification */}
             <div className="flex flex-col gap-4">
               <div className="queue-item">
                 <div className="success w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0">
