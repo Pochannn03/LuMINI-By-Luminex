@@ -13,10 +13,10 @@ router.post('/api/queue',
   isAuthenticated, 
   hasRole('user'),
   async (req, res) => {
-  const { student_id, section_id, status, purpose } = req.body;
+  const { student_id, section_id, status, purpose, isEarly } = req.body;
 
     try {
-      if (purpose === 'Pick up') {
+      if (purpose === 'Pick up' && !isEarly) {
         const student = await Student.findOne({ student_id }).populate('section_details');
         
         if (!student || !student.section_details) {
@@ -24,7 +24,6 @@ router.post('/api/queue',
         }
 
         const schedule = student.section_details.class_schedule;
-        
         const now = new Date();
         const manilaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
         const currentMins = (manilaTime.getHours() * 60) + manilaTime.getMinutes();
@@ -34,7 +33,7 @@ router.post('/api/queue',
 
         if (currentMins < windowOpenMins) {
           return res.status(403).json({ 
-            msg: `Pick-up window for the ${schedule} session hasn't opened yet. Please try again 20 minutes before class ends.` 
+            msg: `Pick-up window hasn't opened yet. Please try again 20 mins before dismissal.` 
           });
         }
       }
@@ -56,8 +55,8 @@ router.post('/api/queue',
         user_id: req.user.user_id,
         full_name: `${req.user.first_name} ${req.user.last_name}`,
         role: req.user.role,
-        action: "Queue Update",
-        target: `Status: ${status} | Purpose: ${purpose}`
+        action: isEarly ? "Early Pickup Request" : "Queue Update",
+        target: `Status: ${status} | Purpose: ${purpose}${isEarly ? ' (Bypassed Schedule)' : ''}`
       });
       await auditLog.save();
       
