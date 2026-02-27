@@ -110,3 +110,59 @@ export const sendInvitationEmail = async (toEmail, invitationCode, parentName, s
     return false;
   }
 };
+
+// Add this below your existing sendInvitationEmail function in utils/emailService.js
+
+/**
+ * Sends a secure OTP specifically for updating the user's password.
+ * @param {string} toEmail - The user's registered email
+ * @param {string} otpCode - The 6-digit OTP code
+ * @param {string} userName - The user's first name
+ */
+export const sendPasswordUpdateOTP = async (toEmail, otpCode, userName = "User") => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Security" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: 'LuMINI - Password Change Verification Code',
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #fef2f2; padding: 20px; text-align: center; border-bottom: 1px solid #fecaca;">
+            <h2 style="color: #991b1b; margin: 0; font-size: 20px;">Security Alert: Password Change Request</h2>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Hello <strong>${userName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              We successfully verified your facial biometrics. To complete the process of changing your password, please use the 6-digit verification code below:
+            </p>
+            
+            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #dc2626; display: block; font-family: monospace;">${otpCode}</span>
+            </div>
+            
+            <p style="color: #dc2626; font-size: 14px; text-align: center; font-weight: 600;">
+              ⚠️ This code will expire in exactly 5 minutes.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              If you did not request this password change, someone may be trying to access your account.<br/>
+              Please contact the school administration immediately.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Password Change OTP sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error sending Password Change OTP:", error);
+    return false;
+  }
+};

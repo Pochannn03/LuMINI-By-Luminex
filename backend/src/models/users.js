@@ -17,6 +17,10 @@ const UserSchema = new mongoose.Schema({
   facial_capture_image: { type: String, default: "" }, // Path to the snapshot
   facial_descriptor: { type: [Number], default: [] },  // The 128D array
 
+  // --- TEMPORARY SECURITY FIELDS ---
+  reset_otp: { type: String, default: null },
+  reset_otp_expires: { type: Date, default: null },
+
   phone_number: { type: String, required: true },
   address: { type: String, required: true },
   relationship: { 
