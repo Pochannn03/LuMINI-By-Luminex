@@ -7,10 +7,12 @@ import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
+import { RejectedTransferHistoryModal } from "../../components/modals/super-admin/dashboard/DashboardRejectedManualTransfer";
 
 export default function SuperAdminDashboard() {
   const [pendingOverrides, setPendingOverrides] = useState([]);
   const [loadingOverrides, setLoadingOverrides] = useState(false);
+  const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [pendingTeachers, setPendingTeachers] = useState([]); 
   const [stats, setStats] = useState({
@@ -90,6 +92,10 @@ export default function SuperAdminDashboard() {
           totalTeachers: prev.totalTeachers + 1
         }));
       }
+    });
+
+    socket.on('new_override_request', (newOverride) => {
+      setPendingOverrides(prev => [newOverride, ...prev]);
     });
 
     socket.on('override_processed', (data) => {
@@ -194,8 +200,15 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div className="card queue-card">
-            <div className="mb-6">
+            <div className="mb-6 flex items-center justify-between">
               <h2 className="text-cdark text-[18px]! font-bold!">Pending Manual Transfer</h2>
+              <button 
+                onClick={() => setShowRejectedModal(true)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[12px] font-bold transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">history</span>
+                Show Rejected
+              </button>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -326,6 +339,12 @@ export default function SuperAdminDashboard() {
 
       </div>
     </main>
+
+    <RejectedTransferHistoryModal 
+      isOpen={showRejectedModal} 
+      onClose={() => setShowRejectedModal(false)} 
+    />
+
     </div>
   );
 }

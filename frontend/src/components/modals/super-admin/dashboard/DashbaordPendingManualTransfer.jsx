@@ -5,7 +5,7 @@ import { DashboardReviewOverrideModal } from "./DasboardReviewManualTransfer";
 // You'll likely want a specific modal to view the ID Photo evidence
 // import { DashboardReviewOverrideModal } from './DashboardReviewOverrideModal';
 
-export function DashboardPendingOverrideCard({ ovr, onSuccess }) {
+export function DashboardPendingOverrideCard({ ovr, onSuccess, isClose }) {
   const [viewOverrideModal, setViewOverrideModal] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
@@ -18,9 +18,9 @@ export function DashboardPendingOverrideCard({ ovr, onSuccess }) {
   const triggerApprove = () => {
     setConfirmConfig({
       isOpen: true,
-      title: "Approve Override",
-      message: `Are you sure you want to officially record the ${ovr.purpose} for ${ovr.student_details?.first_name} ${ovr.student_details?.last_name}?`,
-      confirmText: "Yes, Record Transfer",
+      title: "Confirm Manual Transfer",
+      message: `Are you sure you want to officially record this ${ovr.purpose} for ${ovr.student_details?.first_name}?`,
+      confirmText: "Yes, Approve",
       type: "info",
       onConfirm: handleApproveAction
     });
@@ -39,10 +39,23 @@ export function DashboardPendingOverrideCard({ ovr, onSuccess }) {
 
   const handleApproveAction = async () => {
     try {
-      const { data } = await axios.patch(`http://localhost:3000/api/transfer/override/approve/${ovr._id}`, {}, { withCredentials: true });
-      if (data.success && onSuccess) onSuccess(data.msg);
+      const { data } = await axios.patch(
+        `http://localhost:3000/api/transfer/override/${ovr._id}/approve`, 
+        {}, 
+        { withCredentials: true }
+      );
+
+      if (data.success) {
+      if (typeof onSuccess === 'function') {
+        onSuccess(data.msg);
+      }
+      if (typeof isClose === 'function') {
+        isClose();
+      }
+    }
     } catch (err) {
-      alert(err.response?.data?.msg || "Approval failed");
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || "Approval failed";
+      alert(errorMsg);
     } finally {
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
@@ -50,12 +63,25 @@ export function DashboardPendingOverrideCard({ ovr, onSuccess }) {
 
   const handleRejectAction = async () => {
     try {
-      // For overrides, we usually PATCH to set is_approved: false rather than DELETE, 
-      // but that depends on your preference!
-      const { data } = await axios.patch(`http://localhost:3000/api/transfer/override/reject/${ovr._id}`, {}, { withCredentials: true });
-      if (data.success && onSuccess) onSuccess(data.msg);
+      // 1. Call the specific reject endpoint you provided
+      const { data } = await axios.patch(
+        `http://localhost:3000/api/transfer/override/${ovr._id}/reject`, 
+        {}, 
+        { withCredentials: true }
+      );
+
+      if (data.success) {
+        if (typeof onSuccess === 'function') {
+          onSuccess(data.msg); 
+        }
+        if (typeof isClose === 'function') {
+          isClose();
+        }
+      }
     } catch (err) {
-      alert(err.response?.data?.msg || "Rejection failed");
+      console.error("Rejection Error:", err);
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || "Rejection failed";
+      alert(errorMsg);
     } finally {
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
@@ -79,7 +105,7 @@ export function DashboardPendingOverrideCard({ ovr, onSuccess }) {
                 <span className="text-cdark text-[15px] font-bold">
                   {ovr.student_details?.first_name} {ovr.student_details?.last_name}
                 </span>
-                <span className={`text-[10px] px-2 py-0.5 -ml-2.5 rounded-full font-bold uppercase ${ovr.purpose === 'Pick up' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                <span className={`text-[10px] px-2 py-0.5 mb-1 rounded-full font-bold uppercase ${ovr.purpose === 'Pick up' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                     {ovr.purpose}
                 </span>
             </div>

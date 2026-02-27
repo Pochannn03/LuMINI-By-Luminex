@@ -39,15 +39,30 @@ const OverrideSchema = new mongoose.Schema({
     type: Boolean,
     required: true
   },
+  is_rejected: {
+    type: Boolean,
+    required: false
+  },
   created_at: {
     type: Date,
     default: Date.now
   }
-});
+}, {
+    toJSON: { virtuals: true }, 
+    toObject: { virtuals: true }
+  }
+);;
 
 OverrideSchema.virtual('user_details', {
   ref: 'User',          
   localField: 'user_id',
+  foreignField: 'user_id',
+  justOne: true
+});
+
+OverrideSchema.virtual('requester_details', {
+  ref: 'User',          
+  localField: 'requested_by',
   foreignField: 'user_id',
   justOne: true
 });

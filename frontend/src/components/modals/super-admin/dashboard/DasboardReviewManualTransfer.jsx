@@ -1,137 +1,226 @@
-import React from 'react';
-import axios from 'axios';
+import React, { useState } from "react";
 import { createPortal } from 'react-dom';
+import axios from 'axios';
+import FormInputRegistration from '../../../FormInputRegistration';
+import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal'; 
 
 export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }) {
+  const [confirmConfig, setConfirmConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+    onConfirm: () => {}
+  });
+
+  const [viewImage, setViewImage] = useState(null);
+
+  const requesterFullName = ovr.requester_details 
+    ? `${ovr.requester_details.first_name} ${ovr.requester_details.last_name}`
+    : "System/Unknown Staff";
+
   if (!onView || !ovr) return null;
 
-  const handleAction = async (actionType) => {
-    const endpoint = actionType === 'approve' ? 'approve' : 'reject';
+  const getImageUrl = (path) => {
+    if (!path) return null;
+    return `http://localhost:3000/${path.replace(/\\/g, "/")}`;
+  };
+
+  const evidenceUrl = getImageUrl(ovr.id_photo_evidence);
+  const formattedDate = new Date(ovr.created_at).toLocaleDateString();
+
+  const handleApproveAction = async () => {
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/transfer/override/${endpoint}/${ovr._id}`,
-        {},
+        `http://localhost:3000/api/transfer/override/${ovr._id}/approve`, 
+        {}, 
         { withCredentials: true }
       );
+
       if (data.success) {
-        onSuccess(data.msg);
-        isClose();
+        if (typeof onSuccess === 'function') onSuccess(data.msg);
+        if (typeof isClose === 'function') isClose();
       }
     } catch (err) {
-      alert(err.response?.data?.msg || `${actionType} failed`);
+      console.error("Approval Error:", err);
+      alert(err.response?.data?.error || err.response?.data?.msg || "Approval failed");
+    } finally {
+      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
   };
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+  const handleRejectAction = async () => {
+    try {
+      // 1. Calls your updated endpoint
+      const { data } = await axios.patch(
+        `http://localhost:3000/api/transfer/override/${ovr._id}/reject`, 
+        {}, 
+        { withCredentials: true }
+      );
+
+      if (data.success) {
+        // 2. Triggers the SuccessModal in the Dashboard
+        if (typeof onSuccess === 'function') onSuccess(data.msg);
         
-        {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <div>
-            <h2 className="text-xl font-bold text-cdark">Review Manual Transfer</h2>
-            <p className="text-sm text-cgray">Please verify the identity evidence provided by the teacher.</p>
-          </div>
-          <button onClick={isClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
-            <span className="material-symbols-outlined text-slate-500">close</span>
-          </button>
+        // 3. Closes this Review Modal
+        if (typeof isClose === 'function') isClose();
+      }
+    } catch (err) {
+      console.error("Rejection Error:", err);
+      // Standardizing error message extraction
+      const errorMsg = err.response?.data?.error || err.response?.data?.msg || "Rejection failed";
+      alert(errorMsg);
+    } finally {
+      // 4. Closes the AdminConfirmModal
+      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+    }
+  };
+
+  const triggerApprove = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: "Confirm Manual Transfer",
+      message: `Are you sure you want to record this ${ovr.purpose} for ${ovr.student_details?.first_name}?`,
+      confirmText: "Yes, Approve",
+      type: "info",
+      onConfirm: handleApproveAction // Pointing directly to the approve handler
+    });
+  };
+
+  const triggerReject = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: "Discard Transfer Record",
+      message: `This will mark the manual transfer for ${ovr.student_details?.first_name} as invalid.`,
+      confirmText: "Discard Record",
+      type: "danger",
+      onConfirm: handleRejectAction // Pointing directly to the reject handler
+    });
+  };
+
+  return createPortal(
+    <>
+      {viewImage && (
+        <div 
+          className="fixed inset-0 z-999999 bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-6 cursor-zoom-out"
+          onClick={() => setViewImage(null)}
+        >
+          <img 
+            src={viewImage} 
+            alt="Evidence Full View" 
+            className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-2xl border-4 border-white/20 object-contain"
+            onClick={(e) => e.stopPropagation()} 
+          />
         </div>
+      )}
 
-        {/* Content */}
-        <div className="overflow-y-auto p-6 space-y-6">
-          
-          {/* Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div>
-                <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400">Student</label>
-                <div className="flex items-center gap-3 mt-1">
-                  <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
-                    <span className="material-symbols-outlined">child_care</span>
-                  </div>
-                  <span className="font-semibold text-cdark">
-                    {ovr.student_details?.first_name} {ovr.student_details?.last_name}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400">Guardian / Presenter</label>
-                <p className="text-cdark font-medium mt-1">{ovr.user_name}</p>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${ovr.is_registered_guardian ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                  {ovr.is_registered_guardian ? 'REGISTERED GUARDIAN' : 'GUEST / UNAUTHORIZED'}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400">Purpose</label>
-                <div className={`mt-1 flex items-center gap-2 font-bold ${ovr.purpose === 'Pick up' ? 'text-orange-600' : 'text-blue-600'}`}>
-                   <span className="material-symbols-outlined text-[20px]">
-                    {ovr.purpose === 'Pick up' ? 'logout' : 'login'}
-                   </span>
-                   {ovr.purpose}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400">Requested At</label>
-                <p className="text-cdark text-sm mt-1">
-                  {new Date(ovr.created_at).toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
-                </p>
-              </div>
+      <div className="modal-overlay active">
+        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div className="flex items-center gap-2.5">
+              <span className="material-symbols-outlined orange-icon text-[24px]">policy</span>
+              <h2 className="text-[18px] m-0 font-bold">Review Manual Transfer</h2>
             </div>
           </div>
 
-          {/* ID Photo Evidence Section */}
-          <div className="space-y-3">
-            <label className="text-[11px] uppercase tracking-wider font-bold text-slate-400">ID Photo Evidence</label>
-            {ovr.id_photo_evidence ? (
-              <div className="relative group rounded-xl border-2 border-dashed border-slate-200 overflow-hidden bg-slate-50 aspect-video flex items-center justify-center">
-                <img 
-                  src={`http://localhost:3000/${ovr.id_photo_evidence.replace(/\\/g, '/')}`} 
-                  alt="Identity Evidence" 
-                  className="w-full h-full object-contain"
+          <div className="p-6 overflow-y-auto max-h-[70vh] custom-scrollbar text-center">
+            {/* Header: Student Name & Purpose (Smiley container removed) */}
+            <div className="mb-6">
+              <h3 className="text-[22px] font-bold text-cdark">
+                {ovr.student_details?.first_name} {ovr.student_details?.last_name}
+              </h3>
+              <p className="text-cgray text-[13px] font-bold uppercase tracking-[2px] mt-1">
+                {ovr.purpose}
+              </p>
+            </div>
+
+            {/* Guardian & Requestor Information */}
+            <div className="text-left mb-5">
+              <h4 className="text-cprimary-blue text-[12px] mb-3 font-bold uppercase tracking-wider">Guardian Details</h4>
+              <FormInputRegistration 
+                label="Guardian Name"
+                className='form-input-modal readOnly!'
+                value={ovr.user_name || ""}
+                readOnly={true}
+              />
+              <div className="flex gap-3 mt-4">
+                <FormInputRegistration 
+                  label="Guardian Type"
+                  className='form-input-modal readOnly!'
+                  value={ovr.is_registered_guardian ? "Registered" : "Guest (Unauthorized)"}
+                  readOnly={true}
                 />
-                <a 
-                  href={`http://localhost:3000/${ovr.id_photo_evidence}`} 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg shadow-sm text-xs font-bold flex items-center gap-2 hover:bg-white transition-all"
-                >
-                  <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                  View Full Resolution
-                </a>
+                <FormInputRegistration 
+                  label="Date Requested"
+                  className='form-input-modal readOnly!'
+                  value={formattedDate}
+                  readOnly={true}
+                />
               </div>
-            ) : (
-              <div className="p-8 rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 text-center">
-                <span className="material-symbols-outlined text-slate-300 text-4xl mb-2">no_photography</span>
-                <p className="text-slate-500 text-sm italic">No photo evidence was uploaded for this record.</p>
+
+              {/* NEW: Requesting Teacher Section */}
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <FormInputRegistration 
+                  label="Requested By (Staff/Teacher)"
+                  className='form-input-modal readOnly! font-bold!'
+                  value={requesterFullName}
+                  readOnly={true}
+                />
               </div>
-            )}
+            </div>
+
+            {/* Identity Verification Documents */}
+            <div className="text-left mb-2">
+              <h4 className="text-cprimary-blue text-[12px] mb-3 font-bold uppercase tracking-wider">Verification Evidence</h4>
+              <div className="flex gap-4">
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500">Provided ID Photo</span>
+                  {evidenceUrl ? (
+                    <div 
+                      className="w-full h-32 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
+                      onClick={() => setViewImage(evidenceUrl)}
+                    >
+                      <img src={evidenceUrl} alt="ID Photo" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="material-symbols-outlined text-white text-[24px]">zoom_in</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-32 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
+                      <span className="material-symbols-outlined mb-1 text-slate-300 text-[24px]">image_not_supported</span>
+                      No ID Provided
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button className="btn-modal close" onClick={isClose}>Close</button>
+            <div className="flex-1"></div>
+            <button className="btn-modal reject" onClick={triggerReject}>
+              <span className="material-symbols-outlined text-[18px]">close</span>
+              Reject
+            </button>
+            <button className="btn-modal approve" onClick={triggerApprove}>
+              <span className="material-symbols-outlined text-[18px]">check</span>
+              Approve
+            </button>
           </div>
         </div>
-
-        {/* Footer Actions */}
-        <div className="p-6 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
-          <button 
-            onClick={() => handleAction('reject')}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-all"
-          >
-            Discard Record
-          </button>
-          <button 
-            onClick={() => handleAction('approve')}
-            className="px-8 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">verified</span>
-            Approve & Record
-          </button>
-        </div>
-
       </div>
-    </div>,
+
+      <AdminConfirmModal 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        confirmText={confirmConfig.confirmText}
+        type={confirmConfig.type}
+      />
+    </>,
     document.body
   );
 }
