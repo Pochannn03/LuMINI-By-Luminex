@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Link } from 'react-router-dom';
+// THE FIX: Import useNavigate 
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthProvider';
 import { io } from "socket.io-client";
 import axios from 'axios';
@@ -16,10 +17,11 @@ import WarningModal from "../../../components/WarningModal";
 import UserConfirmModal from "../../../components/modals/user/UserConfirmationModal";
 
 export default function Dashboard() {
-  // AUTH PROVIDER INFORMATION
   const { user } = useAuth();
   
-  // STATES
+  // THE FIX: Initialize useNavigate
+  const navigate = useNavigate();
+  
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,6 @@ export default function Dashboard() {
   const [warningMessage, setWarningMessage] = useState("");
   const [isEarlyPickupConfirmOpen, setIsEarlyPickupConfirmOpen] = useState(false);
 
-  // USEEFFECT
   useEffect(() => {
     const fetchChild = async () => {
       try {
@@ -138,7 +139,6 @@ export default function Dashboard() {
           const isDuplicate = prev.some(ann => ann.announcement_id === newAnn.announcement_id);
           if (isDuplicate) return prev;
           
-          // Add new announcement to the top of the list
           return [newAnn, ...prev];
         });
       }
@@ -192,7 +192,6 @@ export default function Dashboard() {
     }
   };
 
-  // PASS CHECKER
   const hasActivePass = () => {
     const STORAGE_KEY = "lumini_pickup_pass";
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -208,7 +207,6 @@ export default function Dashboard() {
     return false;
   };
 
-  // HANDLERS
   const handleScanButtonClick = () => {
     if (hasActivePass()) {
       setShowPassModal(true);
@@ -230,7 +228,6 @@ export default function Dashboard() {
 
   const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
 
-  // HELPER FOR IMAGE
   const BACKEND_URL = "http://localhost:3000";
   const getImageUrl = (path) => {
     if (!path) return "../../../assets/placeholder_image.jpg"; 
@@ -238,20 +235,12 @@ export default function Dashboard() {
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // Check if they are blocked from using the dashboard
   const isUnassigned = !loading && childData && childData.sectionName === "Not Assigned";
 
   return(
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
-
-      {/* MAIN CONTENT AREA 
-        We added "relative" so the blocker modal stays trapped inside this box, 
-        leaving the NavBar completely clickable! 
-      */}
       <main className={`relative h-full p-6 animate-[fadeIn_0.4s_ease-out_forwards] ${isUnassigned ? 'overflow-hidden' : 'overflow-y-auto'}`}>
-        
-        {/* We wrap the dashboard content in a div that blurs itself out if unassigned */}
         <div className={`transition-all duration-300 ${isUnassigned ? 'blur-md pointer-events-none select-none opacity-50' : ''}`}>
           <section className="welcome-banner">
             <div>
@@ -263,9 +252,8 @@ export default function Dashboard() {
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
-            <div className="flex flex-col gap-6"> {/* Grid Left */}
+            <div className="flex flex-col gap-6"> 
               <div className="card flex flex-col items-center gap-7 py-10 px-6 bg-[#e1f5fe] border border-[#b3e5fc] rounded-[20px]">
-
                 <div className="flex flex-col items-center gap-1.5">
                   <div className="p-1 bg-white rounded-full shadow-[0_4px_12px_rgba(57,168,237,0.2)] mb-2">
                     <img 
@@ -332,7 +320,11 @@ export default function Dashboard() {
                 </div>
 
                 <div className="quick-actions-list">
-                  <button className="quick-action-item">
+                  {/* THE FIX: Added onClick to navigate to Guardian Management */}
+                  <button 
+                    className="quick-action-item"
+                    onClick={() => navigate('/parent/guardians')}
+                  >
                     <div className="flex flex-row items-center">
                       <div className="qa-icon">
                         <span className="material-symbols-outlined mt-1">group</span>
@@ -345,7 +337,11 @@ export default function Dashboard() {
                     <span className="material-symbols-outlined arrow">chevron_right</span>
                   </button>
 
-                  <button className="quick-action-item">
+                  {/* THE FIX: Added onClick to navigate to Pickup History */}
+                  <button 
+                    className="quick-action-item"
+                    onClick={() => navigate('/parent/history')}
+                  >
                     <div className="flex flex-row items-center">
                       <div className="qa-icon">
                         <span className="material-symbols-outlined mt-1">history</span>
@@ -376,7 +372,7 @@ export default function Dashboard() {
 
                   <button 
                     className="quick-action-item" 
-                    onClick={() => setIsAbsenceModalOpen(true)} // Add this line
+                    onClick={() => setIsAbsenceModalOpen(true)}
                   >
                     <div className="flex flex-row items-center">
                       <div className="qa-icon">
@@ -393,7 +389,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-6"> {/* Right Grid */}
+            <div className="flex flex-col gap-6">
               <div className="card py-8 px-6 flex flex-col items-center text-center">
                 <div>
                   <h2 className="text-cdark text-[20px] font-bold mb-2">
@@ -468,7 +464,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Added max-h and overflow-y-auto here */}
                 <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"> 
                   {loadingAnnouncements ? (
                     <p className="text-center text-cgray py-4">Loading updates...</p>

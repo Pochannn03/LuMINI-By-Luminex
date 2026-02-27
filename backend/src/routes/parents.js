@@ -60,13 +60,18 @@ router.post("/api/invitations/validate", async (req, res) => {
 // PARENT REGISTRATION (PHASE II)
 router.post(
   "/api/parents",
-  upload.single("profile_photo"),
+  // THE FIX: Use upload.fields to catch both images!
+  upload.fields([
+    { name: 'profile_photo', maxCount: 1 },
+    { name: 'facialCapture', maxCount: 1 }
+  ]),
   ...checkSchema(createUserValidationSchema),
   async (req, res) => {
     const result = validationResult(req);
 
     if (!result.isEmpty()) {
-      if (req.file) fs.unlinkSync(req.file.path);
+      if (req.files && req.files['profile_photo']) fs.unlinkSync(req.files['profile_photo'][0].path);
+      if (req.files && req.files['facialCapture']) fs.unlinkSync(req.files['facialCapture'][0].path);
       return res.status(400).send({ errors: result.array() });
     }
 
@@ -78,25 +83,42 @@ router.post(
       });
 
       if (!student) {
-        if (req.file) fs.unlinkSync(req.file.path);
+        if (req.files && req.files['profile_photo']) fs.unlinkSync(req.files['profile_photo'][0].path);
+        if (req.files && req.files['facialCapture']) fs.unlinkSync(req.files['facialCapture'][0].path);
         return res.status(404).send({ msg: "Invalid invitation code." });
       }
 
       if (student.invitation_status === "used") {
-        if (req.file) fs.unlinkSync(req.file.path);
-        return res
-          .status(400)
-          .send({ msg: "This code has already been used." });
+        if (req.files && req.files['profile_photo']) fs.unlinkSync(req.files['profile_photo'][0].path);
+        if (req.files && req.files['facialCapture']) fs.unlinkSync(req.files['facialCapture'][0].path);
+        return res.status(400).send({ msg: "This code has already been used." });
       }
 
       const hashedPassword = await hashPassword(data.password);
+
+      // --- GRAB THE NEW BIOMETRIC DATA ---
+      let facialCapturePath = "";
+      if (req.files && req.files['facialCapture']) {
+        facialCapturePath = req.files['facialCapture'][0].path.replace(/\\/g, "/");
+      }
+
+      let parsedDescriptor = [];
+      // Note: Data coming from FormData text fields uses req.body directly
+      if (req.body.facialDescriptor) {
+        parsedDescriptor = JSON.parse(req.body.facialDescriptor);
+      }
 
       const newUser = new User({
         ...data,
         password: hashedPassword,
         relationship: "Parent",
         role: "user",
-        profile_picture: req.file ? req.file.path.replace(/\\/g, "/") : null,
+        profile_picture: (req.files && req.files['profile_photo']) ? req.files['profile_photo'][0].path.replace(/\\/g, "/") : null,
+        
+        // --- SAVE BIOMETRICS TO MONGOOSE ---
+        facial_capture_image: facialCapturePath,
+        facial_descriptor: parsedDescriptor,
+        
         is_archive: false,
       });
 
@@ -105,7 +127,6 @@ router.post(
       student.user_id.push(savedUser.user_id);
       student.invitation_status = "used";
       student.invitation_used_at = Date.now();
-
       await student.save();
 
       const auditLog = new Audit({
@@ -122,12 +143,10 @@ router.post(
         user: savedUser,
       });
     } catch (err) {
-      // Clean up uploaded file if the database fails
-      if (req.file) fs.unlinkSync(req.file.path);
+      if (req.files && req.files['profile_photo']) fs.unlinkSync(req.files['profile_photo'][0].path);
+      if (req.files && req.files['facialCapture']) fs.unlinkSync(req.files['facialCapture'][0].path);
       console.error("Registration Error:", err);
-      return res
-        .status(500)
-        .send({ msg: "Registration failed", error: err.message });
+      return res.status(500).send({ msg: "Registration failed", error: err.message });
     }
   },
 );
