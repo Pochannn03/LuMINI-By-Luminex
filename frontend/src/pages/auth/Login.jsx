@@ -259,9 +259,9 @@ export default function Login() {
                   <input type="checkbox" id="remember-me" className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"/>
                   <label htmlFor="remember-me" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
                 </div>
-                <a href="#" className="text-sm lg:text-base font-semibold text-(--brand-blue)]hover:text-blue-600 transition-colors">
+                <Link to="/forgot-password" className="text-sm lg:text-base font-semibold text-[var(--brand-blue)] hover:text-blue-600 transition-colors">
                   Forgot Password?
-                </a>
+                </Link>
               </div>
 
               {/* Submit Button */}

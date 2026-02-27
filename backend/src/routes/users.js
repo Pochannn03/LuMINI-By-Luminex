@@ -6,6 +6,11 @@ import { editUserValidationSchema } from "../validation/editAccountsValidation.j
 import { validationResult, body, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { hashPassword } from '../utils/passwordUtils.js';
+
+// --- ADDED EMAIL SERVICE AND CRYPTO HERE ---
+import { sendPasswordUpdateOTP } from '../utils/emailService.js';
+import crypto from 'crypto'; 
+
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -35,14 +40,8 @@ router.get('/api/users',
   hasRole('superadmin'),
   async (req, res) => {
     try{
-      
       const users = await User.find({ role: { $ne: 'superadmin' } });
-
-      res.status(200).json({ 
-        success: true, 
-        users: users || [], 
-      });
-  
+      res.status(200).json({ success: true, users: users || [], });
     } catch(err) {
       console.error("Error fetching students:", err);
       res.status(500).json({ msg: "Server error while fetching students" });
@@ -55,27 +54,10 @@ router.get('/api/users/cards',
   hasRole('superadmin'),
   async (req, res) => {
     try{
-
-      const teachers = await User.find({ 
-        is_archive: false, 
-        relationship: 'Teacher'
-      });
-      
-      const users = await User.find({ 
-        is_archive: false, 
-        relationship: { 
-          $in: ['Parent', 'Guardian'] 
-        } 
-      });
-
-      const students = await Student.find({
-        is_archive: false,
-      })
-
-      const pendingTeachers = await User.find({ 
-        is_archive: true, 
-        relationship: 'Teacher'
-      }).sort({ created_at: -1 });
+      const teachers = await User.find({ is_archive: false, relationship: 'Teacher' });
+      const users = await User.find({ is_archive: false, relationship: { $in: ['Parent', 'Guardian'] } });
+      const students = await Student.find({ is_archive: false });
+      const pendingTeachers = await User.find({ is_archive: true, relationship: 'Teacher' }).sort({ created_at: -1 });
 
     res.status(200).json({ 
       success: true, 
@@ -84,7 +66,6 @@ router.get('/api/users/cards',
       students: students || [],
       pending_teachers: pendingTeachers || []
     });
-  
     } catch(err) {
       console.error("Error fetching students:", err);
       res.status(500).json({ msg: "Server error while fetching students" });
@@ -99,19 +80,14 @@ router.put('/api/users/:id',
   ...checkSchema(editUserValidationSchema),
   async (req, res) => {
     const result = validationResult(req);
-
     if (!result.isEmpty()) {
       return res.status(400).send({ errors: result.array() });
     }
     
     const userId = req.params.id;
-    const updateData = {
-        ...req.body
-    };
+    const updateData = { ...req.body };
     
-    if (req.file) {
-        updateData.profile_picture = req.file.path; 
-    }
+    if (req.file) updateData.profile_picture = req.file.path; 
 
     if (updateData.password && updateData.password.trim() !== "") {
         try {
@@ -125,18 +101,8 @@ router.put('/api/users/:id',
     }
 
     try {
-      const updatedUser = await User.findByIdAndUpdate(
-        userId, 
-        updateData, 
-        { 
-          new: true,          
-          runValidators: true  
-        }
-      )
-
-      if (!updatedUser) {
-        return res.status(404).json({ success: false, msg: "Class not found" });
-      }
+      const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true, runValidators: true })
+      if (!updatedUser) return res.status(404).json({ success: false, msg: "User not found" });
 
       const auditLog = new Audit({
         user_id: req.user.user_id,
@@ -147,12 +113,7 @@ router.put('/api/users/:id',
       });
       await auditLog.save();
 
-      return res.status(200).json({ 
-        success: true, 
-        msg: "Class updated successfully!", 
-        class: updatedUser 
-      });
-
+      return res.status(200).json({ success: true, msg: "User updated successfully!", user: updatedUser });
     } catch (err) {
       console.error("Update Error:", err);
       return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
@@ -165,17 +126,9 @@ router.put('/api/users/archive/:id',
   hasRole('superadmin'),
   async (req, res) => {
     const userId = req.params.id;
-
     try {
-      const archiveUser = await User.findByIdAndUpdate(
-        userId, 
-        { is_archive: true }, 
-        { new: true, runValidators: true }
-      );
-
-      if (!archiveUser) {
-        return res.status(404).json({ success: false, msg: "User not found" });
-      }
+      const archiveUser = await User.findByIdAndUpdate(userId, { is_archive: true }, { new: true, runValidators: true });
+      if (!archiveUser) return res.status(404).json({ success: false, msg: "User not found" });
 
       const auditLog = new Audit({
         user_id: req.user.user_id,
@@ -186,15 +139,10 @@ router.put('/api/users/archive/:id',
       });
       await auditLog.save();
 
-      return res.status(200).json({ 
-        success: true, 
-        msg: "User archived successfully.", 
-        user: archiveUser 
-      });
-
+      return res.status(200).json({ success: true, msg: "User archived successfully.", user: archiveUser });
     } catch (err) {
       console.error("Archive Error:", err);
-      return res.status(500).json({ success: false, msg: "Failed to archive Student", error: err.message });
+      return res.status(500).json({ success: false, msg: "Failed to archive user", error: err.message });
     }
 })
 
@@ -220,8 +168,7 @@ router.get("/api/user/profile", (req, res) => {
   res.status(200).json(userProfile);
 });
 
-// PUT /api/user/profile
-// Description: Update user contact details, Profile Picture, AND Password
+// PUT /api/user/profile (Updates Contact/Address/Profile Picture ONLY)
 router.put("/api/user/profile", 
   upload.single('profile_picture'), 
   async (req, res) => {
@@ -230,33 +177,24 @@ router.put("/api/user/profile",
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const { phone_number, address, email, password } = req.body;
-
+    const { phone_number, address, email } = req.body;
     const updateFields = {};
     if (phone_number !== undefined) updateFields.phone_number = phone_number;
     if (address !== undefined) updateFields.address = address;
     if (email !== undefined) updateFields.email = email;
 
-    if (password && password.trim() !== "") {
-        updateFields.password = await hashPassword(password);
-    }
-
     if (req.file) {
         updateFields.profile_picture = req.file.path;
-
         const currentUser = await User.findById(req.user._id);
 
-        // --- THE FIX: SAFETY BUBBLE AROUND DELETION ---
         if (currentUser && currentUser.profile_picture) {
             try {
                 const oldImagePath = path.join(process.cwd(), currentUser.profile_picture);
-                // Ensure it exists AND is actually a file, not a directory
                 if (fs.existsSync(oldImagePath) && fs.statSync(oldImagePath).isFile()) {
                     fs.unlinkSync(oldImagePath);
                 }
             } catch (fsError) {
                 console.error("Non-fatal error: Could not delete old image:", fsError);
-                // We ignore this error so the rest of the save process continues!
             }
         }
     }
@@ -267,9 +205,7 @@ router.put("/api/user/profile",
         { new: true, runValidators: true } 
     );
 
-    if (!updatedUser) {
-        return res.status(404).json({ message: "User not found in database." });
-    }
+    if (!updatedUser) return res.status(404).json({ message: "User not found in database." });
 
     const auditLog = new Audit({
       user_id: req.user.user_id,
@@ -284,7 +220,6 @@ router.put("/api/user/profile",
     
   } catch (err) {
     console.error("Update Profile Error:", err);
-    // --- THE FIX: Return the exact Mongoose error message to the frontend ---
     res.status(500).json({ message: err.message || "Failed to update profile" });
   }
 });
@@ -299,36 +234,95 @@ router.get('/api/users/demographics',
 
       const demographics = await User.aggregate([
         { $match: query },
-        {
-          $group: {
-            _id: "$role",
-            count: { $sum: 1 }
-          }
-        }
+        { $group: { _id: "$role", count: { $sum: 1 } } }
       ]);
 
       const totalCount = await User.countDocuments(query);
-
-      const stats = {
-        teachers: { count: 0, color: "#f59e0b" },
-        users: { count: 0, color: "#39a8ed" } 
-      };
+      const stats = { teachers: { count: 0, color: "#f59e0b" }, users: { count: 0, color: "#39a8ed" } };
 
       demographics.forEach(item => {
         if (item._id === 'admin') stats.teachers.count = item.count;
         if (item._id === 'user') stats.users.count = item.count;
       });
 
-      res.status(200).json({ 
-        success: true, 
-        total: totalCount,
-        stats: stats
-      });
-  
+      res.status(200).json({ success: true, total: totalCount, stats: stats });
     } catch(err) {
       console.error("Demographics Fetch Error:", err);
       res.status(500).json({ msg: "Failed to fetch user demographics" });
     }
+});
+
+// =========================================================
+// ROUTE 1: Request Password Change OTP (FACIAL BIOMETRICS SUCCESS)
+// =========================================================
+router.post('/api/user/request-password-otp', isAuthenticated, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.email) {
+      return res.status(400).json({ message: "User or email not found." });
+    }
+
+    // 1. Generate a 6-digit numeric OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    // 2. Save it to the database with a 5-minute expiration
+    user.reset_otp = otp;
+    user.reset_otp_expires = Date.now() + 5 * 60 * 1000; 
+    await user.save();
+
+    // 3. Send the email
+    const emailSent = await sendPasswordUpdateOTP(user.email, otp, user.first_name);
+
+    if (emailSent) {
+      return res.status(200).json({ message: "OTP sent successfully!" });
+    } else {
+      return res.status(500).json({ message: "Failed to send email. Please try again." });
+    }
+
+  } catch (error) {
+    console.error("OTP Generation Error:", error);
+    res.status(500).json({ message: "Server error generating OTP." });
+  }
+});
+
+// =========================================================
+// ROUTE 2: Verify OTP & Actually Change Password
+// =========================================================
+router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) => {
+  try {
+    const { otp, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+
+    // 1. Validate the OTP exists and hasn't expired
+    if (!user.reset_otp || !user.reset_otp_expires) {
+      return res.status(400).json({ message: "No OTP requested." });
+    }
+    
+    if (Date.now() > user.reset_otp_expires) {
+      user.reset_otp = null;
+      user.reset_otp_expires = null;
+      await user.save();
+      return res.status(400).json({ message: "OTP has expired. Please request a new one." });
+    }
+
+    if (user.reset_otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP. Please try again." });
+    }
+
+    // 2. OTP is valid! Hash the new password and save it
+    user.password = await hashPassword(newPassword);
+    
+    // 3. Clear the OTP fields
+    user.reset_otp = null;
+    user.reset_otp_expires = null;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully!" });
+
+  } catch (error) {
+    console.error("OTP Verification Error:", error);
+    res.status(500).json({ message: "Server error verifying OTP." });
+  }
 });
 
 export default router;
