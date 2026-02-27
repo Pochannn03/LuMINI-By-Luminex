@@ -16,11 +16,26 @@ router.post('/api/queue',
   const { student_id, section_id, status, purpose, isEarly } = req.body;
 
     try {
+      const student = await Student.findOne({ student_id }).populate('section_details');
+      
+      if (!student) {
+        return res.status(400).json({ msg: "Student not found." });
+      }
+
+      if (student.status === 'Dismissed') {
+        return res.status(403).json({ msg: "Student is already dismissed and no longer at school." });
+      }
+
       if (purpose === 'Pick up' && !isEarly) {
         const student = await Student.findOne({ student_id }).populate('section_details');
         
         if (!student || !student.section_details) {
           return res.status(400).json({ msg: "Student or Section data not found." });
+        }
+        if (student.status === 'Dismissed') {
+          return res.status(403).json({ 
+            msg: `Pick-up window hasn't opened yet. Please try again 20 mins before dismissal.` 
+          });
         }
 
         const schedule = student.section_details.class_schedule;

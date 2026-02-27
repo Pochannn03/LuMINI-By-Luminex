@@ -2,12 +2,15 @@ import React, { useState, useEffect} from "react";
 import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
+import { DashboardPendingOverrideCard } from "../../components/modals/super-admin/dashboard/DashbaordPendingManualTransfer";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
+import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
-import SuccessModal from "../../components/SuccessModal"; // <-- NEW: Imported Success Modal
 
 export default function SuperAdminDashboard() {
+  const [pendingOverrides, setPendingOverrides] = useState([]);
+  const [loadingOverrides, setLoadingOverrides] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [pendingTeachers, setPendingTeachers] = useState([]); 
   const [stats, setStats] = useState({
@@ -22,6 +25,7 @@ export default function SuperAdminDashboard() {
     isOpen: false,
     message: ""
   });
+  
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
@@ -51,6 +55,30 @@ export default function SuperAdminDashboard() {
   }, []);
 
   useEffect(() => {
+    const fetchPendingOverrides = async () => {
+        setLoadingOverrides(true);
+        try {
+            const response = await axios.get('http://localhost:3000/api/transfer/override', { 
+                withCredentials: true 
+            });
+
+            if (response.data.success) {
+                // Update your state with the populated data from the backend
+                setPendingOverrides(response.data.overrides || []);
+                setLoadingOverrides(false);
+            }
+        } catch (error) {
+            console.error("Error fetching pending overrides:", error);
+            // Ensure loading turns off even if the server throws an error
+            setLoadingOverrides(false);
+        }
+    };
+
+    fetchPendingOverrides();
+  }, []);
+  
+
+  useEffect(() => {
     const socket = io("http://localhost:3000", { withCredentials: true });
 
     socket.on('teacher_processed', (data) => {
@@ -62,6 +90,10 @@ export default function SuperAdminDashboard() {
           totalTeachers: prev.totalTeachers + 1
         }));
       }
+    });
+
+    socket.on('override_processed', (data) => {
+      setPendingOverrides(prev => prev.filter(ovr => ovr._id !== data.id));
     });
 
     socket.on('teacher_registered', (newTeacher) => {
@@ -160,6 +192,37 @@ export default function SuperAdminDashboard() {
             </div>
 
           </div>
+
+          <div className="card queue-card">
+            <div className="mb-6">
+              <h2 className="text-cdark text-[18px]! font-bold!">Pending Manual Transfer</h2>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* Use loadingOverrides instead of loadingTeachers */}
+              {loadingOverrides && (
+                <p className="text-cgray p-[15px]">Loading Manual Transfers...</p>
+              )}
+
+              {/* Use pendingOverrides state */}
+              {!loadingOverrides && pendingOverrides.length === 0 && (
+                <p className="text-cgray p-[15px] text-sm">No Pending Manual Transfer Found.</p>
+              )}
+
+              {!loadingOverrides && pendingOverrides.map((ovr) => (
+                <DashboardPendingOverrideCard 
+                  key={ovr._id} 
+                  ovr={ovr}
+                  onSuccess={(msg) => {
+                    setSuccessModalConfig({ isOpen: true, message: msg });
+                    // Optional: Remove the item from local state so it disappears immediately
+                    setPendingOverrides(prev => prev.filter(item => item._id !== ovr._id));
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
         </div>
 
         <div className="flex flex-col gap-6">

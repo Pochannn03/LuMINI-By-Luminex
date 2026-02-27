@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [rawStudentData, setRawStudentData] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
   const [isEarlyPickupConfirmOpen, setIsEarlyPickupConfirmOpen] = useState(false);
 
@@ -158,6 +159,7 @@ export default function Dashboard() {
     }
 
     if (isEarlyPickup && childData?.status !== 'Learning') {
+      setWarningTitle("Action Restricted");
       setWarningMessage("You can only request an Early Pickup if the student is currently 'Learning' at school.");
       setIsWarningModalOpen(true);
       return;
@@ -182,7 +184,15 @@ export default function Dashboard() {
 
     } catch (err) {
       if (err.response?.status === 403) {
-      setWarningMessage(err.response.data.msg);
+      const msg = err.response.data.msg;
+      
+      if (msg.toLowerCase().includes("dismissed")) {
+        setWarningTitle("Student Dismissed");
+      } else {
+        setWarningTitle("Too Early");
+      }
+
+      setWarningMessage(msg);
       setIsWarningModalOpen(true);
       } else {
         alert(err.response?.data?.msg || "Failed to join the queue");
@@ -561,7 +571,7 @@ export default function Dashboard() {
       <WarningModal 
         isOpen={isWarningModalOpen}
         onClose={() => setIsWarningModalOpen(false)}
-        title="Too Early"
+        title={warningTitle}
         message={warningMessage}
       />
 

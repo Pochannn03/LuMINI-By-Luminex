@@ -7,8 +7,29 @@ import { User } from "../models/users.js";
 import { Audit } from "../models/audits.js";
 import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
+import { Override } from '../models/manualTransfers.js';
+import multer from 'multer';
+import path from 'path';
+import fs from "fs";
 
 const router = Router();
+
+const uploadDir = 'uploads/override';
+if (!fs.existsSync(uploadDir)){
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir); 
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'student-' + uniqueSuffix + path.extname(file.originalname)); 
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // GET THE PICK UP AND DROP OFF HISTORY (TEACHER)
 router.get('/api/transfer',
@@ -109,7 +130,7 @@ router.get('/api/transfers/today-count',
       res.status(200).json({ 
         success: true, 
         count: count,
-        dateRef: manilaDate // Useful for debugging
+        dateRef: manilaDate 
       });
     } catch (err) {
       console.error("Error fetching Manila today count:", err);
@@ -243,5 +264,108 @@ router.post('/api/transfer',
         return res.status(500).json({ error: "Failed to record transfer: " + error.message });
     }
 });
+
+router.post('/api/transfer/override',
+  isAuthenticated,
+  hasRole('admin'), 
+  upload.single('idPhoto'),
+  async (req, res) => {
+    try {
+      const { studentId, purpose, isRegistered, guardianId, manualGuardianName } = req.body;
+      const requestedBy = req.user.user_id;
+
+      const studentDetails = await Student.findOne({ student_id: studentId });
+      const studentName = `${studentDetails.first_name} ${studentDetails.last_name}`
+
+      let overrideData = {
+        requested_by: requestedBy,
+        student_id: studentId,
+        purpose,
+        is_registered_guardian: isRegistered === 'true'
+      };
+
+      if (isRegistered === 'true') {
+        if (!guardianId) {
+            return res.status(400).json({ error: "Guardian selection is required for registered path." });
+        }
+
+        const userDetail = await User.findOne({ user_id: guardianId });
+        if (!userDetail) {
+            return res.status(404).json({ error: "Registered guardian not found." });
+        }
+
+        overrideData.user_id = guardianId;
+        overrideData.user_name = `${userDetail.first_name} ${userDetail.last_name}`;
+        overrideData.is_approved = false
+      } else {
+        if (!manualGuardianName) {
+            return res.status(400).json({ error: "Guest name is required." });
+        }
+        if (!req.file) {
+            return res.status(400).json({ error: "ID photo evidence is required for guests." });
+        }
+        overrideData.user_name = manualGuardianName;
+        overrideData.id_photo_evidence = req.file.path;
+        overrideData.is_approved = false
+
+      }
+
+      const newOverride = new Override(overrideData);
+      await newOverride.save();
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Manual Process Override",
+        target: `${purpose} for ${studentName} by ${isRegistered === 'true' ? `Registered Guardian` : `Guest: ${manualGuardianName}`}`
+      });
+      await auditLog.save();
+
+      const io = req.app.get('socketio');
+      if (io) {
+        io.emit('new_override_request', populatedOverride);
+      }
+
+      return res.status(201).json({ 
+        success: true, 
+        msg: "Emergency transfer recorded successfully.",
+        data: newOverride 
+      });
+
+      } catch (err) {
+        console.error("Override Error:", err);
+        return res.status(500).json({ 
+            error: "Internal server error. Failed to process override." 
+        });
+      }
+    }
+);
+
+router.get('/api/transfer/override',
+    isAuthenticated,
+    hasRole('superadmin'),
+    async (req, res) => {
+      try {
+        const pendingOverrides = await Override.find({ is_approved: false })
+                                                .populate('student_details') 
+                                                .populate('user_details')
+                                                .sort({ created_at: -1 });
+
+        return res.status(200).json({
+            success: true,
+            count: pendingOverrides.length,
+            overrides: pendingOverrides
+        });
+
+      } catch (err) {
+          console.error("Fetch Overrides Error:", err);
+          return res.status(500).json({ 
+              error: "Failed to retrieve pending manual transfers." 
+          });
+      }
+    }
+);
+
 
 export default router;

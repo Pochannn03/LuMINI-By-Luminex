@@ -7,11 +7,15 @@ import AdminQueueParentGuardian from "../../components/modals/admin/dashboard/Ad
 import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
 import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
 import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActionModal';
+import AdminEmergencyOverrideModal from "../../components/modals/admin/dashboard/AdminEmergencyOverride";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function AdminDashboard() {
   // REF
   const teacherSections = useRef([]);
+
+  // EMERGENCY OVERRIDE STATE
+  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
 
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
@@ -37,6 +41,7 @@ export default function AdminDashboard() {
   // STUDENT QR AUTHENTICATION (ATTENDANCE)
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [scannedStudentData, setScannedStudentData] = useState(null);
+  
 
   // GETTING INFORMATION
   const handleScanSuccess = async (rawValue) => {
@@ -237,6 +242,20 @@ export default function AdminDashboard() {
     setAnnouncementData(prev => ({ ...prev, [name]: value }));
   };
 
+  // SUCCESS OVERRIDE
+  const handleOverrideSuccess = (msg) => {
+    setTransferSuccessData({
+      type: 'success',
+      title: 'Override Successful',
+      message: msg,
+      details: [
+        { label: 'Method', value: 'Manual Emergency Entry' },
+        { label: 'Status', value: 'Waiting For Approval' },
+        { label: 'Note', value: 'Please remind the User that this transfer will not be officially recorded in the Transfer History until approved by a SuperAdmin.' }
+      ]
+    });
+  };
+
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
@@ -280,13 +299,13 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="card emergency-card">
+          <div className="card emergency-card" onClick={() => setIsOverrideModalOpen(true)}>
             <div className="emergency-card-wrapper">
               <span className="material-symbols-outlined shrink-0">e911_emergency</span>
             </div>
             <div>
-              <h3 className="text-[#c53030] text-[16px]! font-bold mb-0.5">Emergency Override</h3>
-              <p className="text-[#742a2a] text-[12px]!">Alert staff and override dismissal process.</p>
+              <h3 className="text-[#c53030] text-[16px]! font-bold mb-0.5">Transfer Override</h3>
+              <p className="text-[#742a2a] text-[12px]!">Override standard student transfer process.</p>
             </div>
             <span className="material-symbols-outlined arrow-icon ml-auto text-[#c53030]!">arrow_forward</span>
           </div>
@@ -396,6 +415,12 @@ export default function AdminDashboard() {
         </div>
         </div>
       </main>
+
+      <AdminEmergencyOverrideModal 
+        isOpen={isOverrideModalOpen}
+        onClose={() => setIsOverrideModalOpen(false)}
+        onSuccess={handleOverrideSuccess}
+      />
 
       <AdminDashboardQrScan 
         isOpen={!!activeScanMode}

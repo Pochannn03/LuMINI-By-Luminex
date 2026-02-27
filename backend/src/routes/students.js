@@ -456,10 +456,8 @@ router.get("/api/students/teacher/totalStudents",
                 time: section.class_schedule,
                 color: colors[index % colors.length], 
                 
-                // 👇 THIS IS THE MISSING PIECE! 👇
                 code: section.section_code, 
                 
-                // --- UPDATED: Send ALL the necessary data to the frontend ---
                 students: studentsList.map(student => ({
                     _id: student._id,
                     id: student.student_id, 
@@ -532,5 +530,6 @@ router.post('/api/students/send-invitation',
     return res.status(500).json({ success: false, msg: "Server error while sending email." });
   }
 });
+
 
 export default router;
