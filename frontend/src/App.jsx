@@ -27,6 +27,7 @@ import PickupAndDropoffHistory from "./pages/users/parent/ParentPickupAndDropoff
 import ParentEnrollment from "./pages/ParentEnrollment";
 import EnrollmentApproval from "./pages/admin-teacher/EnrollmentApproval";
 import SuperAdminBulkRegistration from "./pages/super-admin/SuperAdminBulkRegistration";
+import GuardianPickupAndDropOffHistory from "../../frontend/src/pages/users/guardian/GuardianPickupAndDropOffHistory";
 
 export default function App() {
   return (
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="/guardian/setup" element={<GuardianSetup />} />
           <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> 
           <Route path="/guardian/profile" element={<GuardianProfile />} /> 
+          <Route path="/guardian/history" element={<GuardianPickupAndDropOffHistory />} />
         </Route>
 
         {/* SHARED ROUTE OF USER */}

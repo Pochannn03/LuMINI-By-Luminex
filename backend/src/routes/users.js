@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
-// import { Counter } from '../models/counter.js';
+import { Audit } from "../models/audits.js";
 import { editUserValidationSchema } from "../validation/editAccountsValidation.js";
 import { validationResult, body, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
@@ -129,7 +129,7 @@ router.put('/api/users/:id',
         userId, 
         updateData, 
         { 
-          new: true,           
+          new: true,          
           runValidators: true  
         }
       )
@@ -199,7 +199,6 @@ router.put('/api/users/archive/:id',
 })
 
 router.get("/api/user/profile", (req, res) => {
-  // 1. Check if user is logged in
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -218,12 +217,11 @@ router.get("/api/user/profile", (req, res) => {
     profile_picture: req.user.profile_picture,
   };
 
-  // 3. Send the data back
   res.status(200).json(userProfile);
 });
 
 // PUT /api/user/profile
-// Description: Update user contact details AND Profile Picture
+// Description: Update user contact details, Profile Picture, AND Password
 router.put("/api/user/profile", 
   upload.single('profile_picture'), 
   async (req, res) => {
@@ -232,36 +230,37 @@ router.put("/api/user/profile",
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // 1. Get data from the frontend
-    const { phone_number, address, email } = req.body;
+    const { phone_number, address, email, password } = req.body;
 
-    // 2. Prepare the update object
-    const updateFields = {
-        phone_number: phone_number !== undefined ? phone_number : req.user.phone_number,
-        address: address !== undefined ? address : req.user.address,
-        email: email !== undefined ? email : req.user.email
-    };
+    const updateFields = {};
+    if (phone_number !== undefined) updateFields.phone_number = phone_number;
+    if (address !== undefined) updateFields.address = address;
+    if (email !== undefined) updateFields.email = email;
 
-    // 3. If an image was uploaded, handle the new file AND delete the old one
+    if (password && password.trim() !== "") {
+        updateFields.password = await hashPassword(password);
+    }
+
     if (req.file) {
         updateFields.profile_picture = req.file.path;
 
-        // Fetch the current user BEFORE we update them, so we can see their old photo path
         const currentUser = await User.findById(req.user._id);
 
+        // --- THE FIX: SAFETY BUBBLE AROUND DELETION ---
         if (currentUser && currentUser.profile_picture) {
-            // Create the full system path to the old image
-            const oldImagePath = path.join(process.cwd(), currentUser.profile_picture);
-            
-            // Check if the file actually exists on the hard drive, then delete it!
-            if (fs.existsSync(oldImagePath)) {
-                fs.unlinkSync(oldImagePath);
-                console.log("♻️ Old profile picture deleted successfully to save space.");
+            try {
+                const oldImagePath = path.join(process.cwd(), currentUser.profile_picture);
+                // Ensure it exists AND is actually a file, not a directory
+                if (fs.existsSync(oldImagePath) && fs.statSync(oldImagePath).isFile()) {
+                    fs.unlinkSync(oldImagePath);
+                }
+            } catch (fsError) {
+                console.error("Non-fatal error: Could not delete old image:", fsError);
+                // We ignore this error so the rest of the save process continues!
             }
         }
     }
 
-    // 4. Safely update the user directly in the database
     const updatedUser = await User.findByIdAndUpdate(
         req.user._id,
         { $set: updateFields },
@@ -285,7 +284,8 @@ router.put("/api/user/profile",
     
   } catch (err) {
     console.error("Update Profile Error:", err);
-    res.status(500).json({ message: "Failed to update profile" });
+    // --- THE FIX: Return the exact Mongoose error message to the frontend ---
+    res.status(500).json({ message: err.message || "Failed to update profile" });
   }
 });
 
@@ -295,14 +295,13 @@ router.get('/api/users/demographics',
   hasRole('superadmin'),
   async (req, res) => {
     try {
-      // 1. We only want 'admin' (Teachers) and 'user' (Parents/Guardians)
       const query = { role: { $in: ['admin', 'user'] } };
 
       const demographics = await User.aggregate([
         { $match: query },
         {
           $group: {
-            _id: "$role", // Groups by 'admin' and 'user'
+            _id: "$role",
             count: { $sum: 1 }
           }
         }

@@ -1,15 +1,21 @@
 // frontend/src/pages/users/guardian/GuardianProfile.jsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import AvatarEditor from "react-avatar-editor";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "../../../styles/user/parent/parent-profile.css"; // Reusing parent styles!
+import "../../../styles/user/parent/parent-profile.css"; 
 import NavBar from "../../../components/navigation/NavBar";
+import Header from "../../../components/navigation/Header";
 import SuccessModal from "../../../components/SuccessModal";
+import { useAuth } from "../../../context/AuthProvider";
+
 const BACKEND_URL = "http://localhost:3000";
 
 export default function GuardianProfile() {
   const navigate = useNavigate();
+  const { updateUser } = useAuth();
+
   const [loading, setLoading] = useState(true);
 
   // States
@@ -17,26 +23,60 @@ export default function GuardianProfile() {
   const [children, setChildren] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // Student Modal State
+  // --- Address Splicing States ---
+  const [addressParts, setAddressParts] = useState({
+    houseUnit: "",
+    street: "",
+    barangay: "",
+    city: "",
+    zipCode: "",
+  });
+
+  // --- ACCOUNT CREDENTIALS STATES ---
+  const [passwordData, setPasswordData] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+  const [isEditingCredentials, setIsEditingCredentials] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // --- GUARDIAN Cropper States ---
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  
+  const editorRef = useRef(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [tempImage, setTempImage] = useState(null);
+  const [zoom, setZoom] = useState(1);
+
+  // --- STUDENT Modal States ---
   const [selectedStudent, setSelectedStudent] = useState(null);
 
+  // ==========================================
   // Fetch Data
+  // ==========================================
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Get Guardian Profile (Reuses standard user profile route)
         const profileRes = await axios.get(`${BACKEND_URL}/api/user/profile`, {
           withCredentials: true,
         });
-        setFormData(profileRes.data);
+        
+        const userData = profileRes.data.user || profileRes.data;
+        setFormData(userData || {});
 
-        // 2. Get Linked Children (GUARDIAN ROUTE)
         const childrenRes = await axios.get(
           `${BACKEND_URL}/api/guardian/children`,
           { withCredentials: true },
         );
-        setChildren(childrenRes.data);
+        
+        const childrenArray = childrenRes.data.children || childrenRes.data.students || childrenRes.data;
+        setChildren(Array.isArray(childrenArray) ? childrenArray : []);
+        
       } catch (err) {
         console.error("Error loading profile:", err);
       } finally {
@@ -46,25 +86,172 @@ export default function GuardianProfile() {
     fetchData();
   }, []);
 
-  const handleSave = async () => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddressChange = (e) => {
+    const { name, value } = e.target;
+    setAddressParts((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditClick = (e) => {
+    e.preventDefault();
+    const parts = (formData.address || "").split(",").map((s) => s.trim());
+    setAddressParts({
+      houseUnit: parts[0] || "",
+      street: parts[1] || "",
+      barangay: parts[2] || "",
+      city: parts[3] || "",
+      zipCode: parts[4] || "",
+    });
+    setIsEditing(true);
+  };
+
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditCredentialsClick = (e) => {
+    e.preventDefault();
+    setIsEditingCredentials(true);
+  };
+
+  const handleCancelCredentials = (e) => {
+    e.preventDefault();
+    setIsEditingCredentials(false);
+    setPasswordData({ password: "", confirmPassword: "" });
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  };
+
+  const handleSaveCredentials = async (e) => {
+    e.preventDefault();
+    if (passwordData.password !== passwordData.confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+    
     try {
-      await axios.put(
-        `${BACKEND_URL}/api/user/profile`,
-        {
-          phone_number: formData.phone_number,
-          address: formData.address,
-          email: formData.email,
-        },
-        { withCredentials: true },
+      await axios.put(`${BACKEND_URL}/api/user/profile`, 
+        { password: passwordData.password }, 
+        { withCredentials: true }
       );
+      setSuccessMessage("Password updated successfully!");
       setShowSuccessModal(true);
-      setIsEditing(false);
-    } catch (err) {
-      alert("Failed to save.");
+      handleCancelCredentials(e);
+    } catch (error) {
+      alert("Failed to update password.");
     }
   };
 
-  // Helper to format image URLs correctly
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const imageUrl = URL.createObjectURL(file);
+      setTempImage(imageUrl);
+      setShowCropModal(true);
+      setZoom(1);
+    }
+    e.target.value = null;
+  };
+
+  const handleCropSave = () => {
+    if (editorRef.current) {
+      const canvas = editorRef.current.getImageScaledToCanvas();
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const croppedFile = new File([blob], "profile_photo.jpg", { type: "image/jpeg" });
+          setSelectedImageFile(croppedFile);
+          setPreviewImage(URL.createObjectURL(croppedFile));
+          setShowCropModal(false);
+          setTempImage(null);
+        }
+      }, "image/jpeg", 0.95);
+    }
+  };
+
+  const handleAvatarClick = () => {
+    if (!isEditing) {
+      setIsLightboxOpen(true);
+    }
+  };
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    try {
+      const mergedAddress = [
+        addressParts.houseUnit,
+        addressParts.street,
+        addressParts.barangay,
+        addressParts.city,
+        addressParts.zipCode,
+      ].filter(Boolean).join(", ");
+
+      let response;
+
+      if (selectedImageFile) {
+        const payload = new FormData();
+        payload.append("phone_number", formData.phone_number || "");
+        payload.append("address", mergedAddress || formData.address || ""); 
+        payload.append("email", formData.email || "");
+        payload.append("profile_picture", selectedImageFile); 
+
+        response = await axios.put(
+          `${BACKEND_URL}/api/user/profile`,
+          payload,
+          { withCredentials: true } 
+        );
+
+      } else {
+        const payload = {
+          phone_number: formData.phone_number || "",
+          address: mergedAddress || formData.address || "", 
+          email: formData.email || "",
+        };
+
+        response = await axios.put(
+          `${BACKEND_URL}/api/user/profile`,
+          payload,
+          { 
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      if (response.data.user?.profile_picture) {
+        updateUser({ profile_picture: response.data.user.profile_picture });
+      }
+      
+      setFormData((prev) => ({ 
+        ...prev, 
+        address: mergedAddress, 
+        profile_picture: response.data?.user?.profile_picture || prev.profile_picture 
+      }));
+
+      setSuccessMessage("Profile updated successfully!");
+      setShowSuccessModal(true);
+      setIsEditing(false);
+      setSelectedImageFile(null);
+      setPreviewImage(null);
+
+    } catch (err) {
+      console.error("Save error:", err);
+      // Detailed error reporting so we know EXACTLY what Mongoose/Node is complaining about
+      alert(`Save Failed: ${err.response?.data?.message || err.message || "Unknown Error"}`);
+    }
+  };
+
+  const handleCancel = (e) => {
+    e.preventDefault();
+    setIsEditing(false);
+    setSelectedImageFile(null);
+    setPreviewImage(null); 
+  };
+
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150";
     if (path.startsWith("http")) return path;
@@ -74,33 +261,148 @@ export default function GuardianProfile() {
 
   if (loading)
     return (
-      <div className="profile-container" style={{ marginTop: "100px" }}>
-        Loading...
+      <div className="profile-container flex justify-center items-center h-screen">
+        <h2 className="text-slate-500 font-semibold animate-pulse">Loading Profile...</h2>
       </div>
     );
 
   return (
-    <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
+    <div className="dashboard-wrapper hero-bg">
+      <Header />
       <NavBar />
+      
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
-        message="Profile updated successfully!"
+        message={successMessage}
       />
+
+      {/* --- GUARDIAN Lightbox --- */}
+      {isLightboxOpen && (
+        <div 
+          style={{
+            position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out'
+          }}
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <img 
+            src={previewImage || getImageUrl(formData.profile_picture)} 
+            alt="Fullscreen Profile" 
+            style={{ width: '400px', height: '400px', objectFit: 'cover', borderRadius: '50%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '6px solid white' }} 
+          />
+          <button 
+            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      )}
+
+      {/* --- GUARDIAN Cropper Modal --- */}
+      {showCropModal && (
+        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
+          <div className="modal-card" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>
+              Adjust Profile Picture
+            </h3>
+            
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+              <AvatarEditor
+                ref={editorRef}
+                image={tempImage}
+                width={220}
+                height={220}
+                border={20}
+                borderRadius={110}
+                color={[15, 23, 42, 0.6]}
+                scale={zoom}
+                rotate={0}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
+              <input 
+                type="range" 
+                min="1" max="3" step="0.01" 
+                value={zoom} 
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }}
+              />
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button 
+                type="button"
+                className="btn btn-cancel" 
+                style={{ flex: 1, height: '44px', borderRadius: '10px', cursor: 'pointer' }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowCropModal(false);
+                  setTempImage(null);
+                  if (document.getElementById('profile-upload')) {
+                    document.getElementById('profile-upload').value = '';
+                  }
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button"
+                className="btn btn-save" 
+                style={{ flex: 1, height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCropSave();
+                }}
+              >
+                Apply Crop
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="main-content">
         <div className="profile-container">
+          
           {/* HEADER */}
           <div className="profile-header-card">
             <div className="profile-cover"></div>
             <div className="profile-details-row">
+              
               <div className="avatar-upload-wrapper">
                 <img
-                  src={getImageUrl(formData.profile_picture)}
+                  src={previewImage || getImageUrl(formData.profile_picture)}
                   className="large-avatar"
                   alt="Profile"
+                  onClick={handleAvatarClick}
+                  style={{ cursor: isEditing ? 'default' : 'zoom-in', transition: 'transform 0.2s' }}
+                  onMouseOver={(e) => { if(!isEditing) e.currentTarget.style.transform = 'scale(1.02)' }}
+                  onMouseOut={(e) => { if(!isEditing) e.currentTarget.style.transform = 'scale(1)' }}
                 />
+                
+                {isEditing && (
+                  <>
+                    <label htmlFor="profile-upload" className="camera-btn" style={{ position: 'absolute', bottom: '5px', right: '5px', cursor: 'pointer', background: '#1e293b', color: 'white', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>photo_camera</span>
+                    </label>
+                    <input
+                      id="profile-upload"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleImageSelect}
+                    />
+                  </>
+                )}
               </div>
+
               <div className="profile-text">
                 <h1>
                   {formData.first_name} {formData.last_name}
@@ -110,27 +412,34 @@ export default function GuardianProfile() {
                 </p>
               </div>
               
-              {/* Guardian CAN edit their own personal contact info */}
               <div className="profile-actions">
                 {!isEditing ? (
                   <button
-                    className="btn btn-primary"
-                    onClick={() => setIsEditing(true)}
+                    type="button"
+                    className="btn btn-primary h-[42px] w-[190px] rounded-[10px]"
+                    onClick={handleEditClick}
                   >
-                    <span className="material-symbols-outlined">edit</span> Edit
-                    Information
+                    <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
+                      edit
+                    </span>
+                    Edit Information
                   </button>
                 ) : (
                   <div className="action-buttons-wrapper">
-                    <button className="btn btn-save" onClick={handleSave}>
-                      <span className="material-symbols-outlined">check</span>{" "}
+                    <button type="button" className="btn btn-save h-[42px] w-[190px] rounded-[10px]" onClick={handleSave}>
+                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
+                        check
+                      </span>{" "}
                       Save
                     </button>
                     <button
-                      className="btn btn-cancel"
-                      onClick={() => setIsEditing(false)}
+                      type="button"
+                      className="btn btn-cancel h-[42px] w-[190px] rounded-[10px]"
+                      onClick={handleCancel}
                     >
-                      <span className="material-symbols-outlined">close</span>{" "}
+                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
+                        close
+                      </span>{" "}
                       Cancel
                     </button>
                   </div>
@@ -151,36 +460,46 @@ export default function GuardianProfile() {
                 </h3>
               </div>
               <form className="profile-form">
-                <div className="form-group">
-                  <label>Full Name</label>
-                  <div className="input-wrapper">
-                    <span className="material-symbols-outlined icon">
-                      person
-                    </span>
-                    <input
-                      type="text"
-                      value={`${formData.first_name} ${formData.last_name}`}
-                      readOnly
-                      style={{ opacity: 0.7 }}
-                    />
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                  <div className="form-group">
+                    <label>First Name</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">person</span>
+                      <input
+                        type="text"
+                        name="first_name"
+                        value={formData.first_name || ""}
+                        readOnly
+                        style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label>Last Name</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">person</span>
+                      <input
+                        type="text"
+                        name="last_name"
+                        value={formData.last_name || ""}
+                        readOnly
+                        style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
+                      />
+                    </div>
                   </div>
                 </div>
+
                 <div className="form-group">
                   <label>Email</label>
                   <div className="input-wrapper">
                     <span className="material-symbols-outlined icon">mail</span>
                     <input
                       type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
+                      name="email"
+                      value={formData.email || ""}
+                      onChange={handleChange}
                       readOnly={!isEditing}
-                      style={
-                        !isEditing
-                          ? { opacity: 0.8 }
-                          : { borderColor: "#39a8ed" }
-                      }
+                      style={!isEditing ? { opacity: 0.8 } : { borderColor: "#39a8ed" }}
                     />
                   </div>
                 </div>
@@ -190,45 +509,104 @@ export default function GuardianProfile() {
                     <span className="material-symbols-outlined icon">call</span>
                     <input
                       type="text"
-                      value={formData.phone_number}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          phone_number: e.target.value,
-                        })
-                      }
+                      name="phone_number"
+                      value={formData.phone_number || ""}
+                      onChange={handleChange}
                       readOnly={!isEditing}
-                      style={
-                        !isEditing
-                          ? { opacity: 0.8 }
-                          : { borderColor: "#39a8ed" }
-                      }
+                      style={!isEditing ? { opacity: 0.8 } : { borderColor: "#39a8ed" }}
                     />
                   </div>
                 </div>
-                <div className="form-group">
-                  <label>Address</label>
-                  <div className="input-wrapper">
-                    <span className="material-symbols-outlined icon">home</span>
-                    <input
-                      type="text"
-                      value={formData.address || ""}
-                      onChange={(e) =>
-                        setFormData({ ...formData, address: e.target.value })
-                      }
-                      readOnly={!isEditing}
-                      style={
-                        !isEditing
-                          ? { opacity: 0.8 }
-                          : { borderColor: "#39a8ed" }
-                      }
-                    />
-                  </div>
+
+                <div className="address-container">
+                  {!isEditing ? (
+                    <div className="form-group animate-poof">
+                      <label>Address</label>
+                      <div className="input-wrapper">
+                        <span className="material-symbols-outlined icon">home</span>
+                        <input
+                          type="text"
+                          name="address"
+                          value={formData.address || "No address provided"}
+                          readOnly
+                          style={{ opacity: 0.8 }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="address-edit-grid animate-poof">
+                      <div className="form-group">
+                        <label>House/Unit No.</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            name="houseUnit"
+                            placeholder="e.g. 123"
+                            value={addressParts.houseUnit}
+                            onChange={handleAddressChange}
+                            style={{ paddingLeft: '16px', borderColor: "#39a8ed" }} 
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>Street</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            name="street"
+                            placeholder="e.g. Nissan St."
+                            value={addressParts.street}
+                            onChange={handleAddressChange}
+                            style={{ paddingLeft: '16px', borderColor: "#39a8ed" }}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>Barangay</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            name="barangay"
+                            placeholder="e.g. Rotonda"
+                            value={addressParts.barangay}
+                            onChange={handleAddressChange}
+                            style={{ paddingLeft: '16px', borderColor: "#39a8ed" }}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label>City</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            name="city"
+                            placeholder="e.g. Mandaluyong"
+                            value={addressParts.city}
+                            onChange={handleAddressChange}
+                            style={{ paddingLeft: '16px', borderColor: "#39a8ed" }}
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group full-width">
+                        <label>Zip Code</label>
+                        <div className="input-wrapper">
+                          <input
+                            type="text"
+                            name="zipCode"
+                            placeholder="e.g. 1700"
+                            value={addressParts.zipCode}
+                            onChange={handleAddressChange}
+                            style={{ paddingLeft: '16px', borderColor: "#39a8ed" }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </form>
             </div>
 
-            {/* RIGHT: CHILDREN LIST */}
+            {/* RIGHT: CHILDREN LIST & ACCOUNT CREDENTIALS */}
             <div className="right-stack">
               <div className="card form-card">
                 <div className="card-header">
@@ -241,14 +619,14 @@ export default function GuardianProfile() {
                   <p>Students you are authorized to pick up.</p>
                 </div>
                 <div className="children-list">
-                  {children.length === 0 ? (
+                  {(!children || children.length === 0) ? (
                     <p style={{ padding: "10px", color: "#94a3b8" }}>
                       No students linked yet.
                     </p>
                   ) : (
                     children.map((child) => (
                       <div
-                        key={child.student_id}
+                        key={child.student_id || Math.random()}
                         className="child-item"
                         onClick={() => setSelectedStudent(child)}
                       >
@@ -277,6 +655,136 @@ export default function GuardianProfile() {
                   )}
                 </div>
               </div>
+
+              {/* --- ACCOUNT CREDENTIALS CARD --- */}
+              <div className="card form-card">
+                <div className="card-header">
+                  <h3>
+                    <span className="material-symbols-outlined header-icon">lock</span> Account Credentials
+                  </h3>
+                  <p>Manage your account security and password.</p>
+                </div>
+                
+                <div className="profile-form">
+                  
+                  {/* Username (Read-Only) */}
+                  <div className="form-group">
+                    <label>Username</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">account_circle</span>
+                      <input
+                        type="text"
+                        name="username"
+                        value={formData.username || "guardian_user"} 
+                        readOnly
+                        style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password Field with Hide/View Toggle */}
+                  <div className="form-group">
+                    <label>{isEditingCredentials ? "New Password" : "Password"}</label>
+                    <div className="input-wrapper">
+                      <span className="material-symbols-outlined icon">key</span>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        placeholder="••••••••"
+                        value={passwordData.password}
+                        onChange={handlePasswordChange}
+                        readOnly={!isEditingCredentials}
+                        style={!isEditingCredentials 
+                          ? { opacity: 0.8 } 
+                          : { borderColor: "#39a8ed", paddingRight: '40px' }}
+                      />
+                      {isEditingCredentials && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          style={{
+                            position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8',
+                            display: 'flex', padding: 0
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            {showPassword ? "visibility_off" : "visibility"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Confirm Password with Hide/View Toggle */}
+                  {isEditingCredentials && (
+                    <div className="form-group animate-poof">
+                      <label>Confirm New Password</label>
+                      <div className="input-wrapper">
+                        <span className="material-symbols-outlined icon">lock_reset</span>
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          name="confirmPassword"
+                          placeholder="••••••••"
+                          value={passwordData.confirmPassword}
+                          onChange={handlePasswordChange}
+                          style={{ borderColor: "#39a8ed", paddingRight: '40px' }} 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          style={{
+                            position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)',
+                            background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8',
+                            display: 'flex', padding: 0
+                          }}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            {showConfirmPassword ? "visibility_off" : "visibility"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* --- CARD ACTION BUTTONS --- */}
+                  <div style={{ marginTop: '24px' }}>
+                    {!isEditingCredentials ? (
+                      <button 
+                        type="button"
+                        className="btn btn-primary profile-action-btn"
+                        style={{ width: '100%', height: '44px', borderRadius: '10px' }}
+                        onClick={handleEditCredentialsClick}
+                      >
+                        <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>edit</span>
+                        Change Password
+                      </button>
+                    ) : (
+                      <div className="action-buttons-wrapper">
+                        <button 
+                          type="button"
+                          className="btn btn-save profile-action-btn"
+                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          onClick={handleSaveCredentials}
+                        >
+                          <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>check</span>
+                          Update
+                        </button>
+                        <button 
+                          type="button"
+                          className="btn btn-cancel profile-action-btn"
+                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          onClick={handleCancelCredentials}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </div>
+              {/* --- END ACCOUNT CREDENTIALS --- */}
             </div>
           </div>
         </div>
@@ -287,11 +795,11 @@ export default function GuardianProfile() {
         <div
           className="modal-overlay active"
           onClick={() => setSelectedStudent(null)}
+          style={{ zIndex: 99999 }} 
         >
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* Modal Header */}
             <div className="modal-header">
-              <h3>View Student Details</h3> {/* Changed title */}
+              <h3>View Student Details</h3>
               <button
                 className="close-modal-btn"
                 onClick={() => setSelectedStudent(null)}
@@ -300,9 +808,7 @@ export default function GuardianProfile() {
               </button>
             </div>
 
-            {/* Modal Body */}
             <div className="modal-body">
-              {/* 1. Centered Avatar */}
               <div className="avatar-edit-center">
                 <div className="avatar-upload-wrapper">
                   <img
@@ -310,18 +816,30 @@ export default function GuardianProfile() {
                     className="modal-avatar"
                     alt="Student"
                   />
-                  {/* Removed the Camera button entirely so Guardians can't change it */}
+                  {/* Note: Camera button removed here because Guardians cannot edit student photos */}
                 </div>
               </div>
 
-              {/* 2. Basic Info (Read Only) */}
               <div className="form-group">
                 <label>Full Name</label>
                 <div className="input-wrapper">
                   <span className="material-symbols-outlined icon">person</span>
                   <input
                     type="text"
-                    value={`${selectedStudent.first_name} ${selectedStudent.last_name}`}
+                    value={`${selectedStudent.first_name || ''} ${selectedStudent.last_name || ''}`.trim()}
+                    disabled
+                    className="read-only"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Gender</label>
+                <div className="input-wrapper">
+                  <span className="material-symbols-outlined icon">person</span>
+                  <input
+                    type="text"
+                    value={selectedStudent.gender || "N/A"}
                     disabled
                     className="read-only"
                   />
@@ -335,9 +853,7 @@ export default function GuardianProfile() {
                     <span className="material-symbols-outlined icon">cake</span>
                     <input
                       type="text"
-                      value={new Date(
-                        selectedStudent.birthday,
-                      ).toLocaleDateString()}
+                      value={selectedStudent.birthday ? new Date(selectedStudent.birthday).toLocaleDateString() : "N/A"}
                       disabled
                       className="read-only"
                     />
@@ -351,7 +867,7 @@ export default function GuardianProfile() {
                     </span>
                     <input
                       type="text"
-                      value={selectedStudent.student_id}
+                      value={selectedStudent.student_id || "N/A"}
                       disabled
                       className="read-only"
                     />
@@ -377,7 +893,6 @@ export default function GuardianProfile() {
 
               <div className="modal-separator"></div>
 
-              {/* 3. Class Teacher Info (Read Only) */}
               <div className="modal-section-title">
                 <span
                   className="material-symbols-outlined"
@@ -423,7 +938,6 @@ export default function GuardianProfile() {
 
               <div className="modal-separator"></div>
 
-              {/* 4. Medical / Additional Info (MADE READ-ONLY FOR GUARDIANS) */}
               <div className="modal-section-title">
                 <span
                   className="material-symbols-outlined"
@@ -453,7 +967,6 @@ export default function GuardianProfile() {
               </div>
             </div>
 
-            {/* Modal Footer (REMOVED SAVE BUTTON) */}
             <div className="modal-footer" style={{ justifyContent: "center" }}>
               <button
                 className="btn btn-cancel"

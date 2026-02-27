@@ -112,6 +112,13 @@ const NAV_ITEMS = [
     allowedTypes: ["Guardian"],
   },
   {
+    label: "Pickup History",  // <-- ADDED THIS FOR GUARDIAN
+    path: "/guardian/history",
+    icon: "history",
+    allowedRoles: ["user"],
+    allowedTypes: ["Guardian"],
+  },
+  {
     label: "Profile",
     path: "/guardian/profile",
     icon: "person",

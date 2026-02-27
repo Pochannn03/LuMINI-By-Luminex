@@ -480,6 +480,7 @@ router.put(
       const userId = req.user._id;
       const { 
         username, password, firstName, lastName,
+        email, // <-- ADDED THIS
         contact, houseUnit, street, barangay, city, zipCode 
       } = req.body;
 
@@ -491,6 +492,7 @@ router.put(
       if (username) user.username = username;
       if (firstName) user.first_name = firstName;
       if (lastName) user.last_name = lastName;
+      if (email) user.email = email; // <-- ADDED THIS
       if (contact) user.phone_number = contact;
 
       // 3. Hash and Update Password
@@ -506,7 +508,6 @@ router.put(
 
       // 5. Update Profile Picture (if one was uploaded)
       if (req.file) {
-        // Optional: If you want to delete the old generic avatar, you could do it here
         user.profile_picture = req.file.path;
       }
 
