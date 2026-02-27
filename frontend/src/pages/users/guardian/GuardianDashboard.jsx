@@ -9,6 +9,8 @@ import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
+import SuccessModal from "../../../components/SuccessModal";
+import WarningModal from "../../../components/WarningModal";
 
 export default function GuardianDashboard() {
   const { user } = useAuth();
@@ -22,6 +24,13 @@ export default function GuardianDashboard() {
   const [childData, setChildData] = useState(null);
   const [rawStudentData, setRawStudentData] = useState(null); 
   const [showNewDayModal, setShowNewDayModal] = useState(false);
+
+  // MODAL SUCCESS & WARNING STATES
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
 
   // --- NEW: Image URL Formatter Helper ---
   const getImageUrl = (path) => {
@@ -115,7 +124,7 @@ export default function GuardianDashboard() {
       setLoading(true);
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
-      await axios.post('http://localhost:3000/api/queue', {
+      const response = await axios.post('http://localhost:3000/api/queue', {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
@@ -124,9 +133,23 @@ export default function GuardianDashboard() {
       }, { withCredentials: true });
 
       setIsParentOnQueue(true);
-      alert(`Status updated: ${statusLabel}`);
+      setSuccessMessage(response.data.msg || `Status updated: ${statusLabel}`);
+      setIsSuccessModalOpen(true);
     } catch (err) {
-      alert(err.response?.data?.msg || "Failed to join the queue");
+      if (err.response?.status === 403) {
+        const msg = err.response.data.msg;
+        
+        if (msg.toLowerCase().includes("dismissed")) {
+          setWarningTitle("Student Dismissed");
+        } else {
+          setWarningTitle("Too Early");
+        }
+
+        setWarningMessage(msg);
+        setIsWarningModalOpen(true);
+      } else {
+        alert(err.response?.data?.msg || "Failed to join the queue");
+      }
     } finally {
       setLoading(false);
     }
@@ -297,6 +320,19 @@ export default function GuardianDashboard() {
           </div>
         </div>
       </main>
+
+      <SuccessModal 
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        message={successMessage}
+      />
+
+      <WarningModal 
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        title={warningTitle}
+        message={warningMessage}
+      />
 
       <ParentDashboardQrScan 
         isOpen={showScanner} 

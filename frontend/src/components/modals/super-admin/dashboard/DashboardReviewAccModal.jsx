@@ -88,13 +88,13 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
       {/* --- NEW: IMAGE LIGHTBOX OVERLAY --- */}
       {viewImage && (
         <div 
-          className="fixed inset-0 z-[999999] bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-6 cursor-zoom-out transition-all"
+          className="fixed inset-0 z-999999 bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-6 cursor-zoom-out transition-all"
           onClick={() => setViewImage(null)}
         >
           <img 
             src={viewImage} 
             alt="Fullscreen View" 
-            className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] border-[4px] border-white/20 object-contain"
+            className="max-w-[90vw] max-h-[90vh] rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] border-4 border-white/20 object-contain"
             onClick={(e) => e.stopPropagation()} 
           />
           <button 
