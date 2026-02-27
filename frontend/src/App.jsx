@@ -28,6 +28,7 @@ import ParentEnrollment from "./pages/ParentEnrollment";
 import EnrollmentApproval from "./pages/admin-teacher/EnrollmentApproval";
 import SuperAdminBulkRegistration from "./pages/super-admin/SuperAdminBulkRegistration";
 import GuardianPickupAndDropOffHistory from "../../frontend/src/pages/users/guardian/GuardianPickupAndDropOffHistory";
+import ForgotPassword from "../../frontend/src/pages/auth/ForgotPassword";
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
 
         {/* Auth */}
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register/guardian" element={<GuardianRegistration />} />
         <Route path="/register/parent" element={<ParentRegistration />} />
