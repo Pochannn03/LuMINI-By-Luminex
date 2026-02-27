@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from '../../../context/AuthProvider';
 import { io } from "socket.io-client";
 import axios from 'axios';
@@ -11,15 +12,24 @@ import ParentNewDayModal from ".././../../components/modals/user/parent/dashboar
 
 export default function GuardianDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // STATES
   const [showScanner, setShowScanner] = useState(false);
   const [showPassModal, setShowPassModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isParentOnQueue, setIsParentOnQueue] = useState(false); // Added
+  const [isParentOnQueue, setIsParentOnQueue] = useState(false); 
   const [childData, setChildData] = useState(null);
-  const [rawStudentData, setRawStudentData] = useState(null); // Added for ID references
+  const [rawStudentData, setRawStudentData] = useState(null); 
   const [showNewDayModal, setShowNewDayModal] = useState(false);
+
+  // --- NEW: Image URL Formatter Helper ---
+  const getImageUrl = (path) => {
+    if (!path) return "https://via.placeholder.com/150";
+    if (path.startsWith("http")) return path;
+    const cleanPath = path.replace(/\\/g, "/");
+    return `http://localhost:3000/${cleanPath}`;
+  };
 
   // 1. FETCH ASSIGNED CHILD
   useEffect(() => {
@@ -173,8 +183,9 @@ export default function GuardianDashboard() {
               
               <div className="flex flex-col items-center gap-1.5">
                 <div className="p-1 bg-white rounded-full shadow-sm mb-2">
+                  {/* --- APPLIED FORMATTER HERE --- */}
                   <img 
-                    src={childData?.profilePicture || "../../../assets/placeholder_image.jpg"} 
+                    src={getImageUrl(childData?.profilePicture)} 
                     alt="Child Profile"
                     className="w-[90px] h-[90px] rounded-full object-cover" 
                   />
@@ -229,7 +240,7 @@ export default function GuardianDashboard() {
               </div>
 
               <div className="quick-actions-list">
-                <button className="quick-action-item">
+                <button className="quick-action-item" onClick={() => navigate('/guardian/history')}>
                   <div className="flex flex-row items-center">
                     <div className="qa-icon"><span className="material-symbols-outlined mt-1">history</span></div>
                     <div className="flex flex-col text-left">
