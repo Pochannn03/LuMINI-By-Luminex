@@ -15,7 +15,7 @@ import fs from "fs";
 const router = Router();
 
 // ==========================================
-// 1. CONFIG: PROFILE PHOTO UPLOADS (Existing)
+// 1. CONFIG: PROFILE PHOTO UPLOADS
 // ==========================================
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)){
@@ -35,11 +35,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 // ==========================================
-// 2. CONFIG: GUARDIAN ID UPLOADS (New)
+// 2. CONFIG: GUARDIAN ID UPLOADS
 // ==========================================
 const idUploadDir = 'uploads/guardian-ids';
 if (!fs.existsSync(idUploadDir)){
-    // recursive: true ensures parent folders are created if they don't exist
     fs.mkdirSync(idUploadDir, { recursive: true });
 }
 
@@ -49,7 +48,6 @@ const idStorage = multer.diskStorage({
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    // Prefixed with 'ID-' for easier identification
     cb(null, 'ID-' + uniqueSuffix + path.extname(file.originalname)); 
   }
 });
@@ -60,7 +58,6 @@ const uploadId = multer({ storage: idStorage });
 // ROUTES
 // ==========================================
 
-// --- EXISTING ROUTE: Direct Guardian Registration ---
 router.post('/api/guardian-register', 
   upload.single('profile_photo'), 
   ...checkSchema(createUserValidationSchema), 
@@ -107,7 +104,6 @@ router.post('/api/guardian-register',
   }
 );
 
-// --- NEW ROUTE: Parent Requesting a Guardian ---
 router.post(
   '/api/parent/guardian-request', 
   isAuthenticated, 
@@ -129,21 +125,15 @@ router.post(
 
         const studentId = linkedStudent._id; 
 
-        // --- THE FIX: DYNAMICALLY FIND THE CORRECT TEACHER ---
         let actualTeacherId = null;
         if (linkedStudent.section_id) {
-            // Find the student's section
             const section = await Section.findOne({ section_id: linkedStudent.section_id });
             if (section && section.user_id) {
-                // Find the teacher assigned to that section
                 const teacher = await User.findOne({ user_id: section.user_id });
-                if (teacher) {
-                    actualTeacherId = teacher._id; // Grab the Teacher's MongoDB ID
-                }
+                if (teacher) actualTeacherId = teacher._id;
             }
         }
 
-        // Fallback to a provided ID or throw an error if no teacher is found
         const finalTeacherId = actualTeacherId || req.body.teacherId;
         if (!finalTeacherId) {
              if (req.file) fs.unlinkSync(req.file.path);
@@ -158,7 +148,7 @@ router.post(
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
             student: studentId,
-            teacher: finalTeacherId, // <-- SAVES THE CORRECT TEACHER ID
+            teacher: finalTeacherId,
             guardianDetails: {
                 firstName, lastName, phone, role,
                 tempUsername: username,
@@ -190,15 +180,13 @@ router.post(
     }
 });
 
-// --- NEW ROUTE: Teacher Fetching Pending Requests ---
 router.get(
   '/api/teacher/guardian-requests/pending', 
   isAuthenticated, 
   async (req, res) => {
     try {
-        const teacherMongoId = req.user._id; // Get the logged-in teacher's ID
+        const teacherMongoId = req.user._id;
 
-        // THE FIX: Filter by status AND teacher ID
         const requests = await GuardianRequest.find({ 
               status: 'pending',
               teacher: teacherMongoId 
@@ -214,49 +202,38 @@ router.get(
     }
 });
 
-// ==========================================
-// TEACHER ACTION: APPROVE REQUEST
-// ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', isAuthenticated, async (req, res) => {
     try {
         const requestId = req.params.id;
 
-        // 1. Find the pending request
         const requestDoc = await GuardianRequest.findById(requestId);
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
-        // 2. Create the new Guardian User account
         const newGuardian = new User({
             first_name: requestDoc.guardianDetails.firstName,
             last_name: requestDoc.guardianDetails.lastName,
             username: requestDoc.guardianDetails.tempUsername,
             password: requestDoc.guardianDetails.tempPassword, 
             phone_number: requestDoc.guardianDetails.phone,
-            
-            // --- THE FIXES ---
-            relationship: "Guardian", // Forces it to match your schema's allowed words
-            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, // Satisfies the required email
-            address: "Not Provided", // Satisfies the required address
-            
+            relationship: "Guardian", 
+            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, 
+            address: "Not Provided", 
             role: "user", 
             is_archive: false,
         });
 
         const savedGuardian = await newGuardian.save();
 
-        // 3. Link the new Guardian to the Student
-        // Assuming your User schema auto-generates a custom numeric 'user_id' upon save
         if (savedGuardian.user_id) {
             await Student.findByIdAndUpdate(requestDoc.student, {
                 $push: { user_id: savedGuardian.user_id } 
             });
         }
 
-        // 4. Mark request as approved and HARD-LINK the new User ID!
         requestDoc.status = 'approved';
-        requestDoc.guardianDetails.createdUserId = savedGuardian._id; // <-- THE FIX
+        requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
         const auditLog = new Audit({
@@ -276,14 +253,10 @@ router.put('/api/teacher/guardian-requests/:id/approve', isAuthenticated, async 
     }
 });
 
-// ==========================================
-// TEACHER ACTION: REJECT REQUEST
-// ==========================================
 router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (req, res) => {
     try {
         const requestId = req.params.id;
 
-        // 1. Find the pending request
         const requestDoc = await GuardianRequest.findById(requestId);
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
@@ -291,7 +264,6 @@ router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (
 
         const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
 
-        // 2. Mark request as rejected
         requestDoc.status = 'rejected';
         await requestDoc.save();
 
@@ -304,7 +276,6 @@ router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (
         });
         await auditLog.save();
 
-        // 3. (Optional but recommended) Delete the ID photo to save server storage
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
         }
@@ -317,9 +288,6 @@ router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (
     }
 });
 
-// ==========================================
-// TEACHER ACTION: FETCH HISTORY
-// ==========================================
 router.get(
   '/api/teacher/guardian-requests/history', 
   isAuthenticated, 
@@ -327,9 +295,8 @@ router.get(
     try {
         const teacherMongoId = req.user._id;
 
-        // THE FIX: Filter history by the logged-in teacher's ID
         const history = await GuardianRequest.find({ 
-              status: { $in: ['approved', 'rejected', 'revoked'] }, // Added revoked for history tracking!
+              status: { $in: ['approved', 'rejected', 'revoked'] },
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
@@ -343,9 +310,6 @@ router.get(
     }
 });
 
-// ==========================================
-// PARENT ACTION: FETCH OWN PENDING REQUESTS
-// ==========================================
 router.get(
   '/api/parent/guardian-requests/pending', 
   isAuthenticated, 
@@ -354,7 +318,6 @@ router.get(
     try {
         const parentId = req.user._id;
 
-        // Find all pending requests belonging to this specific parent
         const pendingRequests = await GuardianRequest.find({ 
             parent: parentId, 
             status: 'pending' 
@@ -367,9 +330,6 @@ router.get(
     }
 });
 
-// ==========================================
-// PARENT ACTION: CANCEL PENDING REQUEST
-// ==========================================
 router.delete(
   '/api/parent/guardian-requests/:id', 
   isAuthenticated, 
@@ -377,10 +337,9 @@ router.delete(
     try {
         const requestId = req.params.id;
         const parentId = req.user._id;
-        const parentUserId = req.user.user_id; // Numeric ID from your User model
+        const parentUserId = req.user.user_id; 
         const fullName = `${req.user.first_name} ${req.user.last_name}`;
 
-        // 1. Find the request. Ensure it belongs to this parent AND is still pending.
         const requestDoc = await GuardianRequest.findOne({
             _id: requestId,
             parent: parentId,
@@ -391,14 +350,12 @@ router.delete(
             return res.status(404).json({ message: "Pending request not found or already processed." });
         }
 
-        // 2. Delete the ID photo from the server to save storage space!
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
         }
 
-        // 3. Delete the request from the database
+        const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
         await GuardianRequest.findByIdAndDelete(requestId);
-        const guardianFullName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`
 
         const auditLog = new Audit({
           user_id: parentUserId,
@@ -417,9 +374,6 @@ router.delete(
     }
 });
 
-// ==========================================
-// GUARDIAN ACTION: FETCH ASSIGNED CHILDREN
-// ==========================================
 router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
   try {
     const guardianNumericId = req.user.user_id;
@@ -469,52 +423,55 @@ router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
 });
 
 // ==========================================
-// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP
+// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP (UPDATED FOR BIOMETRICS)
 // ==========================================
 router.put(
   '/api/guardian/setup', 
   isAuthenticated, 
-  upload.single('profilePic'), // Expects the image under the key 'profilePic'
+  // THE FIX: Use upload.fields to catch both the cropped profile pic and the raw facial capture
+  upload.fields([
+    { name: 'profilePic', maxCount: 1 },
+    { name: 'facialCapture', maxCount: 1 }
+  ]),
   async (req, res) => {
     try {
       const userId = req.user._id;
       const { 
         username, password, firstName, lastName,
-        email, // <-- ADDED THIS
-        contact, houseUnit, street, barangay, city, zipCode 
+        email, contact, houseUnit, street, barangay, city, zipCode,
+        facialDescriptor // <-- Received as stringified JSON
       } = req.body;
 
-      // 1. Find the logged-in Guardian account
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "User not found." });
 
-      // 2. Update Basic Info
+      // Update Basic Info
       if (username) user.username = username;
       if (firstName) user.first_name = firstName;
       if (lastName) user.last_name = lastName;
-      if (email) user.email = email; // <-- ADDED THIS
+      if (email) user.email = email;
       if (contact) user.phone_number = contact;
+      if (password) user.password = await hashPassword(password);
 
-      // 3. Hash and Update Password
-      if (password) {
-        user.password = await hashPassword(password);
-      }
-
-      // 4. Construct and Update Address
       const fullAddress = [houseUnit, street, barangay, city, zipCode].filter(Boolean).join(', ');
-      if (fullAddress) {
-        user.address = fullAddress;
+      if (fullAddress) user.address = fullAddress;
+
+      // Extract and save the files
+      if (req.files) {
+        if (req.files['profilePic']) {
+            user.profile_picture = req.files['profilePic'][0].path;
+        }
+        if (req.files['facialCapture']) {
+            user.facial_capture_image = req.files['facialCapture'][0].path;
+        }
       }
 
-      // 5. Update Profile Picture (if one was uploaded)
-      if (req.file) {
-        user.profile_picture = req.file.path;
+      // Parse and save the mathematical Face Descriptor
+      if (facialDescriptor) {
+          user.facial_descriptor = JSON.parse(facialDescriptor);
       }
 
-      // 6. REMOVE THE BUFFER ZONE LOCK!
       user.is_first_login = false;
-
-      // Save all changes to the database
       await user.save();
 
       const auditLog = new Audit({
@@ -522,7 +479,7 @@ router.put(
         full_name: `${user.first_name} ${user.last_name}`,
         role: user.role,
         action: "Account Setup",
-        target: `Completed initial security setup`
+        target: `Completed initial security setup with Biometrics`
       });
       await auditLog.save();
 
@@ -537,9 +494,6 @@ router.put(
     }
 });
 
-// ==========================================
-// PARENT ACTION: FETCH OWN APPROVED REQUESTS
-// ==========================================
 router.get(
   '/api/parent/guardian-requests/history', 
   isAuthenticated, 
@@ -547,7 +501,6 @@ router.get(
     try {
         const parentId = req.user._id;
 
-        // Fetch requests that belong to this parent and are marked 'approved'
         const approvedRequests = await GuardianRequest.find({ 
             parent: parentId, 
             status: 'approved' 
@@ -560,9 +513,6 @@ router.get(
     }
 });
 
-// ==========================================
-// PARENT ACTION: REVOKE APPROVED GUARDIAN
-// ==========================================
 router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (req, res) => {
     try {
         const requestId = req.params.id;
@@ -570,7 +520,6 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         const parentUserId = req.user.user_id;
         const fullName = `${req.user.first_name} ${req.user.last_name}`;
 
-        // 1. Find the approved request ensuring it belongs to this parent
         const requestDoc = await GuardianRequest.findOne({
             _id: requestId,
             parent: parentId,
@@ -582,8 +531,7 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         }
         
         const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
-        // 2. Find the active Guardian User account securely!
-        // We use the hard-linked ID. (We keep the username search as a fallback just in case you test on older requests).
+        
         let guardianUser;
         if (requestDoc.guardianDetails.createdUserId) {
             guardianUser = await User.findById(requestDoc.guardianDetails.createdUserId);
@@ -592,17 +540,13 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         }
 
         if (guardianUser) {
-            // 3. Remove the guardian's user_id from the student's authorized list
             await Student.findByIdAndUpdate(requestDoc.student, {
                 $pull: { user_id: guardianUser.user_id } 
             });
-
-            // 4. Archive (disable) the guardian account so they can no longer log in
             guardianUser.is_archive = true;
             await guardianUser.save();
         }
 
-        // 5. Update the request status to 'revoked' so it disappears from the Active list
         requestDoc.status = 'revoked';
         await requestDoc.save();
 

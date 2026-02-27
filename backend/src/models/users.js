@@ -12,6 +12,10 @@ const UserSchema = new mongoose.Schema({
   profile_picture: { type: String },
   school_id_photo: { type: String },
   valid_id_photo: { type: String },
+  
+  // --- NEW FACIAL BIOMETRIC FIELDS ---
+  facial_capture_image: { type: String, default: "" }, // Path to the snapshot
+  facial_descriptor: { type: [Number], default: [] },  // The 128D array
 
   phone_number: { type: String, required: true },
   address: { type: String, required: true },
