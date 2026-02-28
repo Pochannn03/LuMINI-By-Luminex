@@ -339,15 +339,15 @@ export default function SuperAdminDashboard() {
           <div className="card p-6">
             <div className="mb-6">
               <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined purple-icon text-[24px]">
-                  dns
+                <span className="material-symbols-outlined yellow-icon text-[24px]">
+                  feedback
                 </span>
                 <h2 className="text-cdark text-[18px] font-bold">Feedbacks</h2>
               </div>
             </div>
             
             {/* Content Below is for Quick System Notification */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {feedbacks && feedbacks.length > 0 ? (
                 feedbacks.map((fb) => (
                   <DashboardFeedbackCard 

@@ -112,24 +112,24 @@
 
 /* Custom Scrollbar for Feedback Section */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+  width: 5px;               /* This makes it "slim" like your 2nd image */
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+  background: transparent;  /* Keeps the track invisible/transparent */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #e2e8f0; /* Soft slate color */
-  border-radius: 10px;
+  background-color: #cbd5e1; /* A light gray (Slate 300) */
+  border-radius: 20px;       /* Makes the edges rounded/smooth */
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #cbd5e1;
+  background-color: #94a3b8; /* Slightly darker gray on hover */
 }
 
-/* Ensure the scroll container has smooth behavior */
+/* For Firefox support */
 .custom-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: #e2e8f0 transparent;
+  scrollbar-color: #cbd5e1 transparent;
 }

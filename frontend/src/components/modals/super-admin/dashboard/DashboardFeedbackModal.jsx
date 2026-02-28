@@ -1,7 +1,7 @@
 import React from "react";
 import { createPortal } from "react-dom";
 
-export function DashboardFeedbackModal({ isOpen, onClose, feedback }) {
+export default function DashboardFeedbackModal({ isOpen, onClose, feedback }) {
   if (!isOpen || !feedback) return null;
 
   const isPositive = feedback.rating === 'up';
