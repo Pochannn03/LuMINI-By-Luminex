@@ -11,6 +11,7 @@ import SuperAdminDashbooard from "./pages/super-admin/SuperAdminDashboard";
 import SuperAdminClassManagement from "./pages/super-admin/SuperAdminClassManagement";
 import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 import SuperAdminAnalytics from "./pages/super-admin/SuperAdminAnalytics"; 
+import SuperAdminSettings from "./pages/super-admin/SuperAdminSettings";
 import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import AdminDropAndPickHistory from "./pages/admin-teacher/AdminDropAndPickHistory";
@@ -57,6 +58,7 @@ export default function App() {
           <Route path="/superadmin/bulk-registration" element={<SuperAdminBulkRegistration />} />
           <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
           <Route path="/superadmin/analytics" element={<SuperAdminAnalytics />} />
+          <Route path="/superadmin/settings" element={<SuperAdminSettings />} />
         </Route>
 
         {/* Admin (Teacher) Pages */}

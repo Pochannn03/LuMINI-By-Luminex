@@ -506,8 +506,8 @@ export default function Dashboard() {
                           </span>
                           <div className="flex items-center gap-2 mt-1">
                             <span className="text-[#94a3b8] text-[11px] font-medium">
-                              By Teacher {ann.full_name}
-                            </span>
+                            {ann.role === 'superadmin' ? ann.full_name : `By Teacher ${ann.full_name}`}
+                          </span>
                             <span className="text-[#cbd5e1]">•</span>
                             <span className="text-[#94a3b8] text-[11px] font-medium">
                               {new Date(ann.created_at).toLocaleDateString()}

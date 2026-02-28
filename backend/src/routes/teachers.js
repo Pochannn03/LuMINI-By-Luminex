@@ -47,7 +47,6 @@ router.post('/api/teachers',
     { name: 'school_id_photo', maxCount: 1 },
     { name: 'valid_id_photo', maxCount: 1 }
   ]),
-  // 1. MUST BE createTeacherValidationSchema
   ...checkSchema(createTeacherValidationSchema), 
   async (req, res) => {
     const result = validationResult(req);

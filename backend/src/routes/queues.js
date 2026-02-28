@@ -5,6 +5,7 @@ import { Audit } from "../models/audits.js";
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
 import { Queue } from "../models/queues.js";
+import { Notification } from "../models/notification.js";
 
 const router = Router();
 
@@ -13,9 +14,12 @@ router.post('/api/queue',
   isAuthenticated, 
   hasRole('user'),
   async (req, res) => {
-  const { student_id, section_id, status, purpose, isEarly } = req.body;
+    const { student_id, section_id, status, purpose, isEarly } = req.body;
+    const parentId = req.user.user_id;
+
 
     try {
+      // 1. Initial Validations
       const student = await Student.findOne({ student_id }).populate('section_details');
       
       if (!student) {
@@ -26,16 +30,10 @@ router.post('/api/queue',
         return res.status(403).json({ msg: "Student is already dismissed and no longer at school." });
       }
 
+      // 2. Schedule Bypassing Logic for Standard Pickups
       if (purpose === 'Pick up' && !isEarly) {
-        const student = await Student.findOne({ student_id }).populate('section_details');
-        
-        if (!student || !student.section_details) {
-          return res.status(400).json({ msg: "Student or Section data not found." });
-        }
-        if (student.status === 'Dismissed') {
-          return res.status(403).json({ 
-            msg: `Pick-up window hasn't opened yet. Please try again 20 mins before dismissal.` 
-          });
+        if (!student.section_details) {
+          return res.status(400).json({ msg: "Section data not found for this student." });
         }
 
         const schedule = student.section_details.class_schedule;
@@ -53,21 +51,55 @@ router.post('/api/queue',
         }
       }
 
+      // 3. Update or Create Queue Entry
       const queueEntry = await Queue.findOneAndUpdate(
-      { user_id: req.user.user_id },
-      { 
-        student_id, 
-        section_id, 
-        status, 
-        purpose, 
-        on_queue: true,
-        created_at: new Date() 
-      },
-      { upsert: true, new: true }
-    ).populate('user_details');
+        { user_id: parentId },
+        { 
+          student_id, 
+          section_id, 
+          status, 
+          purpose, 
+          on_queue: true,
+          created_at: new Date() 
+        },
+        { upsert: true, new: true }
+      ).populate('user_details');
 
-    const auditLog = new Audit({
-        user_id: req.user.user_id,
+      try {
+          const sectionDoc = await Section.findOne({ section_id: section_id });
+          
+          if (sectionDoc && sectionDoc.user_id) {
+              const studentName = `${student.first_name} ${student.last_name}`;
+              const parentName = `${req.user.first_name} ${req.user.last_name}`;
+
+              const title = isEarly ? 'Early Pickup Request' : 'Absence/Delay Reported';
+              const message = isEarly 
+                ? `${parentName} is requesting to pick up ${studentName} before dismissal.` 
+                : `${parentName} reported an absence for ${studentName}.`;
+
+              const teacherNotif = new Notification({
+                  recipient_id: Number(sectionDoc.user_id), 
+                  sender_id: Number(parentId),      
+                  type: isEarly ? 'Transfer' : 'System', 
+                  title: title,
+                  message: message,
+                  is_read: false
+              });
+
+              const savedNotif = await teacherNotif.save();
+
+              const io = req.app.get('socketio');
+              if (io) {
+                  io.emit('new_notification', savedNotif);
+              }
+          }
+      } catch (notifErr) {
+          console.error("Notification/Socket Error:", notifErr.message);
+      }
+
+      // 5. Audit Log
+      const auditLog = new Audit({
+        user_id: parentId,
         full_name: `${req.user.first_name} ${req.user.last_name}`,
         role: req.user.role,
         action: isEarly ? "Early Pickup Request" : "Queue Update",
@@ -75,10 +107,18 @@ router.post('/api/queue',
       });
       await auditLog.save();
       
-    req.app.get('socketio').emit('new_queue_entry', queueEntry);
+      // 6. Real-time Queue Update
+      const io = req.app.get('socketio');
+      if (io) {
+          io.emit('new_queue_entry', queueEntry);
+      }
 
-    res.json({ success: true });
-  } catch (err) { res.status(500).json({ msg: "Server Error" }); }
+      return res.json({ success: true, msg: "Queue updated successfully." });
+
+    } catch (err) { 
+      console.error("Queue 500 Error:", err);
+      return res.status(500).json({ msg: "Server Error: " + err.message }); 
+    }
 });
 
 // GET QUEUE 

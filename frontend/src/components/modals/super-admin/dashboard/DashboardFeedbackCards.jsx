@@ -24,7 +24,7 @@ export function DashboardFeedbackCard({ item, onClick }) {
         </div>
         
         {/* Truncated Remark: line-clamp-2 hides text after 2 lines */}
-        <p className="text-cgray text-[12px] leading-snug line-clamp-2">
+        <p className="text-cgray text-[12px]! leading-snug line-clamp-2">
           {item.remark || "No additional comments."}
         </p>
 
