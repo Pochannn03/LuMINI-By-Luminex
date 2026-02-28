@@ -8,8 +8,8 @@ import { Section } from "../models/sections.js";
 import { Student } from "../models/students.js";
 import { User } from "../models/users.js";
 
-// --- NEW: IMPORT THE EMAIL FUNCTION ---
-import { sendEnrollmentApprovalEmail } from '../utils/emailService.js';
+// --- THE FIX: IMPORT BOTH EMAIL FUNCTIONS ---
+import { sendEnrollmentApprovalEmail, sendInvitationEmail } from '../utils/emailService.js';
 
 const router = Router();
 
@@ -88,7 +88,6 @@ router.get('/api/teacher/enrollments/pending', isAuthenticated, async (req, res)
 
     const pendingRequests = await EnrollmentRequest.find({ 
       teacher_id: Number(teacherId), 
-      // THE FIX: Added 'Registered' to the allowed fetch statuses
       status: { $in: ['Pending', 'Approved_By_Teacher', 'Rejected', 'Registered'] } 
     }).sort({ created_at: -1 }).lean();
 
@@ -115,7 +114,7 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
        return res.status(403).json({ success: false, msg: "Access denied." });
     }
 
-    const { status } = req.body; // Expects 'Approved_By_Teacher' or 'Rejected'
+    const { status } = req.body; 
     const requestId = req.params.id;
 
     if (!['Approved_By_Teacher', 'Rejected'].includes(status)) {
@@ -132,9 +131,7 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
       return res.status(404).json({ success: false, msg: "Request not found." });
     }
 
-    // --- NEW: FIRE AUTOMATED EMAIL IF APPROVED ---
     if (status === 'Approved_By_Teacher') {
-      // Fire and forget (don't await it, so the UI responds instantly)
       sendEnrollmentApprovalEmail(
         updatedRequest.parent_email,
         updatedRequest.parent_name,
@@ -266,12 +263,22 @@ router.post('/api/admin/enrollments/bulk-register', isAuthenticated, async (req,
       reqData.status = 'Registered';
       await reqData.save();
 
+      // --- THE FIX: SEND THE FINAL INVITATION EMAIL IN THE BACKGROUND ---
+      if (reqData.parent_email) {
+        sendInvitationEmail(
+          reqData.parent_email,
+          invCode,
+          reqData.parent_name,
+          reqData.student_first_name
+        );
+      }
+
       registeredCount++;
     }
 
     res.status(200).json({ 
       success: true, 
-      msg: `Successfully registered ${registeredCount} students into the system!` 
+      msg: `Successfully registered ${registeredCount} students into the system and notified parents!` 
     });
 
   } catch (error) {
