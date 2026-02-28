@@ -182,6 +182,30 @@ router.post('/api/attendance',
             { new: true, upsert: true }
         ).populate('student_details').lean();
 
+        if (student && student.user_id) {
+            const recipientIds = Array.isArray(student.user_id) 
+                ? student.user_id 
+                : [student.user_id];
+
+            const notificationPromises = recipientIds.map(async (id) => {
+                const notification = new Notification({
+                    recipient_id: Number(id),
+                    sender_id: currentUserId, 
+                    type: 'Attendance',
+                    title: 'Attendance Recorded',
+                    message: `${student.first_name} ${student.last_name} has been marked ${status} at ${currentTimeString}.`,
+                    is_read: false
+                });
+
+                const savedNotif = await notification.save();
+                req.app.get('socketio').emit('new_notification', savedNotif);
+                
+                return savedNotif;
+            });
+
+            await Promise.all(notificationPromises);
+        }
+
         const existingTransfer = await Transfer.exists({
             student_id: studentId,
             date: todayDate,

@@ -8,6 +8,7 @@ import { Audit } from "../models/audits.js";
 import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
 import { Override } from '../models/manualTransfers.js';
+import { Notification } from '../models/notification.js';
 import multer from 'multer';
 import path from 'path';
 import fs from "fs";
@@ -210,6 +211,46 @@ router.post('/api/transfer',
       });
 
       await newTransfer.save();
+
+      const studentDoc = await Student.findOne({ student_id: studentId });
+      
+      if (studentDoc && studentDoc.user_id) {
+        const recipientIds = Array.isArray(studentDoc.user_id) 
+            ? studentDoc.user_id 
+            : [studentDoc.user_id];
+
+        // Map through and save notifications
+        const notificationPromises = recipientIds.map(async (id) => {
+            const notification = new Notification({
+              recipient_id: Number(id), 
+              sender_id: currentUserId,
+              type: 'Transfer',
+              title: `Student ${purpose} Successful`,
+              message: `${studentName} has been ${purpose === 'Drop off' ? 'dropped off' : 'picked up'}`,
+              is_read: false
+            });
+            
+            const savedNotif = await notification.save();
+
+            req.app.get('socketio').to(`user_${id}`).emit('new_notification', savedNotif);
+            
+            return savedNotif;
+        });
+
+        await Promise.all(notificationPromises);
+        const io = req.app.get('socketio');
+
+        recipientIds.forEach(id => {
+            io.emit('new_notification', {
+              recipient_id: Number(id),
+              type: 'Transfer',
+              title: `Student ${purpose} Successful`,
+              message: `${studentName} has been ${purpose === 'Drop off' ? 'dropped off' : 'picked up'}`,
+              is_read: false,
+              created_at: new Date()
+            });
+        });
+    }
 
       await AccessPass.findOneAndUpdate(
             { token: token },

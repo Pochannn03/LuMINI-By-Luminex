@@ -7,6 +7,7 @@ import { User } from "../models/users.js";
 import { Student } from "../models/students.js";
 import { Section } from "../models/sections.js";
 import { Audit } from "../models/audits.js";
+import { Notification } from "../models/notification.js";
 import GuardianRequest from "../models/guardianRequest.js"; 
 import multer from "multer";
 import path from "path";
@@ -211,8 +212,10 @@ router.put('/api/teacher/guardian-requests/:id/approve',
   async (req, res) => {
     try {
         const requestId = req.params.id;
+        const currentUserId = Number(req.user.user_id);
+        const teacherName = `${req.user.first_name} ${req.user.last_name}`;
 
-        const requestDoc = await GuardianRequest.findById(requestId);
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
         }
@@ -242,6 +245,22 @@ router.put('/api/teacher/guardian-requests/:id/approve',
         requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
+        if (requestDoc.parent && requestDoc.parent.user_id) {
+            const notification = new Notification({
+                recipient_id: Number(requestDoc.parent.user_id), 
+                sender_id: currentUserId,
+                type: 'System', 
+                title: 'Guardian Request Approved',
+                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active.`,
+                is_read: false
+            });
+
+            const savedNotif = await notification.save();
+            req.app.get('socketio').emit('new_notification', savedNotif);
+        } else {
+            console.log("⚠️ Notification skipped: Parent not found or user_id missing.");
+        }
+
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
@@ -268,8 +287,10 @@ router.put('/api/teacher/guardian-requests/:id/reject',
   async (req, res) => {
     try {
         const requestId = req.params.id;
+        const currentUserId = Number(req.user.user_id);
+        const teacherName = `${req.user.first_name} ${req.user.last_name}`;
 
-        const requestDoc = await GuardianRequest.findById(requestId);
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
         }
@@ -287,6 +308,25 @@ router.put('/api/teacher/guardian-requests/:id/reject',
           target: `Rejected request for: ${guardianName}`
         });
         await auditLog.save();
+
+        if (requestDoc.parent && requestDoc.parent.user_id) {
+            const notification = new Notification({
+                recipient_id: Number(requestDoc.parent.user_id), 
+                sender_id: currentUserId,
+                type: 'System', 
+                title: 'Guardian Request Rejected',
+                message: `Your request for ${guardianName} has been rejected by Teacher ${teacherName}. Please contact the school for more information.`,
+                is_read: false
+            });
+
+            const savedNotif = await notification.save();
+
+            // Real-time update via Socket.io
+            const io = req.app.get('socketio');
+            if (io) {
+                io.emit('new_notification', savedNotif);
+            }
+        }
 
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);

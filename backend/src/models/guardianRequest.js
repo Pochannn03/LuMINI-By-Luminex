@@ -32,6 +32,18 @@ const GuardianRequestSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'revoked'],
     default: 'pending' 
   }
-}, { timestamps: true });
+}, { timestamps: true },
+  {
+    toJSON: { virtuals: true }, 
+    toObject: { virtuals: true }
+  }
+);
+
+GuardianRequestSchema.virtual('parent_details', {
+  ref: 'User',
+  localField: 'parent',
+  foreignField: '_id',
+  justOne: true
+});
 
 export default mongoose.model('GuardianRequest', GuardianRequestSchema);

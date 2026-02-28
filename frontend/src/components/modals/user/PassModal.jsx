@@ -112,7 +112,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
           
           {/* Header */}
           <div className="w-full flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-            <h3 className="font-bold text-lg text-gray-800">My Pickup Pass</h3>
+            <h3 className="font-bold text-lg text-gray-800">My Pass</h3>
             <button 
               onClick={onClose}
               className="close-modal-ur transition-colors"

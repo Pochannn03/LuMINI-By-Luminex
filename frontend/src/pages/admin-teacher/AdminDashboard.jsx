@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-// import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
@@ -8,6 +8,7 @@ import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminD
 import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
 import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActionModal';
 import AdminEmergencyOverrideModal from "../../components/modals/admin/dashboard/AdminEmergencyOverride";
+import WarningModal from "../../components/WarningModal";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function AdminDashboard() {
@@ -41,7 +42,16 @@ export default function AdminDashboard() {
   // STUDENT QR AUTHENTICATION (ATTENDANCE)
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
   const [scannedStudentData, setScannedStudentData] = useState(null);
-  
+
+  // STATE FOR ANNOUNCEMENT
+  const [announcements, setAnnouncements] = useState([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [systemAnnouncements, setSystemAnnouncements] = useState([]);
+
+  // WARNING STATE
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
 
   // GETTING INFORMATION
   const handleScanSuccess = async (rawValue) => {
@@ -192,6 +202,37 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    const fetchSystemAnnouncements = async () => {
+      try {
+        const res = await axios.get(`http://localhost:3000/api/announcement/teacher`, 
+          { withCredentials: true });
+        setSystemAnnouncements(res.data.announcements);
+      } catch (err) {
+        console.error("Could not load system updates", err);
+      }
+    };
+    fetchSystemAnnouncements();
+  }, []);
+
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/announcement/teacher', {
+          withCredentials: true
+        });
+        if (response.data.success) {
+          setAnnouncements(response.data.announcements);
+        }
+      } catch (err) {
+        console.error("Failed to fetch announcements:", err);
+      } finally {
+        setLoadingAnnouncements(false);
+      }
+    };
+    fetchAnnouncements();
+  }, []);
+
+  useEffect(() => {
     const fetchInitialQueue = async () => {
       try {
         const response = await axios.get("http://localhost:3000/api/queue", 
@@ -228,6 +269,34 @@ export default function AdminDashboard() {
       setQueue(prevQueue => 
         prevQueue.filter(q => Number(q.user_id) !== Number(userId))
       );
+    });
+
+    socket.on('new_announcement', (newAnn) => {
+
+    const incomingRole = newAnn.role || newAnn.user?.role;
+
+      setAnnouncements(prev => {
+        const exists = prev.some(ann => ann._id === newAnn._id);
+        if (exists) return prev;
+        if (incomingRole === 'superadmin' || Number(newAnn.user_id) === Number(user?.user_id)) {
+            return [newAnn, ...prev];
+        }
+        
+        return prev;
+      });
+    });
+
+    socket.on('new_notification', (notif) => {
+      const isEarlyPickup = notif.type === 'Transfer';
+      const forThisTeacher = Number(notif.recipient_id) === Number(user?.user_id);
+
+      if (isEarlyPickup && forThisTeacher) {
+        if (!isAuthModalOpen && !transferSuccessData) {
+          setWarningTitle(notif.title);
+          setWarningMessage(notif.message);
+          setIsWarningModalOpen(true);
+        }
+      }
     });
 
     return () => socket.disconnect();
@@ -309,52 +378,6 @@ export default function AdminDashboard() {
             </div>
             <span className="material-symbols-outlined arrow-icon ml-auto text-[#c53030]!">arrow_forward</span>
           </div>
-        </div>
-
-        {/* Right Part of the Content */}
-        <div className="flex flex-col gap-6">
-          <div className="card action-card flex flex-col gap-5">
-            <div className="mb-6">
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined orange-icon text-[24px]">qr_code_scanner</span>
-                <h2 className="text-cdark text-[18px] font-bold">Guardian QR Verification</h2>
-              </div>
-              <p className="text-cgray text-[14px]! leading-normal ml-0">Scan guardian's QR code for student pickup.</p>
-            </div>
-
-            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0">
-              <span className="material-symbols-outlined qr-large-icon">qr_code_2</span>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="scanGuardianBtn" onClick={() => setActiveScanMode('user')}>
-                <span className="material-symbols-outlined text-[20px]!">center_focus_weak</span>
-                  Scan Parent or Guardian QR Code
-              </button>
-              <button className="btn btn-outline gap-2 h-[50px] font-semibold rounded-xl text-[14px]! border-none w-full">Verify Manually</button>
-            </div>
-          </div>
-
-          <div className="card action-card flex flex-col gap-5 p-6">
-            <div className="mb-6">
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined orange-icon text-[24px]">qr_code_2</span>
-                <h2 className="text-cdark text-[18px]! font-bold">Student QR Attendance</h2>
-              </div>
-              <p className="text-cgray leading-normal ml-0 text-[14px]!">Initiate scan for daily student attendance.</p>
-            </div>
-
-            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0">
-              <span className="material-symbols-outlined qr-large-icon">qr_code_2</span>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="startScanBtn" onClick={() => setActiveScanMode('student')}>
-                <span className="material-symbols-outlined">center_focus_weak</span>
-                Scan Student QR Code
-              </button>
-            </div>
-          </div>
 
           <div className="card action-card flex flex-col p-6">
             <div className="mb-4">
@@ -413,8 +436,119 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Right Part of the Content */}
+        <div className="flex flex-col gap-6">
+          <div className="card action-card flex flex-col gap-5">
+            <div className="mb-6">
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="material-symbols-outlined orange-icon text-[24px]">qr_code_scanner</span>
+                <h2 className="text-cdark text-[18px] font-bold">Guardian QR Verification</h2>
+              </div>
+              <p className="text-cgray text-[14px]! leading-normal ml-0">Scan guardian's QR code for student pickup.</p>
+            </div>
+
+            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0">
+              <span className="material-symbols-outlined qr-large-icon">qr_code_2</span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="scanGuardianBtn" onClick={() => setActiveScanMode('user')}>
+                <span className="material-symbols-outlined text-[20px]!">center_focus_weak</span>
+                  Scan Parent or Guardian QR Code
+              </button>
+              <button className="btn btn-outline gap-2 h-[50px] font-semibold rounded-xl text-[14px]! border-none w-full">Verify Manually</button>
+            </div>
+          </div>
+
+          <div className="card action-card flex flex-col gap-5 p-6">
+            <div className="mb-6">
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="material-symbols-outlined orange-icon text-[24px]">qr_code_2</span>
+                <h2 className="text-cdark text-[18px]! font-bold">Student QR Attendance</h2>
+              </div>
+              <p className="text-cgray leading-normal ml-0 text-[14px]!">Initiate scan for daily student attendance.</p>
+            </div>
+
+            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0">
+              <span className="material-symbols-outlined qr-large-icon">qr_code_2</span>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="startScanBtn" onClick={() => setActiveScanMode('student')}>
+                <span className="material-symbols-outlined">center_focus_weak</span>
+                Scan Student QR Code
+              </button>
+            </div>
+          </div>
+
+          <div className="card queue-card">
+            <div className="mb-6">
+              <div className="flex items-center gap-2.5 mb-2">
+                <span className="material-symbols-outlined purple-icon text-[24px]">notifications_active</span>
+                <h2 className="text-cdark text-[18px] font-bold">Recent Updates</h2>
+              </div>
+              <p className="text-cgray text-[14px]! leading-normal">System-wide broadcasts and alerts.</p>
+            </div>
+
+            <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar"> 
+              {loadingAnnouncements ? (
+                <p className="text-center text-cgray py-4">Loading updates...</p>
+              ) : announcements.length === 0 ? (
+                <div className="text-center py-6 opacity-60">
+                  <span className="material-symbols-outlined text-[40px] mb-2 text-slate-300">notifications_off</span>
+                  <p className="text-cgray text-[14px]">No recent updates.</p>
+                </div>
+              ) : (
+                announcements.map((ann) => (
+                  <div key={ann._id} className="bg-[white] flex items-start p-4 rounded-xl border border-[#f1f5f9] gap-4 hover:bg-[#fafafa] transition-colors shrink-0">
+                    <div className={`flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px] ${
+                      ann.category === 'campaign' ? 'bg-[#fff1f2] text-[#f43f5e]' : 
+                      ann.category === 'calendar_month' ? 'bg-[#f0fdf4] text-[#22c55e]' : 
+                      'bg-[#eff6ff] text-[#3b82f6]'
+                    }`}>
+                      <span className="material-symbols-outlined">
+                        {ann.category || 'notifications_active'}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-cdark text-[15px] font-bold">
+                        {/* Check if the poster is a SuperAdmin (adjust property name based on your payload) */}
+                        {ann.role === 'superadmin' ? 'System Update' : (
+                          ann.category === 'campaign' ? 'Emergency Alert' : 
+                          ann.category === 'calendar_month' ? 'Event' : 
+                          'General Announcement'
+                        )}
+                      </span>
+                      <span className="text-cgray text-[13px] leading-relaxed">
+                        {ann.announcement}
+                      </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[#94a3b8] text-[11px] font-medium">
+                          {ann.role === 'superadmin' ? ann.full_name : `By Teacher ${ann.full_name}`}
+                        </span>
+                        <span className="text-[#cbd5e1]">•</span>
+                        <span className="text-[#94a3b8] text-[11px] font-medium">
+                          {new Date(ann.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
         </div>
       </main>
+
+      <WarningModal 
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        title={warningTitle}
+        message={warningMessage}
+      />
 
       <AdminEmergencyOverrideModal 
         isOpen={isOverrideModalOpen}

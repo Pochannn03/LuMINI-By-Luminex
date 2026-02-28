@@ -28,6 +28,13 @@ export default function SuperAdminDashboard() {
     loading: true
   });
 
+  // STATE FOR ANNOUNCEMENT
+  const [announcementData, setAnnouncementData] = useState({
+    content: '',
+    category: 'notifications_active'
+  });
+  const [posting, setPosting] = useState(false);
+
   // --- NEW: SUCCESS MODAL STATE ---
   const [successModalConfig, setSuccessModalConfig] = useState({
     isOpen: false,
@@ -144,9 +151,42 @@ export default function SuperAdminDashboard() {
     };
   }, []);
 
+  const handlePostAnnouncement = async () => {
+    if (!announcementData.content.trim()) return;
+
+    try {
+      setPosting(true);
+      const response = await axios.post("http://localhost:3000/api/announcements", 
+        { 
+          announcement: announcementData.content,
+          category: announcementData.category
+        },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        setAnnouncementData({ content: '', category: 'notifications_active' });
+        setSuccessModalConfig({ 
+          isOpen: true, 
+          message: "Announcement posted and sent to all!" 
+        });
+      }
+    } catch (err) {
+      console.error("Post Failed:", err);
+      alert(err.response?.data?.error || "Failed to post announcement.");
+    } finally {
+      setPosting(false);
+    }
+  };
+
   const handleOpenFeedback = (fb) => {
     setSelectedFeedback(fb);
     setIsFeedbackModalOpen(true);
+  };
+
+  const handleAnnChange = (e) => {
+    const { name, value } = e.target;
+    setAnnouncementData(prev => ({ ...prev, [name]: value }));
   };
 
   return (
@@ -364,6 +404,60 @@ export default function SuperAdminDashboard() {
                   <span className="text-cgray text-[13px] font-medium">No feedback yet</span>
                 </div>
               )}
+            </div>
+          </div>
+
+          <div className="card action-card flex flex-col p-6 mb-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${
+                  announcementData.category === 'campaign' ? 'bg-red-50' : 
+                  announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'
+                }`}>
+                  <span className={`material-symbols-outlined text-[22px] ${
+                    announcementData.category === 'campaign' ? 'text-red-600' : 
+                    announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'
+                  }`}>
+                    {announcementData.category}
+                  </span>
+                </div>
+                <h2 className="text-cdark font-bold text-[18px]! -m-2">System Announcement</h2>
+              </div>
+              <p className="text-cgray leading-normal text-[14px]! mb-3">Broadcast a message to all users in the system.</p>
+
+              <select 
+                name="category"
+                value={announcementData.category}
+                onChange={handleAnnChange}
+                className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
+              >
+                <option value="notifications_active">General Announcement</option>
+                <option value="campaign">Emergency Alert</option>
+                <option value="calendar_month">System Maintenance / Event</option>
+              </select>
+            </div>
+
+            <div className="announcement-box mt-1">
+              <textarea 
+                name="content"
+                className="text-cdark w-full h-24 border border-slate-100 p-3 rounded-xl bg-slate-50/50 resize-none text-[14px] outline-none focus:bg-white focus:border-blue-200 transition-all" 
+                placeholder="Type your system-wide message here..."
+                value={announcementData.content}
+                onChange={handleAnnChange}
+                disabled={posting}
+              />
+              <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
+                <div className="text-[12px] text-cgray">
+                  {announcementData.content.length} characters
+                </div>
+                <button 
+                  className={`btn-post ${posting || !announcementData.content.trim() ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded-lg font-bold transition-all`}
+                  onClick={handlePostAnnouncement}
+                  disabled={posting || !announcementData.content.trim()}
+                >
+                  {posting ? 'Sending...' : 'Post to All'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

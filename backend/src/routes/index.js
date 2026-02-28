@@ -14,6 +14,8 @@ import feedbacksRoutes from "./feedback.js"
 import enrollmentRoutes from "./enrollmentRoutes.js";
 import announcementsRoutes from "./announcements.js"
 import auditsRoutes from "./audits.js";
+import settingsRoutes from "./settings.js";
+import notificationsRoutes from "./notifications.js";
 
 
 const router = Router();
@@ -33,6 +35,8 @@ router.use(feedbacksRoutes);
 router.use(enrollmentRoutes); 
 router.use(announcementsRoutes);
 router.use(auditsRoutes);
+router.use(settingsRoutes);
+router.use(notificationsRoutes);
 
 
 
