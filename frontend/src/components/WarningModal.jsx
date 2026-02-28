@@ -14,7 +14,7 @@ const WarningModal = ({ isOpen, onClose, title, message }) => {
         {/* Warning Icon Container */}
         <div className="success-icon-container" style={{ backgroundColor: "#fef3c7" }}>
           <span className="material-symbols-outlined" style={{ color: "#f59e0b", fontSize: "40px" }}>
-            schedule
+            warning
           </span>
         </div>
 

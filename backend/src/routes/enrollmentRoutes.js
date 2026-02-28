@@ -8,8 +8,7 @@ import { Section } from "../models/sections.js";
 import { Student } from "../models/students.js";
 import { User } from "../models/users.js";
 
-// --- THE FIX: IMPORT BOTH EMAIL FUNCTIONS ---
-import { sendEnrollmentApprovalEmail, sendInvitationEmail } from '../utils/emailService.js';
+import { sendEnrollmentApprovalEmail, sendInvitationEmail, sendBulkSectionInvite } from '../utils/emailService.js';
 
 const router = Router();
 
@@ -147,6 +146,44 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
 });
 
 // ==================================================
+// POST: TEACHER BULK INVITE PARENTS
+// ==================================================
+router.post('/api/teacher/bulk-invite-section', isAuthenticated, async (req, res) => {
+  try {
+    if (req.user.relationship !== 'Teacher') {
+      return res.status(403).json({ success: false, msg: "Access denied." });
+    }
+
+    const { sectionName, sectionCode, recipients } = req.body;
+
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ success: false, msg: "No recipients provided." });
+    }
+
+    const teacherName = `${req.user.first_name} ${req.user.last_name}`;
+
+    // Loop through recipients and send emails in the background
+    recipients.forEach(parent => {
+      if (parent.email) {
+        const fullName = `${parent.firstName} ${parent.lastName}`.trim();
+        sendBulkSectionInvite(
+          parent.email, 
+          fullName || "Parent/Guardian", 
+          sectionName, 
+          sectionCode, 
+          teacherName
+        );
+      }
+    });
+
+    res.status(200).json({ success: true, msg: `Sending ${recipients.length} invitations.` });
+  } catch (error) {
+    console.error("Bulk Invite Error:", error);
+    res.status(500).json({ success: false, msg: "Failed to send invitations." });
+  }
+});
+
+// ==================================================
 // GET: FETCH ALL TEACHER-APPROVED ENROLLMENTS FOR SUPER ADMIN
 // ==================================================
 router.get('/api/admin/enrollments/approved', isAuthenticated, async (req, res) => {
@@ -263,7 +300,6 @@ router.post('/api/admin/enrollments/bulk-register', isAuthenticated, async (req,
       reqData.status = 'Registered';
       await reqData.save();
 
-      // --- THE FIX: SEND THE FINAL INVITATION EMAIL IN THE BACKGROUND ---
       if (reqData.parent_email) {
         sendInvitationEmail(
           reqData.parent_email,
