@@ -26,7 +26,7 @@ export default function EnrollmentApproval() {
   const [copiedCode, setCopiedCode] = useState(null);
 
   // --- BULK INVITE (WIZARD) STATES ---
-  const [inviteStep, setInviteStep] = useState(1); // 1: List, 2: Upload/Input, 3: Review
+  const [inviteStep, setInviteStep] = useState(1); 
   const [selectedSectionForInvite, setSelectedSectionForInvite] = useState(null);
   const [recipients, setRecipients] = useState([]);
   const [manualInput, setManualInput] = useState({ firstName: '', lastName: '', email: '' });
@@ -38,7 +38,7 @@ export default function EnrollmentApproval() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false); 
-  const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false); // <-- NEW: For Sending Invites
+  const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false); 
   
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
@@ -55,14 +55,10 @@ export default function EnrollmentApproval() {
     message: ""
   });
 
-  // Helper to trigger Warning Modal
   const showWarning = (title, message) => {
     setWarningConfig({ isOpen: true, title, message });
   };
 
-  // ==========================================
-  // FETCH DATA ON MOUNT
-  // ==========================================
   useEffect(() => {
     const fetchTeacherData = async () => {
       try {
@@ -89,9 +85,6 @@ export default function EnrollmentApproval() {
     fetchTeacherData();
   }, []);
 
-  // ==========================================
-  // HELPER FUNCTIONS
-  // ==========================================
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
@@ -116,9 +109,7 @@ export default function EnrollmentApproval() {
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // ==========================================
-  // EXCEL PARSING & RESTRICTED BULK INVITE LOGIC
-  // ==========================================
+  // --- BULK INVITE EXCEL LOGIC ---
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -132,13 +123,11 @@ export default function EnrollmentApproval() {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws);
 
-        // Smart Extraction Logic
         const parsed = data.map(row => {
           const getVal = (regex) => {
             const key = Object.keys(row).find(k => regex.test(k.trim()));
             return key ? String(row[key]).trim() : '';
           };
-
           return {
             id: Date.now() + Math.random(),
             firstName: getVal(/first.*name/i) || getVal(/^given.*name/i) || '',
@@ -147,7 +136,6 @@ export default function EnrollmentApproval() {
           };
         }).filter(r => r.email);
 
-        // Deduplication Logic
         setRecipients(prev => {
           const newRecipients = [];
           let duplicateCount = 0;
@@ -157,7 +145,6 @@ export default function EnrollmentApproval() {
             const inFirst = incoming.firstName.toLowerCase();
             const inLast = incoming.lastName.toLowerCase();
 
-            // Check if email OR full name is already in the list
             const isDup = prev.some(r => 
               r.email.toLowerCase() === inEmail || 
               (r.firstName.toLowerCase() === inFirst && r.lastName.toLowerCase() === inLast && inFirst !== '')
@@ -173,7 +160,6 @@ export default function EnrollmentApproval() {
             }
           });
 
-          // Feedback message
           setTimeout(() => {
             if (newRecipients.length > 0) {
               setUploadSuccessMsg(`Loaded ${newRecipients.length} emails! ${duplicateCount > 0 ? `(${duplicateCount} duplicates skipped)` : ''}`);
@@ -207,7 +193,6 @@ export default function EnrollmentApproval() {
     const inFirst = manualInput.firstName.trim().toLowerCase();
     const inLast = manualInput.lastName.trim().toLowerCase();
 
-    // Check restriction
     const isDuplicate = recipients.some(r => 
       r.email.toLowerCase() === inEmail || 
       (r.firstName.toLowerCase() === inFirst && r.lastName.toLowerCase() === inLast && inFirst !== '')
@@ -247,7 +232,6 @@ export default function EnrollmentApproval() {
       setSuccessMessage(`Successfully sent invitations to ${recipients.length} parents!`);
       setShowSuccessModal(true);
       
-      // Reset Wizard
       setInviteStep(1);
       setRecipients([]);
       setSelectedSectionForInvite(null);
@@ -256,6 +240,7 @@ export default function EnrollmentApproval() {
       showWarning("Action Failed", "Failed to send invitations to parents. Please check your connection and try again.");
     } finally {
       setIsSendingInvites(false);
+      setIsSendConfirmOpen(false);
     }
   };
 
@@ -267,19 +252,20 @@ export default function EnrollmentApproval() {
       setSelectedSectionForInvite(null);
       setManualInput({ firstName: '', lastName: '', email: '' });
       setUploadSuccessMsg(""); 
-    }, 300); // Reset after animation
+    }, 300); 
   };
 
   // ==========================================
-  // HANDLE APPROVE / REJECT FLOW
+  // DIRECT REGISTRATION / REJECT FLOW
   // ==========================================
   const promptUpdateStatus = (id, newStatus, studentName) => {
-    if (newStatus === 'Approved_By_Teacher') {
+    // UPDATED: Now looks for 'Registered'
+    if (newStatus === 'Registered') {
       setConfirmConfig({
         isOpen: true,
-        title: "Approve Enrollment?",
-        message: `You are about to approve the enrollment application for ${studentName}. This will be sent to the Super Admin for finalization and system registration. Do you want to proceed?`,
-        confirmText: "Yes, Approve",
+        title: "Approve & Register Student?",
+        message: `You are about to approve the enrollment application for ${studentName}. This will instantly register the student into your class and email the parent their invitation code. Do you want to proceed?`,
+        confirmText: "Yes, Register",
         isDestructive: false,
         actionData: { id, status: newStatus }
       });
@@ -311,12 +297,12 @@ export default function EnrollmentApproval() {
         );
         setSelectedApplication(null); 
         
-        setSuccessMessage(`Application successfully ${status === 'Rejected' ? 'rejected' : 'approved and sent to Admin'}!`);
+        setSuccessMessage(`Application successfully ${status === 'Rejected' ? 'rejected' : 'approved and registered'}!`);
         setShowSuccessModal(true);
       }
     } catch (error) {
       console.error("Failed to update status:", error);
-      showWarning("Update Error", "Something went wrong while updating the application. Please try again.");
+      showWarning("Registration Error", "Something went wrong while processing the application. Please try again.");
     }
   };
 
@@ -325,9 +311,10 @@ export default function EnrollmentApproval() {
   const reviewedRequestsCount = requests.filter(r => r.status !== 'Pending').length;
 
   const filteredRequests = requests.filter(req => {
+    // We only care about Pending, Rejected, and Registered now
     const matchesTab = activeTab === 'pending' 
       ? req.status === 'Pending' 
-      : ['Approved_By_Teacher', 'Rejected', 'Registered'].includes(req.status);
+      : ['Rejected', 'Registered'].includes(req.status);
 
     if (!matchesTab) return false;
 
@@ -364,7 +351,6 @@ export default function EnrollmentApproval() {
         isDestructive={true}
       />
 
-      {/* --- NEW: SEND CONFIRMATION MODAL --- */}
       <ConfirmModal 
         isOpen={isSendConfirmOpen}
         onClose={() => setIsSendConfirmOpen(false)}
@@ -392,11 +378,10 @@ export default function EnrollmentApproval() {
       <main className="main-content">
         <div className="approvals-container">
           
-          {/* 1. HEADER BANNER */}
           <div className="header-banner flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
             <div className="header-title">
-              <h1>System Registration Requests</h1>
-              <p>Review and verify new student pre-enrollments submitted by parents.</p>
+              <h1>Student Registrations</h1>
+              <p>Review new pre-enrollments and register students directly to your class.</p>
             </div>
 
             <button 
@@ -408,7 +393,6 @@ export default function EnrollmentApproval() {
             </button>
           </div>
 
-          {/* 2. CONTROLS BAR */}
           <div className="controls-bar">
             <div className="controls-left">
               <div className="tab-group">
@@ -440,7 +424,6 @@ export default function EnrollmentApproval() {
             </div>
           </div>
 
-          {/* 3. REQUESTS GRID */}
           <div className="requests-grid">
             {loading ? (
               <div className="text-center py-10 text-slate-500 font-medium w-full col-span-full">
@@ -459,7 +442,6 @@ export default function EnrollmentApproval() {
                 <div key={req._id} className="request-card">
                   
                   <div className="card-split-header">
-                    {/* LEFT: PARENT INFO */}
                     <div className="header-half header-left">
                       <span className="info-label">Submitted By (Parent)</span>
                       <div className="person-group">
@@ -475,7 +457,6 @@ export default function EnrollmentApproval() {
                       </div>
                     </div>
 
-                    {/* RIGHT: STUDENT INFO (Clickable) */}
                     <div 
                       className="header-half guardian-clickable"
                       onClick={() => setSelectedApplication(req)}
@@ -502,7 +483,6 @@ export default function EnrollmentApproval() {
                     </div>
                   </div>
 
-                  {/* BOTTOM: REQUEST METADATA */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-dashed border-slate-300 bg-white gap-4 sm:gap-0">
                     <div className="text-left w-full sm:w-auto">
                       <span className="info-label block mb-2">Target Section</span>
@@ -517,7 +497,6 @@ export default function EnrollmentApproval() {
                     </div>
                   </div>
 
-                  {/* ACTIONS */}
                   <div className="w-full p-4 pt-2 border-t border-slate-100 bg-slate-50/50 rounded-b-xl">
                     {req.status === 'Pending' ? (
                       <div className="flex w-full gap-3">
@@ -528,26 +507,24 @@ export default function EnrollmentApproval() {
                           <span className="material-symbols-outlined text-[18px]">close</span>
                           <span className="hidden sm:inline">Reject Application</span>
                         </button>
+                        {/* THE FIX: Button changed to direct register payload */}
                         <button 
                           className="btn-card btn-approve flex-1 flex items-center justify-center gap-1.5"
-                          onClick={() => promptUpdateStatus(req._id, 'Approved_By_Teacher', `${req.student_first_name} ${req.student_last_name}`)}
+                          onClick={() => promptUpdateStatus(req._id, 'Registered', `${req.student_first_name} ${req.student_last_name}`)}
                         >
-                          <span className="material-symbols-outlined text-[18px]">check</span>
-                          <span className="hidden sm:inline">Approve & Send to Admin</span>
+                          <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+                          <span className="hidden sm:inline">Approve & Register</span>
                         </button>
                       </div>
                     ) : (
                       <div className={`w-full font-bold text-[14px] text-center py-3 rounded-xl border flex justify-center items-center gap-2 ${
                         req.status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-200' : 
-                        req.status === 'Registered' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        'bg-blue-50 text-blue-700 border-blue-200' 
                       }`}>
                         <span className="material-symbols-outlined text-[18px]">
-                          {req.status === 'Rejected' ? 'cancel' : req.status === 'Registered' ? 'verified_user' : 'task_alt'}
+                          {req.status === 'Rejected' ? 'cancel' : 'verified_user'}
                         </span>
-                        {req.status === 'Rejected' ? 'Application Rejected' : 
-                         req.status === 'Registered' ? 'Officially Enrolled by Admin' : 
-                         'Sent to Super Admin'}
+                        {req.status === 'Rejected' ? 'Application Rejected' : 'Officially Enrolled & Registered'}
                       </div>
                     )}
                   </div>
@@ -570,7 +547,6 @@ export default function EnrollmentApproval() {
             onClick={e => e.stopPropagation()} 
             style={{ width: '90%', maxWidth: inviteStep === 1 ? '500px' : '650px', minHeight: '300px' }}
           >
-            {/* Loading Overlay */}
             {isSendingInvites && (
               <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
                 <span className="material-symbols-outlined animate-spin text-blue-600 text-[48px] mb-4">autorenew</span>
@@ -579,7 +555,6 @@ export default function EnrollmentApproval() {
               </div>
             )}
 
-            {/* Absolute Floating X Button */}
             <button 
               className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors z-50" 
               onClick={closeCodesModal}
@@ -589,7 +564,7 @@ export default function EnrollmentApproval() {
             
             <div className="pt-10">
               
-              {/* STEP 1: SELECT SECTION */}
+              {/* STEP 1 */}
               {inviteStep === 1 && (
                 <div className="animate-[fadeIn_0.3s_ease-out]">
                   <div className="mb-6 pr-12">
@@ -656,10 +631,9 @@ export default function EnrollmentApproval() {
                 </div>
               )}
 
-              {/* STEP 2: UPLOAD EXCEL & MANUAL INPUT */}
+              {/* STEP 2 */}
               {inviteStep === 2 && (
                 <div className="animate-[fadeIn_0.3s_ease-out]">
-                  
                   <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
                     <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 leading-tight">
                       <span className="material-symbols-outlined text-[22px] text-blue-500">meeting_room</span>
@@ -672,7 +646,6 @@ export default function EnrollmentApproval() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Left: Excel Upload */}
                     <div className="flex flex-col relative">
                       <h3 className="text-[13px] font-bold text-slate-700 mb-2">Upload Excel / CSV</h3>
                       
@@ -701,7 +674,6 @@ export default function EnrollmentApproval() {
                       </div>
                     </div>
 
-                    {/* Right: Manual Entry */}
                     <div className="flex flex-col">
                       <h3 className="text-[13px] font-bold text-slate-700 mb-2">Or Add Manually</h3>
                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
@@ -762,11 +734,9 @@ export default function EnrollmentApproval() {
                 </div>
               )}
 
-              {/* STEP 3: REVIEW & SEND */}
+              {/* STEP 3 */}
               {inviteStep === 3 && (
                 <div className="animate-[fadeIn_0.3s_ease-out]">
-                  
-                  {/* COMPLETELY CLEAN HEADER */}
                   <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-4">
                     <h2 className="text-xl font-bold text-slate-800 leading-tight">Review Recipients</h2>
                     <div className="flex items-center gap-1.5 bg-blue-50/80 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm shrink-0">
@@ -817,7 +787,6 @@ export default function EnrollmentApproval() {
                     </button>
                     
                     <div className="flex items-center gap-3">
-                      
                       <button 
                         className="flex justify-center items-center text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors w-[44px] h-[44px] rounded-xl active:scale-95 shrink-0" 
                         onClick={() => setIsClearConfirmOpen(true)}
@@ -826,7 +795,6 @@ export default function EnrollmentApproval() {
                         <span className="material-symbols-outlined text-[20px]">delete</span>
                       </button>
 
-                      {/* --- THE FIX: Now opens the Send Confirm Modal --- */}
                       <button 
                         className="flex justify-center items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white sm:min-w-[140px] w-[44px] h-[44px] rounded-xl font-bold transition-transform active:scale-95 text-[13px] shadow-md shadow-emerald-500/20 disabled:opacity-50 shrink-0"
                         disabled={recipients.length === 0}
@@ -926,10 +894,10 @@ export default function EnrollmentApproval() {
               {selectedApplication.status === 'Pending' && (
                 <button 
                   className="btn btn-primary flex-1 h-[45px] rounded-xl flex justify-center items-center gap-2" 
-                  onClick={() => promptUpdateStatus(selectedApplication._id, 'Approved_By_Teacher', `${selectedApplication.student_first_name} ${selectedApplication.student_last_name}`)}
+                  onClick={() => promptUpdateStatus(selectedApplication._id, 'Registered', `${selectedApplication.student_first_name} ${selectedApplication.student_last_name}`)}
                 >
-                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                  <span className="hidden sm:inline">Approve Enrollment</span>
+                  <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+                  <span className="hidden sm:inline">Approve & Register</span>
                 </button>
               )}
             </div>

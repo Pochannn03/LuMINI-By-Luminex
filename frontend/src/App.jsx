@@ -26,9 +26,10 @@ import GuardianDashboard from "./pages/users/guardian/GuardianDashboard";
 import PickupAndDropoffHistory from "./pages/users/parent/ParentPickupAndDropoffHistory";
 import ParentEnrollment from "./pages/ParentEnrollment";
 import EnrollmentApproval from "./pages/admin-teacher/EnrollmentApproval";
-import SuperAdminBulkRegistration from "./pages/super-admin/SuperAdminBulkRegistration";
 import GuardianPickupAndDropOffHistory from "../../frontend/src/pages/users/guardian/GuardianPickupAndDropOffHistory";
 import ForgotPassword from "../../frontend/src/pages/auth/ForgotPassword";
+
+// REMOVED: import SuperAdminBulkRegistration
 
 export default function App() {
   return (
@@ -36,9 +37,7 @@ export default function App() {
       <Routes>
         {/* Landing && Unauthorized */}
         <Route path="/" element={<Landing />} />
-        {/* --- NEW ROUTE --- */}
         <Route path="/enroll" element={<ParentEnrollment />} />
-        {/* ----------------- */}
         <Route path="/unauthorized" element={<Unauthorized />} />
 
         {/* Auth */}
@@ -54,9 +53,9 @@ export default function App() {
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
-          <Route path="/superadmin/bulk-registration" element={<SuperAdminBulkRegistration />} />
           <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
           <Route path="/superadmin/analytics" element={<SuperAdminAnalytics />} />
+          {/* REMOVED: /superadmin/bulk-registration route */}
         </Route>
 
         {/* Admin (Teacher) Pages */}
@@ -70,11 +69,7 @@ export default function App() {
         </Route>
 
         {/* User (Parent) Routes */}
-        <Route
-          element={
-            <RequireAuth allowedRoles={["user"]} allowedTypes={["Parent"]} />
-          }
-        >
+        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Parent"]} />}>
           <Route path="/parent/dashboard" element={<ParentDashboard />} />
           <Route path="/parent/profile" element={<ParentProfile />} />
           <Route path="/parent/guardians" element={<ManageGuardians />} />
@@ -82,12 +77,7 @@ export default function App() {
         </Route>
 
         {/* User (Guardian) Routes */}
-        <Route
-          element={
-            <RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />
-          }
-        >
-          {/* --- NEW: GUARDIAN SETUP BUFFER ZONE --- */}
+        <Route element={<RequireAuth allowedRoles={["user"]} allowedTypes={["Guardian"]} />}>
           <Route path="/guardian/setup" element={<GuardianSetup />} />
           <Route path="/guardian/dashboard" element={<GuardianDashboard />} /> 
           <Route path="/guardian/profile" element={<GuardianProfile />} /> 
@@ -96,7 +86,6 @@ export default function App() {
 
         {/* SHARED ROUTE OF USER */}
         <Route element={<RequireAuth allowedRoles={["user"]} />}>
-          {/* Example: A settings page common to both */}
           {/* <Route path="/user/settings" element={<UserSettings />} /> */}
         </Route>
       </Routes>

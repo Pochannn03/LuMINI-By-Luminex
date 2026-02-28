@@ -6,9 +6,8 @@ import { isAuthenticated } from '../middleware/authMiddleware.js';
 import { EnrollmentRequest } from "../models/EnrollmentRequest.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js";
-import { User } from "../models/users.js";
 
-import { sendEnrollmentApprovalEmail, sendInvitationEmail, sendBulkSectionInvite } from '../utils/emailService.js';
+import { sendInvitationEmail, sendBulkSectionInvite } from '../utils/emailService.js';
 
 const router = Router();
 
@@ -76,10 +75,13 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
   }
 });
 
+// ==================================================
 // GET: FETCH PENDING ENROLLMENTS FOR A SPECIFIC TEACHER
+// ==================================================
 router.get('/api/teacher/enrollments/pending', isAuthenticated, async (req, res) => {
   try {
-    if (req.user.relationship !== 'Teacher') {
+    // THE FIX: Check if role is 'admin' (Teacher), not relationship
+    if (req.user.role !== 'admin') {
        return res.status(403).json({ success: false, msg: "Access denied. Only teachers can view this queue." });
     }
 
@@ -87,7 +89,7 @@ router.get('/api/teacher/enrollments/pending', isAuthenticated, async (req, res)
 
     const pendingRequests = await EnrollmentRequest.find({ 
       teacher_id: Number(teacherId), 
-      status: { $in: ['Pending', 'Approved_By_Teacher', 'Rejected', 'Registered'] } 
+      status: { $in: ['Pending', 'Rejected', 'Registered'] } 
     }).sort({ created_at: -1 }).lean();
 
     for (let request of pendingRequests) {
@@ -105,157 +107,29 @@ router.get('/api/teacher/enrollments/pending', isAuthenticated, async (req, res)
 });
 
 // ==================================================
-// PUT: UPDATE ENROLLMENT STATUS (Approve / Reject)
+// PUT: DIRECT APPROVE & REGISTER STUDENT (OR REJECT)
 // ==================================================
 router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, res) => {
   try {
-    if (req.user.relationship !== 'Teacher') {
+    // THE FIX: Check if role is 'admin' (Teacher)
+    if (req.user.role !== 'admin') {
        return res.status(403).json({ success: false, msg: "Access denied." });
     }
 
     const { status } = req.body; 
     const requestId = req.params.id;
 
-    if (!['Approved_By_Teacher', 'Rejected'].includes(status)) {
+    if (!['Registered', 'Rejected'].includes(status)) {
       return res.status(400).json({ success: false, msg: "Invalid status update." });
     }
 
-    const updatedRequest = await EnrollmentRequest.findByIdAndUpdate(
-      requestId,
-      { status: status },
-      { new: true }
-    );
-
-    if (!updatedRequest) {
+    const reqData = await EnrollmentRequest.findById(requestId);
+    if (!reqData) {
       return res.status(404).json({ success: false, msg: "Request not found." });
     }
 
-    if (status === 'Approved_By_Teacher') {
-      sendEnrollmentApprovalEmail(
-        updatedRequest.parent_email,
-        updatedRequest.parent_name,
-        updatedRequest.student_first_name
-      );
-    }
-
-    res.status(200).json({ success: true, msg: `Application marked as ${status}`, request: updatedRequest });
-  } catch (error) {
-    console.error("Error updating status:", error);
-    res.status(500).json({ success: false, msg: "Failed to update application status." });
-  }
-});
-
-// ==================================================
-// POST: TEACHER BULK INVITE PARENTS
-// ==================================================
-router.post('/api/teacher/bulk-invite-section', isAuthenticated, async (req, res) => {
-  try {
-    if (req.user.relationship !== 'Teacher') {
-      return res.status(403).json({ success: false, msg: "Access denied." });
-    }
-
-    const { sectionName, sectionCode, recipients } = req.body;
-
-    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ success: false, msg: "No recipients provided." });
-    }
-
-    const teacherName = `${req.user.first_name} ${req.user.last_name}`;
-
-    // Loop through recipients and send emails in the background
-    recipients.forEach(parent => {
-      if (parent.email) {
-        const fullName = `${parent.firstName} ${parent.lastName}`.trim();
-        sendBulkSectionInvite(
-          parent.email, 
-          fullName || "Parent/Guardian", 
-          sectionName, 
-          sectionCode, 
-          teacherName
-        );
-      }
-    });
-
-    res.status(200).json({ success: true, msg: `Sending ${recipients.length} invitations.` });
-  } catch (error) {
-    console.error("Bulk Invite Error:", error);
-    res.status(500).json({ success: false, msg: "Failed to send invitations." });
-  }
-});
-
-// ==================================================
-// GET: FETCH ALL TEACHER-APPROVED ENROLLMENTS FOR SUPER ADMIN
-// ==================================================
-router.get('/api/admin/enrollments/approved', isAuthenticated, async (req, res) => {
-  try {
-    if (req.user.role !== 'superadmin') {
-       return res.status(403).json({ success: false, msg: "Access denied. Super Admin only." });
-    }
-
-    const approvedRequests = await EnrollmentRequest.find({ 
-      status: 'Approved_By_Teacher' 
-    }).lean();
-
-    const populatedRequests = [];
-    for (let req of approvedRequests) {
-      const teacher = await User.findOne({ user_id: req.teacher_id }).select('first_name last_name');
-      const section = await Section.findOne({ section_id: req.section_id }).select('section_name');
-
-      populatedRequests.push({
-        ...req,
-        teacherName: teacher ? `${teacher.first_name} ${teacher.last_name}` : "Unknown Teacher",
-        sectionName: section ? section.section_name : "Unknown Section"
-      });
-    }
-
-    const teacherGroups = {};
-    populatedRequests.forEach(req => {
-      if (!teacherGroups[req.teacher_id]) {
-        teacherGroups[req.teacher_id] = {
-          id: req.teacher_id,
-          name: req.teacherName,
-          section: `Adviser - ${req.sectionName}`,
-          pendingRequests: 0,
-          requests: [] 
-        };
-      }
-      teacherGroups[req.teacher_id].pendingRequests += 1;
-      teacherGroups[req.teacher_id].requests.push(req);
-    });
-
-    const teacherQueue = Object.values(teacherGroups);
-
-    res.status(200).json({ success: true, teacherQueue });
-
-  } catch (error) {
-    console.error("Error fetching admin enrollments:", error);
-    res.status(500).json({ success: false, msg: "Failed to fetch admin queue." });
-  }
-});
-
-// ==================================================
-// POST: BULK REGISTER APPROVED STUDENTS (Super Admin)
-// ==================================================
-router.post('/api/admin/enrollments/bulk-register', isAuthenticated, async (req, res) => {
-  try {
-    if (req.user.role !== 'superadmin') {
-       return res.status(403).json({ success: false, msg: "Access denied." });
-    }
-
-    const { requestIds } = req.body; 
-
-    if (!requestIds || requestIds.length === 0) {
-      return res.status(400).json({ success: false, msg: "No requests selected." });
-    }
-
-    const requestsToProcess = await EnrollmentRequest.find({
-      _id: { $in: requestIds },
-      status: 'Approved_By_Teacher' 
-    });
-
-    let registeredCount = 0;
-
-    for (let reqData of requestsToProcess) {
+    // If teacher approves, instantly register the student!
+    if (status === 'Registered') {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
       let invCode = '';
       let isUnique = false;
@@ -297,9 +171,7 @@ router.post('/api/admin/enrollments/bulk-register', isAuthenticated, async (req,
         { $push: { student_id: savedStudent.student_id } } 
       );
 
-      reqData.status = 'Registered';
-      await reqData.save();
-
+      // Send the final parent invitation email directly
       if (reqData.parent_email) {
         sendInvitationEmail(
           reqData.parent_email,
@@ -308,18 +180,58 @@ router.post('/api/admin/enrollments/bulk-register', isAuthenticated, async (req,
           reqData.student_first_name
         );
       }
-
-      registeredCount++;
     }
+
+    // Update status in DB
+    reqData.status = status;
+    await reqData.save();
 
     res.status(200).json({ 
       success: true, 
-      msg: `Successfully registered ${registeredCount} students into the system and notified parents!` 
+      msg: status === 'Registered' ? "Student successfully registered and parent notified!" : "Application rejected.", 
+      request: reqData 
+    });
+  } catch (error) {
+    console.error("Error updating status & registering:", error);
+    res.status(500).json({ success: false, msg: "Failed to process application." });
+  }
+});
+
+// ==================================================
+// POST: TEACHER BULK INVITE PARENTS
+// ==================================================
+router.post('/api/teacher/bulk-invite-section', isAuthenticated, async (req, res) => {
+  try {
+    // THE FIX: Check if role is 'admin' (Teacher)
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, msg: "Access denied." });
+    }
+
+    const { sectionName, sectionCode, recipients } = req.body;
+
+    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
+      return res.status(400).json({ success: false, msg: "No recipients provided." });
+    }
+
+    const teacherName = `${req.user.first_name} ${req.user.last_name}`;
+
+    recipients.forEach(parent => {
+      if (parent.email) {
+        const fullName = `${parent.firstName} ${parent.lastName}`.trim();
+        sendBulkSectionInvite(
+          parent.email, 
+          fullName || "Parent/Guardian", 
+          sectionName, 
+          sectionCode, 
+          teacherName
+        );
+      }
     });
 
+    res.status(200).json({ success: true, msg: `Sending ${recipients.length} invitations.` });
   } catch (error) {
-    console.error("Bulk Registration Error:", error);
-    res.status(500).json({ success: false, msg: "Failed to process bulk registration." });
+    console.error("Bulk Invite Error:", error);
+    res.status(500).json({ success: false, msg: "Failed to send invitations." });
   }
 });
 
