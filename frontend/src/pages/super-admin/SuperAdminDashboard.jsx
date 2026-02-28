@@ -3,11 +3,14 @@ import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
 import { DashboardPendingOverrideCard } from "../../components/modals/super-admin/dashboard/DashbaordPendingManualTransfer";
+import { RejectedTransferHistoryModal } from "../../components/modals/super-admin/dashboard/DashboardRejectedManualTransfer";
+import DashboardFeedbackModal from "../../components/modals/super-admin/dashboard/DashboardFeedbackModal";
+import { DashboardFeedbackCard } from "../../components/modals/super-admin/dashboard/DashboardFeedbackCards";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
-import { RejectedTransferHistoryModal } from "../../components/modals/super-admin/dashboard/DashboardRejectedManualTransfer";
+
 
 export default function SuperAdminDashboard() {
   const [pendingOverrides, setPendingOverrides] = useState([]);
@@ -15,6 +18,9 @@ export default function SuperAdminDashboard() {
   const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [loadingTeachers, setLoadingTeachers] = useState(true);
   const [pendingTeachers, setPendingTeachers] = useState([]); 
+  const [selectedFeedback, setSelectedFeedback] = useState(null);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [stats, setStats] = useState({
     totalStudents: 0,
     totalTeachers: 0,
@@ -78,6 +84,24 @@ export default function SuperAdminDashboard() {
 
     fetchPendingOverrides();
   }, []);
+
+  useEffect(() => {
+    const fetchFeedbacks = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/feedback', { 
+          withCredentials: true 
+        });
+
+        if (response.data.success) {
+          setFeedbacks(response.data.feedbacks);
+        }
+      } catch (error) {
+        console.error("❌ Failed to fetch feedbacks:", error);
+      }
+    };
+
+    fetchFeedbacks();
+  }, []);
   
 
   useEffect(() => {
@@ -106,12 +130,24 @@ export default function SuperAdminDashboard() {
       setPendingTeachers(prev => [newTeacher, ...prev]);
     });
 
+    socket.on('new_feedback', (newFeedback) => {
+      setFeedbacks((prev) => [newFeedback, ...prev]);
+    });
+
     return () => {
       socket.off('teacher_processed');
       socket.off('teacher_registered');
+      socket.off('new_override_request');
+      socket.off('override_processed');
+      socket.off('new_feedback');
       socket.disconnect();
     };
   }, []);
+
+  const handleOpenFeedback = (fb) => {
+    setSelectedFeedback(fb);
+    setIsFeedbackModalOpen(true);
+  };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -303,36 +339,31 @@ export default function SuperAdminDashboard() {
           <div className="card p-6">
             <div className="mb-6">
               <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined purple-icon text-[24px]">
-                  dns
+                <span className="material-symbols-outlined yellow-icon text-[24px]">
+                  feedback
                 </span>
-                <h2 className="text-cdark text-[18px] font-bold">System Activity</h2>
+                <h2 className="text-cdark text-[18px] font-bold">Feedbacks</h2>
               </div>
             </div>
             
             {/* Content Below is for Quick System Notification */}
-            <div className="flex flex-col gap-4">
-              <div className="queue-item">
-                <div className="success w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined">cloud_done</span>
+            <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {feedbacks && feedbacks.length > 0 ? (
+                feedbacks.map((fb) => (
+                  <DashboardFeedbackCard 
+                    key={fb._id} 
+                    item={fb} 
+                    onClick={handleOpenFeedback} 
+                  />
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <span className="material-symbols-outlined text-slate-300 text-[32px] mb-2">
+                    chat_bubble_outline
+                  </span>
+                  <span className="text-cgray text-[13px] font-medium">No feedback yet</span>
                 </div>
-                <div className="flex flex-col flex-1 gap-0.5">
-                  <span className="text-cdark text-[14px] font-bold">Backup Completed</span>
-                  <span className="text-cgray text-[12px]">Daily database backup successful.</span>
-                  <span className="text-cgray text-[11px] font-medium mt-2px">2:00 AM</span>
-                </div>
-              </div>
-
-              <div className="queue-item">
-                <div className="warning w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined">lock_person</span>
-                </div>
-                <div className="flex flex-col flex-1 gap-0.5">
-                  <span className="text-cdark text-[14px] font-bold">Failed Login Attempt</span>
-                  <span className="text-cgray text-[12px]">Multiple attempts on admin_02.</span>
-                  <span className="text-cgray text-[11px] font-medium mt-2px">Yesterday</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -343,6 +374,12 @@ export default function SuperAdminDashboard() {
     <RejectedTransferHistoryModal 
       isOpen={showRejectedModal} 
       onClose={() => setShowRejectedModal(false)} 
+    />
+
+    <DashboardFeedbackModal 
+      isOpen={isFeedbackModalOpen} 
+      onClose={() => setIsFeedbackModalOpen(false)} 
+      feedback={selectedFeedback} 
     />
 
     </div>

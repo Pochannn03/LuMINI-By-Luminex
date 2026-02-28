@@ -76,4 +76,4 @@ FeedbackSchema.virtual('user_details', {
   justOne: true
 });
 
-export const Feedback = mongoose.model("Feecback", FeedbackSchema, "fdb.feedback");
+export const Feedback = mongoose.model("Feedback", FeedbackSchema, "fdb.feedback");
