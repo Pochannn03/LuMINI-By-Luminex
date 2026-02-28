@@ -145,7 +145,7 @@ router.get('/api/students',
     const students = await Student.find({ is_archive: false })
                                   .populate('section_details')
                                   .populate('user_details');
-                               
+                                
     if (!students || students.length === 0) {
       return res.status(200).json({ success: true, students: [] });
     }
@@ -183,9 +183,6 @@ router.put('/api/students/:id',
         updateData.profile_picture = req.file.path; 
     }
 
-    // --- NEW: Handle Nested Passive Parent Update ---
-    // Mongoose dot notation lets us update specific fields inside an object 
-    // without wiping out other fields (like is_verified)
     if (req.body.passive_parent_name !== undefined) {
       updateData['passive_parent.name'] = req.body.passive_parent_name;
     }
@@ -199,7 +196,7 @@ router.put('/api/students/:id',
     try {
       const updatedStudent = await Student.findByIdAndUpdate(
         studentId, 
-        { $set: updateData }, // Ensure we use $set to properly handle dot notation
+        { $set: updateData }, 
         { 
           new: true,          
           runValidators: true  
@@ -209,6 +206,16 @@ router.put('/api/students/:id',
       if (!updatedStudent) {
         return res.status(404).json({ success: false, msg: "Student not found" });
       }
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Edit Student Info",
+        // THE FIX 1: Changed `updatedUser` to `updatedStudent`
+        target: `Updated student ${updatedStudent.first_name} ${updatedStudent.last_name}`
+      });
+      await auditLog.save();
 
       return res.status(200).json({ 
         success: true, 
@@ -237,15 +244,16 @@ router.put('/api/students/archive/:id',
       );
 
       if (!archivedStudent) {
-        return res.status(404).json({ success: false, msg: "Teacher not found" });
+        return res.status(404).json({ success: false, msg: "Student not found" });
       }
 
       const auditLog = new Audit({
         user_id: req.user.user_id,
         full_name: `${req.user.first_name} ${req.user.last_name}`,
         role: req.user.role,
-        action: "Edit Student Info",
-        target: `Updated student ${updatedStudent.first_name} ${updatedStudent.last_name}`
+        action: "Archive Student",
+        // THE FIX 2: Changed `updatedStudent` to `archivedStudent` to match the variable above!
+        target: `Archived student ${archivedStudent.first_name} ${archivedStudent.last_name}`
       });
       await auditLog.save();
 
@@ -285,7 +293,6 @@ router.get('/api/students/available',
       query.$or.push({ section_id: sectionIdNum });
     }
 
-    // --- THE FIX: ADD POPULATE HERE ---
     const students = await Student.find(query).populate('section_details');
 
     res.status(200).json({ success: true, students });
@@ -322,9 +329,6 @@ router.post('/api/students',
       data.profile_picture = req.file.path; 
     }
 
-    // --- NEW: Attach the Passive Parent Data from req.body ---
-    // Because express-validator's matchedData() strips out fields not in the schema,
-    // we pull these directly from req.body!
     data.passive_parent = {
       name: req.body.passive_parent_name || null,
       phone: req.body.passive_parent_phone || null,
@@ -373,14 +377,10 @@ router.get('/api/students/id',
     const currentYear = new Date().getFullYear();
     const counterName = `student_id_${currentYear}`;
     
-    // 1. Find the current counter for this year (don't update it!)
     let counter = await Counter.findById(counterName);
     
-    // 2. Calculate next number (Current Seq + 1)
-    // If counter doesn't exist yet (first student of the year), next is 1.
     const nextSeq = counter ? counter.seq + 1 : 1;
     
-    // 3. Format it
     const previewId = `${currentYear}-${String(nextSeq).padStart(4, '0')}`;
     
     res.status(200).json({ student_id: previewId });
@@ -400,18 +400,14 @@ router.get('/api/students/invitation',
       let code = '';
       let isUnique = false;
 
-      // Keep generating until we find a unique one
       while (!isUnique) {
         code = '';
-        // Generate random 6-char string
         for (let i = 0; i < 6; i++) {
           code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        // Check Database for duplicates
         const existingStudent = await Student.findOne({ invitation_code: code });
         
-        // If no student has this code, it's unique!
         if (!existingStudent) {
           isUnique = true;
         }
@@ -433,18 +429,17 @@ router.get("/api/students/teacher/totalStudents",
     try {
         const teacherId = Number(req.user.user_id); 
 
-        // --- UPDATED: Nested Populate to get Students AND their Guardians! ---
         const sections = await Section.find({ user_id: teacherId })
             .populate({
                 path: 'student_details',
                 populate: {
-                    path: 'user_details', // This grabs the parent/guardian profiles
-                    model: 'User' // Ensure this matches your User model name if needed
+                    path: 'user_details', 
+                    model: 'User' 
                 }
             }); 
 
         let totalStudents = 0;
-        const colors = ["blue", "orange", "green"]; // UI colors to cycle through
+        const colors = ["blue", "orange", "green"];
 
         const formattedSections = sections.map((section, index) => {
             const studentsList = section.student_details || [];
@@ -455,11 +450,8 @@ router.get("/api/students/teacher/totalStudents",
                 name: section.section_name,
                 time: section.class_schedule,
                 color: colors[index % colors.length], 
-                
-                // 👇 THIS IS THE MISSING PIECE! 👇
                 code: section.section_code, 
                 
-                // --- UPDATED: Send ALL the necessary data to the frontend ---
                 students: studentsList.map(student => ({
                     _id: student._id,
                     id: student.student_id, 
@@ -470,7 +462,7 @@ router.get("/api/students/teacher/totalStudents",
                     age: student.age,
                     allergies: student.allergies,
                     medical_history: student.medical_history,
-                    guardians: student.user_details || [] // Pass the populated parent data!
+                    guardians: student.user_details || [] 
                 }))
             };
         });
