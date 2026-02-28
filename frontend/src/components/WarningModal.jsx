@@ -4,11 +4,11 @@ import "../styles/success-modal.css";
 const WarningModal = ({ isOpen, onClose, title, message }) => {
   if (!isOpen) return null;
 
+  // THE FIX: Standard JS comments go OUTSIDE the return, or JSX comments go INSIDE the HTML tags!
   return (
-    <div className="success-modal-overlay" onClick={onClose}>
+    <div className="success-modal-overlay" onClick={onClose} style={{ zIndex: 999999 }}>
       <div
         className="success-modal-content"
-        // style={{ borderTop: "6px solid #f59e0b" }}  <-- This line was removed
         onClick={(e) => e.stopPropagation()}
       >
         {/* Warning Icon Container */}
