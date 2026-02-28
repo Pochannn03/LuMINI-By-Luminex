@@ -5,6 +5,8 @@ import { hashPassword } from "../utils/passwordUtils.js";
 // Ensuring we pull the TEACHER validation
 import { createTeacherValidationSchema } from '../validation/teacherValidation.js'
 import { User } from "../models/users.js";
+import { Section } from "../models/sections.js";
+import { Student } from "../models/students.js";
 import { Audit } from "../models/audits.js";
 import bcrypt from 'bcrypt';
 import multer from "multer";
@@ -351,6 +353,39 @@ router.delete('/api/teacher/rejection/:id',
       return res.status(500).json({ success: false, msg: "Rejection failed", error: err.message });
     }
 });
+
+router.get('/api/teacher/students', 
+  isAuthenticated,
+  hasRole('admin'),
+  async (req, res) => {
+    try {
+      const section = await Section.findOne({ user_id: req.user.user_id });
+
+      if (!section) {
+        return res.status(200).json({ 
+          success: true, 
+          students: [], 
+          msg: "No assigned section found for this teacher." 
+        });
+      }
+
+      const students = await Student.find({ 
+        section_id: section.section_id,
+        is_archive: false 
+      }).populate('user_details');
+
+      res.status(200).json({
+        success: true,
+        count: students.length,
+        students
+      });
+
+    } catch (error) {
+      console.error("Teacher Student Fetch Error:", error);
+      res.status(500).json({ success: false, msg: "Server Error" });
+    }
+  }
+);
 
 
 export default router;

@@ -8,6 +8,7 @@ import "../../styles/admin-teacher/admin-manage-approvals.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
+import TeacherConfirmationModal from "../../components/modals/admin/TeacherConfirmationModal"
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -26,6 +27,11 @@ export default function ManageApprovals() {
   const [successMessage, setSuccessMessage] = useState("");
 
   const [expandedImage, setExpandedImage] = useState(null);
+
+  // CONFIRMATION STATE
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [pendingActionId, setPendingActionId] = useState(null);
+  const [modalType, setModalType] = useState("approve");
 
   // Fetch both pending and history requests on load
   useEffect(() => {
@@ -80,69 +86,48 @@ export default function ManageApprovals() {
   // ==========================================
   // --- ACTION: APPROVE ---
   // ==========================================
-  const handleApprove = async (e, id) => {
-    e.stopPropagation(); 
-    
-    if (!window.confirm("Are you sure you want to approve this guardian? An account will be created.")) return;
-
-    try {
-      const response = await axios.put(
-        `${BACKEND_URL}/api/teacher/guardian-requests/${id}/approve`,
-        {}, 
-        { withCredentials: true }
-      );
-      
-      setSuccessMessage("Guardian account successfully created and approved!");
-      setShowSuccessModal(true);
-
-      // --- THE INSTANT TAB SWITCH ---
-      const actedRequest = requests.find(req => req._id === id);
-      if (actedRequest) {
-        // 1. Remove from Pending array
-        setRequests(requests.filter(req => req._id !== id)); 
-        // 2. Add to History array with new status
-        setHistoryRequests([{ ...actedRequest, status: 'approved' }, ...historyRequests]); 
-      }
-      
-      // 3. Close the modal if the teacher clicked approve from INSIDE the details modal
-      setSelectedRequest(null); 
-
-    } catch (error) {
-      console.error("Error approving request:", error);
-      alert(error.response?.data?.message || "Failed to approve request.");
-    }
+  const handleApproveClick = (e, id) => {
+    e.stopPropagation();
+    setPendingActionId(id);
+    setModalType("approve");
+    setConfirmModalOpen(true);
   };
 
   // ==========================================
   // --- ACTION: REJECT ---
   // ==========================================
-  const handleReject = async (e, id) => {
+  const handleRejectClick = (e, id) => {
     e.stopPropagation();
-    
-    if (!window.confirm("Are you sure you want to reject this application?")) return;
+    setPendingActionId(id);
+    setModalType("reject");
+    setConfirmModalOpen(true);
+  };
 
+  const handleConfirmAction = async () => {
+    const id = pendingActionId;
+    const endpoint = modalType; // 'approve' or 'reject'
+    setConfirmModalOpen(false); 
+    
     try {
       const response = await axios.put(
-        `${BACKEND_URL}/api/teacher/guardian-requests/${id}/reject`,
-        {},
-        { withCredentials: true }
+        `${BACKEND_URL}/api/teacher/guardian-requests/${id}/${endpoint}`,
+        {}, { withCredentials: true }
       );
-      
-      setSuccessMessage("Guardian application has been successfully rejected.");
+
+      setSuccessMessage(modalType === "approve" 
+        ? "Guardian account successfully created!" 
+        : "Application has been rejected.");
       setShowSuccessModal(true);
 
-      // --- THE INSTANT TAB SWITCH ---
       const actedRequest = requests.find(req => req._id === id);
       if (actedRequest) {
-        setRequests(requests.filter(req => req._id !== id)); 
-        setHistoryRequests([{ ...actedRequest, status: 'rejected' }, ...historyRequests]); 
+        setRequests(requests.filter(req => req._id !== id));
+        setHistoryRequests([{ ...actedRequest, status: modalType === 'approve' ? 'approved' : 'rejected' }, ...historyRequests]);
       }
-      
       setSelectedRequest(null);
-
     } catch (error) {
-      console.error("Error rejecting request:", error);
-      alert(error.response?.data?.message || "Failed to reject request.");
+      console.error("Action failed:", error);
+      alert(error.response?.data?.message || "Failed to process request.");
     }
   };
 
@@ -365,8 +350,8 @@ export default function ManageApprovals() {
 
                   {/* BOTTOM ROW: Actions */}
                   <div className="card-actions">
-                    <button className="btn-card btn-reject" onClick={(e) => handleReject(e, req._id)}>Reject</button>
-                    <button className="btn-card btn-approve" onClick={(e) => handleApprove(e, req._id)}>Approve</button>
+                    <button className="btn-card btn-reject" onClick={(e) => handleRejectClick(e, req._id)}>Reject</button>
+                    <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Approve</button>
                   </div>
 
                 </div>
@@ -534,10 +519,18 @@ export default function ManageApprovals() {
             {/* Modal Footer Actions (SMART FOOTER) */}
             {selectedRequest.status === 'pending' ? (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
-                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleReject(e, selectedRequest._id)}>
+                <button 
+                  className="btn-card btn-reject" 
+                  style={{ flex: 1, padding: '12px 0' }} 
+                  onClick={(e) => handleRejectClick(e, selectedRequest._id)}
+                >
                   Reject
                 </button>
-                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApprove(e, selectedRequest._id)}>
+                <button 
+                  className="btn-card btn-approve" 
+                  style={{ flex: 1, padding: '12px 0' }} 
+                  onClick={(e) => handleApproveClick(e, selectedRequest._id)}
+                >
                   Approve
                 </button>
               </div>
@@ -581,6 +574,18 @@ export default function ManageApprovals() {
           </button>
         </div>
       )}
+
+      <TeacherConfirmationModal
+        isOpen={confirmModalOpen}
+        onClose={() => setConfirmModalOpen(false)}
+        onConfirm={handleConfirmAction}
+        title={modalType === "approve" ? "Approve Guardian?" : "Reject Application?"}
+        message={modalType === "approve" 
+          ? "Are you sure? This will create a new system account for this guardian." 
+          : "Are you sure you want to reject this request? This action cannot be undone."}
+        confirmText={modalType === "approve" ? "Yes, Approve" : "Yes, Reject"}
+        type={modalType === "approve" ? "info" : "danger"}
+      />
 
       <SuccessModal
         isOpen={showSuccessModal}

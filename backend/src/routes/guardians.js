@@ -202,7 +202,13 @@ router.get(
     }
 });
 
-router.put('/api/teacher/guardian-requests/:id/approve', isAuthenticated, async (req, res) => {
+// ==========================================
+// TEACHER ACTION: APPROVE REQUEST
+// ==========================================
+router.put('/api/teacher/guardian-requests/:id/approve', 
+  isAuthenticated,
+  hasRole('admin'),
+  async (req, res) => {
     try {
         const requestId = req.params.id;
 
@@ -253,7 +259,13 @@ router.put('/api/teacher/guardian-requests/:id/approve', isAuthenticated, async 
     }
 });
 
-router.put('/api/teacher/guardian-requests/:id/reject', isAuthenticated, async (req, res) => {
+// ==========================================
+// TEACHER ACTION: REJECT REQUEST
+// ==========================================
+router.put('/api/teacher/guardian-requests/:id/reject', 
+  isAuthenticated,
+  hasRole('admin'),
+  async (req, res) => {
     try {
         const requestId = req.params.id;
 
