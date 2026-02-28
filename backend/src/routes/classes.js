@@ -85,6 +85,9 @@ router.get('/api/sections',
     }
 });
 
+// ==========================================
+// POST: CREATE NEW CLASS
+// ==========================================
 router.post('/api/sections',
   isAuthenticated,
   hasRole('superadmin'),
@@ -100,9 +103,40 @@ router.post('/api/sections',
     }
     
     const data = matchedData(req);
-    const newClass = new Section(data);
 
-    try{
+    try {
+      // --- RESTRICTION 1: CHECK FOR DUPLICATE SECTION NAME ---
+      const existingSection = await Section.findOne({ 
+        section_name: { $regex: new RegExp(`^${data.section_name}$`, 'i') },
+        is_archive: false 
+      });
+
+      if (existingSection) {
+        return res.status(409).json({ 
+          success: false, 
+          msg: `A class named "${data.section_name}" already exists.` 
+        });
+      }
+
+      // --- RESTRICTION 2: CHECK FOR TEACHER SCHEDULE CONFLICT ---
+      const teacherConflict = await Section.findOne({
+        user_id: data.user_id,
+        class_schedule: data.class_schedule,
+        is_archive: false
+      }).populate('user_details', 'first_name last_name');
+
+      if (teacherConflict) {
+        const tName = teacherConflict.user_details 
+          ? `${teacherConflict.user_details.first_name} ${teacherConflict.user_details.last_name}` 
+          : "This teacher";
+        return res.status(409).json({
+          success: false,
+          msg: `${tName} is already assigned to a ${data.class_schedule} class (${teacherConflict.section_name}).`
+        });
+      }
+
+      // Proceed with saving...
+      const newClass = new Section(data);
       const savedClass = await newClass.save();
       
       if (data.student_id && data.student_id.length > 0) {
@@ -144,6 +178,9 @@ router.post('/api/sections',
     }
 })
 
+// ==========================================
+// PUT: ARCHIVE CLASS
+// ==========================================
 router.put('/api/sections/archive/:id',
   isAuthenticated,
   hasRole('superadmin'),
@@ -205,6 +242,9 @@ router.put('/api/sections/archive/:id',
     }
 });
 
+// ==========================================
+// PUT: EDIT EXISTING CLASS
+// ==========================================
 router.put('/api/sections/:id',
   isAuthenticated,
   hasRole('superadmin'),
@@ -216,12 +256,45 @@ router.put('/api/sections/:id',
       return res.status(400).send({ errors: result.array() });
     }
     
-    const sectionId = req.params.id;
+    const sectionId = req.params.id; // This is the MongoDB _id
     const data = matchedData(req);
     const currentUserId = req.user.user_id;
     const fullName = `${req.user.first_name || "Admin"} ${req.user.last_name || ""}`.trim();
 
     try {
+      // --- RESTRICTION 1: CHECK FOR DUPLICATE SECTION NAME (Excluding this current class) ---
+      const existingSection = await Section.findOne({ 
+        section_name: { $regex: new RegExp(`^${data.section_name}$`, 'i') },
+        is_archive: false,
+        _id: { $ne: sectionId } 
+      });
+
+      if (existingSection) {
+        return res.status(409).json({ 
+          success: false, 
+          msg: `A class named "${data.section_name}" already exists.` 
+        });
+      }
+
+      // --- RESTRICTION 2: CHECK FOR TEACHER SCHEDULE CONFLICT (Excluding this current class) ---
+      const teacherConflict = await Section.findOne({
+        user_id: data.user_id,
+        class_schedule: data.class_schedule,
+        is_archive: false,
+        _id: { $ne: sectionId }
+      }).populate('user_details', 'first_name last_name');
+
+      if (teacherConflict) {
+        const tName = teacherConflict.user_details 
+          ? `${teacherConflict.user_details.first_name} ${teacherConflict.user_details.last_name}` 
+          : "This teacher";
+        return res.status(409).json({
+          success: false,
+          msg: `${tName} is already assigned to a ${data.class_schedule} class (${teacherConflict.section_name}).`
+        });
+      }
+
+      // Proceed with updating...
       const updatedClass = await Section.findByIdAndUpdate(
         sectionId, 
         data, 
@@ -229,7 +302,7 @@ router.put('/api/sections/:id',
           new: true,
           runValidators: true
         }
-      ).populate('user_details', 'first_name last_name'); // Optional: Return teacher info immediately
+      ).populate('user_details', 'first_name last_name'); 
 
       if (!updatedClass) {
         return res.status(404).json({ success: false, msg: "Class not found" });

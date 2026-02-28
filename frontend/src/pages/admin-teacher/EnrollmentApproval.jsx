@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import * as XLSX from "xlsx"; 
 import Header from "../../components/navigation/Header";
 import NavBar from "../../components/navigation/NavBar";
 import ConfirmModal from "../../components/ConfirmModal"; 
 import SuccessModal from "../../components/SuccessModal"; 
+import WarningModal from "../../components/WarningModal"; 
 import "../../styles/admin-teacher/admin-manage-approvals.css"; 
 
 const BACKEND_URL = "http://localhost:3000"; // Ensure this matches your backend
@@ -23,9 +25,20 @@ export default function EnrollmentApproval() {
   const [showCodesModal, setShowCodesModal] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
 
-  // --- CONFIRM & SUCCESS MODAL STATES ---
+  // --- BULK INVITE (WIZARD) STATES ---
+  const [inviteStep, setInviteStep] = useState(1); 
+  const [selectedSectionForInvite, setSelectedSectionForInvite] = useState(null);
+  const [recipients, setRecipients] = useState([]);
+  const [manualInput, setManualInput] = useState({ firstName: '', lastName: '', email: '' });
+  const [isSendingInvites, setIsSendingInvites] = useState(false);
+  const [uploadSuccessMsg, setUploadSuccessMsg] = useState(""); 
+  const fileInputRef = useRef(null);
+
+  // --- CONFIRM, SUCCESS & WARNING MODAL STATES ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false); 
+  const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false); 
   
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
@@ -36,9 +49,16 @@ export default function EnrollmentApproval() {
     actionData: null 
   });
 
-  // ==========================================
-  // FETCH DATA ON MOUNT
-  // ==========================================
+  const [warningConfig, setWarningConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: ""
+  });
+
+  const showWarning = (title, message) => {
+    setWarningConfig({ isOpen: true, title, message });
+  };
+
   useEffect(() => {
     const fetchTeacherData = async () => {
       try {
@@ -65,9 +85,6 @@ export default function EnrollmentApproval() {
     fetchTeacherData();
   }, []);
 
-  // ==========================================
-  // HELPER FUNCTIONS
-  // ==========================================
   const handleCopyCode = (code) => {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
@@ -92,17 +109,163 @@ export default function EnrollmentApproval() {
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
+  // --- BULK INVITE EXCEL LOGIC ---
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws);
+
+        const parsed = data.map(row => {
+          const getVal = (regex) => {
+            const key = Object.keys(row).find(k => regex.test(k.trim()));
+            return key ? String(row[key]).trim() : '';
+          };
+          return {
+            id: Date.now() + Math.random(),
+            firstName: getVal(/first.*name/i) || getVal(/^given.*name/i) || '',
+            lastName: getVal(/last.*name/i) || getVal(/^surname/i) || '',
+            email: getVal(/email/i) || ''
+          };
+        }).filter(r => r.email);
+
+        setRecipients(prev => {
+          const newRecipients = [];
+          let duplicateCount = 0;
+
+          parsed.forEach(incoming => {
+            const inEmail = incoming.email.toLowerCase();
+            const inFirst = incoming.firstName.toLowerCase();
+            const inLast = incoming.lastName.toLowerCase();
+
+            const isDup = prev.some(r => 
+              r.email.toLowerCase() === inEmail || 
+              (r.firstName.toLowerCase() === inFirst && r.lastName.toLowerCase() === inLast && inFirst !== '')
+            ) || newRecipients.some(r => 
+              r.email.toLowerCase() === inEmail || 
+              (r.firstName.toLowerCase() === inFirst && r.lastName.toLowerCase() === inLast && inFirst !== '')
+            );
+
+            if (!isDup) {
+              newRecipients.push(incoming);
+            } else {
+              duplicateCount++;
+            }
+          });
+
+          setTimeout(() => {
+            if (newRecipients.length > 0) {
+              setUploadSuccessMsg(`Loaded ${newRecipients.length} emails! ${duplicateCount > 0 ? `(${duplicateCount} duplicates skipped)` : ''}`);
+              setTimeout(() => setUploadSuccessMsg(""), 4500);
+            } else if (duplicateCount > 0) {
+              showWarning("Duplicates Found", `All ${duplicateCount} rows in the file were already in your list. No new emails were added.`);
+            } else {
+              showWarning("No Emails Found", "We couldn't find any valid emails in the file. Please ensure columns are named First Name, Last Name, and Email.");
+            }
+          }, 0);
+
+          return [...prev, ...newRecipients];
+        });
+
+      } catch (err) {
+        console.error("Error parsing file", err);
+        showWarning("Parsing Error", "Could not read the file. Please ensure it's a valid Excel (.xlsx) or CSV file.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    if (fileInputRef.current) fileInputRef.current.value = ''; 
+  };
+
+  const handleAddManual = () => {
+    if (!manualInput.email || !manualInput.firstName) {
+      showWarning("Incomplete Details", "Please provide at least a First Name and an Email Address.");
+      return;
+    }
+
+    const inEmail = manualInput.email.trim().toLowerCase();
+    const inFirst = manualInput.firstName.trim().toLowerCase();
+    const inLast = manualInput.lastName.trim().toLowerCase();
+
+    const isDuplicate = recipients.some(r => 
+      r.email.toLowerCase() === inEmail || 
+      (r.firstName.toLowerCase() === inFirst && r.lastName.toLowerCase() === inLast && inFirst !== '')
+    );
+
+    if (isDuplicate) {
+      showWarning("Duplicate Entry", "This parent's name or email is already in the list!");
+      return;
+    }
+
+    setRecipients(prev => [...prev, { 
+      ...manualInput, 
+      firstName: manualInput.firstName.trim(),
+      lastName: manualInput.lastName.trim(),
+      email: manualInput.email.trim(),
+      id: Date.now() 
+    }]);
+    setManualInput({ firstName: '', lastName: '', email: '' });
+  };
+
+  const handleRemoveRecipient = (id) => {
+    setRecipients(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleSendBulkInvites = async () => {
+    if (recipients.length === 0) return;
+    setIsSendingInvites(true);
+    
+    try {
+      await axios.post(`${BACKEND_URL}/api/teacher/bulk-invite-section`, {
+        sectionId: selectedSectionForInvite.section_id || selectedSectionForInvite.id,
+        sectionName: selectedSectionForInvite.section_name || selectedSectionForInvite.name,
+        sectionCode: selectedSectionForInvite.section_code || selectedSectionForInvite.code,
+        recipients: recipients
+      }, { withCredentials: true });
+
+      setSuccessMessage(`Successfully sent invitations to ${recipients.length} parents!`);
+      setShowSuccessModal(true);
+      
+      setInviteStep(1);
+      setRecipients([]);
+      setSelectedSectionForInvite(null);
+    } catch (error) {
+      console.error("Failed to send invites:", error);
+      showWarning("Action Failed", "Failed to send invitations to parents. Please check your connection and try again.");
+    } finally {
+      setIsSendingInvites(false);
+      setIsSendConfirmOpen(false);
+    }
+  };
+
+  const closeCodesModal = () => {
+    setShowCodesModal(false);
+    setTimeout(() => {
+      setInviteStep(1);
+      setRecipients([]);
+      setSelectedSectionForInvite(null);
+      setManualInput({ firstName: '', lastName: '', email: '' });
+      setUploadSuccessMsg(""); 
+    }, 300); 
+  };
+
   // ==========================================
-  // HANDLE APPROVE / REJECT FLOW
+  // DIRECT REGISTRATION / REJECT FLOW
   // ==========================================
-  
   const promptUpdateStatus = (id, newStatus, studentName) => {
-    if (newStatus === 'Approved_By_Teacher') {
+    // UPDATED: Now looks for 'Registered'
+    if (newStatus === 'Registered') {
       setConfirmConfig({
         isOpen: true,
-        title: "Approve Enrollment?",
-        message: `You are about to approve the enrollment application for ${studentName}. This will be sent to the Super Admin for finalization and system registration. Do you want to proceed?`,
-        confirmText: "Yes, Approve",
+        title: "Approve & Register Student?",
+        message: `You are about to approve the enrollment application for ${studentName}. This will instantly register the student into your class and email the parent their invitation code. Do you want to proceed?`,
+        confirmText: "Yes, Register",
         isDestructive: false,
         actionData: { id, status: newStatus }
       });
@@ -134,12 +297,12 @@ export default function EnrollmentApproval() {
         );
         setSelectedApplication(null); 
         
-        setSuccessMessage(`Application successfully ${status === 'Rejected' ? 'rejected' : 'approved and sent to Admin'}!`);
+        setSuccessMessage(`Application successfully ${status === 'Rejected' ? 'rejected' : 'approved and registered'}!`);
         setShowSuccessModal(true);
       }
     } catch (error) {
       console.error("Failed to update status:", error);
-      alert("Something went wrong. Please try again.");
+      showWarning("Registration Error", "Something went wrong while processing the application. Please try again.");
     }
   };
 
@@ -148,10 +311,10 @@ export default function EnrollmentApproval() {
   const reviewedRequestsCount = requests.filter(r => r.status !== 'Pending').length;
 
   const filteredRequests = requests.filter(req => {
-    // THE FIX: Added 'Registered' to the matchesTab logic so it doesn't disappear!
+    // We only care about Pending, Rejected, and Registered now
     const matchesTab = activeTab === 'pending' 
       ? req.status === 'Pending' 
-      : ['Approved_By_Teacher', 'Rejected', 'Registered'].includes(req.status);
+      : ['Rejected', 'Registered'].includes(req.status);
 
     if (!matchesTab) return false;
 
@@ -166,6 +329,7 @@ export default function EnrollmentApproval() {
       <Header />
       <NavBar />
       
+      {/* GLOBAL MODALS */}
       <ConfirmModal 
         isOpen={confirmConfig.isOpen}
         onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
@@ -176,32 +340,59 @@ export default function EnrollmentApproval() {
         isDestructive={confirmConfig.isDestructive}
       />
 
+      <ConfirmModal 
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={() => setRecipients([])}
+        title="Clear All Recipients?"
+        message="Are you sure you want to completely clear the list of recipients? You will need to re-upload or re-enter them."
+        confirmText="Clear List"
+        cancelText="Cancel"
+        isDestructive={true}
+      />
+
+      <ConfirmModal 
+        isOpen={isSendConfirmOpen}
+        onClose={() => setIsSendConfirmOpen(false)}
+        onConfirm={handleSendBulkInvites}
+        title="Send Invitations?"
+        message={`Are you sure you want to send ${recipients.length} invitation email(s) for the section ${selectedSectionForInvite?.section_name || 'selected'}?`}
+        confirmText="Yes, Send Emails"
+        cancelText="Cancel"
+        isDestructive={false}
+      />
+
       <SuccessModal 
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         message={successMessage}
       />
 
+      <WarningModal 
+        isOpen={warningConfig.isOpen}
+        onClose={() => setWarningConfig({ ...warningConfig, isOpen: false })}
+        title={warningConfig.title}
+        message={warningConfig.message}
+      />
+
       <main className="main-content">
         <div className="approvals-container">
           
-          {/* 1. HEADER BANNER */}
           <div className="header-banner flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
             <div className="header-title">
-              <h1>Enrollment Requests</h1>
-              <p>Review and verify new student pre-enrollments submitted by parents.</p>
+              <h1>Student Registrations</h1>
+              <p>Review new pre-enrollments and register students directly to your class.</p>
             </div>
 
             <button 
               onClick={() => setShowCodesModal(true)}
-              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-5 py-3 rounded-xl backdrop-blur-sm transition-all font-semibold border border-white/30 shadow-sm hover:shadow-md w-full md:w-auto justify-center"
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 sm:px-5 py-3 rounded-xl backdrop-blur-sm transition-all font-semibold border border-white/30 shadow-sm hover:shadow-md w-full md:w-auto justify-center"
             >
               <span className="material-symbols-outlined text-[20px]">key</span>
-              View Section Codes
+              <span className="hidden sm:inline">Section Codes & Invites</span>
             </button>
           </div>
 
-          {/* 2. CONTROLS BAR */}
           <div className="controls-bar">
             <div className="controls-left">
               <div className="tab-group">
@@ -233,7 +424,6 @@ export default function EnrollmentApproval() {
             </div>
           </div>
 
-          {/* 3. REQUESTS GRID */}
           <div className="requests-grid">
             {loading ? (
               <div className="text-center py-10 text-slate-500 font-medium w-full col-span-full">
@@ -252,7 +442,6 @@ export default function EnrollmentApproval() {
                 <div key={req._id} className="request-card">
                   
                   <div className="card-split-header">
-                    {/* LEFT: PARENT INFO */}
                     <div className="header-half header-left">
                       <span className="info-label">Submitted By (Parent)</span>
                       <div className="person-group">
@@ -268,7 +457,6 @@ export default function EnrollmentApproval() {
                       </div>
                     </div>
 
-                    {/* RIGHT: STUDENT INFO (Clickable) */}
                     <div 
                       className="header-half guardian-clickable"
                       onClick={() => setSelectedApplication(req)}
@@ -287,13 +475,14 @@ export default function EnrollmentApproval() {
                           <span className="role-tag">New Enrollment</span>
                         </div>
                       </div>
-                      <div className="view-details-btn">
-                        Review Full Form <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
+                      <div className="view-details-btn flex items-center gap-1">
+                        <span className="hidden sm:inline">Review Full Form</span>
+                        <span className="sm:hidden">Review</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>arrow_forward</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* BOTTOM: REQUEST METADATA */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-b border-dashed border-slate-300 bg-white gap-4 sm:gap-0">
                     <div className="text-left w-full sm:w-auto">
                       <span className="info-label block mb-2">Target Section</span>
@@ -308,33 +497,34 @@ export default function EnrollmentApproval() {
                     </div>
                   </div>
 
-                  {/* ACTIONS */}
                   <div className="w-full p-4 pt-2 border-t border-slate-100 bg-slate-50/50 rounded-b-xl">
                     {req.status === 'Pending' ? (
                       <div className="flex w-full gap-3">
                         <button 
-                          className="btn-card btn-reject flex-1"
+                          className="btn-card btn-reject flex-1 flex items-center justify-center gap-1.5"
                           onClick={() => promptUpdateStatus(req._id, 'Rejected', `${req.student_first_name} ${req.student_last_name}`)}
                         >
-                          Reject Application
+                          <span className="material-symbols-outlined text-[18px]">close</span>
+                          <span className="hidden sm:inline">Reject Application</span>
                         </button>
+                        {/* THE FIX: Button changed to direct register payload */}
                         <button 
-                          className="btn-card btn-approve flex-1"
-                          onClick={() => promptUpdateStatus(req._id, 'Approved_By_Teacher', `${req.student_first_name} ${req.student_last_name}`)}
+                          className="btn-card btn-approve flex-1 flex items-center justify-center gap-1.5"
+                          onClick={() => promptUpdateStatus(req._id, 'Registered', `${req.student_first_name} ${req.student_last_name}`)}
                         >
-                          Approve & Send to Admin
+                          <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+                          <span className="hidden sm:inline">Approve & Register</span>
                         </button>
                       </div>
                     ) : (
-                      // THE FIX: Added "Registered" visual status feedback
-                      <div className={`w-full font-bold text-[14px] text-center py-3 rounded-xl border ${
+                      <div className={`w-full font-bold text-[14px] text-center py-3 rounded-xl border flex justify-center items-center gap-2 ${
                         req.status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-200' : 
-                        req.status === 'Registered' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        'bg-blue-50 text-blue-700 border-blue-200' 
                       }`}>
-                        {req.status === 'Rejected' ? 'Application Rejected' : 
-                         req.status === 'Registered' ? 'Officially Enrolled by Admin' : 
-                         'Sent to Super Admin'}
+                        <span className="material-symbols-outlined text-[18px]">
+                          {req.status === 'Rejected' ? 'cancel' : 'verified_user'}
+                        </span>
+                        {req.status === 'Rejected' ? 'Application Rejected' : 'Officially Enrolled & Registered'}
                       </div>
                     )}
                   </div>
@@ -347,54 +537,278 @@ export default function EnrollmentApproval() {
         </div>
       </main>
 
-      {/* --- SECTION CODES MODAL --- */}
+      {/* =========================================================
+          NEW WIZARD: SECTION CODES & BULK INVITE MODAL
+          ========================================================= */}
       {showCodesModal && (
-        <div className="approval-modal-overlay" onClick={() => setShowCodesModal(false)}>
-          <div className="approval-modal-card" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
-            <button className="close-modal-icon" onClick={() => setShowCodesModal(false)}>
-              <span className="material-symbols-outlined">close</span>
+        <div className="approval-modal-overlay" onClick={closeCodesModal}>
+          <div 
+            className="approval-modal-card transition-all duration-300 relative overflow-hidden" 
+            onClick={e => e.stopPropagation()} 
+            style={{ width: '90%', maxWidth: inviteStep === 1 ? '500px' : '650px', minHeight: '300px' }}
+          >
+            {isSendingInvites && (
+              <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
+                <span className="material-symbols-outlined animate-spin text-blue-600 text-[48px] mb-4">autorenew</span>
+                <h3 className="text-xl font-bold text-slate-800">Sending Invitations...</h3>
+                <p className="text-slate-500 font-medium">Please do not close this window.</p>
+              </div>
+            )}
+
+            <button 
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition-colors z-50" 
+              onClick={closeCodesModal}
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
             </button>
             
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Your Classrooms</h2>
-            <p className="text-sm text-slate-500 mb-6 leading-relaxed">
-              Share these 6-digit section codes with parents so they can register their child directly to your roster.
-            </p>
+            <div className="pt-10">
+              
+              {/* STEP 1 */}
+              {inviteStep === 1 && (
+                <div className="animate-[fadeIn_0.3s_ease-out]">
+                  <div className="mb-6 pr-12">
+                    <h2 className="text-xl font-bold text-slate-800 mb-2">Your Classrooms</h2>
+                    <p className="text-sm text-slate-500 leading-relaxed">
+                      Share these 6-digit section codes with parents manually, or use the <strong>Invite feature</strong> to email them in bulk.
+                    </p>
+                  </div>
 
-            <div className="flex flex-col gap-3">
-              {sections.length === 0 ? (
-                 <p className="text-center text-slate-400 py-4 text-sm font-medium">No sections assigned to you yet.</p>
-              ) : (
-                sections.map((sec, index) => (
-                  <div key={sec._id || sec.id || index} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col sm:flex-row sm:justify-between items-start sm:items-center gap-3 sm:gap-0 transition-all hover:border-blue-300">
-                    <div>
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Section</span>
-                      <span className="text-[15px] font-bold text-slate-800 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-blue-500">meeting_room</span>
-                        {sec.section_name || sec.name || "Unknown Section"}
-                      </span>
+                  <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2">
+                    {sections.length === 0 ? (
+                      <p className="text-center text-slate-400 py-8 text-sm font-medium">No sections assigned to you yet.</p>
+                    ) : (
+                      sections.map((sec, index) => (
+                        <div key={sec._id || sec.id || index} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-4 transition-all hover:border-blue-300 group">
+                          
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Section</span>
+                              <span className="text-[16px] font-bold text-slate-800 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[20px] text-blue-500">meeting_room</span>
+                                {sec.section_name || sec.name || "Unknown Section"}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-mono font-bold text-blue-600 tracking-[0.1em] bg-blue-50 px-3 py-1.5 rounded-md border border-blue-100">
+                                {sec.section_code || sec.code || "N/A"}
+                              </span>
+                              <button 
+                                onClick={() => handleCopyCode(sec.section_code || sec.code)}
+                                className="w-[38px] h-[38px] flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm shrink-0"
+                                title="Copy Code"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">
+                                  {copiedCode === (sec.section_code || sec.code) ? 'check' : 'content_copy'}
+                                </span>
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="border-t border-slate-200 pt-3 flex justify-end">
+                            <button 
+                              className="text-[13px] font-bold text-white bg-slate-800 hover:bg-slate-900 px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-transform active:scale-95 shadow-sm"
+                              onClick={() => {
+                                setSelectedSectionForInvite(sec);
+                                setInviteStep(2);
+                              }}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">forward_to_inbox</span>
+                              <span className="hidden sm:inline">Invite Parents</span>
+                            </button>
+                          </div>
+                          
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <button className="btn btn-outline w-full h-[45px] rounded-xl mt-6 flex justify-center items-center gap-2" onClick={closeCodesModal}>
+                    <span className="material-symbols-outlined text-[18px] sm:hidden">close</span>
+                    <span className="hidden sm:inline">Close Window</span>
+                  </button>
+                </div>
+              )}
+
+              {/* STEP 2 */}
+              {inviteStep === 2 && (
+                <div className="animate-[fadeIn_0.3s_ease-out]">
+                  <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                    <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2 leading-tight">
+                      <span className="material-symbols-outlined text-[22px] text-blue-500">meeting_room</span>
+                      {selectedSectionForInvite?.section_name || selectedSectionForInvite?.name}
+                    </h2>
+                    <div className="flex items-center gap-1.5 bg-blue-50/80 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm shrink-0">
+                      <span className="material-symbols-outlined text-blue-600 text-[18px]">check_circle</span>
+                      <span className="text-[14px] font-bold text-blue-700">{recipients.length} Ready</span>
                     </div>
-                    <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                      <span className="text-lg font-mono font-bold text-blue-600 tracking-[0.1em] bg-blue-50 px-3 py-1.5 rounded-md border border-blue-100">
-                        {sec.section_code || sec.code || "N/A"}
-                      </span>
-                      <button 
-                        onClick={() => handleCopyCode(sec.section_code || sec.code)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm shrink-0"
-                        title="Copy Code"
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex flex-col relative">
+                      <h3 className="text-[13px] font-bold text-slate-700 mb-2">Upload Excel / CSV</h3>
+                      
+                      {uploadSuccessMsg && (
+                        <div className="absolute inset-0 top-[26px] z-10 bg-emerald-50 border-2 border-emerald-400 rounded-xl flex flex-col items-center justify-center text-emerald-700 animate-[fadeIn_0.2s_ease-out] p-4 text-center">
+                          <span className="material-symbols-outlined text-[40px] mb-2">check_circle</span>
+                          <span className="text-[13px] font-bold leading-snug">{uploadSuccessMsg}</span>
+                        </div>
+                      )}
+
+                      <div 
+                        className="border-2 border-dashed border-blue-200 bg-blue-50/50 hover:bg-blue-50 rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors h-full min-h-[180px]"
+                        onClick={() => fileInputRef.current.click()}
                       >
-                        <span className="material-symbols-outlined text-[20px]">
-                          {copiedCode === (sec.section_code || sec.code) ? 'check' : 'content_copy'}
-                        </span>
+                        <span className="material-symbols-outlined text-blue-500 text-[40px] mb-2">upload_file</span>
+                        <span className="text-[13px] font-bold text-blue-700 mb-1">Click to Browse Files</span>
+                        <span className="text-[11px] text-slate-500">Requires columns: First Name, Last Name, Email</span>
+                        
+                        <input 
+                          type="file" 
+                          accept=".xlsx, .xls, .csv" 
+                          ref={fileInputRef} 
+                          onChange={handleFileUpload} 
+                          className="hidden" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <h3 className="text-[13px] font-bold text-slate-700 mb-2">Or Add Manually</h3>
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-3">
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            placeholder="First Name" 
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] focus:outline-none focus:border-blue-500" 
+                            value={manualInput.firstName}
+                            onChange={(e) => setManualInput({...manualInput, firstName: e.target.value})}
+                          />
+                          <input 
+                            type="text" 
+                            placeholder="Last Name" 
+                            className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] focus:outline-none focus:border-blue-500" 
+                            value={manualInput.lastName}
+                            onChange={(e) => setManualInput({...manualInput, lastName: e.target.value})}
+                          />
+                        </div>
+                        <input 
+                          type="email" 
+                          placeholder="Email Address" 
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] focus:outline-none focus:border-blue-500" 
+                          value={manualInput.email}
+                          onChange={(e) => setManualInput({...manualInput, email: e.target.value})}
+                        />
+                        <button 
+                          onClick={handleAddManual}
+                          className="h-10 bg-white border border-blue-200 text-blue-600 font-bold text-[13px] rounded-lg hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">add</span>
+                          <span className="hidden sm:inline">Add to List</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 flex justify-between items-center border-t border-slate-100 pt-5">
+                    <button
+                      onClick={() => setInviteStep(1)}
+                      className="flex justify-center items-center gap-2 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors font-bold text-[13px] sm:w-[140px] w-[44px] h-[44px] rounded-xl active:scale-95"
+                      title="Back"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                      <span className="hidden sm:inline">Back</span>
+                    </button>
+                    
+                    <button 
+                      className="flex justify-center items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white sm:w-[140px] w-[44px] h-[44px] rounded-xl font-bold transition-transform active:scale-95 text-[13px] disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-blue-500/20"
+                      disabled={recipients.length === 0}
+                      onClick={() => setInviteStep(3)}
+                      title="Review List"
+                    >
+                      <span className="hidden sm:inline">Review List</span>
+                      <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 3 */}
+              {inviteStep === 3 && (
+                <div className="animate-[fadeIn_0.3s_ease-out]">
+                  <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-4">
+                    <h2 className="text-xl font-bold text-slate-800 leading-tight">Review Recipients</h2>
+                    <div className="flex items-center gap-1.5 bg-blue-50/80 px-3 py-1.5 rounded-lg border border-blue-100 shadow-sm shrink-0">
+                      <span className="material-symbols-outlined text-blue-600 text-[18px]">group</span>
+                      <span className="text-[14px] font-bold text-blue-700">{recipients.length} Total</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden mb-6">
+                    <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-100/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 backdrop-blur-md">
+                          <tr>
+                            <th className="px-4 py-3 border-b border-slate-200">Name</th>
+                            <th className="px-4 py-3 border-b border-slate-200">Email</th>
+                            <th className="px-4 py-3 border-b border-slate-200 w-[60px] text-center">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-[13px] text-slate-700 divide-y divide-slate-100 bg-white">
+                          {recipients.map((r) => (
+                            <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-2.5 font-medium">{r.firstName} {r.lastName}</td>
+                              <td className="px-4 py-2.5 text-slate-500">{r.email}</td>
+                              <td className="px-4 py-2.5 text-center">
+                                <button 
+                                  onClick={() => handleRemoveRecipient(r.id)}
+                                  className="w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors mx-auto"
+                                  title="Remove"
+                                >
+                                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t border-slate-100 pt-5">
+                    <button
+                      onClick={() => setInviteStep(2)}
+                      className="flex justify-center items-center gap-2 text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors font-bold text-[13px] sm:w-[140px] w-[44px] h-[44px] rounded-xl active:scale-95 shrink-0"
+                      title="Back"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+                      <span className="hidden sm:inline">Back</span>
+                    </button>
+                    
+                    <div className="flex items-center gap-3">
+                      <button 
+                        className="flex justify-center items-center text-red-600 bg-red-50 border border-red-100 hover:bg-red-100 transition-colors w-[44px] h-[44px] rounded-xl active:scale-95 shrink-0" 
+                        onClick={() => setIsClearConfirmOpen(true)}
+                        title="Clear All"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
+
+                      <button 
+                        className="flex justify-center items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white sm:min-w-[140px] w-[44px] h-[44px] rounded-xl font-bold transition-transform active:scale-95 text-[13px] shadow-md shadow-emerald-500/20 disabled:opacity-50 shrink-0"
+                        disabled={recipients.length === 0}
+                        onClick={() => setIsSendConfirmOpen(true)}
+                        title="Send Invites"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">send</span>
+                        <span className="hidden sm:inline">Send Invites</span>
                       </button>
                     </div>
                   </div>
-                ))
+                </div>
               )}
             </div>
-
-            <button className="btn btn-outline w-full h-[45px] rounded-xl mt-8" onClick={() => setShowCodesModal(false)}>
-              Close
-            </button>
           </div>
         </div>
       )}
@@ -472,16 +886,18 @@ export default function EnrollmentApproval() {
             </div>
 
             <div className="mt-8 flex gap-3">
-              <button className="btn btn-outline flex-1 h-[45px] rounded-xl" onClick={() => setSelectedApplication(null)}>
-                Close
+              <button className="btn btn-outline flex-1 h-[45px] rounded-xl flex justify-center items-center gap-2" onClick={() => setSelectedApplication(null)}>
+                <span className="material-symbols-outlined text-[18px]">close</span>
+                <span className="hidden sm:inline">Close</span>
               </button>
               
               {selectedApplication.status === 'Pending' && (
                 <button 
-                  className="btn btn-primary flex-1 h-[45px] rounded-xl" 
-                  onClick={() => promptUpdateStatus(selectedApplication._id, 'Approved_By_Teacher', `${selectedApplication.student_first_name} ${selectedApplication.student_last_name}`)}
+                  className="btn btn-primary flex-1 h-[45px] rounded-xl flex justify-center items-center gap-2" 
+                  onClick={() => promptUpdateStatus(selectedApplication._id, 'Registered', `${selectedApplication.student_first_name} ${selectedApplication.student_last_name}`)}
                 >
-                  Approve Enrollment
+                  <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
+                  <span className="hidden sm:inline">Approve & Register</span>
                 </button>
               )}
             </div>
