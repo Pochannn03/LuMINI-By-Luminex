@@ -52,7 +52,6 @@ export const sendOTPEmail = async (toEmail, otpCode, parentName = "Parent") => {
 };
 
 /**
- * --- NEW FUNCTION ---
  * Sends the permanent System Invitation Code to the parent's email.
  */
 export const sendInvitationEmail = async (toEmail, invitationCode, parentName, studentName) => {
@@ -111,13 +110,8 @@ export const sendInvitationEmail = async (toEmail, invitationCode, parentName, s
   }
 };
 
-// Add this below your existing sendInvitationEmail function in utils/emailService.js
-
 /**
  * Sends a secure OTP specifically for updating the user's password.
- * @param {string} toEmail - The user's registered email
- * @param {string} otpCode - The 6-digit OTP code
- * @param {string} userName - The user's first name
  */
 export const sendPasswordUpdateOTP = async (toEmail, otpCode, userName = "User") => {
   try {
@@ -163,6 +157,63 @@ export const sendPasswordUpdateOTP = async (toEmail, otpCode, userName = "User")
 
   } catch (error) {
     console.error("❌ Error sending Password Change OTP:", error);
+    return false;
+  }
+};
+
+/**
+ * --- NEW FUNCTION: TEACHER APPROVAL NOTIFICATION ---
+ * Notifies the parent that the teacher has approved their pre-enrollment.
+ */
+export const sendEnrollmentApprovalEmail = async (toEmail, parentName, studentName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Application Update for ${studentName}`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
+            
+            <div style="background-color: #22c55e; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✓</div>
+            
+            <h1 style="color: #166534; margin: 0; font-size: 22px;">Application Approved by Teacher</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Great news! The class adviser has reviewed and <strong>approved</strong> your pre-enrollment application for <strong>${studentName}</strong>.
+            </p>
+            
+            <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">What happens next?</h3>
+              <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.5;">
+                Your application has now been forwarded to the School Faculty & Administration for final verification and system registration. You will receive another email with your official Invitation Code once the process is completely finalized.
+              </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              No further action is required from you at this moment.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              Thank you for choosing LuMINI to help keep our students safe!
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Teacher Approval Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error sending approval email:", error);
     return false;
   }
 };

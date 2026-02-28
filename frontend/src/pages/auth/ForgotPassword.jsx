@@ -468,7 +468,7 @@ export default function ForgotPassword() {
                                 Please send the OTP to your registered email to continue.
                             </p>
                             <button type="button" disabled={isLoading} onClick={requestOTP} className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center cursor-pointer transition-colors">
-                                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Send OTP To Me Dawg"}
+                                {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Send OTP"}
                             </button>
                         </>
                     ) : (

@@ -33,7 +33,7 @@ export default function EnrollmentApproval() {
     message: "",
     confirmText: "",
     isDestructive: false,
-    actionData: null // Stores the ID and target status so we know what to do on confirm
+    actionData: null 
   });
 
   // ==========================================
@@ -96,7 +96,6 @@ export default function EnrollmentApproval() {
   // HANDLE APPROVE / REJECT FLOW
   // ==========================================
   
-  // 1. Trigger the Confirm Modal
   const promptUpdateStatus = (id, newStatus, studentName) => {
     if (newStatus === 'Approved_By_Teacher') {
       setConfirmConfig({
@@ -119,7 +118,6 @@ export default function EnrollmentApproval() {
     }
   };
 
-  // 2. Execute the API Call (Runs when they click "Confirm" in the modal)
   const executeStatusUpdate = async () => {
     const { id, status } = confirmConfig.actionData;
     
@@ -131,13 +129,11 @@ export default function EnrollmentApproval() {
       );
 
       if (response.data.success) {
-        // Instantly update the UI
         setRequests(prevRequests => 
           prevRequests.map(req => req._id === id ? { ...req, status: status } : req)
         );
-        setSelectedApplication(null); // Close the detail modal if it's open
+        setSelectedApplication(null); 
         
-        // Trigger Success Modal
         setSuccessMessage(`Application successfully ${status === 'Rejected' ? 'rejected' : 'approved and sent to Admin'}!`);
         setShowSuccessModal(true);
       }
@@ -147,20 +143,18 @@ export default function EnrollmentApproval() {
     }
   };
 
-
   // --- SEARCH & TAB FILTER ---
   const pendingRequestsCount = requests.filter(r => r.status === 'Pending').length;
   const reviewedRequestsCount = requests.filter(r => r.status !== 'Pending').length;
 
   const filteredRequests = requests.filter(req => {
-    // 1. Check Tab
+    // THE FIX: Added 'Registered' to the matchesTab logic so it doesn't disappear!
     const matchesTab = activeTab === 'pending' 
       ? req.status === 'Pending' 
-      : (req.status === 'Approved_By_Teacher' || req.status === 'Rejected');
+      : ['Approved_By_Teacher', 'Rejected', 'Registered'].includes(req.status);
 
     if (!matchesTab) return false;
 
-    // 2. Check Search Query
     const studentName = `${req.student_first_name} ${req.student_last_name}`.toLowerCase();
     const parentName = req.parent_name.toLowerCase();
     const query = searchQuery.toLowerCase();
@@ -172,7 +166,6 @@ export default function EnrollmentApproval() {
       <Header />
       <NavBar />
       
-      {/* --- REUSABLE MODALS --- */}
       <ConfirmModal 
         isOpen={confirmConfig.isOpen}
         onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
@@ -333,9 +326,15 @@ export default function EnrollmentApproval() {
                         </button>
                       </div>
                     ) : (
-                      // Display History Status in the Reviewed Tab (Now GUARANTEED full width)
-                      <div className={`w-full font-bold text-[14px] text-center py-3 rounded-xl border ${req.status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                        {req.status === 'Rejected' ? 'Application Rejected' : 'Sent to Super Admin'}
+                      // THE FIX: Added "Registered" visual status feedback
+                      <div className={`w-full font-bold text-[14px] text-center py-3 rounded-xl border ${
+                        req.status === 'Rejected' ? 'bg-red-50 text-red-600 border-red-200' : 
+                        req.status === 'Registered' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      }`}>
+                        {req.status === 'Rejected' ? 'Application Rejected' : 
+                         req.status === 'Registered' ? 'Officially Enrolled by Admin' : 
+                         'Sent to Super Admin'}
                       </div>
                     )}
                   </div>
@@ -414,7 +413,6 @@ export default function EnrollmentApproval() {
 
             <div className="flex flex-col gap-6">
               
-              {/* --- NEW: CENTERED HERO PROFILE PICTURE --- */}
               <div className="flex flex-col items-center">
                 <img 
                   src={getImageUrl(selectedApplication.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedApplication.student_first_name}`} 
@@ -431,7 +429,6 @@ export default function EnrollmentApproval() {
                 </p>
               </div>
 
-              {/* --- STUDENT DETAILS LIST --- */}
               <div>
                 <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]">school</span> Student Details
@@ -452,7 +449,6 @@ export default function EnrollmentApproval() {
                 </div>
               </div>
 
-              {/* --- PARENT DETAILS LIST --- */}
               <div>
                 <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span className="material-symbols-outlined text-[18px]">family_restroom</span> Parent Details
