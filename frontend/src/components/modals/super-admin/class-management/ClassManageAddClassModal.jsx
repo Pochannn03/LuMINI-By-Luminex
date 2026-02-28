@@ -4,6 +4,7 @@ import { validateClassRegistrationStep } from '../../../../utils/class-manage-mo
 import FormInputRegistration from '../../../FormInputRegistration';
 import axios from 'axios';
 import ClassManageSelectStudentModal from '../class-management/ClassManageSelectStudentsModal';
+import WarningModal from '../../../WarningModal'; // <-- NEW: Import WarningModal (adjust path if necessary)
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
 export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess }) {
@@ -20,6 +21,13 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
     maxCapacity: '',
     description: '',
     assignedTeacher: '',
+  });
+
+  // --- NEW: WARNING MODAL STATE ---
+  const [warningConfig, setWarningConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: ""
   });
 
   useEffect(() => {
@@ -112,7 +120,17 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
 
     } catch (error) {
       console.error("Crash Details:", error);
-      if (error.response) {
+      
+      // --- NEW: INTERCEPT 409 CONFLICT FOR DUPLICATES ---
+      if (error.response && error.response.status === 409) {
+        setWarningConfig({
+          isOpen: true,
+          title: "Duplicate Section",
+          message: error.response.data.msg
+        });
+      } 
+      // --------------------------------------------------
+      else if (error.response) {
         const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create class";
         if (error.response.data.errors) {
           alert(`Validation Error: ${error.response.data.errors[0].msg}`);
@@ -133,6 +151,14 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
   
   return createPortal(
     <>
+      {/* --- NEW: WARNING MODAL INSTANCE --- */}
+      <WarningModal 
+        isOpen={warningConfig.isOpen}
+        onClose={() => setWarningConfig({ ...warningConfig, isOpen: false })}
+        title={warningConfig.title}
+        message={warningConfig.message}
+      />
+
       <div className="modal-overlay active" id="addClassModal">
         <div className="modal-container" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
