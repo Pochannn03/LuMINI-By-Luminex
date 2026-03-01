@@ -17,6 +17,7 @@ import ClassManageDeleteTeacherModal from "../../components/modals/super-admin/c
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 import ClassManageViewStudentModal from "../../components/modals/super-admin/class-management/ClassManageViewStudentModal";
 import ClassManageEditStudentModal from "../../components/modals/super-admin/class-management/ClassManageEditStudentModal";
+import ClassManageArchivedClassesModal from "../../components/modals/super-admin/class-management/ClassManageArchivedClassModal";
 import ClassManageViewTeacherModal from "../../components/modals/super-admin/class-management/ClassManageViewTeacherModal";
 import SuccessModal from "../../components/SuccessModal";
 
@@ -32,6 +33,7 @@ export default function SuperAdminClassManagement() {
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isArchiveListModalOpen, setIsArchiveListModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isViewClassModalOpen, setIsViewClassModalOpen] = useState(false);
 
@@ -153,16 +155,29 @@ export default function SuperAdminClassManagement() {
           <p className="text-[white]! opacity-80 text-[15px]! m-0">Manage your classes, faculty, and student body.</p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="flex flex-col gap-6">
-            <div className="card queue-card">
-              <div className="mb-6">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <span className="material-symbols-outlined blue-icon text-[24px]">meeting_room</span>
-                  <h2 className="text-cdark text-[18px] font-bold">Active Classes</h2>
+          <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="flex flex-col gap-6">
+              <div className="card queue-card">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <span className="material-symbols-outlined blue-icon text-[24px]">meeting_room</span>
+                      <h2 className="text-cdark text-[18px] font-bold">Active Classes</h2>
+                    </div>
+                    <p className="text-cgray text-[14px]! leading-normal">
+                      Current classes in session.
+                    </p>
+                  </div>
+
+                  {/* Styled View Archives Button */}
+                  <button 
+                    onClick={() => setIsArchiveListModalOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#1e293b] rounded-lg transition-colors border-none cursor-pointer font-bold text-[13px]"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">history</span>
+                    View Archives
+                  </button>
                 </div>
-                <p className="text-cgray text-[14px]! leading-normal">Current classes in sesssion.</p>
-              </div>
 
               <div className="search-bar-small flex items-center gap-2 mb-[15px]">
                 <span className="material-symbols-outlined">search</span>
@@ -285,19 +300,128 @@ export default function SuperAdminClassManagement() {
         </div>
       </main>
 
-      {/* MODALS */}
-      <ClassManageViewClassModal isOpen={isViewClassModalOpen} onClose={() => { setIsViewClassModalOpen(false); setSelectedClass(null); }} classData={selectedClass} />
-      <ClassManageAddClassModal isOpen={isAddClassModalOpen} onClose={() => setIsAddClassModalOpen(false)} onSuccess={handleShowSuccess} />
-      <ClassManageEditClassModal isOpen={isEditClassModalOpen} onClose={() => { setIsEditClassModalOpen(false); setSelectedClass(null); }} classData={selectedClass} onSuccess={(msg) => { fetchClasses(); handleShowSuccess(msg); }} />
-      <ClassManageDeleteClassModal isOpen={isDeletClassModalOpen} onClose={() => { setisDeletClassModalOpen(false); setSelectedClass(null); }} classData={selectedClass} onSuccess={(msg) => { fetchClasses(); handleShowSuccess(msg); }} />
-      <ClassManageAddTeacherModal isOpen={isAddTeacherModalOpen} onClose={() => setIsAddTeacherModalOpen(false)} onSuccess={handleShowSuccess} />
-      <ClassManageViewTeacherModal isOpen={isViewTeacherModalOpen} onClose={() => { setIsViewTeacherModalOpen(false); setSelectedTeacher(null); }} teacherData={selectedTeacher} classes={classes} />
-      <ClassManageEditTeacherModal isOpen={isEditTeacherModalOpen} onClose={() => { setIsEditTeacherModalOpen(false); setSelectedTeacher(null); }} teacherData={selectedTeacher} onSuccess={(msg) => { fetchTeachers(); handleShowSuccess(msg); }} />
-      <ClassManageDeleteTeacherModal isOpen={isDeleteTeacherModalOpen} onClose={() => { setIsDeleteTeacherModalOpen(false); setSelectedTeacher(null); }} teacherData={selectedTeacher} onSuccess={(msg) => { fetchTeachers(); handleShowSuccess(msg); }} />
-      <ClassManageAddStudentModal isOpen={isAddStudentModalOpen} onClose={() => setIsAddStudentModalOpen(false)} onSuccess={handleShowSuccess} />
-      <ClassManageViewStudentModal isOpen={isViewStudentModalOpen} onClose={() => { setIsViewStudentModalOpen(false); setSelectedStudent(null); }} studentData={selectedStudent} onSuccess={(msg) => { fetchStudents(); handleShowSuccess(msg); }} />
-      <ClassManageEditStudentModal isOpen={isEditStudentModalOpen} onClose={() => { setIsEditStudentModalOpen(false); setSelectedStudent(null); }} studentData={selectedStudent} onSuccess={(msg) => { fetchStudents(); handleShowSuccess(msg); }} />
-      <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} message={successMessage} />
+      {/* For Modal of Adding Classes, Students and Teachers */}
+      {/* CLASSES */}
+      <ClassManageViewClassModal
+        isOpen={isViewClassModalOpen}
+        onClose={() => {
+          setIsViewClassModalOpen(false);
+          setSelectedClass(null);
+        }}
+        classData={selectedClass}
+      />
+
+      <ClassManageAddClassModal
+        isOpen={isAddClassModalOpen}
+        onClose={() => setIsAddClassModalOpen(false)}
+        onSuccess={(msg) => handleShowSuccess(msg)}
+      />
+      <ClassManageEditClassModal
+        isOpen={isEditClassModalOpen}
+        onClose={() => {
+          setIsEditClassModalOpen(false);
+          setSelectedClass(null);
+        }}
+        classData={selectedClass}
+        onSuccess={(msg) => {
+          fetchClasses();
+          handleShowSuccess(msg);
+        }}
+      />
+      <ClassManageDeleteClassModal
+        isOpen={isDeletClassModalOpen}
+        onClose={() => {
+          setisDeletClassModalOpen(false);
+          setSelectedClass(null);
+        }}
+        classData={selectedClass}
+        onSuccess={(msg) => {
+          fetchClasses();
+          handleShowSuccess(msg);
+        }}
+      />
+    <ClassManageArchivedClassesModal 
+      isOpen={isArchiveListModalOpen}
+      onClose={() => setIsArchiveListModalOpen(false)}
+      onRefreshActive={fetchClasses} // This ensures the main list refreshes if you restore a class
+    />
+
+      {/* TEACHERS */}
+      <ClassManageAddTeacherModal
+        isOpen={isAddTeacherModalOpen}
+        onClose={() => setIsAddTeacherModalOpen(false)}
+        onSuccess={(msg) => handleShowSuccess(msg)}
+      />
+      <ClassManageViewTeacherModal
+        isOpen={isViewTeacherModalOpen}
+        onClose={() => {
+          setIsViewTeacherModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        teacherData={selectedTeacher}
+        classes={classes} // <-- Pass the classes array so it can filter sections!
+      />
+      <ClassManageEditTeacherModal
+        isOpen={isEditTeacherModalOpen}
+        onClose={() => {
+          setIsEditTeacherModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        teacherData={selectedTeacher}
+        onSuccess={(msg) => {
+          fetchTeachers();
+          handleShowSuccess(msg);
+        }}
+      />
+      <ClassManageDeleteTeacherModal
+        isOpen={isDeleteTeacherModalOpen}
+        onClose={() => {
+          setIsDeleteTeacherModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        teacherData={selectedTeacher}
+        onSuccess={(msg) => {
+          fetchTeachers();
+          handleShowSuccess(msg);
+        }}
+      />
+
+      {/* STUDENTS */}
+      <ClassManageAddStudentModal
+        isOpen={isAddStudentModalOpen}
+        onClose={() => setIsAddStudentModalOpen(false)}
+        onSuccess={(msg) => handleShowSuccess(msg)}
+      />
+      <ClassManageViewStudentModal
+        isOpen={isViewStudentModalOpen}
+        onClose={() => {
+          setIsViewStudentModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        studentData={selectedStudent}
+        onSuccess={(msg) => {
+          fetchStudents();
+          handleShowSuccess(msg);
+        }}
+      />
+      <ClassManageEditStudentModal
+        isOpen={isEditStudentModalOpen}
+        onClose={() => {
+          setIsEditStudentModalOpen(false);
+          setSelectedStudent(null);
+        }}
+        studentData={selectedStudent}
+        onSuccess={(msg) => {
+          fetchStudents();
+          handleShowSuccess(msg);
+        }}
+      />
+
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        message={successMessage}
+      />
     </div>
   );
 }
