@@ -9,54 +9,53 @@ const getImageUrl = (path, firstName) => {
   return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
 };
 
-// THE FIX: Added onView prop
 export default function ClassManageTeacherCard({ tch, onView, onEdit, onDelete }) {
   const fullName = `${tch.first_name || ''} ${tch.last_name || ''}`;
   const photoUrl = getImageUrl(tch.profile_picture, tch.first_name);
 
   return (
       <div 
-        className="flex items-center p-4 rounded-xl bg-(--white) border border-(--border-color) gap-4 transition-all duration-200 hover:bg-[#f8fafc] hover:border-blue-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-        onClick={() => onView(tch)} // THE FIX: Clicking the card triggers onView
+        className="flex items-center p-3 sm:p-4 rounded-2xl bg-white border border-slate-200 gap-3 sm:gap-4 transition-all duration-300 hover:bg-[#f8fafc] hover:border-orange-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer group"
+        onClick={() => onView(tch)}
       >
     
-        <img 
-          src={photoUrl} 
-          alt="Profile"
-          className="w-[45px] h-[45px] rounded-[10px] object-cover shrink-0 bg-slate-100" 
-        />
-
-        <div className="flex-1 flex flex-col">
-            <span className="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{fullName}</span>
-            
-            <div className="flex flex-col gap-1 mt-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
-                    <span className="material-symbols-outlined text-[14px]">mail</span>
-                    <span className="truncate">{tch.email}</span>
-                </div>
-            </div>
+        {/* Teacher Avatar */}
+        <div className="relative shrink-0">
+          <img 
+            src={photoUrl} 
+            alt={tch.first_name || "Teacher Avatar"}
+            className="w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] rounded-xl object-cover bg-slate-100 border border-slate-200 group-hover:border-orange-200 transition-colors shadow-sm" 
+          />
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Minimal Teacher Info */}
+        <div className="flex-1 flex flex-col overflow-hidden pr-2">
+            <span className="block font-extrabold text-slate-800 text-[14px] sm:text-[15px] truncate group-hover:text-orange-600 transition-colors">
+              {fullName}
+            </span>
+        </div>
+
+        {/* Action Buttons (Visible on hover) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 pr-1">
             <button 
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-slate-200 text-slate-500 hover:text-blue-600"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-200 bg-transparent border border-transparent text-slate-400 hover:bg-white hover:border-slate-200 hover:text-blue-600 hover:shadow-sm active:scale-95"
               onClick={(e) => {
-                e.stopPropagation(); // THE FIX: Stops the card click event
+                e.stopPropagation(); 
                 onEdit(tch);
               }}
-              title="Edit Teacher"
+              title="Edit Profile"
             >
-                <span className="material-symbols-outlined text-[18px]">edit</span>
+                <span className="material-symbols-outlined text-[18px] sm:text-[20px]">edit</span>
             </button>
             <button 
-              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-red-100 text-slate-500 hover:text-red-600"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-200 bg-transparent border border-transparent text-slate-400 hover:bg-red-50 hover:border-red-100 hover:text-red-600 hover:shadow-sm active:scale-95"
               onClick={(e) => {
-                e.stopPropagation(); // THE FIX: Stops the card click event
+                e.stopPropagation(); 
                 onDelete(tch);
               }}
               title="Delete Teacher"
             >
-                <span className="material-symbols-outlined text-[18px]">delete</span>
+                <span className="material-symbols-outlined text-[18px] sm:text-[20px]">delete</span>
             </button>
         </div>
     </div>
