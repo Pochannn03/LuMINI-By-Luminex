@@ -204,11 +204,11 @@ router.get(
 });
 
 // ==========================================
-// TEACHER ACTION: APPROVE REQUEST
+// TEACHER ACTION: PRE-APPROVE REQUEST (PASS TO ADMIN)
 // ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
-  hasRole('admin'),
+  hasRole('admin'), // 'admin' is the teacher role in your system
   async (req, res) => {
     try {
         const requestId = req.params.id;
@@ -220,61 +220,40 @@ router.put('/api/teacher/guardian-requests/:id/approve',
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
-        const newGuardian = new User({
-            first_name: requestDoc.guardianDetails.firstName,
-            last_name: requestDoc.guardianDetails.lastName,
-            username: requestDoc.guardianDetails.tempUsername,
-            password: requestDoc.guardianDetails.tempPassword, 
-            phone_number: requestDoc.guardianDetails.phone,
-            relationship: "Guardian", 
-            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, 
-            address: "Not Provided", 
-            role: "user", 
-            is_archive: false,
-        });
-
-        const savedGuardian = await newGuardian.save();
-
-        if (savedGuardian.user_id) {
-            await Student.findByIdAndUpdate(requestDoc.student, {
-                $push: { user_id: savedGuardian.user_id } 
-            });
-        }
-
-        requestDoc.status = 'approved';
-        requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
+        // 1. JUST CHANGE THE STATUS (NO ACCOUNT CREATION HERE!)
+        requestDoc.status = 'teacher_approved';
         await requestDoc.save();
 
+        // 2. NOTIFY PARENT IT WAS PASSED TO ADMIN
         if (requestDoc.parent && requestDoc.parent.user_id) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'System', 
-                title: 'Guardian Request Approved',
-                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active.`,
+                title: 'Guardian Request Pre-Approved',
+                message: `Teacher ${teacherName} has verified your request for ${requestDoc.guardianDetails.firstName}. It is now with the SuperAdmin for final system registration.`,
                 is_read: false
             });
 
             const savedNotif = await notification.save();
             req.app.get('socketio').emit('new_notification', savedNotif);
-        } else {
-            console.log("⚠️ Notification skipped: Parent not found or user_id missing.");
         }
 
+        // 3. LOG THE ACTION
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
-          action: "Approve Guardian Request",
-          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name}`
+          action: "Pre-Approve Guardian",
+          target: `Verified identity for ${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`
         });
         await auditLog.save();
 
-        return res.status(200).json({ message: "Guardian successfully approved and account created!" });
+        return res.status(200).json({ message: "Request verified and forwarded to SuperAdmin!" });
 
     } catch (error) {
-        console.error("Approval Error:", error);
-        return res.status(500).json({ message: "Server error during approval." });
+        console.error("Pre-Approval Error:", error);
+        return res.status(500).json({ message: "Server error during pre-approval." });
     }
 });
 
@@ -616,6 +595,168 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
     } catch (error) {
         console.error("Revoke Error:", error);
         return res.status(500).json({ message: "Server error during revocation." });
+    }
+});
+
+// =========================================================================
+// SUPERADMIN ROUTES: FINAL GUARDIAN REGISTRATION
+// =========================================================================
+
+// 1. GET PENDING FINAL APPROVALS
+router.get('/api/superadmin/guardian-requests/pending-final', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+    try {
+        const requests = await GuardianRequest.find({ status: 'teacher_approved' })
+            .populate('parent', 'first_name last_name profile_picture')
+            .populate('student', 'first_name last_name student_id') 
+            .populate('teacher', 'first_name last_name') // Needed to show who verified it
+            .sort({ updatedAt: -1 }); 
+
+        return res.status(200).json(requests);
+    } catch (error) {
+        console.error("Error fetching superadmin pending requests:", error);
+        return res.status(500).json({ message: "Server error while fetching requests." });
+    }
+});
+
+// 2. GET REGISTRATION HISTORY
+router.get('/api/superadmin/guardian-requests/history', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+    try {
+        const history = await GuardianRequest.find({ 
+              status: { $in: ['approved', 'rejected', 'revoked'] } 
+            })
+            .populate('parent', 'first_name last_name profile_picture')
+            .populate('student', 'first_name last_name student_id')
+            .populate('teacher', 'first_name last_name')
+            .sort({ updatedAt: -1 }); 
+
+        return res.status(200).json(history);
+    } catch (error) {
+        console.error("Error fetching superadmin history:", error);
+        return res.status(500).json({ message: "Server error while fetching history." });
+    }
+});
+
+// 3. FINAL APPROVE (CREATES THE ACCOUNT)
+router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const currentUserId = Number(req.user.user_id);
+
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        if (!requestDoc || requestDoc.status !== 'teacher_approved') {
+            return res.status(404).json({ message: "Request not found or not ready for final approval." });
+        }
+
+        // CREATE THE ACTUAL USER ACCOUNT
+        const newGuardian = new User({
+            first_name: requestDoc.guardianDetails.firstName,
+            last_name: requestDoc.guardianDetails.lastName,
+            username: requestDoc.guardianDetails.tempUsername,
+            password: requestDoc.guardianDetails.tempPassword, 
+            phone_number: requestDoc.guardianDetails.phone,
+            relationship: "Guardian", 
+            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, 
+            address: "Not Provided", 
+            role: "user", 
+            is_archive: false,
+        });
+
+        const savedGuardian = await newGuardian.save();
+
+        // LINK TO STUDENT
+        if (savedGuardian.user_id) {
+            await Student.findByIdAndUpdate(requestDoc.student, {
+                $push: { user_id: savedGuardian.user_id } 
+            });
+        }
+
+        // UPDATE REQUEST STATUS
+        requestDoc.status = 'approved';
+        requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
+        await requestDoc.save();
+
+        // NOTIFY PARENT
+        if (requestDoc.parent && requestDoc.parent.user_id) {
+            const notification = new Notification({
+                recipient_id: Number(requestDoc.parent.user_id), 
+                sender_id: currentUserId,
+                type: 'System', 
+                title: 'Guardian Registration Finalized',
+                message: `SuperAdmin has officially registered ${savedGuardian.first_name} ${savedGuardian.last_name}. Their guardian account is now active.`,
+                is_read: false
+            });
+            const savedNotif = await notification.save();
+            req.app.get('socketio').emit('new_notification', savedNotif);
+        }
+
+        // AUDIT LOG
+        const auditLog = new Audit({
+          user_id: req.user.user_id,
+          full_name: `${req.user.first_name} ${req.user.last_name}`,
+          role: req.user.role,
+          action: "Finalize Guardian Registration",
+          target: `Created system account for ${savedGuardian.first_name} ${savedGuardian.last_name}`
+        });
+        await auditLog.save();
+
+        return res.status(200).json({ message: "Guardian successfully approved and account created!" });
+
+    } catch (error) {
+        console.error("Final Approval Error:", error);
+        return res.status(500).json({ message: "Server error during final approval." });
+    }
+});
+
+// 4. FINAL REJECT
+router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        const currentUserId = Number(req.user.user_id);
+
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        if (!requestDoc || requestDoc.status !== 'teacher_approved') {
+            return res.status(404).json({ message: "Request not found or not ready for final review." });
+        }
+
+        const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
+
+        requestDoc.status = 'rejected';
+        await requestDoc.save();
+
+        // NOTIFY PARENT
+        if (requestDoc.parent && requestDoc.parent.user_id) {
+            const notification = new Notification({
+                recipient_id: Number(requestDoc.parent.user_id), 
+                sender_id: currentUserId,
+                type: 'System', 
+                title: 'Guardian Registration Rejected',
+                message: `SuperAdmin has rejected the final registration for ${guardianName}. Please contact the office.`,
+                is_read: false
+            });
+            const savedNotif = await notification.save();
+            req.app.get('socketio').emit('new_notification', savedNotif);
+        }
+
+        // CLEANUP ID PHOTO
+        if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
+            fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
+        }
+
+        // AUDIT LOG
+        const auditLog = new Audit({
+          user_id: req.user.user_id,
+          full_name: `${req.user.first_name} ${req.user.last_name}`,
+          role: req.user.role,
+          action: "Reject Guardian Registration",
+          target: `Rejected final registration for: ${guardianName}`
+        });
+        await auditLog.save();
+
+        return res.status(200).json({ message: "Guardian registration rejected." });
+
+    } catch (error) {
+        console.error("Final Rejection Error:", error);
+        return res.status(500).json({ message: "Server error during final rejection." });
     }
 });
 

@@ -20,6 +20,19 @@ const NAV_ITEMS = [
     allowedRoles: ["superadmin"],
   },
   {
+    label: "Accounts",
+    path: "/superadmin/accounts",
+    icon: "manage_accounts",
+    allowedRoles: ["superadmin"],
+  },
+  // --- NEW ITEM ---
+  {
+    label: "Guardian Registry",
+    path: "/superadmin/guardian-registration",
+    icon: "shield_person", // Fits the security theme perfectly
+    allowedRoles: ["superadmin"],
+  },
+  {
     label: "Analytics",
     path: "/superadmin/analytics",
     icon: "analytics",
@@ -29,12 +42,6 @@ const NAV_ITEMS = [
     label: "Settings",
     path: "/superadmin/settings",
     icon: "settings",
-    allowedRoles: ["superadmin"],
-  },
-  {
-    label: "Accounts",
-    path: "/superadmin/accounts",
-    icon: "manage_accounts",
     allowedRoles: ["superadmin"],
   },
 
@@ -60,7 +67,7 @@ const NAV_ITEMS = [
   {
     label: "Enrollments",
     path: "/admin/enrollments",
-    icon: "assignment_ind", // A nice icon for student registration
+    icon: "assignment_ind",
     allowedRoles: ["admin"],
   },
   {
@@ -113,7 +120,7 @@ const NAV_ITEMS = [
     allowedTypes: ["Guardian"],
   },
   {
-    label: "Pickup History",  // <-- ADDED THIS FOR GUARDIAN
+    label: "Pickup History",
     path: "/guardian/history",
     icon: "history",
     allowedRoles: ["user"],
