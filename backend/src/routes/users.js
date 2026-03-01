@@ -325,4 +325,29 @@ router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) =>
   }
 });
 
+router.post('/api/users/profiles', 
+  isAuthenticated, 
+  async (req, res) => {
+  try {
+    const { userIds } = req.body;
+    // Get current user's ID from the session/token
+    const currentUserId = req.user.user_id;
+
+    const numericIds = Array.isArray(userIds) ? userIds.map(id => Number(id)) : [];
+
+    const users = await User.find({ 
+      user_id: { 
+        $in: numericIds, 
+        $ne: currentUserId // Exclude the current authenticated user
+      },
+      is_archive: false 
+    }).select('user_id first_name last_name profile_picture relationship');
+
+    res.status(200).json({ success: true, users });
+  } catch (err) {
+    console.error("Profile Fetch Error:", err);
+    res.status(500).json({ success: false, msg: "Failed to fetch profiles" });
+  }
+});
+
 export default router;

@@ -10,6 +10,7 @@ const NotificationCard = ({ notification, onClick }) => {
       case 'Attendance': return 'person_check';
       case 'Transfer': return 'swap_horiz';
       case 'System': return 'verified_user';
+      case 'Alert': return 'exclamation';
       default: return 'notifications';
     }
   };
@@ -21,6 +22,7 @@ const NotificationCard = ({ notification, onClick }) => {
       case 'Attendance': return 'bg-green-50 text-green-500';
       case 'Transfer': return 'bg-amber-50 text-amber-500';
       case 'System': return 'bg-purple-50 text-purple-500';
+      case 'Alert': return 'bg-red-50 text-red-400';
       default: return 'bg-slate-50 text-slate-500';
     }
   };

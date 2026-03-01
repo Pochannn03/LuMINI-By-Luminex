@@ -12,6 +12,7 @@ import ParentDashboardQrScan from "../../../components/modals/user/parent/dashbo
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
 import ParentFeedbackModal from ".././../../components/modals/user/parent/dashboard/ParentFeedback";
 import ParentAbsenceModal from ".././../../components/modals/user/parent/dashboard/ParentAbsenceModal";
+import ParentWhoEarlyPickUpStudent from "../../../components/modals/user/parent/dashboard/ParentWhoEarlyPickUpStudent";
 import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal";
 import UserConfirmModal from "../../../components/modals/user/UserConfirmationModal";
@@ -30,6 +31,10 @@ export default function Dashboard() {
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
+  const [selectedPicker, setSelectedPicker] = useState(null);
+  const [authorizedPickers, setAuthorizedPickers] = useState([]);
+  const [loadingPickers, setLoadingPickers] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [childData, setChildData] = useState(null);
@@ -109,6 +114,32 @@ export default function Dashboard() {
 
     fetchAnnouncements();
   }, [rawStudentData]);
+
+  useEffect(() => {
+    const fetchPickers = async () => {
+      // CHANGE: Use rawStudentData.user_id to match your database field name
+      const idsToFetch = rawStudentData?.user_id; 
+
+      if (idsToFetch && idsToFetch.length > 0) {
+        try {
+          setLoadingPickers(true);
+          const response = await axios.post('http://localhost:3000/api/users/profiles', {
+            userIds: idsToFetch // Sending the array [1000, 1001, ...]
+          }, { withCredentials: true });
+
+          if (response.data.success) {
+            setAuthorizedPickers(response.data.users);
+          }
+        } catch (err) {
+          console.error("Failed to fetch authorized pickers:", err);
+        } finally {
+          setLoadingPickers(false);
+        }
+      }
+    };
+
+    fetchPickers();
+  }, [rawStudentData]);
   
 
   useEffect(() => {
@@ -152,7 +183,7 @@ export default function Dashboard() {
     };
   }, [rawStudentData, user]);
 
-  const handleStatusUpdate = async (statusLabel, isEarlyPickup = false) => {
+  const handleStatusUpdate = async (statusLabel, isEarlyPickup = false, authorizedPickerId = null) => {
     if (!rawStudentData) {
       console.error("Student data not loaded yet");
       return; 
@@ -175,7 +206,9 @@ export default function Dashboard() {
         status: statusLabel,
         purpose: transferType,
         isEarly: isEarlyPickup,
-        on_queue: true
+        // SEND THE PICKER ID: If it's early pickup, use the selected ID, 
+        // otherwise default to the parent's ID
+        authorized_picker_id: authorizedPickerId || user?.user_id 
       }, { withCredentials: true });
 
       setIsParentOnQueue(true);
@@ -228,6 +261,28 @@ export default function Dashboard() {
   const handleGateScanSuccess = () => {
     setShowScanner(false);
     setShowPassModal(true);
+  };
+
+  const handleEarlyPickupClick = () => {
+    if (childData?.status !== 'Learning') {
+      setWarningTitle("Action Restricted");
+      setWarningMessage("You can only request an Early Pickup if the student is currently 'Learning' at school.");
+      setIsWarningModalOpen(true);
+      return;
+    }
+    setIsPickerModalOpen(true);
+  };
+
+  // Handle when a person is selected from the list
+  const handlePersonSelected = (person) => {
+    setSelectedPicker(person);
+    setIsPickerModalOpen(false);
+    setIsEarlyPickupConfirmOpen(true); // Now open the confirmation modal
+  };
+
+  const handleConfirmEarlyPickup = () => {
+    setIsEarlyPickupConfirmOpen(false);
+    handleStatusUpdate('At School', true, selectedPicker?.user_id); 
   };
 
   const isScanDisabled = 
@@ -366,7 +421,7 @@ export default function Dashboard() {
 
                   <button 
                     className="quick-action-item"
-                    onClick={() => setIsEarlyPickupConfirmOpen(true)}
+                    onClick={handleEarlyPickupClick}
                   >
                     <div className="flex flex-row items-center">
                       <div className="qa-icon">
@@ -570,15 +625,22 @@ export default function Dashboard() {
         message={warningMessage}
       />
 
+      <ParentWhoEarlyPickUpStudent 
+        isOpen={isPickerModalOpen}
+        onClose={() => setIsPickerModalOpen(false)}
+        onSelect={handlePersonSelected}
+        people={authorizedPickers} // This contains parent + guardians
+        getImageUrl={getImageUrl}
+        loading={loadingPickers}
+        currentUser={user}
+      />
+
       <UserConfirmModal
         isOpen={isEarlyPickupConfirmOpen}
         onClose={() => setIsEarlyPickupConfirmOpen(false)}
-        onConfirm={() => {
-          setIsEarlyPickupConfirmOpen(false);
-          handleStatusUpdate('At School', true);
-        }}
-        title="Request Early Pickup?"
-        message="By proceeding, you agree to further explain the reason for this early departure to the teacher-in-charge upon arrival."
+        onConfirm={handleConfirmEarlyPickup}
+        title="Confirm Early Pickup"
+        message={`You are authorizing ${selectedPicker?.first_name} ${selectedPicker?.last_name} to pick up the student. Please explain the reason to the teacher upon arrival.`}
         confirmText="Confirm Request"
         type="info"
       />
