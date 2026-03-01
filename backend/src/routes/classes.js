@@ -120,6 +120,35 @@ router.get('/api/sections/archived-list',
     }
 });
 
+router.get('/api/sections/archived/:id', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
+    try {
+      const mongoId = req.params.id;
+
+      const section = await Section.findOne({ _id: mongoId, is_archive: true })
+        .populate({
+          path: 'student_details', 
+          match: { is_archive: true }
+        })
+        .populate('user_details');
+
+      if (!section) {
+        return res.status(404).json({ success: false, msg: "Archived class not found" });
+      }
+
+      res.status(200).json({ 
+        success: true, 
+        classData: section 
+      });
+
+    } catch (err) {
+      console.error("❌ Error fetching archived section details:", err);
+      res.status(500).json({ success: false, msg: "Server error" });
+    }
+});
+
 // ==========================================
 // POST: CREATE NEW CLASS
 // ==========================================

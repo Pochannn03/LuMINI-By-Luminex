@@ -445,6 +445,11 @@ export default function SuperAdminClassManagement() {
           handleShowSuccess(msg);
         }}
       />
+    <ClassManageArchivedClassesModal 
+      isOpen={isArchiveListModalOpen}
+      onClose={() => setIsArchiveListModalOpen(false)}
+      onRefreshActive={fetchClasses} // This ensures the main list refreshes if you restore a class
+    />
 
       {/* TEACHERS */}
       <ClassManageAddTeacherModal

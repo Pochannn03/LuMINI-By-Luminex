@@ -21,13 +21,11 @@ export default function ClassManageViewClassModal({ isOpen, onClose, classData }
     
   const teacherPhoto = classData.user_details?.profile_picture;
   const teacherFirstName = classData.user_details?.first_name;
-  // ----------------------------------
 
-  // Safely extract students list
   const students = classData.student_details || [];
 
   return createPortal(
-    <div className="modal-overlay active flex justify-center items-center p-4 z-[9999]" onClick={onClose}>
+    <div className="modal-overlay active flex justify-center items-center p-4 z-9999" onClick={onClose}>
       <div 
         className="bg-white rounded-3xl w-full max-w-[500px] relative overflow-hidden shadow-2xl animate-[fadeIn_0.2s_ease-out] flex flex-col max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
