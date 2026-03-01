@@ -2,6 +2,7 @@ import { Router } from "express";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js";
 import { Audit } from "../models/audits.js"; 
+import { User } from "../models/users.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js"
 import { Queue } from "../models/queues.js";
@@ -14,12 +15,11 @@ router.post('/api/queue',
   isAuthenticated, 
   hasRole('user'),
   async (req, res) => {
-    const { student_id, section_id, status, purpose, isEarly } = req.body;
+    const { student_id, section_id, status, purpose, isEarly, authorized_picker_id } = req.body;
     const parentId = req.user.user_id;
 
 
     try {
-      // 1. Initial Validations
       const student = await Student.findOne({ student_id }).populate('section_details');
       
       if (!student) {
@@ -51,19 +51,28 @@ router.post('/api/queue',
         }
       }
 
+      const actualId = authorized_picker_id || parentId;
+      let pickerDisplayName = `${req.user.first_name} ${req.user.last_name}`;
+        if (authorized_picker_id && Number(authorized_picker_id) !== Number(parentId)) {
+            const picker = await User.findOne({ user_id: authorized_picker_id });
+            if (picker) {
+                pickerDisplayName = `${picker.first_name} ${picker.last_name} (${picker.relationship})`;
+            }
+        }
+
       // 3. Update or Create Queue Entry
       const queueEntry = await Queue.findOneAndUpdate(
-        { user_id: parentId },
-        { 
-          student_id, 
-          section_id, 
-          status, 
-          purpose, 
-          on_queue: true,
-          created_at: new Date() 
-        },
-        { upsert: true, new: true }
-      ).populate('user_details');
+            { user_id: actualId }, // This ensures the Guardian is the record owner
+            { 
+              student_id, 
+              section_id, 
+              status, 
+              purpose, 
+              on_queue: true,
+              created_at: new Date() 
+            },
+            { upsert: true, new: true }
+        ).populate('user_details');
 
       try {
         const sectionDoc = await Section.findOne({ section_id: section_id });
@@ -81,7 +90,7 @@ router.post('/api/queue',
                   sender_id: Number(parentId),
                   type: 'Transfer',
                   title: 'Early Pickup Request',
-                  message: `${parentName} is requesting to pick up ${studentName} before dismissal.`,
+                  message: `${pickerDisplayName} is requesting to pick up ${studentName} before dismissal.`,
                   is_read: false,
                   created_at: new Date()
                 });
