@@ -42,12 +42,14 @@ router.get('/api/notifications',
   }
 });
 
-router.patch('/api/notifications/:id/read', isAuthenticated, async (req, res) => {
+router.patch('/api/notifications/:id/read', 
+  isAuthenticated, 
+  async (req, res) => {
   try {
     const updated = await Notification.findOneAndUpdate(
       { 
-        notification_id: Number(req.params.id),  // ← cast to Number
-        recipient_id: req.user.user_id 
+        _id: req.params.id,
+        recipient_id: req.user.user_id
       },
       { is_read: true },
       { new: true }
