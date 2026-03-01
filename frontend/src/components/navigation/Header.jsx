@@ -44,15 +44,22 @@ export default function Header({ onToggle }) {
   const handleNotificationClick = async (notif) => {
     if (notif.is_read) return;
 
+    const id = notif._id;
+
     try {
-      await axios.patch(`${BACKEND_URL}/api/notifications/${notif.notification_id}/read`, {}, { withCredentials: true });
+      await axios.patch(
+        `${BACKEND_URL}/api/notifications/${id}/read`, 
+        {}, 
+        { withCredentials: true }
+      );
       
       setNotifications(prev => 
-        prev.map(n => n.notification_id === notif.notification_id ? { ...n, is_read: true } : n)
+        prev.map(n => n._id === id ? { ...n, is_read: true } : n)
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
+
     } catch (err) {
-      console.error("Error marking as read", err);
+      console.error("Error marking as read:", err.response?.data || err.message);
     }
   };
 
@@ -69,10 +76,27 @@ export default function Header({ onToggle }) {
   useEffect(() => {
     const socket = io("http://localhost:3000", { withCredentials: true });
 
+    if (user?.user_id) {
+      socket.emit("join", `user_${user.user_id}`); 
+      socket.emit("join", user.user_id); 
+    }
+
     socket.on('new_notification', (newNotif) => {
-      if (Number(newNotif.recipient_id) === Number(user?.user_id)) {
-        setNotifications(prev => [newNotif, ...prev]);
-        setUnreadCount(prev => prev + 1);
+      const notifRecipient = String(newNotif.recipient_id);
+      const currentUser = String(user?.user_id);
+      
+      if (notifRecipient === currentUser) {
+        setNotifications(prev => {
+          const exists = prev.some(n => String(n._id) === String(newNotif._id));
+          
+          if (exists) {
+            const filtered = prev.filter(n => String(n._id) !== String(newNotif._id));
+            return [newNotif, ...filtered];
+          }
+          
+          setUnreadCount(count => count + 1);
+          return [newNotif, ...prev];
+        });
       }
     });
 
@@ -121,7 +145,7 @@ export default function Header({ onToggle }) {
                 {notifications.length > 0 ? (
                   notifications.map((notif) => (
                     <NotificationCard 
-                      key={notif.notification_id} 
+                      key={notif._id}
                       notification={notif} 
                       onClick={handleNotificationClick} 
                     />

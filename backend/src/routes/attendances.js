@@ -6,6 +6,7 @@ import { Attendance } from "../models/attendances.js";
 import { Audit } from "../models/audits.js";
 import { Transfer } from "../models/transfers.js";
 import { Queue } from "../models/queues.js";
+import { Notification } from "../models/notification.js";
 
 const router = Router();
 
@@ -328,7 +329,7 @@ router.post('/api/attendance/absence',
                     },
                     { 
                         status: 'Absent',
-                        details: `Parent Note: ${details || 'No additional info'}`,
+                        details: `${details || 'No additional info'}`,
                         $setOnInsert: {
                             student_name: `${student.first_name} ${student.last_name}`,
                             section_id: student.section_id,
@@ -353,6 +354,41 @@ router.post('/api/attendance/absence',
                     target: `Student: ${student.first_name} ${student.last_name}`
                 });
                 await auditLog.save();
+
+                try {
+                    const sectionDoc = await Section.findOne({ section_id: student.section_id });
+                    
+                    if (sectionDoc && sectionDoc.user_id) {
+                        const studentName = `${student.first_name} ${student.last_name}`;
+                        
+                        const newNotif = await Notification.create({
+                            recipient_id: Number(sectionDoc.user_id),
+                            sender_id: Number(parentId),
+                            type: 'Alert', 
+                            title: 'Absence Reported',
+                            message: `${fullName} reported ${studentName} as absent.`,
+                            is_read: false,
+                            created_at: new Date()
+                        });
+
+                        const socketIo = req.app.get('socketio');
+
+                        if (socketIo) {
+                            socketIo.to(`user_${sectionDoc.user_id}`).emit('new_notification', {
+                                _id: newNotif._id,
+                                recipient_id: Number(newNotif.recipient_id),
+                                sender_id: Number(newNotif.sender_id),
+                                type: newNotif.type,
+                                title: newNotif.title,
+                                message: newNotif.message,
+                                is_read: newNotif.is_read,
+                                created_at: newNotif.created_at
+                            });
+                        }
+                    }
+                } catch (notifErr) {
+                    console.error("Failed to send absence notification to teacher:", notifErr);
+                }
 
                 req.app.get('socketio').emit('student_status_updated', { 
                     student_id: student.student_id,

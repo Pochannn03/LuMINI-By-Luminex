@@ -66,32 +66,31 @@ router.post('/api/queue',
       ).populate('user_details');
 
       try {
-          const sectionDoc = await Section.findOne({ section_id: section_id });
-          
-          if (sectionDoc && sectionDoc.user_id) {
-              const studentName = `${student.first_name} ${student.last_name}`;
-              const parentName = `${req.user.first_name} ${req.user.last_name}`;
+        const sectionDoc = await Section.findOne({ section_id: section_id });
+        
+        if (sectionDoc && sectionDoc.user_id) {
+            const studentName = `${student.first_name} ${student.last_name}`;
+            const parentName = `${req.user.first_name} ${req.user.last_name}`;
 
-              const title = isEarly ? 'Early Pickup Request' : 'Absence/Delay Reported';
-              const message = isEarly 
-                ? `${parentName} is requesting to pick up ${studentName} before dismissal.` 
-                : `${parentName} reported an absence for ${studentName}.`;
+            const io = req.app.get('socketio');
 
-              const teacherNotif = new Notification({
-                  recipient_id: Number(sectionDoc.user_id), 
-                  sender_id: Number(parentId),      
-                  type: isEarly ? 'Transfer' : 'System', 
-                  title: title,
-                  message: message,
-                  is_read: false
-              });
+            // Only trigger if it is an early pickup
+            if (isEarly) {
+                const newNotif = await Notification.create({
+                  recipient_id: Number(sectionDoc.user_id),
+                  sender_id: Number(parentId),
+                  type: 'Transfer',
+                  title: 'Early Pickup Request',
+                  message: `${parentName} is requesting to pick up ${studentName} before dismissal.`,
+                  is_read: false,
+                  created_at: new Date()
+                });
 
-              const savedNotif = await teacherNotif.save();
-
-              const io = req.app.get('socketio');
-              if (io) {
-                  io.emit('new_notification', savedNotif);
-              }
+                if (io) {
+                    // Correctly emit the notification to the target room
+                    io.to(`user_${sectionDoc.user_id}`).emit('new_notification', newNotif);
+                }
+            }
           }
       } catch (notifErr) {
           console.error("Notification/Socket Error:", notifErr.message);

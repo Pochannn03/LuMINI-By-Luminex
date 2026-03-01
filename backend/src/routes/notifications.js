@@ -16,10 +16,7 @@ router.get('/api/notifications',
   async (req, res) => {
     
   try {
-    // 1. Ensure currentUserId is a number
     const currentUserId = Number(req.user.user_id);
-    
-    // 2. Add a log to see what ID is being queried
     console.log(`Fetching notifications for ID: ${currentUserId}`);
 
     // 3. Query the data
@@ -47,10 +44,19 @@ router.get('/api/notifications',
 
 router.patch('/api/notifications/:id/read', isAuthenticated, async (req, res) => {
   try {
-    await Notification.findOneAndUpdate(
-      { notification_id: req.params.id, recipient_id: req.user.user_id },
-      { is_read: true }
+    const updated = await Notification.findOneAndUpdate(
+      { 
+        notification_id: Number(req.params.id),  // ← cast to Number
+        recipient_id: req.user.user_id 
+      },
+      { is_read: true },
+      { new: true }
     );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+
     res.status(200).json({ success: true });
   } catch (error) {
     res.status(500).json({ error: "Failed to update notification" });
