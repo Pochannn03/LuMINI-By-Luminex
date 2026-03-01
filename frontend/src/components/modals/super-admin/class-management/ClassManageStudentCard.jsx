@@ -10,56 +10,43 @@ const getImageUrl = (path, firstName) => {
 };
 
 export default function ClassManageStudentCard({ std, onView, onEdit }) {
-
-  // Uses the helper to fix the path!
   const photoUrl = getImageUrl(std.profile_picture, std.first_name);
-
   const fullName = `${std.first_name || ''} ${std.last_name || ''}`;
 
   return (
-    <div className="flex items-center p-4 rounded-xl bg-(--white) border border-(--border-color) gap-4 transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm)">
-    
-    {/* Student Avatar */}
-    <img 
-        src={photoUrl} 
-        className="w-[45px] h-[45px] rounded-[10px] object-cover shrink-0 bg-gray-100" 
-        alt="Student Avatar"
-      />
+    <div 
+      className="flex items-center p-3 sm:p-4 rounded-2xl bg-white border border-slate-200 gap-3 sm:gap-4 transition-all duration-300 hover:bg-[#f8fafc] hover:border-blue-300 hover:-translate-y-0.5 hover:shadow-md cursor-pointer group"
+      onClick={() => onView && onView(std)}
+    >
+      {/* Student Avatar */}
+      <div className="relative shrink-0">
+        <img 
+          src={photoUrl} 
+          className="w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] rounded-xl object-cover bg-slate-100 border border-slate-200 group-hover:border-blue-200 transition-colors shadow-sm" 
+          alt={std.first_name || "Student Avatar"}
+        />
+      </div>
 
-    {/* Student Info Section */}
-    <div className="flex-1 flex flex-col">
-        <span className="font-semibold text-slate-800 text-sm">
-            {fullName}
+      {/* Minimal Student Info */}
+      <div className="flex-1 flex flex-col overflow-hidden pr-2">
+        <span className="block font-extrabold text-slate-800 text-[14px] sm:text-[15px] truncate group-hover:text-blue-600 transition-colors">
+          {fullName}
         </span>
-        
-        {/* Meta Row */}
-        <div className="flex items-center gap-3 mt-1">
-            <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
-                <span className="material-symbols-outlined text-[14px]!">badge</span>
-                <span>{std.student_id || '---'}</span>
-            </div>
-            <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
-                <span className="material-symbols-outlined text-[14px]!">class</span>
-                <span>{std.section_details?.section_name || 'Unassigned'}</span>
-            </div>
-        </div>
-    </div>
+      </div>
 
-    {/* Action Buttons */}
-    <div className="flex items-center gap-2">
+      {/* Action Button (Box appears on hover!) */}
+      <div className="flex items-center shrink-0 pr-1">
         <button 
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-slate-100 text-slate-500 hover:text-blue-600 cursor-pointer"
-          onClick={() => onView(std)}
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-200 bg-transparent border border-transparent text-slate-400 hover:bg-white hover:border-slate-200 hover:text-blue-600 hover:shadow-sm active:scale-95"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevents the card from opening the View modal when clicking the icon
+            onEdit(std);
+          }}
+          title="Edit Profile"
         >
-            <span className="material-symbols-outlined text-[18px]">visibility</span>
+          <span className="material-symbols-outlined text-[18px] sm:text-[20px]">edit</span>
         </button>
-        <button 
-          className="w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 hover:bg-red-50 text-slate-500 hover:text-blue-600 cursor-pointer"
-          onClick={() => onEdit(std)}
-        >
-            <span className="material-symbols-outlined text-[18px]">edit</span>
-        </button>
+      </div>
     </div>
-</div>
   );
 }

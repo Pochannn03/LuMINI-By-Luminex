@@ -59,31 +59,33 @@ export default function SuperAdminClassManagement() {
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
 
-  // --- FILTER LOGIC ---
+  // --- CRASH-PROOF FILTER LOGIC ---
   const filteredClasses = useMemo(() => {
+    if (!Array.isArray(classes)) return [];
     return classes.filter(cls => 
-      cls.section_name.toLowerCase().includes(searchClasses.toLowerCase())
+      (cls?.section_name || "").toLowerCase().includes((searchClasses || "").toLowerCase())
     );
   }, [classes, searchClasses]);
 
   const filteredTeachers = useMemo(() => {
+    if (!Array.isArray(teachers)) return [];
     return teachers.filter(tch => {
-      const fullName = `${tch.first_name} ${tch.last_name}`.toLowerCase();
-      return fullName.includes(searchTeachers.toLowerCase());
+      const fullName = `${tch?.first_name || ""} ${tch?.last_name || ""}`.toLowerCase();
+      return fullName.includes((searchTeachers || "").toLowerCase());
     });
   }, [teachers, searchTeachers]);
 
-  // Combined Search + Section Filter for Students
   const filteredStudents = useMemo(() => {
+    if (!Array.isArray(students)) return [];
     return students.filter(std => {
-      // 1. Check Search Query (Name or ID)
-      const fullName = `${std.first_name} ${std.last_name}`.toLowerCase();
-      const id = String(std.student_id).toLowerCase();
-      const query = searchStudents.toLowerCase();
+      // 1. Safe Search Check
+      const fullName = `${std?.first_name || ""} ${std?.last_name || ""}`.toLowerCase();
+      const id = String(std?.student_id || "").toLowerCase();
+      const query = (searchStudents || "").toLowerCase();
       const matchesSearch = fullName.includes(query) || id.includes(query);
 
-      // 2. Check Section Filter
-      const studentSection = std.section_details?.section_name || "Unassigned";
+      // 2. Safe Section Filter Check
+      const studentSection = std?.section_details?.section_name || "Unassigned";
       const matchesSection = sectionFilter === "All Sections" || studentSection === sectionFilter;
 
       return matchesSearch && matchesSection;
@@ -95,7 +97,7 @@ export default function SuperAdminClassManagement() {
     try {
       setLoadingClasses(true);
       const response = await axios.get("http://localhost:3000/api/sections", { withCredentials: true });
-      if (response.data.success) setClasses(response.data.classes);
+      if (response.data && response.data.success) setClasses(response.data.classes || []);
     } catch (error) { console.error("Error fetching classes:", error); } 
     finally { setLoadingClasses(false); }
   }, []);
@@ -104,7 +106,7 @@ export default function SuperAdminClassManagement() {
     try {
       setLoadingTeachers(true);
       const response = await axios.get("http://localhost:3000/api/teachers", { withCredentials: true });
-      if (response.data.success) setTeachers(response.data.teachers);
+      if (response.data && response.data.success) setTeachers(response.data.teachers || []);
     } catch (error) { console.error("Error fetching teachers:", error); } 
     finally { setLoadingTeachers(false); }
   }, []);
@@ -113,7 +115,7 @@ export default function SuperAdminClassManagement() {
     try {
       setLoadingStudents(true);
       const response = await axios.get("http://localhost:3000/api/students", { withCredentials: true });
-      if (response.data.success) setStudents(response.data.students);
+      if (response.data && response.data.success) setStudents(response.data.students || []);
     } catch (error) { console.error("Error fetching students:", error); } 
     finally { setLoadingStudents(false); }
   }, []);
@@ -155,29 +157,29 @@ export default function SuperAdminClassManagement() {
           <p className="text-[white]! opacity-80 text-[15px]! m-0">Manage your classes, faculty, and student body.</p>
         </div>
 
-          <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="flex flex-col gap-6">
-              <div className="card queue-card">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <div className="flex items-center gap-2.5 mb-2">
-                      <span className="material-symbols-outlined blue-icon text-[24px]">meeting_room</span>
-                      <h2 className="text-cdark text-[18px] font-bold">Active Classes</h2>
-                    </div>
-                    <p className="text-cgray text-[14px]! leading-normal">
-                      Current classes in session.
-                    </p>
+        <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="flex flex-col gap-6">
+            <div className="card queue-card">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="material-symbols-outlined blue-icon text-[24px]">meeting_room</span>
+                    <h2 className="text-cdark text-[18px] font-bold">Active Classes</h2>
                   </div>
-
-                  {/* Styled View Archives Button */}
-                  <button 
-                    onClick={() => setIsArchiveListModalOpen(true)}
-                    className="flex items-center gap-2 px-3 py-2 bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#1e293b] rounded-lg transition-colors border-none cursor-pointer font-bold text-[13px]"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">history</span>
-                    View Archives
-                  </button>
+                  <p className="text-cgray text-[14px]! leading-normal">
+                    Current classes in session.
+                  </p>
                 </div>
+
+                {/* --- RESPONSIVE View Archives Button --- */}
+                <button 
+                  onClick={() => setIsArchiveListModalOpen(true)}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#1e293b] rounded-lg transition-colors border-none cursor-pointer font-bold text-[12.5px] shadow-sm shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[18px]">history</span>
+                  <span className="hidden sm:inline">View Archives</span>
+                </button>
+              </div>
 
               <div className="search-bar-small flex items-center gap-2 mb-[15px]">
                 <span className="material-symbols-outlined">search</span>
@@ -258,7 +260,7 @@ export default function SuperAdminClassManagement() {
                       onChange={(e) => setSectionFilter(e.target.value)}
                     >
                       <option value="All Sections">All Sections</option>
-                      {classes.map(cls => (
+                      {(Array.isArray(classes) ? classes : []).map(cls => (
                         <option key={cls._id || cls.section_id} value={cls.section_name}>{cls.section_name}</option>
                       ))}
                       <option value="Unassigned">Unassigned</option>
@@ -284,7 +286,7 @@ export default function SuperAdminClassManagement() {
                 {!loadingStudents && filteredStudents.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-10 text-center opacity-60">
                     <span className="material-symbols-outlined text-[40px] mb-2">person_search</span>
-                    <p className="text-cgray text-sm">No students match your criteria.</p>
+                    <p className="text-cgray text-sm mt-2">No students match your criteria.</p>
                   </div>
                 )}
                 {!loadingStudents && filteredStudents.map((std) => (
@@ -300,128 +302,20 @@ export default function SuperAdminClassManagement() {
         </div>
       </main>
 
-      {/* For Modal of Adding Classes, Students and Teachers */}
-      {/* CLASSES */}
-      <ClassManageViewClassModal
-        isOpen={isViewClassModalOpen}
-        onClose={() => {
-          setIsViewClassModalOpen(false);
-          setSelectedClass(null);
-        }}
-        classData={selectedClass}
-      />
-
-      <ClassManageAddClassModal
-        isOpen={isAddClassModalOpen}
-        onClose={() => setIsAddClassModalOpen(false)}
-        onSuccess={(msg) => handleShowSuccess(msg)}
-      />
-      <ClassManageEditClassModal
-        isOpen={isEditClassModalOpen}
-        onClose={() => {
-          setIsEditClassModalOpen(false);
-          setSelectedClass(null);
-        }}
-        classData={selectedClass}
-        onSuccess={(msg) => {
-          fetchClasses();
-          handleShowSuccess(msg);
-        }}
-      />
-      <ClassManageDeleteClassModal
-        isOpen={isDeletClassModalOpen}
-        onClose={() => {
-          setisDeletClassModalOpen(false);
-          setSelectedClass(null);
-        }}
-        classData={selectedClass}
-        onSuccess={(msg) => {
-          fetchClasses();
-          handleShowSuccess(msg);
-        }}
-      />
-    <ClassManageArchivedClassesModal 
-      isOpen={isArchiveListModalOpen}
-      onClose={() => setIsArchiveListModalOpen(false)}
-      onRefreshActive={fetchClasses} // This ensures the main list refreshes if you restore a class
-    />
-
-      {/* TEACHERS */}
-      <ClassManageAddTeacherModal
-        isOpen={isAddTeacherModalOpen}
-        onClose={() => setIsAddTeacherModalOpen(false)}
-        onSuccess={(msg) => handleShowSuccess(msg)}
-      />
-      <ClassManageViewTeacherModal
-        isOpen={isViewTeacherModalOpen}
-        onClose={() => {
-          setIsViewTeacherModalOpen(false);
-          setSelectedTeacher(null);
-        }}
-        teacherData={selectedTeacher}
-        classes={classes} // <-- Pass the classes array so it can filter sections!
-      />
-      <ClassManageEditTeacherModal
-        isOpen={isEditTeacherModalOpen}
-        onClose={() => {
-          setIsEditTeacherModalOpen(false);
-          setSelectedTeacher(null);
-        }}
-        teacherData={selectedTeacher}
-        onSuccess={(msg) => {
-          fetchTeachers();
-          handleShowSuccess(msg);
-        }}
-      />
-      <ClassManageDeleteTeacherModal
-        isOpen={isDeleteTeacherModalOpen}
-        onClose={() => {
-          setIsDeleteTeacherModalOpen(false);
-          setSelectedTeacher(null);
-        }}
-        teacherData={selectedTeacher}
-        onSuccess={(msg) => {
-          fetchTeachers();
-          handleShowSuccess(msg);
-        }}
-      />
-
-      {/* STUDENTS */}
-      <ClassManageAddStudentModal
-        isOpen={isAddStudentModalOpen}
-        onClose={() => setIsAddStudentModalOpen(false)}
-        onSuccess={(msg) => handleShowSuccess(msg)}
-      />
-      <ClassManageViewStudentModal
-        isOpen={isViewStudentModalOpen}
-        onClose={() => {
-          setIsViewStudentModalOpen(false);
-          setSelectedStudent(null);
-        }}
-        studentData={selectedStudent}
-        onSuccess={(msg) => {
-          fetchStudents();
-          handleShowSuccess(msg);
-        }}
-      />
-      <ClassManageEditStudentModal
-        isOpen={isEditStudentModalOpen}
-        onClose={() => {
-          setIsEditStudentModalOpen(false);
-          setSelectedStudent(null);
-        }}
-        studentData={selectedStudent}
-        onSuccess={(msg) => {
-          fetchStudents();
-          handleShowSuccess(msg);
-        }}
-      />
-
-      <SuccessModal
-        isOpen={isSuccessModalOpen}
-        onClose={() => setIsSuccessModalOpen(false)}
-        message={successMessage}
-      />
+      {/* MODALS */}
+      <ClassManageViewClassModal isOpen={isViewClassModalOpen} onClose={() => { setIsViewClassModalOpen(false); setSelectedClass(null); }} classData={selectedClass} />
+      <ClassManageAddClassModal isOpen={isAddClassModalOpen} onClose={() => setIsAddClassModalOpen(false)} onSuccess={handleShowSuccess} />
+      <ClassManageEditClassModal isOpen={isEditClassModalOpen} onClose={() => { setIsEditClassModalOpen(false); setSelectedClass(null); }} classData={selectedClass} onSuccess={(msg) => { fetchClasses(); handleShowSuccess(msg); }} />
+      <ClassManageDeleteClassModal isOpen={isDeletClassModalOpen} onClose={() => { setisDeletClassModalOpen(false); setSelectedClass(null); }} classData={selectedClass} onSuccess={(msg) => { fetchClasses(); handleShowSuccess(msg); }} />
+      <ClassManageArchivedClassesModal isOpen={isArchiveListModalOpen} onClose={() => setIsArchiveListModalOpen(false)} onRefreshActive={fetchClasses} />
+      <ClassManageAddTeacherModal isOpen={isAddTeacherModalOpen} onClose={() => setIsAddTeacherModalOpen(false)} onSuccess={handleShowSuccess} />
+      <ClassManageViewTeacherModal isOpen={isViewTeacherModalOpen} onClose={() => { setIsViewTeacherModalOpen(false); setSelectedTeacher(null); }} teacherData={selectedTeacher} classes={classes} />
+      <ClassManageEditTeacherModal isOpen={isEditTeacherModalOpen} onClose={() => { setIsEditTeacherModalOpen(false); setSelectedTeacher(null); }} teacherData={selectedTeacher} onSuccess={(msg) => { fetchTeachers(); handleShowSuccess(msg); }} />
+      <ClassManageDeleteTeacherModal isOpen={isDeleteTeacherModalOpen} onClose={() => { setIsDeleteTeacherModalOpen(false); setSelectedTeacher(null); }} teacherData={selectedTeacher} onSuccess={(msg) => { fetchTeachers(); handleShowSuccess(msg); }} />
+      <ClassManageAddStudentModal isOpen={isAddStudentModalOpen} onClose={() => setIsAddStudentModalOpen(false)} onSuccess={handleShowSuccess} />
+      <ClassManageViewStudentModal isOpen={isViewStudentModalOpen} onClose={() => { setIsViewStudentModalOpen(false); setSelectedStudent(null); }} studentData={selectedStudent} onSuccess={(msg) => { fetchStudents(); handleShowSuccess(msg); }} />
+      <ClassManageEditStudentModal isOpen={isEditStudentModalOpen} onClose={() => { setIsEditStudentModalOpen(false); setSelectedStudent(null); }} studentData={selectedStudent} onSuccess={(msg) => { fetchStudents(); handleShowSuccess(msg); }} />
+      <SuccessModal isOpen={isSuccessModalOpen} onClose={() => setIsSuccessModalOpen(false)} message={successMessage} />
     </div>
   );
 }
