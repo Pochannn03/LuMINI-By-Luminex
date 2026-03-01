@@ -16,6 +16,7 @@ import ClassManageDeleteTeacherModal from "../../components/modals/super-admin/c
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 import ClassManageViewStudentModal from "../../components/modals/super-admin/class-management/ClassManageViewStudentModal";
 import ClassManageEditStudentModal from "../../components/modals/super-admin/class-management/ClassManageEditStudentModal";
+import ClassManageViewTeacherModal from "../../components/modals/super-admin/class-management/ClassManageViewTeacherModal";
 import SuccessModal from '../../components/SuccessModal';
 
 
@@ -32,6 +33,7 @@ export default function SuperAdminClassManagement() {
   const [isDeletClassModalOpen, setisDeletClassModalOpen] = useState(false);
   const [isEditTeacherModalOpen, setIsEditTeacherModalOpen] = useState(false);
   const [isDeleteTeacherModalOpen, setIsDeleteTeacherModalOpen] = useState(false);
+  const [isViewTeacherModalOpen, setIsViewTeacherModalOpen] = useState(false);
   const [isViewStudentModalOpen, setIsViewStudentModalOpen] = useState(false);
   const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
 
@@ -183,6 +185,11 @@ export default function SuperAdminClassManagement() {
     setIsDeleteTeacherModalOpen(true);
   };
 
+  const handleViewTeacher = (teacherData) => {
+    setSelectedTeacher(teacherData);
+    setIsViewTeacherModalOpen(true);
+  };
+
   // --STUDENTS--
   const handleViewStudent = (studentData) => {
     setSelectedStudent(studentData);
@@ -285,6 +292,7 @@ export default function SuperAdminClassManagement() {
                     <ClassManageTeacherCard 
                       key={tch._id || tch.user_id} 
                       tch={tch}
+                      onView={handleViewTeacher}
                       onEdit={handleEditTeacher}
                       onDelete={handleDeleteTeacher}
                     />
@@ -383,30 +391,39 @@ export default function SuperAdminClassManagement() {
         onClose={() => setIsAddTeacherModalOpen(false)}
         onSuccess={(msg) => handleShowSuccess(msg)}
       />
-        <ClassManageEditTeacherModal 
-          isOpen={isEditTeacherModalOpen}
-          onClose={() => {
-            setIsEditTeacherModalOpen(false);
-            setSelectedTeacher(null);
-          }}
-          teacherData={selectedTeacher}
-          onSuccess={(msg) => {
-            fetchTeachers();
-            handleShowSuccess(msg);
-          }}
-        />
-        <ClassManageDeleteTeacherModal
-          isOpen={isDeleteTeacherModalOpen}
-          onClose={() => {
-            setIsDeleteTeacherModalOpen(false);
-            setSelectedTeacher(null);
-          }}
-          teacherData={selectedTeacher}
-          onSuccess={(msg) => {
-            fetchTeachers();
-            handleShowSuccess(msg);
-          }}
-        />
+      <ClassManageViewTeacherModal 
+        isOpen={isViewTeacherModalOpen}
+        onClose={() => {
+          setIsViewTeacherModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        teacherData={selectedTeacher}
+        classes={classes} // <-- Pass the classes array so it can filter sections!
+      />
+      <ClassManageEditTeacherModal 
+        isOpen={isEditTeacherModalOpen}
+        onClose={() => {
+          setIsEditTeacherModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        teacherData={selectedTeacher}
+        onSuccess={(msg) => {
+          fetchTeachers();
+          handleShowSuccess(msg);
+        }}
+      />
+      <ClassManageDeleteTeacherModal
+        isOpen={isDeleteTeacherModalOpen}
+        onClose={() => {
+          setIsDeleteTeacherModalOpen(false);
+          setSelectedTeacher(null);
+        }}
+        teacherData={selectedTeacher}
+        onSuccess={(msg) => {
+          fetchTeachers();
+          handleShowSuccess(msg);
+        }}
+      />
 
       {/* STUDENTS */}
       <ClassManageAddStudentModal 
