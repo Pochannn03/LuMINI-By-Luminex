@@ -13,6 +13,20 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+// --- BUG FIX: Create a custom schema for UPDATING so the password is optional ---
+const updateTeacherValidationSchema = { ...createTeacherValidationSchema };
+if (updateTeacherValidationSchema.password) {
+  updateTeacherValidationSchema.password = {
+    ...updateTeacherValidationSchema.password,
+    optional: { options: { checkFalsy: true } } // Tells the backend to ignore if blank
+  };
+  // Strip out strict 'required' checks if they exist in your base schema
+  if (updateTeacherValidationSchema.password.notEmpty) {
+    delete updateTeacherValidationSchema.password.notEmpty;
+  }
+}
+// --------------------------------------------------------------------------------
+
 const router = Router();
 
 const uploadDir = 'uploads';
@@ -57,6 +71,21 @@ router.post('/api/teachers',
     }
 
     const data = matchedData(req);
+    
+    // --- MANUAL DUPLICATE CHECK ---
+    const existingEmail = await User.findOne({ email: data.email });
+    if (existingEmail) {
+      cleanupFiles(req.files);
+      return res.status(409).json({ success: false, msg: "This email is already registered to an existing user." });
+    }
+
+    const existingUsername = await User.findOne({ username: data.username });
+    if (existingUsername) {
+      cleanupFiles(req.files);
+      return res.status(409).json({ success: false, msg: "This username is already taken." });
+    }
+    // -----------------------------------------------
+
     data.password = await hashPassword(data.password);
     data.role = "admin";
     data.is_archive = true; 
@@ -78,9 +107,8 @@ router.post('/api/teachers',
     try {
       const savedUser = await newUser.save();
       
-      // Safe audit logging using the numeric user_id
       const auditLog = new Audit({
-        user_id: req.user?.user_id || savedUser.user_id, // <-- CHANGED TO savedUser.user_id
+        user_id: req.user?.user_id || savedUser.user_id, 
         full_name: req.user ? `${req.user.first_name} ${req.user.last_name}` : `${savedUser.first_name} ${savedUser.last_name}`,
         role: req.user?.role || savedUser.role,
         action: "Register Teacher",
@@ -95,6 +123,11 @@ router.post('/api/teachers',
     } catch (err) {
       cleanupFiles(req.files);
       console.error("MONGOOSE ERROR:", err);
+      
+      if (err.code === 11000) {
+        const duplicateField = Object.keys(err.keyPattern)[0]; 
+        return res.status(409).send({ success: false, msg: `This ${duplicateField} is already registered.` });
+      }
       return res.status(400).send({ msg: "Database Registration failed", error: err.message });
     }
   }
@@ -138,6 +171,21 @@ router.post('/api/teachers/modal',
 
     const data = matchedData(req);
     console.log("Received Valid Data:", data);
+
+    // --- MANUAL DUPLICATE CHECK ---
+    const existingEmail = await User.findOne({ email: data.email });
+    if (existingEmail) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(409).json({ success: false, msg: "This email is already registered to an existing user." });
+    }
+
+    const existingUsername = await User.findOne({ username: data.username });
+    if (existingUsername) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(409).json({ success: false, msg: "This username is already taken." });
+    }
+    // -----------------------------------------------
+
     data.password = await hashPassword(data.password);
     data.role = "admin";
     data.is_archive = false;
@@ -163,8 +211,13 @@ router.post('/api/teachers/modal',
       return res.status(201).send({ msg: "Teacher registered successfully!", user: savedUser });
     } catch (err) {
       if (req.file) fs.unlinkSync(req.file.path);
+      console.log("Teacher Registration Catch Error:", err);
       
-      console.log(err);
+      if (err.code === 11000) {
+        const duplicateField = Object.keys(err.keyPattern)[0]; 
+        return res.status(409).send({ success: false, msg: `This ${duplicateField} is already registered.` });
+      }
+
       return res.status(400).send({ msg: "Registration failed", error: err.message });
     }
 });
@@ -174,11 +227,12 @@ router.put('/api/teacher/:id',
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),
-  ...checkSchema(createTeacherValidationSchema),
+  ...checkSchema(updateTeacherValidationSchema), // <--- THE FIX: Using the new optional password schema!
   async (req, res) => {
     const result = validationResult(req);
 
     if (!result.isEmpty()) {
+      if (req.file) fs.unlinkSync(req.file.path); // Added cleanup to prevent orphaned uploads
       return res.status(400).send({ errors: result.array() });
     }
     
@@ -186,6 +240,20 @@ router.put('/api/teacher/:id',
     const updateData = {
         ...req.body
     };
+
+    // --- PREVENT DUPLICATING DURING EDIT ---
+    const existingEmail = await User.findOne({ email: updateData.email, _id: { $ne: userId } });
+    if (existingEmail) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(409).json({ success: false, msg: "This email is already registered to another user." });
+    }
+
+    const existingUsername = await User.findOne({ username: updateData.username, _id: { $ne: userId } });
+    if (existingUsername) {
+      if (req.file) fs.unlinkSync(req.file.path);
+      return res.status(409).json({ success: false, msg: "This username is already taken by another user." });
+    }
+    // --------------------------------------------------------
     
     if (req.file) {
         updateData.profile_picture = req.file.path; 
@@ -213,7 +281,7 @@ router.put('/api/teacher/:id',
       )
 
       if (!updatedUser) {
-        return res.status(404).json({ success: false, msg: "Class not found" });
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
       }
 
       const auditLog = new Audit({
@@ -233,6 +301,10 @@ router.put('/api/teacher/:id',
 
     } catch (err) {
       console.error("Update Error:", err);
+      if (err.code === 11000) {
+        const duplicateField = Object.keys(err.keyPattern)[0]; 
+        return res.status(409).send({ success: false, msg: `This ${duplicateField} is already registered.` });
+      }
       return res.status(500).json({ success: false, msg: "Update failed", error: err.message });
     }
 })
@@ -385,6 +457,5 @@ router.get('/api/teacher/students',
     }
   }
 );
-
 
 export default router;

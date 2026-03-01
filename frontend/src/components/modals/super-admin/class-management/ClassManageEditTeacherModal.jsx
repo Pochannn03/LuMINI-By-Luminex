@@ -3,10 +3,11 @@ import { createPortal } from "react-dom";
 import { validateRegistrationStep } from '../../../../utils/class-manage-modal/teacherModalValidation';
 import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
-import AvatarEditor from "react-avatar-editor"; // <-- ADDED CROPPER IMPORT
+import AvatarEditor from "react-avatar-editor"; 
+import WarningModal from '../../../WarningModal'; 
 
 // --- ADDED HELPER ---
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path, firstName) => {
   if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'Teacher'}`; 
@@ -20,6 +21,12 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+
+  // --- ACCORDION STATES ---
+  const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(false);
+  const [isLoginInfoOpen, setIsLoginInfoOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -35,6 +42,13 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
     zipCode: '',
   });
 
+  // --- WARNING MODAL STATE ---
+  const [warningConfig, setWarningConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: ""
+  });
+
   // --- CROPPER STATES ---
   const editorRef = useRef(null);
   const [showCropModal, setShowCropModal] = useState(false);
@@ -46,7 +60,6 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
     if (isOpen && teacherData) {
       let addrParts = ["", "", "", "", ""];
       if (teacherData.address) {
-        // Split by comma (handling potential spaces)
         addrParts = teacherData.address.split(',').map(part => part.trim());
       }
 
@@ -65,13 +78,16 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
         zipCode: addrParts[4] || '',
       });
       
-      // Use the robust helper function!
       setPreviewUrl(getImageUrl(teacherData.profile_picture, teacherData.first_name));
-      
       setProfileImage(null);
       setTempImage(null);
       setShowCropModal(false);
+      setShowPassword(false);
       setErrors({}); 
+      
+      // Reset accordions when opened
+      setIsPersonalInfoOpen(false);
+      setIsLoginInfoOpen(false);
     }
   }, [isOpen, teacherData]);
 
@@ -85,16 +101,32 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
     }
   };
 
+  // --- STRICT PHONE NUMBER HANDLER ---
+  const handlePhoneChange = (e) => {
+    let val = e.target.value.replace(/\D/g, ''); 
+    
+    if (val.length > 0 && !val.startsWith('09')) {
+      val = '09' + val.replace(/^0+/, ''); 
+    }
+    
+    if (val.length > 11) {
+      val = val.slice(0, 11);
+    }
+    
+    setFormData((prev) => ({ ...prev, phoneNumber: val }));
+    if (errors.phoneNumber) setErrors(prev => ({ ...prev, phoneNumber: null }));
+  };
+
   // --- CROPPER LOGIC ---
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setTempImage(imageUrl);
-      setShowCropModal(true); // Open cropper instead of saving immediately
+      setShowCropModal(true); 
       setZoom(1);
     }
-    e.target.value = null; // reset input
+    e.target.value = null; 
     if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
   };
 
@@ -104,8 +136,8 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
       canvas.toBlob((blob) => {
         if (blob) {
           const croppedFile = new File([blob], "teacher_photo.jpg", { type: "image/jpeg" });
-          setProfileImage(croppedFile); // This is what gets sent to backend
-          setPreviewUrl(URL.createObjectURL(croppedFile)); // Update the UI preview
+          setProfileImage(croppedFile); 
+          setPreviewUrl(URL.createObjectURL(croppedFile)); 
           setShowCropModal(false);
           setTempImage(null);
         }
@@ -114,37 +146,45 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
   };
 
   // 3. Submit Changes
-  const handleSubmit = async () => {
-    const newErrors = validateRegistrationStep(formData, profileImage); // Added profileImage!
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    if (!formData.password) {
-      delete newErrors.password;
-    }
-    if (!profileImage) {
-      delete newErrors.profileImage;
-    }
+    const newErrors = validateRegistrationStep(formData, profileImage); 
+
+    // --- BUG FIX: Scrub errors for fields we intentionally skip in the Edit Modal ---
+    if (!formData.password) delete newErrors.password; 
+    if (!profileImage) delete newErrors.profileImage; 
+    
+    // The Edit Modal no longer uses these address inputs, so we must ignore their errors!
+    ['houseUnit', 'street', 'barangay', 'city', 'zipCode', 'address'].forEach(key => delete newErrors[key]);
 
     setErrors(newErrors);
 
-    // If there are errors, stop here
     if (Object.keys(newErrors).length > 0) {
-      console.log("Validation blocked submission. Errors:", newErrors);
+      if (newErrors.firstName || newErrors.lastName || newErrors.email || newErrors.phoneNumber) {
+        setIsPersonalInfoOpen(true);
+      }
+      if (newErrors.username || newErrors.password) {
+        setIsLoginInfoOpen(true);
+      }
       return;
     }
-  // ... rest of the code stays the same
 
     setLoading(true);
 
     try {
       const data = new FormData();
-      const fullAddress = `${formData.houseUnit}, ${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.zipCode}`;
+      
+      // --- BUG FIX: Prevent sending a weird string like ", , , , " if they had no address ---
+      const addressParts = [formData.houseUnit, formData.street, formData.barangay, formData.city, formData.zipCode].filter(Boolean);
+      const finalAddress = addressParts.length > 0 ? addressParts.join(', ') : (teacherData.address || '');
       
       data.append('first_name', formData.firstName);
       data.append('last_name', formData.lastName);
       data.append('email', formData.email);
       data.append('phone_number', formData.phoneNumber);
       data.append('username', formData.username);
-      data.append('address', fullAddress);
+      data.append('address', finalAddress);
       data.append('relationship', formData.relationship || 'Teacher');
 
       if (formData.password) {
@@ -157,7 +197,6 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
 
       const response = await axios.put(`${BACKEND_URL}/api/teacher/${teacherData._id}`, data, {
         withCredentials: true,
-        headers: { "Content-Type": "multipart/form-data" }
       });
 
       if (response.data.success) {
@@ -167,8 +206,27 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
 
     } catch (error) {
       console.error("Update failed:", error);
-      const msg = error.response?.data?.msg || "Failed to update teacher";
-      alert(msg);
+      
+      let errorType = "Update Error";
+      let errorMsg = "Failed to update teacher profile.";
+      
+      if (error.response) {
+        errorMsg = error.response.data?.errors?.[0]?.msg || error.response.data?.msg || error.response.data?.error || errorMsg;
+        const lowerMsg = errorMsg.toLowerCase();
+        
+        if (error.response.status === 409 || lowerMsg.includes('duplicate') || lowerMsg.includes('already taken')) {
+            errorType = "Duplication";
+        } else if (error.response.status === 400 || lowerMsg.includes('invalid')) {
+            errorType = "Invalid Input";
+        }
+      }
+
+      setWarningConfig({
+        isOpen: true,
+        title: `Update Failed: ${errorType}`,
+        message: errorMsg
+      });
+
     } finally {
       setLoading(false);
     }
@@ -178,166 +236,270 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
 
   return createPortal(
     <>
+      <WarningModal 
+        isOpen={warningConfig.isOpen}
+        onClose={() => setWarningConfig({ ...warningConfig, isOpen: false })}
+        title={warningConfig.title}
+        message={warningConfig.message}
+      />
+
       {/* --- CROPPER SUB-MODAL --- */}
       {showCropModal && (
-        <div className="fixed inset-0 z-[999999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center animate-[fadeIn_0.2s_ease-out]">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Crop Photo</h3>
-            
-            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-inner">
-              <AvatarEditor
-                ref={editorRef}
-                image={tempImage}
-                width={200}
-                height={200}
-                border={20}
-                borderRadius={100} 
-                color={[15, 23, 42, 0.5]}
-                scale={zoom}
-                rotate={0}
+        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
+          <div className="modal-container" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
+            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: 'var(--text-dark)', fontWeight: 'bold' }}>Crop Profile Photo</h3>
+            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+              <AvatarEditor 
+                ref={editorRef} 
+                image={tempImage} 
+                width={220} 
+                height={220} 
+                border={20} 
+                borderRadius={110} 
+                color={[15, 23, 42, 0.6]} 
+                scale={zoom} 
+                rotate={0} 
               />
             </div>
-
-            <div className="flex items-center w-full gap-3 mt-5 mb-6 px-2">
-              <span className="material-symbols-outlined text-slate-400 text-[18px]">zoom_out</span>
+            
+            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-gray)' }}>zoom_out</span>
               <input 
                 type="range" 
-                min="1" max="3" step="0.01" 
+                min="1" 
+                max="3" 
+                step="0.01" 
                 value={zoom} 
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="flex-1 accent-orange-500 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                onChange={(e) => setZoom(parseFloat(e.target.value))} 
+                style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }} 
               />
-              <span className="material-symbols-outlined text-slate-400 text-[18px]">zoom_in</span>
+              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-gray)' }}>zoom_in</span>
             </div>
 
-            <div className="flex gap-3 w-full">
-              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" onClick={() => { setShowCropModal(false); setTempImage(null); }}>
-                Cancel
-              </button>
-              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-white bg-orange-500 hover:bg-orange-600 shadow-md transition-colors" onClick={handleCropSave}>
-                Apply Crop
-              </button>
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={() => { setShowCropModal(false); setTempImage(null); }}>Cancel</button>
+              <button type="button" className="btn-save" style={{ flex: 1, background: '#39a8ed', border: 'none' }} onClick={handleCropSave}>Apply Crop</button>
             </div>
           </div>
         </div>
       )}
 
       {/* --- MAIN EDIT MODAL --- */}
-      <div className="modal-overlay active" id="editTeacherModal" onClick={onClose}>
-        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-          
-          <div className="modal-header">
-            <div className="flex items-center gap-2.5 mb-2">
-              <span className="material-symbols-outlined orange-icon text-[24px]">manage_accounts</span>
-              <h2 className="text-cdark text-[18px] font-bold">Edit Teacher Profile</h2>
-            </div>
-          </div>
+      <div className="modal-overlay active flex justify-center items-center p-4 z-[9990]" id="editTeacherModal" onClick={onClose}>
+        <form 
+          className="bg-white rounded-3xl w-full max-w-[480px] relative overflow-hidden shadow-2xl animate-[fadeIn_0.2s_ease-out] flex flex-col max-h-[95vh]" 
+          onClick={(e) => e.stopPropagation()} 
+          onSubmit={handleSubmit}
+        >
+          <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pr-4">
+            
+            <style>
+              {`
+                .custom-scrollbar::-webkit-scrollbar {
+                  width: 5px; 
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                  background: transparent; 
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                  background-color: #cbd5e1; 
+                  border-radius: 10px; 
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                  background-color: #94a3b8; 
+                }
+              `}
+            </style>
 
-          <div className="modal-body custom-scrollbar pr-2 overflow-y-auto max-h-[65vh]">
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#2563eb] text-[24px]">manage_accounts</span>
+                <h2 className="text-[20px] font-extrabold text-[#1e293b]">Edit Teacher Profile</h2>
+              </div>
+              <button 
+                type="button"
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#f1f5f9] hover:bg-[#e2e8f0] text-slate-500 transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
             
             {/* 1. SLEEK PROFILE PICTURE UPLOAD */}
-            <div className="flex flex-col items-center justify-center mb-2 mt-2">
-              <input type="file" id="editTeacherPhoto" accept="image/*" hidden onChange={handleImageChange} />
+            <div className="flex flex-col items-center mb-8">
               <div 
-                className="relative group cursor-pointer"
+                className="relative w-[100px] h-[100px] rounded-full shadow-md group cursor-pointer border-4 hover:border-blue-100 transition-colors" 
+                style={{ borderColor: errors.profileImage ? '#f87171' : 'var(--white)' }} 
                 onClick={() => document.getElementById('editTeacherPhoto').click()}
               >
-                <div className={`w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-100 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:shadow-xl ${errors.profileImage ? 'ring-2 ring-red-500' : ''}`}>
-                  {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="material-symbols-outlined text-[40px] text-slate-300 group-hover:scale-110 transition-transform duration-300">add_a_photo</span>
-                  )}
-                </div>
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="material-symbols-outlined text-white text-[24px]">edit</span>
-                </div>
-              </div>
-              <p className="text-slate-500 text-[12px] font-medium mt-3">Click to change photo</p>
-              {errors.profileImage && <span className="text-red-500 text-[11px] font-bold mt-1">{errors.profileImage}</span>}
-            </div>
-
-            <div className="flex flex-col gap-2 mt-4">
-              <label htmlFor="editTeacherFirst" className="text-cgray text-[13px] font-medium">Contact Details</label>
-              <div className="flex gap-2.5">
-                <FormInputRegistration 
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="First Name" 
-                  error={errors.firstName} 
-                  className="form-input-modal w-full"
+                <img 
+                  src={previewUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${formData.firstName || 'Teacher'}`} 
+                  alt="Preview" 
+                  className="w-full h-full rounded-full object-cover bg-slate-100" 
                 />
-                <FormInputRegistration 
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Last Name" 
-                  error={errors.lastName} 
-                  className="form-input-modal w-full" 
+                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="material-symbols-outlined text-white text-[28px]">edit</span>
+                </div>
+                
+                <input 
+                  type="file" 
+                  id="editTeacherPhoto" 
+                  accept="image/*" 
+                  hidden 
+                  onChange={handleImageChange} 
                 />
               </div>
+              <p className="text-[12px] mt-3 font-medium text-[#64748b]">Click to change photo</p>
+              {errors.profileImage && (
+                <span className="text-red-500 text-[11px] mt-1 block font-bold">{errors.profileImage}</span>
+              )}
             </div>
 
-            <div className="flex flex-col gap-2 mt-1">
-                <FormInputRegistration 
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Email Address" 
-                  error={errors.email}
-                  className="form-input-modal"
-                />
-                <FormInputRegistration 
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  placeholder="Phone Number" 
-                  error={errors.phoneNumber}
-                  className="form-input-modal mt-1" 
-                />
+            {/* 2. PERSONAL DETAILS BLOCK (ACCORDION) */}
+            <div className={`bg-white rounded-2xl border border-[#e2e8f0] mb-5 shadow-sm transition-all duration-300 ${isPersonalInfoOpen ? 'p-5' : 'p-3'}`}>
+              <button 
+                type="button"
+                className="w-full flex items-center justify-between group px-2"
+                onClick={() => setIsPersonalInfoOpen(!isPersonalInfoOpen)}
+              >
+                <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider flex items-center gap-2 transition-colors group-hover:text-[#64748b]">
+                  <span className="material-symbols-outlined text-[18px] text-[#cbd5e1] group-hover:text-[#94a3b8] transition-colors">person</span> 
+                  Personal Information
+                </h4>
+                <span className={`material-symbols-outlined text-[#cbd5e1] group-hover:text-[#94a3b8] transition-transform duration-300 ${isPersonalInfoOpen ? 'rotate-180' : ''}`}>
+                  expand_more
+                </span>
+              </button>
+              
+              <div className={`grid transition-all duration-300 ease-in-out ${isPersonalInfoOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="flex flex-col gap-3 pt-4">
+                    <div className="flex gap-3">
+                      <FormInputRegistration 
+                        label="First Name"
+                        name="firstName"
+                        value={formData.firstName}
+                        onChange={handleChange}
+                        placeholder="First Name" 
+                        error={errors.firstName} 
+                        className="form-input-modal w-full"
+                      />
+                      <FormInputRegistration 
+                        label="Last Name"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        placeholder="Last Name" 
+                        error={errors.lastName} 
+                        className="form-input-modal w-full" 
+                      />
+                    </div>
+
+                    <FormInputRegistration 
+                      label="Email Address"
+                      name="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="Email Address" 
+                      error={errors.email}
+                      className="form-input-modal"
+                    />
+
+                    <FormInputRegistration 
+                      label="Phone Number"
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handlePhoneChange}
+                      placeholder="09XXXXXXXXX" 
+                      error={errors.phoneNumber}
+                      className="form-input-modal" 
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
-              <span className="material-symbols-outlined orange-icon">lock</span>
-              <h3 className="text-cdark text-[16px] font-semibold">Login Credentials</h3>
+            {/* 3. LOGIN CREDENTIALS BLOCK (ACCORDION) */}
+            <div className={`bg-white rounded-2xl border border-[#e2e8f0] shadow-sm transition-all duration-300 ${isLoginInfoOpen ? 'p-5' : 'p-3'}`}>
+              <button 
+                type="button"
+                className="w-full flex items-center justify-between group px-2"
+                onClick={() => setIsLoginInfoOpen(!isLoginInfoOpen)}
+              >
+                <h4 className="text-[11px] font-bold text-[#94a3b8] uppercase tracking-wider flex items-center gap-2 transition-colors group-hover:text-[#64748b]">
+                  <span className="material-symbols-outlined text-[18px] text-[#cbd5e1] group-hover:text-[#94a3b8] transition-colors">lock</span> 
+                  Login Credentials
+                </h4>
+                <span className={`material-symbols-outlined text-[#cbd5e1] group-hover:text-[#94a3b8] transition-transform duration-300 ${isLoginInfoOpen ? 'rotate-180' : ''}`}>
+                  expand_more
+                </span>
+              </button>
+              
+              <div className={`grid transition-all duration-300 ease-in-out ${isLoginInfoOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="flex flex-col gap-4 pt-4">
+                    <FormInputRegistration 
+                      label="Username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      placeholder="Username"
+                      error={errors.username} 
+                      className="form-input-modal" 
+                    />
+
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[13px] font-semibold text-[#64748b] tracking-wide">
+                        Password <span className="text-slate-400 font-normal text-[11px] ml-1">(Leave blank to keep current)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className={`form-input-modal w-full pr-10 ${errors.password ? 'border-red-500 bg-red-50' : ''}`}
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 flex items-center justify-center cursor-pointer p-1 transition-colors"
+                          tabIndex="-1"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">
+                            {showPassword ? "visibility" : "visibility_off"}
+                          </span>
+                        </button>
+                      </div>
+                      {errors.password && <span className="text-red-500 text-[11px]">{errors.password}</span>}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-col gap-2 mt-2">
-              <label className="text-cgray text-[13px] font-medium">Username</label>
-                <FormInputRegistration 
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                placeholder="Username"
-                error={errors.username} 
-                className="form-input-modal" 
-              />
+            {/* --- PERFECTLY BALANCED EDGE-TO-EDGE BUTTONS --- */}
+            <div className="mt-8 pt-4 border-t border-slate-100 flex gap-4 w-full">
+              <button 
+                type="button" 
+                className="flex-1 bg-white border-2 border-[#2ecc71] text-[#2ecc71] hover:bg-[#f0fdf4] font-bold py-2.5 rounded-xl transition-all active:scale-95 text-[14px] flex justify-center items-center" 
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="flex-1 bg-[#2ecc71] hover:bg-[#27ae60] text-white font-bold py-2.5 rounded-xl transition-all shadow-sm active:scale-95 text-[14px] flex justify-center items-center" 
+                disabled={loading}
+              >
+                {loading ? "Saving..." : "Save Changes"}
+              </button>
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-cgray text-[13px] font-medium">Password</label>
-                <FormInputRegistration 
-                type="password" 
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Leave blank to keep current password"
-                error={errors.password}
-                className="form-input-modal" 
-              />
-            </div>
           </div>
-
-          <div className="modal-footer">
-            <button className="btn-cancel" onClick={onClose}>Cancel</button>
-            <button className="btn-save" onClick={handleSubmit} disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </div>
+        </form>
       </div>
     </>,
     document.body

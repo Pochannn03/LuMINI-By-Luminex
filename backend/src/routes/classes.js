@@ -67,12 +67,15 @@ router.get('/api/sections',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
-
     try {
       const classes = await Section.find({ is_archive: false })
-                                   .select('section_id section_name class_schedule max_capacity description user_id student_id')
-                                   .populate('user_details', 'first_name last_name')
-                                   .populate('student_details');
+        // 1. Ensure profile_picture is included in the main class selection
+        .select('section_id section_name class_schedule max_capacity description user_id student_id profile_picture')
+        
+        // 2. THIS IS THE KEY: You must add 'profile_picture' to the populate string below
+        .populate('user_details', 'first_name last_name profile_picture') 
+        
+        .populate('student_details');
 
       if (!classes || classes.length === 0) {
         return res.status(200).json({ success: true, classes: [] });
