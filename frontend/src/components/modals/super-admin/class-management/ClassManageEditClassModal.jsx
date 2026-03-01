@@ -5,6 +5,7 @@ import { validateClassRegistrationStep } from '../../../../utils/class-manage-mo
 import FormInputRegistration from '../../../FormInputRegistration';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 import ClassManageSelectStudentModal from "./ClassManageSelectStudentsModal";
+import WarningModal from '../../../WarningModal'; // <-- IMPORTED WARNING MODAL
 
 export default function ClassManageEditClassModal({ isOpen, onClose, classData, onSuccess }) {
   // STATES
@@ -14,6 +15,13 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
   const [isEnrollStudents, setIsEnrollStudents] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState([]);
   
+  // --- NEW: WARNING MODAL STATE ---
+  const [warningConfig, setWarningConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: ""
+  });
+
   // STATE FORM
   const [formData, setFormData] = useState({
     sectionName: '',
@@ -51,18 +59,15 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         studentIds: classData.students || [] 
       });
 
-      // --- THE FIX: SANITIZE STUDENT IDs ---
-      // Check all possible places the backend might have stored the students
+      // --- SANITIZE STUDENT IDs ---
       const rawStudents = classData.student_details || classData.students || classData.student_id || [];
       
       const cleanIds = rawStudents.map(item => {
-        // If the backend sent populated objects, extract the string
         if (typeof item === 'object' && item !== null && item.student_id) {
           return String(item.student_id);
         }
-        // Otherwise, assume it's already a string
         return String(item);
-      }).filter(id => /^\d{4}-\d{4}$/.test(id)); // STRICTLY enforce YYYY-XXXX format!
+      }).filter(id => /^\d{4}-\d{4}$/.test(id)); // STRICTLY enforce YYYY-XXXX format
 
       setSelectedStudentIds(cleanIds);
       setErrors({});
@@ -99,18 +104,15 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
     setLoading(true);
 
     try {
-      // --- FIX 2: Double check payload types before sending ---
       const payload = {
         section_name: formData.sectionName,
         class_schedule: formData.classSchedule,
         max_capacity: Number(formData.maxCapacity),
         description: formData.description,
         user_id: Number(formData.assignedTeacher),
-        // Filter one last time just to be absolutely safe against the regex error
         student_id: selectedStudentIds.filter(id => /^\d{4}-\d{4}$/.test(id)),
       };
 
-      // Use the ID from classData to target the update
       const response = await axios.put(`http://localhost:3000/api/sections/${classData._id}`, payload, {
         withCredentials: true
       });
@@ -121,12 +123,21 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
       onClose();
 
     } catch (error) {
-      // Detailed error logging
       console.error("Backend Rejection Details:", error.response?.data);
-      const specificError = error.response?.data?.errors?.[0]?.msg 
-                         || error.response?.data?.msg 
-                         || "Failed to update class.";
-      alert(`Update Failed: ${specificError}`);
+      
+      // --- INTERCEPT 409 CONFLICT FOR DUPLICATES & CONFLICTS ---
+      if (error.response && error.response.status === 409) {
+        setWarningConfig({
+          isOpen: true,
+          title: "Scheduling Conflict",
+          message: error.response.data.msg
+        });
+      } else {
+        const specificError = error.response?.data?.errors?.[0]?.msg 
+                           || error.response?.data?.msg 
+                           || "Failed to update class.";
+        alert(`Update Failed: ${specificError}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -136,6 +147,14 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
 
   return createPortal(
     <>
+      {/* --- ADD WARNING MODAL INSTANCE HERE --- */}
+      <WarningModal 
+        isOpen={warningConfig.isOpen}
+        onClose={() => setWarningConfig({ ...warningConfig, isOpen: false })}
+        title={warningConfig.title}
+        message={warningConfig.message}
+      />
+
       <div className="modal-overlay active" id="editStudentModal">
         <div className="modal-container">
           <div className="modal-header">

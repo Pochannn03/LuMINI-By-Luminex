@@ -14,9 +14,6 @@ const transporter = nodemailer.createTransport({
 
 /**
  * Sends an OTP email to the specified address.
- * @param {string} toEmail - The recipient's email address
- * @param {string} otpCode - The 6-digit OTP code
- * @param {string} parentName - The parent's name (for personalization)
  */
 export const sendOTPEmail = async (toEmail, otpCode, parentName = "Parent") => {
   try {
@@ -162,7 +159,6 @@ export const sendPasswordUpdateOTP = async (toEmail, otpCode, userName = "User")
 };
 
 /**
- * --- NEW FUNCTION: TEACHER APPROVAL NOTIFICATION ---
  * Notifies the parent that the teacher has approved their pre-enrollment.
  */
 export const sendEnrollmentApprovalEmail = async (toEmail, parentName, studentName) => {
@@ -175,9 +171,7 @@ export const sendEnrollmentApprovalEmail = async (toEmail, parentName, studentNa
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
           
           <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
-            
             <div style="background-color: #22c55e; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✓</div>
-            
             <h1 style="color: #166534; margin: 0; font-size: 22px;">Application Approved by Teacher</h1>
           </div>
           
@@ -214,6 +208,62 @@ export const sendEnrollmentApprovalEmail = async (toEmail, parentName, studentNa
 
   } catch (error) {
     console.error("❌ Error sending approval email:", error);
+    return false;
+  }
+};
+
+/**
+ * --- NEW FUNCTION: SEND BULK SECTION INVITE ---
+ * Sends the teacher's Section Code directly to parents via email.
+ */
+export const sendBulkSectionInvite = async (toEmail, parentName, sectionName, sectionCode, teacherName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Classrooms" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Class Enrollment Invitation from ${teacherName}`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #eff6ff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bfdbfe;">
+            <div style="background-color: #3b82f6; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">👋</div>
+            <h1 style="color: #1e3a8a; margin: 0; font-size: 22px;">Classroom Invitation</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Hello <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              <strong>Teacher ${teacherName}</strong> has invited you to enroll your child into their class section: <strong>${sectionName}</strong> on the LuMINI platform.
+            </p>
+            
+            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+              <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px;">Section Code</span><br/>
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #2563eb; display: block; margin-top: 10px; font-family: monospace;">${sectionCode}</span>
+            </div>
+            
+            <h3 style="color: #1e293b; font-size: 16px; margin-bottom: 12px;">How to enroll:</h3>
+            <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-top: 0; line-height: 1.7;">
+              <li>Go to the <a href="#" style="color: #2563eb; text-decoration: none; font-weight: bold;">LuMINI Portal</a>.</li>
+              <li>Navigate to the Pre-Enrollment / Registration page.</li>
+              <li>Enter the Section Code above to link your child directly to this class!</li>
+            </ol>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              If you believe you received this in error, you may safely ignore this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Bulk Section Invite sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error sending Bulk Invite to ${toEmail}:`, error);
     return false;
   }
 };
