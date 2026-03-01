@@ -88,6 +88,67 @@ router.get('/api/sections',
     }
 });
 
+router.get('/api/sections/archived-list', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
+    try {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // 1. Get total count for pagination math
+      const totalCount = await Section.countDocuments({ is_archive: true });
+
+      // 2. Fetch the paginated data
+      const archived = await Section.find({ is_archive: true })
+        .sort({ updated_at: -1 }) // Show most recently archived first
+        .skip(skip)
+        .limit(limit);
+
+      // Send total count in headers (matching your example) or body
+      res.set('x-total-count', totalCount.toString());
+      
+      res.status(200).json({ 
+        success: true, 
+        classes: archived,
+        totalCount // Also sending in body for easier access
+      });
+    } catch (err) {
+      console.error("Error fetching archives:", err);
+      res.status(500).json({ success: false, msg: "Server error" });
+    }
+});
+
+router.get('/api/sections/archived/:id', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
+    try {
+      const mongoId = req.params.id;
+
+      const section = await Section.findOne({ _id: mongoId, is_archive: true })
+        .populate({
+          path: 'student_details', 
+          match: { is_archive: true }
+        })
+        .populate('user_details');
+
+      if (!section) {
+        return res.status(404).json({ success: false, msg: "Archived class not found" });
+      }
+
+      res.status(200).json({ 
+        success: true, 
+        classData: section 
+      });
+
+    } catch (err) {
+      console.error("❌ Error fetching archived section details:", err);
+      res.status(500).json({ success: false, msg: "Server error" });
+    }
+});
+
 // ==========================================
 // POST: CREATE NEW CLASS
 // ==========================================
@@ -198,23 +259,27 @@ router.put('/api/sections/archive/:id',
 
       const numericSectionId = sectionToArchive.section_id;
       const sectionName = sectionToArchive.section_name;
+      const studentsInSection = await Student.find({ section_id: numericSectionId });
+      const parentUserIds = studentsInSection.map(s => s.parent_id).filter(id => id != null);
       const currentUserId = req.user.user_id;
       const fullName = `${req.user.first_name || "Admin"} ${req.user.last_name || ""}`.trim();
 
-      const archivedSection = await Section.findByIdAndUpdate(
-        mongoId,
-        { 
-          is_archive: true,
-          user_id: null,
-          student_id: []
-        }, 
-        { new: true }
-      );
+      await Section.findByIdAndUpdate(mongoId, { 
+        is_archive: true,
+        user_id: null,
+      });
 
       await Student.updateMany(
         { section_id: numericSectionId },
-        { $set: { section_id: null } }
+        { $set: { is_archive: true } }
       );
+
+      if (parentUserIds.length > 0) {
+        await User.updateMany(
+          { _id: { $in: parentUserIds } },
+          { $set: { is_archive: true } }
+        );
+      }
 
       const auditLog = new Audit({
         user_id: currentUserId,
@@ -229,6 +294,7 @@ router.put('/api/sections/archive/:id',
       if (io) {
         io.emit("section_archived", { section_id: numericSectionId });
         io.emit("students_updated");
+        io.emit("users_updated"); // Notify frontend to refresh user/parent lists
       }
 
       res.status(200).json({ 

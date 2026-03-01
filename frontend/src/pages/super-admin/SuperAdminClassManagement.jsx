@@ -17,6 +17,7 @@ import ClassManageDeleteTeacherModal from "../../components/modals/super-admin/c
 import ClassManageAddStudentModal from "../../components/modals/super-admin/class-management/ClassManageAddStudentModal";
 import ClassManageViewStudentModal from "../../components/modals/super-admin/class-management/ClassManageViewStudentModal";
 import ClassManageEditStudentModal from "../../components/modals/super-admin/class-management/ClassManageEditStudentModal";
+import ClassManageArchivedClassesModal from "../../components/modals/super-admin/class-management/ClassManageArchivedClassModal";
 import ClassManageViewTeacherModal from "../../components/modals/super-admin/class-management/ClassManageViewTeacherModal";
 import SuccessModal from "../../components/SuccessModal";
 
@@ -26,6 +27,7 @@ export default function SuperAdminClassManagement() {
   const [isAddTeacherModalOpen, setIsAddTeacherModalOpen] = useState(false);
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [isArchiveListModalOpen, setIsArchiveListModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isViewClassModalOpen, setIsViewClassModalOpen] = useState(false);
 
@@ -226,22 +228,29 @@ export default function SuperAdminClassManagement() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="flex flex-col gap-6">
-            <div className="card queue-card">
-              <div className="mb-6">
-                <div className="flex items-center gap-2.5 mb-2">
-                  <span className="material-symbols-outlined blue-icon text-[24px]">
-                    meeting_room
-                  </span>
-                  <h2 className="text-cdark text-[18px] font-bold">
-                    Active Classes
-                  </h2>
+          <div className="grid grid-cols-1 gap-6 max-w-[1200px] m-auto lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="flex flex-col gap-6">
+              <div className="card queue-card">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <span className="material-symbols-outlined blue-icon text-[24px]">meeting_room</span>
+                      <h2 className="text-cdark text-[18px] font-bold">Active Classes</h2>
+                    </div>
+                    <p className="text-cgray text-[14px]! leading-normal">
+                      Current classes in session.
+                    </p>
+                  </div>
+
+                  {/* Styled View Archives Button */}
+                  <button 
+                    onClick={() => setIsArchiveListModalOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#1e293b] rounded-lg transition-colors border-none cursor-pointer font-bold text-[13px]"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">history</span>
+                    View Archives
+                  </button>
                 </div>
-                <p className="text-cgray text-[14px]! leading-normal">
-                  Current classes in sesssion.
-                </p>
-              </div>
 
               <div className="flex flex-col gap-2 max-h-[600px] overflow-y-auto mb-5 p-[5px] [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                 {/* 1. Loading State */}
@@ -436,6 +445,11 @@ export default function SuperAdminClassManagement() {
           handleShowSuccess(msg);
         }}
       />
+    <ClassManageArchivedClassesModal 
+      isOpen={isArchiveListModalOpen}
+      onClose={() => setIsArchiveListModalOpen(false)}
+      onRefreshActive={fetchClasses} // This ensures the main list refreshes if you restore a class
+    />
 
       {/* TEACHERS */}
       <ClassManageAddTeacherModal

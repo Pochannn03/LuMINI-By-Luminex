@@ -54,9 +54,8 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
           </div>
 
           <div className="modal-body">
-            <p className="text-cgray text-[14px] leading-normal">
-              Are you sure you want to delete this class? This will remove the
-              class and disconnect the assigned teacher.
+            <p className="text-cgray text-[16px]! leading-normal -mt-4">
+              Are you sure you want to delete this class? This will remove the class, archive all students and their parents, and disconnect the assigned teacher.
             </p>
             <strong>This cannot be undone.</strong>
 
