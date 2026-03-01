@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
+import { useAuth } from "../../context/AuthProvider";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import AdminQueueParentGuardian from "../../components/modals/admin/dashboard/AdminQueueParentGuardian"
@@ -12,8 +13,12 @@ import WarningModal from "../../components/WarningModal";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+
   // REF
   const teacherSections = useRef([]);
+  const isAuthModalOpenRef = useRef(false);
+  const transferSuccessDataRef = useRef(null);
 
   // EMERGENCY OVERRIDE STATE
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
@@ -52,6 +57,9 @@ export default function AdminDashboard() {
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
+
+  useEffect(() => { isAuthModalOpenRef.current = isAuthModalOpen; }, [isAuthModalOpen]);
+  useEffect(() => { transferSuccessDataRef.current = transferSuccessData; }, [transferSuccessData]);
 
   // GETTING INFORMATION
   const handleScanSuccess = async (rawValue) => {
@@ -168,6 +176,7 @@ export default function AdminDashboard() {
 
       if (response.data.success) {
         setIsAuthModalOpen(false);
+        setIsWarningModalOpen(false);
         setTransferSuccessData({
           title: response.data.message.purpose === 'Drop off' ? 'Entry Confirmed' : 'Exit Confirmed',
           message: response.data.message.text, 
@@ -250,7 +259,13 @@ export default function AdminDashboard() {
 
     fetchInitialQueue();
 
-    const socket = io("http://localhost:3000");
+    const socket = io("http://localhost:3000", {
+      withCredentials: true
+    });
+
+    if (user?.user_id) {
+      socket.emit("join", user.user_id);
+    }
     
     socket.on("new_queue_entry", (newEntry) => {
       setQueue(prevQueue => {
@@ -272,7 +287,6 @@ export default function AdminDashboard() {
     });
 
     socket.on('new_announcement', (newAnn) => {
-
     const incomingRole = newAnn.role || newAnn.user?.role;
 
       setAnnouncements(prev => {
@@ -286,21 +300,19 @@ export default function AdminDashboard() {
       });
     });
 
-    socket.on('new_notification', (notif) => {
-      const isEarlyPickup = notif.type === 'Transfer';
-      const forThisTeacher = Number(notif.recipient_id) === Number(user?.user_id);
-
-      if (isEarlyPickup && forThisTeacher) {
-        if (!isAuthModalOpen && !transferSuccessData) {
-          setWarningTitle(notif.title);
-          setWarningMessage(notif.message);
-          setIsWarningModalOpen(true);
-        }
+  socket.on('new_notification', (notif) => {
+    if (notif.type === 'Transfer') {
+      if (!isAuthModalOpenRef.current) { 
+        setWarningTitle(notif.title);
+        setWarningMessage(notif.message);
+        setIsWarningModalOpen(true);
       }
-    });
+    }
+    
+  });
 
     return () => socket.disconnect();
-  }, []);
+  }, [user]);
 
   const handleCloseScanner = () => {
     setActiveScanMode(null);
@@ -545,7 +557,11 @@ export default function AdminDashboard() {
 
       <WarningModal 
         isOpen={isWarningModalOpen}
-        onClose={() => setIsWarningModalOpen(false)}
+        onClose={() => {
+          setIsWarningModalOpen(false);
+          setWarningTitle("");
+          setWarningMessage("");
+        }}
         title={warningTitle}
         message={warningMessage}
       />
