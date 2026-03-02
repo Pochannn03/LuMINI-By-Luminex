@@ -40,6 +40,8 @@ export default function AdminDashboard() {
     content: '',
     category: 'notifications_active'
   });
+  const [sections, setSections] = useState([]); 
+  const [selectedSection, setSelectedSection] = useState("");
 
   // STATES FOR QR SCANNING AUTHENTICATION
   const [scannedData, setScannedData] = useState(null);
@@ -124,12 +126,21 @@ export default function AdminDashboard() {
   const handlePostAnnouncement = async () => {
     if (!announcementData.content.trim()) return;
 
+    if (user?.role !== 'superadmin' && !selectedSection) {
+      setErrorTitle("Post Failed");
+      setErrorMainMsg("Section Required");
+      setErrorMessage("Please select a specific section to post this announcement.");
+      setIsErrorModalOpen(true);
+      return;
+    }
+
     try {
       setPosting(true);
       
       const response = await axios.post("http://localhost:3000/api/announcements", 
         { announcement: announcementData.content,
-          category: announcementData.category
+          category: announcementData.category,
+          section_id: selectedSection
         },
         { withCredentials: true }
       );
@@ -137,6 +148,7 @@ export default function AdminDashboard() {
       if (response.data.success) {
         const newAnn = response.data.announcement; 
         setAnnouncementData({ content: '', category: 'notifications_active' });
+        setSelectedSection("");
         
         setTransferSuccessData({
           type: 'success',
@@ -144,7 +156,6 @@ export default function AdminDashboard() {
           message: 'Your update has been shared with all parents.',
           details: [
             { label: 'Author', value: `${newAnn.user.first_name} ${newAnn.user.last_name}` },
-            { label: 'Status', value: 'Live' }
           ]
         });
       }
@@ -211,6 +222,28 @@ export default function AdminDashboard() {
       setLoadingScan(false);
     }
   };
+
+  useEffect(() => {
+    const fetchMySections = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api/teacher/sections", {
+          withCredentials: true
+        });
+        if (response.data.success) {
+          setSections(response.data.sections);
+        }
+      } catch (err) {
+        console.error("Failed to load sections:", err);
+      }
+    };
+
+    if (user?.role === 'admin') {
+      fetchMySections();
+    } else if (user?.role === 'superadmin') {
+      // If SuperAdmin, you might want to fetch ALL sections instead
+      // fetchAllSections(); // WILL BE BACK SOON
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchSystemAnnouncements = async () => {
@@ -289,11 +322,13 @@ export default function AdminDashboard() {
     });
 
     socket.on('new_announcement', (newAnn) => {
-    const incomingRole = newAnn.role || newAnn.user?.role;
+      const incomingRole = newAnn.role || newAnn.user?.role;
 
       setAnnouncements(prev => {
         const exists = prev.some(ann => ann._id === newAnn._id);
         if (exists) return prev;
+        
+        // Accept System updates OR the Teacher's own updates
         if (incomingRole === 'superadmin' || Number(newAnn.user_id) === Number(user?.user_id)) {
             return [newAnn, ...prev];
         }
@@ -425,22 +460,46 @@ export default function AdminDashboard() {
                     {announcementData.category}
                   </span>
                 </div>
-
                 <h2 className="text-cdark font-bold text-[18px]! -m-2">Class Announcement</h2>
               </div>
 
               <p className="text-cgray leading-normal text-[14px]! mb-3">Post updates to parents.</p>
 
-              <select 
-                name="category"
-                value={announcementData.category}
-                onChange={handleAnnChange}
-                className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
-              >
-                <option value="notifications_active">General Announcement</option>
-                <option value="campaign">Emergency Alert</option>
-                <option value="calendar_month">Meeting / Event</option>
-              </select>
+              <div className="flex gap-3 mb-3">
+                <div className="flex-1">
+                  <select 
+                    value={selectedSection}
+                    onChange={(e) => setSelectedSection(e.target.value)}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
+                  >
+                    <option value="" disabled>{user?.role === 'superadmin' ? "All" : "Select Section"}</option>
+                    
+                    {/* Add the new "All My Sections" option for teachers */}
+                    {user?.role !== 'superadmin' && (
+                      <option value="" className="font-bold">All My Sections</option>
+                    )}
+                    
+                    {sections.map((sec) => (
+                      <option key={sec.section_id} value={sec.section_id}>
+                        {sec.section_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex-1">
+                  <select 
+                    name="category"
+                    value={announcementData.category}
+                    onChange={handleAnnChange}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
+                  >
+                    <option value="notifications_active">General</option>
+                    <option value="campaign">Emergency</option>
+                    <option value="calendar_month">Event</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Announcement Box: Textarea area */}
@@ -460,7 +519,7 @@ export default function AdminDashboard() {
                 <button 
                   className={`btn-post ${posting ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handlePostAnnouncement}
-                  disabled={posting || !announcementData.content.trim()}
+                  disabled={posting || !announcementData.content.trim() || (user?.role !== 'superadmin' && !selectedSection)}
                 >
                   {posting ? 'Posting...' : 'Post'}
                 </button>

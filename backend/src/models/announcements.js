@@ -19,6 +19,11 @@ const AnnouncementSchema = new mongoose.Schema({
     enum: ['notifications_active', 'campaign', 'calendar_month'],
     default: 'notifications_active' 
   },
+  section_id: {
+    type: Number,
+    ref: 'Section',
+    default: null
+  },
   announcement: { 
     type: String, 
     required: true 
@@ -67,6 +72,14 @@ AnnouncementSchema.virtual('user_details', {
   ref: 'User',           
   localField: 'user_id',
   foreignField: 'user_id',
+  justOne: true
+});
+
+
+AnnouncementSchema.virtual('section_details', {
+  ref: 'Section',           
+  localField: 'section_id',
+  foreignField: 'section_id',
   justOne: true
 });
 
