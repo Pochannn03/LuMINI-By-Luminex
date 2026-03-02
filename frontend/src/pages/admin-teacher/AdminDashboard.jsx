@@ -9,6 +9,7 @@ import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminD
 import AdminConfirmPickUpAuth from "../../components/modals/admin/dashboard/AdminConfirmPickUpAuth";
 import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActionModal';
 import AdminEmergencyOverrideModal from "../../components/modals/admin/dashboard/AdminEmergencyOverride";
+import AdminEmergencyBroadcastModal from "../../components/modals/admin/dashboard/AdminEmergencyBroadcastModal"; // <-- IMPORTED NEW MODAL
 import WarningModal from "../../components/WarningModal";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
@@ -20,8 +21,9 @@ export default function AdminDashboard() {
   const isAuthModalOpenRef = useRef(false);
   const transferSuccessDataRef = useRef(null);
 
-  // EMERGENCY OVERRIDE STATE
+  // EMERGENCY OVERRIDE & BROADCAST STATES
   const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+  const [isEmergencyBroadcastModalOpen, setIsEmergencyBroadcastModalOpen] = useState(false); 
 
   // MODAL STATES
   const [activeScanMode, setActiveScanMode] = useState(null);
@@ -380,15 +382,33 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          <div className="card emergency-card" onClick={() => setIsOverrideModalOpen(true)}>
-            <div className="emergency-card-wrapper">
-              <span className="material-symbols-outlined shrink-0">e911_emergency</span>
+          {/* --- CRITICAL ACTIONS GRID --- */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            {/* Existing Transfer Override */}
+            <div className="card emergency-card !m-0 cursor-pointer hover:shadow-md transition-all" onClick={() => setIsOverrideModalOpen(true)}>
+              <div className="emergency-card-wrapper">
+                <span className="material-symbols-outlined shrink-0">e911_emergency</span>
+              </div>
+              <div>
+                <h3 className="text-[#c53030] text-[15px]! font-bold mb-0.5">Transfer Override</h3>
+                <p className="text-[#742a2a] text-[11px]! leading-tight">Manual student transfer.</p>
+              </div>
+              <span className="material-symbols-outlined arrow-icon ml-auto text-[#c53030]! text-[18px]">arrow_forward</span>
             </div>
-            <div>
-              <h3 className="text-[#c53030] text-[16px]! font-bold mb-0.5">Transfer Override</h3>
-              <p className="text-[#742a2a] text-[12px]!">Override standard student transfer process.</p>
+
+            {/* NEW: Emergency Broadcast (Matching exact style of override) */}
+            <div className="card emergency-card !m-0 cursor-pointer hover:shadow-md transition-all" onClick={() => setIsEmergencyBroadcastModalOpen(true)}>
+              <div className="emergency-card-wrapper">
+                <span className="material-symbols-outlined shrink-0">campaign</span>
+              </div>
+              <div>
+                <h3 className="text-[#c53030] text-[15px]! font-bold mb-0.5">Emergency SMS</h3>
+                <p className="text-[#742a2a] text-[11px]! leading-tight">Urgent broadcast to parents.</p>
+              </div>
+              <span className="material-symbols-outlined arrow-icon ml-auto text-[#c53030]! text-[18px]">arrow_forward</span>
             </div>
-            <span className="material-symbols-outlined arrow-icon ml-auto text-[#c53030]!">arrow_forward</span>
+
           </div>
 
           <div className="card action-card flex flex-col p-6">
@@ -570,6 +590,12 @@ export default function AdminDashboard() {
         isOpen={isOverrideModalOpen}
         onClose={() => setIsOverrideModalOpen(false)}
         onSuccess={handleOverrideSuccess}
+      />
+
+      {/* --- ADDED EMERGENCY BROADCAST MODAL --- */}
+      <AdminEmergencyBroadcastModal 
+        isOpen={isEmergencyBroadcastModalOpen}
+        onClose={() => setIsEmergencyBroadcastModalOpen(false)}
       />
 
       <AdminDashboardQrScan 
