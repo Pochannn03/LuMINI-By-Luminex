@@ -7,8 +7,10 @@ import { User } from "../models/users.js";
 import { Section } from "../models/sections.js";
 import { Student } from "../models/students.js";
 import { Audit } from "../models/audits.js";
-import { Notification } from "../models/notification.js"; // <--- ADDED NOTIFICATION MODEL
-import { sendIprogBulkSMS } from "../utils/smsProvider.js"; // <--- ADDED SMS PROVIDER
+import { Notification } from "../models/notification.js";
+import { sendIprogBulkSMS } from "../utils/smsProvider.js"; 
+// ---> NEW EMAIL IMPORT
+import { sendEmergencyEmailAlert } from "../utils/emailService.js"; 
 import bcrypt from 'bcrypt';
 import multer from "multer";
 import path from "path";
@@ -430,7 +432,6 @@ router.get('/api/teacher/students',
   hasRole('admin'),
   async (req, res) => {
     try {
-      // 1. Find ALL sections assigned to this teacher, not just one
       const sections = await Section.find({ user_id: req.user.user_id });
 
       if (!sections || sections.length === 0) {
@@ -441,10 +442,8 @@ router.get('/api/teacher/students',
         });
       }
 
-      // 2. Extract an array of section_ids
       const sectionIds = sections.map(sec => sec.section_id);
 
-      // 3. Find ALL students that belong to ANY of those section_ids
       const students = await Student.find({ 
         section_id: { $in: sectionIds },
         is_archive: false 
@@ -465,7 +464,7 @@ router.get('/api/teacher/students',
 
 
 // =========================================================================
-// TEACHER ACTION - EMERGENCY SMS BROADCAST (WITH TRACER LOGS)
+// TEACHER ACTION - EMERGENCY SMS & EMAIL BROADCAST (WITH TRACER LOGS)
 // =========================================================================
 router.post('/api/teacher/emergency-broadcast', 
   isAuthenticated, 
@@ -534,6 +533,17 @@ router.post('/api/teacher/emergency-broadcast',
         await sendIprogBulkSMS(phoneNumbersString, message);
         console.log("5. SMS Utility completed successfully.");
 
+        // ---> NEW: 5.5 Dispatch Emergency Emails
+        console.log("5.5 Firing Email Provider Utility...");
+        const emailPromises = parents.map(async (parent) => {
+            if (parent.email) {
+                // Trigger the email!
+                await sendEmergencyEmailAlert(parent.email, parent.first_name, message);
+            }
+        });
+        await Promise.all(emailPromises);
+        console.log("5.6 Emails sent successfully.");
+
         // 6. Create In-App Notifications
         console.log("6. Attempting to create Notifications...");
         const io = req.app.get('socketio');
@@ -561,14 +571,14 @@ router.post('/api/teacher/emergency-broadcast',
             full_name: teacherName,
             role: req.user.role,
             action: "Emergency Broadcast Sent",
-            target: `Sent SMS to ${uniquePhoneNumbers.length} recipients. Mode: ${recipientMode}`
+            target: `Sent SMS/Email to ${uniquePhoneNumbers.length} recipients. Mode: ${recipientMode}`
         });
         await auditLog.save();
         console.log("9. Audit Log created. FINISHED!");
 
         return res.status(200).json({ 
             success: true, 
-            message: `Emergency broadcast successfully sent to ${uniquePhoneNumbers.length} parent(s).` 
+            message: `Emergency broadcast successfully sent via SMS and Email to ${uniquePhoneNumbers.length} parent(s).` 
         });
 
     } catch (error) {

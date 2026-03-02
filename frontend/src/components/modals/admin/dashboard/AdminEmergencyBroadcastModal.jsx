@@ -33,7 +33,7 @@ export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) {
 
   // Quick Templates
   const templates = {
-    medical: "EMERGENCY: There is a medical situation at the school. Please check your Lumini App for immediate updates regarding your child.",
+    medical: "EMERGENCY: There is a medical situation at the school. Please check your LuMINI App for immediate updates regarding your child.",
     weather: "ALERT: Severe weather warning. The school is initiating emergency dismissal protocols. Please proceed to the pickup area safely.",
     evacuation: "URGENT: School is being evacuated to the designated safe zone. All students are accounted for. Await further instructions.",
     others: "" 
@@ -185,7 +185,7 @@ export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) {
                 <h2 className="text-[20px] sm:text-[22px] font-black tracking-tight m-0" style={{ color: 'white' }}>Emergency Broadcast</h2>
               </div>
               <p className="text-[13px] sm:text-[14px] font-medium m-0 max-w-[90%] sm:max-w-[85%]" style={{ color: 'white', opacity: 0.9 }}>
-                Send an immediate SMS alert to parents for critical situations.
+                Send an immediate SMS and Email alert to parents for critical situations.
               </p>
             </div>
             <span className="material-symbols-outlined absolute -right-4 -top-4 text-[120px] text-white opacity-10 pointer-events-none select-none">
@@ -227,12 +227,13 @@ export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) {
                     {selectedStudentObjects.map(student => (
                       <span key={student.student_id} className="flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 px-2.5 py-1 rounded-md text-[13px] font-semibold animate-[fadeIn_0.2s_ease-out]">
                         {student.first_name} {student.last_name}
+                        {/* VISUAL TWEAK: Clean 'x' icon with no background container */}
                         <button 
                           type="button" 
                           onClick={(e) => { e.stopPropagation(); removeStudent(student.student_id); }}
-                          className="flex items-center justify-center w-[15px] h-[15px] ml-1 rounded-full bg-blue-600 text-white hover:bg-blue-800 transition-colors focus:outline-none"
+                          className="flex items-center justify-center ml-1 text-blue-500 hover:text-blue-800 transition-colors focus:outline-none"
                         >
-                          <span className="material-symbols-outlined text-[10px] font-bold">close</span>
+                          <span className="material-symbols-outlined text-[14px] font-bold">close</span>
                         </button>
                       </span>
                     ))}
@@ -372,7 +373,7 @@ export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) {
               ) : (
                   <>
                     <span className="material-symbols-outlined text-[18px]">send</span>
-                    Dispatch SMS Alert
+                    Dispatch Alert
                   </>
               )}
             </button>
@@ -387,10 +388,10 @@ export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) {
         onClose={() => setShowConfirm(false)}
         onConfirm={executeBroadcast}
         title="Dispatch Emergency Broadcast?"
-        message={`You are about to send an SMS alert to ${recipientMode === 'all' ? 'all parents in your classes' : 'the parents of the selected students'}. Do you want to proceed?`}
+        message={`You are about to send an SMS and Email alert to ${recipientMode === 'all' ? 'all parents in your classes' : 'the parents of the selected students'}. Do you want to proceed?`}
         confirmText="Yes, Send Alert"
         cancelText="Cancel"
-        isDestructive={true} // Will use your red styling
+        isDestructive={true} 
       />
 
       <SuccessModal 

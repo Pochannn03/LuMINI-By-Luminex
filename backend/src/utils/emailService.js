@@ -267,3 +267,58 @@ export const sendBulkSectionInvite = async (toEmail, parentName, sectionName, se
     return false;
   }
 };
+
+/**
+ * --- NEW FUNCTION: SEND EMERGENCY EMAIL ALERT ---
+ * Sends a high-priority emergency alert to the parent's email.
+ */
+export const sendEmergencyEmailAlert = async (toEmail, parentName, messageContent) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Emergency Alert" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `🚨 LuMINI EMERGENCY ALERT`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 2px solid #ef4444; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 2px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 56px; height: 56px; line-height: 56px; border-radius: 50%; display: inline-block; text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 10px;">!</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px;">Emergency Alert</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              An emergency broadcast has been issued by the school administration. Please read the following message carefully:
+            </p>
+            
+            <div style="background-color: #fff1f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <p style="color: #991b1b; font-size: 16px; margin: 0; line-height: 1.6; font-weight: 500;">
+                ${messageContent}
+              </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              For immediate updates, please check your LuMINI App or contact the school directly.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              This is an automated emergency message from the LuMINI Safety System.<br/>
+              Do not reply directly to this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Emergency Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error sending Emergency Email to ${toEmail}:`, error);
+    return false;
+  }
+};
