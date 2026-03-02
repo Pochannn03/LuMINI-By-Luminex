@@ -164,16 +164,19 @@ export default function Dashboard() {
     });
 
     socket.on('new_announcement', (newAnn) => {
-      const childTeacherId = rawStudentData?.section_details?.user_id;
+      setAnnouncements(prev => {
+        const exists = prev.some(ann => ann._id === newAnn._id);
+        if (exists) return prev;
 
-      if (Number(newAnn.user_id) === Number(childTeacherId)) {
-        setAnnouncements(prev => {
-          const isDuplicate = prev.some(ann => ann.announcement_id === newAnn.announcement_id);
-          if (isDuplicate) return prev;
-          
+        const isGlobal = !newAnn.section_id;
+        const matchesSection = rawStudentData && Number(newAnn.section_id) === Number(rawStudentData.section_id);
+
+        if (isGlobal || matchesSection) {
           return [newAnn, ...prev];
-        });
-      }
+        }
+        
+        return prev;
+      });
     });
 
     return () => {

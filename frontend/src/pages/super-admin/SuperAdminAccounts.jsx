@@ -325,9 +325,9 @@ export default function SuperAdminAccounts() {
                             <span className="font-medium text-gray-700">{acc.user_id_number || "-"}</span>
                           </div>
                           <div className="col-span-2 mt-1">
-                             <span className={`font-bold inline-flex items-center gap-1 ${acc.is_active ? 'text-green-600' : 'text-red-600'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${acc.is_active ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                              {acc.is_active ? 'Active' : 'Inactive'}
+                            <span className={`font-bold inline-flex items-center gap-1 ${!acc.is_archive ? 'text-green-600' : 'text-red-600'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${!acc.is_archive ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                            {!acc.is_archive ? 'Active' : 'Archived'}
                             </span>
                           </div>
                         </div>

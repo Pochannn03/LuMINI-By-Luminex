@@ -424,4 +424,29 @@ router.put('/api/sections/:id',
 });
 
 
+// GET SECTION BELONG TO TEACHER FOR ANNOUNCEMENT
+router.get('/api/teacher/sections',
+  isAuthenticated,
+  hasRole('admin'), 
+  async (req, res) => {
+    try {
+      const teacherId = req.user.user_id;
+
+      const sections = await Section.find({ 
+        user_id: teacherId, 
+        is_archive: false 
+      })
+      .select('section_id section_name class_schedule student_id');
+
+      res.status(200).json({ 
+        success: true, 
+        sections 
+      });
+    } catch (err) {
+      console.error("Error fetching teacher sections:", err);
+      res.status(500).json({ success: false, msg: "Server error while fetching your sections." });
+    }
+});
+
+
 export default router;

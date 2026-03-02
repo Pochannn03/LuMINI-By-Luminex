@@ -232,7 +232,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
           {/* 3. SYMMETRICAL EDGE-TO-EDGE FOOTER (UPDATED: Done button is now green) */}
           <div className="px-6 py-5 sm:px-8 shrink-0 bg-white border-t border-slate-100 flex gap-4 w-full">
             <button className="flex-1 text-[13px] font-bold text-red-600 bg-white border-2 border-red-100 hover:bg-red-50 py-2.5 rounded-xl transition-all active:scale-95 flex justify-center items-center gap-2" onClick={() => setIsOpenDeleteStudentModal(true)}>
-              <span className="material-symbols-outlined text-[18px]">delete</span> Delete Account
+              <span className="material-symbols-outlined text-[18px]">delete</span> Delete Student
             </button>
             <button className="flex-1 bg-[#2ecc71] hover:bg-[#27ae60] text-white py-2.5 rounded-xl font-bold transition-all shadow-sm active:scale-95 text-[13px] flex justify-center items-center" onClick={onClose}>
               Done
