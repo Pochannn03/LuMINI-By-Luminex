@@ -7,11 +7,10 @@ const GuardianRequestSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
-  student: { 
+  students: [{ 
     type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Student', 
-    required: true 
-  },
+    ref: 'Student' 
+  }],
   teacher: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 

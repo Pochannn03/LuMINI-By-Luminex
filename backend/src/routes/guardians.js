@@ -116,29 +116,19 @@ router.post(
         
         const parentObjectId = req.user._id; 
         const parentCustomId = req.user.user_id; 
-        
-        const linkedStudent = await Student.findOne({ user_id: parentCustomId }); 
-        
-        if (!linkedStudent) {
-             if (req.file) fs.unlinkSync(req.file.path);
-             return res.status(404).json({ message: "No linked child found for this parent account." });
+
+        // 1. Parse the JSON array of student IDs
+        let studentIdsArray = [];
+        try {
+            studentIdsArray = JSON.parse(req.body.student_ids);
+        } catch (e) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ message: "Invalid student selection format." });
         }
 
-        const studentId = linkedStudent._id; 
-
-        let actualTeacherId = null;
-        if (linkedStudent.section_id) {
-            const section = await Section.findOne({ section_id: linkedStudent.section_id });
-            if (section && section.user_id) {
-                const teacher = await User.findOne({ user_id: section.user_id });
-                if (teacher) actualTeacherId = teacher._id;
-            }
-        }
-
-        const finalTeacherId = actualTeacherId || req.body.teacherId;
-        if (!finalTeacherId) {
-             if (req.file) fs.unlinkSync(req.file.path);
-             return res.status(400).json({ message: "No teacher assigned to this student's section." });
+        if (!Array.isArray(studentIdsArray) || studentIdsArray.length === 0) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ message: "Please select at least one student." });
         }
 
         const idPhotoPath = req.file ? req.file.path : null;
@@ -146,10 +136,38 @@ router.post(
 
         const hashedPassword = await hashPassword(password);
 
+        // 2. Find all selected students
+        const linkedStudents = await Student.find({ 
+            student_id: { $in: studentIdsArray },
+            user_id: parentCustomId 
+        });
+
+        if (linkedStudents.length === 0) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(404).json({ message: "Selected students not found or not linked." });
+        }
+
+        // 3. Extract the ObjectIds and Names into arrays
+        const studentObjectIds = linkedStudents.map(student => student._id);
+        const requestedChildNames = linkedStudents.map(student => student.first_name);
+
+        // 4. Find the primary teacher to notify (takes the first valid teacher found)
+        let primaryTeacherId = null;
+        for (const student of linkedStudents) {
+            if (student.section_id && !primaryTeacherId) {
+                const section = await Section.findOne({ section_id: student.section_id });
+                if (section && section.user_id) {
+                    const teacher = await User.findOne({ user_id: section.user_id });
+                    if (teacher) primaryTeacherId = teacher._id;
+                }
+            }
+        }
+
+        // 5. CREATE ONE SINGLE REQUEST WITH ALL STUDENTS
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
-            student: studentId,
-            teacher: finalTeacherId,
+            students: studentObjectIds, // <-- Array of ObjectIds
+            teacher: primaryTeacherId, 
             guardianDetails: {
                 firstName, lastName, phone, role,
                 tempUsername: username,
@@ -160,18 +178,19 @@ router.post(
 
         await newRequest.save();
 
+        // 6. Save a single Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
           action: "Submit Guardian Request",
-          target: `Submitted request for ${firstName} ${lastName}`
+          target: `Submitted request for ${firstName} ${lastName} (Children: ${requestedChildNames.join(', ')})`
         });
         await auditLog.save();
 
         return res.status(201).json({ 
-            message: "Guardian request submitted successfully to the teacher!",
-            request: newRequest 
+            message: "Guardian request submitted successfully!",
+            request: newRequest
         });
 
     } catch (error) {
@@ -193,7 +212,8 @@ router.get(
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name') 
+            // FIX: Populate 'students' (array) instead of 'student'
+            .populate('students', 'first_name last_name') 
             .sort({ createdAt: -1 }); 
 
         return res.status(200).json(requests);
@@ -352,7 +372,7 @@ router.get(
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name')
+            .populate('students', 'first_name last_name')
             .sort({ updatedAt: -1 }); 
 
         return res.status(200).json(history);

@@ -456,7 +456,7 @@ export default function AdminDashboard() {
                     
                     {/* Add the new "All My Sections" option for teachers */}
                     {user?.role !== 'superadmin' && (
-                      <option value="" className="font-bold">All My Sections</option>
+                      <option value="">All Sections</option>
                     )}
                     
                     {sections.map((sec) => (
@@ -528,7 +528,6 @@ export default function AdminDashboard() {
                 <span className="material-symbols-outlined text-[20px]!">center_focus_weak</span>
                   Scan Parent or Guardian QR Code
               </button>
-              <button className="btn btn-outline gap-2 h-[50px] font-semibold rounded-xl text-[14px]! border-none w-full">Verify Manually</button>
             </div>
           </div>
 

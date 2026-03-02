@@ -22,6 +22,9 @@ export default function GuardianDashboard() {
   const [loading, setLoading] = useState(false);
   const [isParentOnQueue, setIsParentOnQueue] = useState(false); 
   const [childData, setChildData] = useState(null);
+  
+  // --- NEW: ALL CHILDREN STATE ---
+  const [allChildren, setAllChildren] = useState([]);
   const [rawStudentData, setRawStudentData] = useState(null); 
   const [showNewDayModal, setShowNewDayModal] = useState(false);
 
@@ -32,7 +35,6 @@ export default function GuardianDashboard() {
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
 
-  // --- NEW: Image URL Formatter Helper ---
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150";
     if (path.startsWith("http")) return path;
@@ -57,6 +59,9 @@ export default function GuardianDashboard() {
         }
 
         if (Array.isArray(children) && children.length > 0) {
+          // --- SET ALL CHILDREN HERE ---
+          setAllChildren(children);
+
           const firstChild = children[0];
           setRawStudentData(firstChild);
           
@@ -77,11 +82,34 @@ export default function GuardianDashboard() {
     fetchChild();
   }, []);
 
+  // --- NEW: SWITCH CHILD HANDLER ---
+  const handleChildSwitch = (e) => {
+    const selectedId = e.target.value;
+    const selectedChild = allChildren.find(c => c.student_id === selectedId);
+    
+    if (selectedChild) {
+      setRawStudentData(selectedChild);
+      setChildData({
+        firstName: selectedChild.first_name,
+        lastName: selectedChild.last_name,
+        profilePicture: selectedChild.profile_picture,
+        sectionName: selectedChild.section_details?.section_name || "Not Assigned",
+        status: selectedChild.status
+      });
+      // Safely reset or fetch new queue state
+      setIsParentOnQueue(selectedChild.on_queue || false);
+    }
+  };
+
   // 2. CHECK IF GUARDIAN IS ALREADY IN QUEUE
   useEffect(() => {
     const checkQueueStatus = async () => {
+      // --- IMPORTANT: Return if no student is selected yet ---
+      if (!rawStudentData?.student_id) return;
+
       try {
-        const response = await axios.get('http://localhost:3000/api/queue/check', { 
+        // Pass student_id to ensure we check queue for THIS specific child
+        const response = await axios.get(`http://localhost:3000/api/queue/check?student_id=${rawStudentData.student_id}`, { 
           withCredentials: true 
         });
         setIsParentOnQueue(response.data.onQueue);
@@ -90,14 +118,15 @@ export default function GuardianDashboard() {
       }
     };
     checkQueueStatus();
-  }, []);
+  }, [rawStudentData]); // <-- ADDED rawStudentData DEPENDENCY
 
   // 3. SOCKET.IO LISTENERS
   useEffect(() => {
     const socket = io("http://localhost:3000", { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
-      if (entry.user_id === user?.user_id) {
+      // --- IMPORTANT: Check both user_id AND student_id ---
+      if (entry.user_id === user?.user_id && entry.student_id === rawStudentData?.student_id) {
         setIsParentOnQueue(true);
       }
     });
@@ -105,7 +134,8 @@ export default function GuardianDashboard() {
     socket.on('student_status_updated', (data) => {
       if (data.student_id === rawStudentData?.student_id) {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
-        setIsParentOnQueue(false); // Reset queue state when child is dismissed/picked up
+        setIsParentOnQueue(false); 
+        setShowPassModal(false); // Auto-close QR if scanned
       }
     });
 
@@ -156,7 +186,9 @@ export default function GuardianDashboard() {
   };
 
   const hasActivePass = () => {
-    const STORAGE_KEY = "lumini_pickup_pass";
+    if (!rawStudentData) return false;
+    // --- NEW: DYNAMIC STORAGE KEY ---
+    const STORAGE_KEY = `lumini_pickup_pass_${rawStudentData.student_id}`;
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -182,7 +214,6 @@ export default function GuardianDashboard() {
     setShowPassModal(true);
   };
 
-  // Logic for UI states
   const isScanDisabled = !childData || childData.status === 'Dismissed' || !isParentOnQueue || loading;
   const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
 
@@ -204,9 +235,30 @@ export default function GuardianDashboard() {
           <div className="flex flex-col gap-6">
             <div className="card flex flex-col items-center gap-7 py-10 px-6 bg-[#e1f5fe] border border-[#b3e5fc] rounded-[20px]">
               
-              <div className="flex flex-col items-center gap-1.5">
+              {/* --- NEW NATURAL FLOW SELECTOR --- */}
+              {allChildren.length > 1 && (
+                <div className="w-full flex justify-start mb-[-15px]"> 
+                  <div className="relative inline-block">
+                    <select 
+                      className="appearance-none bg-white border border-[#b3e5fc] text-cdark text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#39a8ed] transition-all"
+                      value={rawStudentData?.student_id || ""}
+                      onChange={handleChildSwitch}
+                    >
+                      {allChildren.map(child => (
+                        <option key={child.student_id} value={child.student_id}>
+                          {child.first_name} {child.last_name}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-cgray pointer-events-none text-[18px]">
+                      expand_more
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col items-center gap-1.5 mt-2">
                 <div className="p-1 bg-white rounded-full shadow-sm mb-2">
-                  {/* --- APPLIED FORMATTER HERE --- */}
                   <img 
                     src={getImageUrl(childData?.profilePicture)} 
                     alt="Child Profile"
@@ -247,9 +299,12 @@ export default function GuardianDashboard() {
                 childData?.status === 'Learning' ? 'badge-learning' :
                 childData?.status === 'Dismissed' ? 'badge-dismissed' : ''
               }`}>
-                <p className="status-badge-text font-bold">
-                  {childData?.status || "Checking status..."}
-                </p>
+                <p className="status-badge-text">
+                    {childData?.status === 'On the way' && "Student is traveling to school"}
+                    {childData?.status === 'Learning' && "Learning At School"}
+                    {childData?.status === 'Dismissed' && "Student has been dismissed"}
+                    {!childData?.status && "Checking status..."}
+                  </p>
               </div>
             </div>
 
@@ -260,6 +315,7 @@ export default function GuardianDashboard() {
                   <span className="material-symbols-outlined blue-icon text-[24px]">tune</span>
                   <h2 className="text-cdark text-[18px] font-bold">Quick Actions</h2>
                 </div>
+                <p className="text-cgray text-[14px]! leading-normal">Access the most important tasks instantly.</p>
               </div>
 
               <div className="quick-actions-list">
@@ -343,7 +399,8 @@ export default function GuardianDashboard() {
       <PassModal
         isOpen={showPassModal} 
         onClose={() => setShowPassModal(false)} 
-        />
+        studentId={rawStudentData?.student_id}
+      />
 
       <ParentNewDayModal 
         isOpen={showNewDayModal} 

@@ -7,6 +7,7 @@ import { Audit } from "../models/audits.js";
 import { Transfer } from "../models/transfers.js";
 import { Queue } from "../models/queues.js";
 import { Notification } from "../models/notification.js";
+import { Settings } from "../models/settings.js";
 
 const router = Router();
 
@@ -155,13 +156,31 @@ router.post('/api/attendance',
             }
         }
 
-        const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
-        const isMorning = student.section_details?.class_schedule?.includes("Morning");
-        const startHr = isMorning ? 8 : 13;
-        const lateTime = new Date(phNow);
-        lateTime.setHours(startHr, 15, 0, 0);
+        let sysSettings = await Settings.findOne();
+        if (!sysSettings) {
+            sysSettings = new Settings(); 
+        }
 
+        // 2. Setup Philippines time
+        const phNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
+        
+        // 3. Determine if the student is Morning or Afternoon
+        const isMorning = student.section_details?.class_schedule?.includes("Morning");
+        
+        // 4. Get the correct dynamic start time string (e.g., "08:00" or "13:30")
+        const startTimeString = isMorning ? sysSettings.morning_start : sysSettings.afternoon_start;
+        
+        // 5. Split the string into Numbers (e.g., "08:30" becomes startHr = 8, startMin = 30)
+        const [startHr, startMin] = startTimeString.split(':').map(Number);
+        const gracePeriod = sysSettings.late_grace_period_minutes || 15;
+
+        // 6. Calculate exactly when the student becomes Late
+        const lateTime = new Date(phNow);
+        lateTime.setHours(startHr, startMin + gracePeriod, 0, 0);
+
+        // 7. Determine Status
         let status = phNow.getTime() > lateTime.getTime() ? "Late" : "Present";
+        
         const currentTimeString = phNow.toLocaleTimeString('en-US', { 
             hour: 'numeric', 
             minute: '2-digit', 
@@ -245,17 +264,6 @@ router.post('/api/attendance',
             const newTransfer = new Transfer(transferData);
             await newTransfer.save();
 
-            await Student.findOneAndUpdate(
-                { student_id: studentId },
-                { status: "Learning" }
-            );
-
-            req.app.get('socketio').emit('student_status_updated', { 
-                student_id: studentId,
-                newStatus: "Learning",
-                purpose: "Drop off" 
-            });
-            
             const auditData = {
                 user_id: currentUserId,
                 full_name: fullName,
@@ -273,6 +281,18 @@ router.post('/api/attendance',
             const auditLog = new Audit(auditData);
             await auditLog.save();
         }
+
+        await Student.findOneAndUpdate(
+            { student_id: studentId },
+            { status: "Learning" }
+        );
+
+        req.app.get('socketio').emit('student_status_updated', { 
+            student_id: studentId,
+            newStatus: "Learning",
+            purpose: "Drop off" 
+        });
+            
 
         const studentFullName = `${student.first_name} ${student.last_name}`;
         const auditLog = new Audit({
@@ -307,95 +327,96 @@ router.post('/api/attendance/absence',
     hasRole('user'),
     async (req, res) => {
         try {
-            const { reason, details } = req.body;
+            // EXPECT student_id FROM THE FRONTEND NOW
+            const { reason, details, student_id } = req.body; 
             const parentId = Number(req.user.user_id);
             const fullName = `${req.user.first_name} ${req.user.last_name}`;
             const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-            const students = await Student.find({ user_id: parentId, is_archive: false })
-                                          .populate('section_details');
+            if (!student_id) {
+                return res.status(400).json({ error: "Student ID is required." });
+            }
 
-            if (!students || students.length === 0) {
-                return res.status(404).json({ error: "No students linked to your account found." });
+            // FIND ONLY THE SPECIFIC STUDENT
+            const student = await Student.findOne({ 
+                student_id: student_id,
+                user_id: parentId, // Ensure the parent is actually linked to them
+                is_archive: false 
+            }).populate('section_details');
+
+            if (!student) {
+                return res.status(404).json({ error: "Student not found or not linked to your account." });
             }
 
             const newStatus = "Dismissed";
 
-            for (const student of students) {
-                await Attendance.findOneAndUpdate(
-                    { 
-                        student_id: student.student_id, 
-                        date: todayDate 
-                    },
-                    { 
-                        status: 'Absent',
-                        details: `${details || 'No additional info'}`,
-                        $setOnInsert: {
-                            student_name: `${student.first_name} ${student.last_name}`,
-                            section_id: student.section_id,
-                            section_name: student.section_details?.section_name || "Unassigned",
-                            date: todayDate,
-                            time_in: "---"
-                        }
-                    },
-                    { upsert: true, new: true }
-                );
-
-                await Student.findOneAndUpdate(
-                    { student_id: student.student_id },
-                    { status: newStatus }
-                );
-
-                const auditLog = new Audit({
-                    user_id: parentId,
-                    full_name: fullName,
-                    role: req.user.role,
-                    action: `Reported Absence`,
-                    target: `Student: ${student.first_name} ${student.last_name}`
-                });
-                await auditLog.save();
-
-                try {
-                    const sectionDoc = await Section.findOne({ section_id: student.section_id });
-                    
-                    if (sectionDoc && sectionDoc.user_id) {
-                        const studentName = `${student.first_name} ${student.last_name}`;
-                        
-                        const newNotif = await Notification.create({
-                            recipient_id: Number(sectionDoc.user_id),
-                            sender_id: Number(parentId),
-                            type: 'Alert', 
-                            title: 'Absence Reported',
-                            message: `${fullName} reported ${studentName} as absent.`,
-                            is_read: false,
-                            created_at: new Date()
-                        });
-
-                        const socketIo = req.app.get('socketio');
-
-                        if (socketIo) {
-                            socketIo.to(`user_${sectionDoc.user_id}`).emit('new_notification', {
-                                _id: newNotif._id,
-                                recipient_id: Number(newNotif.recipient_id),
-                                sender_id: Number(newNotif.sender_id),
-                                type: newNotif.type,
-                                title: newNotif.title,
-                                message: newNotif.message,
-                                is_read: newNotif.is_read,
-                                created_at: newNotif.created_at
-                            });
-                        }
+            // RECORD ATTENDANCE AS ABSENT
+            await Attendance.findOneAndUpdate(
+                { 
+                    student_id: student.student_id, 
+                    date: todayDate 
+                },
+                { 
+                    status: 'Absent',
+                    details: `${reason} - ${details || 'No additional info'}`,
+                    $setOnInsert: {
+                        student_name: `${student.first_name} ${student.last_name}`,
+                        section_id: student.section_id,
+                        section_name: student.section_details?.section_name || "Unassigned",
+                        date: todayDate,
+                        time_in: "---"
                     }
-                } catch (notifErr) {
-                    console.error("Failed to send absence notification to teacher:", notifErr);
-                }
+                },
+                { upsert: true, new: true }
+            );
 
-                req.app.get('socketio').emit('student_status_updated', { 
-                    student_id: student.student_id,
-                    newStatus: newStatus,
-                    purpose: 'Absence' 
-                });
+            // UPDATE STUDENT STATUS
+            await Student.findOneAndUpdate(
+                { student_id: student.student_id },
+                { status: newStatus }
+            );
+
+            // AUDIT LOG
+            const auditLog = new Audit({
+                user_id: parentId,
+                full_name: fullName,
+                role: req.user.role,
+                action: `Reported Absence`,
+                target: `Student: ${student.first_name} ${student.last_name} (${reason})`
+            });
+            await auditLog.save();
+
+            // SEND NOTIFICATION TO TEACHER
+            try {
+                const sectionDoc = await Section.findOne({ section_id: student.section_id });
+                
+                if (sectionDoc && sectionDoc.user_id) {
+                    const studentName = `${student.first_name} ${student.last_name}`;
+                    
+                    const newNotif = await Notification.create({
+                        recipient_id: Number(sectionDoc.user_id),
+                        sender_id: Number(parentId),
+                        type: 'Alert', 
+                        title: 'Absence Reported',
+                        message: `${fullName} reported ${studentName} as absent. Reason: ${reason}`,
+                        is_read: false,
+                        created_at: new Date()
+                    });
+
+                    const socketIo = req.app.get('socketio');
+                    if (socketIo) {
+                        socketIo.to(`user_${sectionDoc.user_id}`).emit('new_notification', newNotif);
+                    }
+                }
+            } catch (notifErr) {
+                console.error("Failed to send absence notification to teacher:", notifErr);
             }
+
+            req.app.get('socketio').emit('student_status_updated', { 
+                student_id: student.student_id,
+                newStatus: newStatus,
+                purpose: 'Absence' 
+            });
 
             res.status(200).json({ success: true, msg: "Absence reported successfully." });
 
