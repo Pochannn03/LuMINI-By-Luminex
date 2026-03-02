@@ -12,6 +12,9 @@ import SuperAdminClassManagement from "./pages/super-admin/SuperAdminClassManage
 import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 import SuperAdminAnalytics from "./pages/super-admin/SuperAdminAnalytics"; 
 import SuperAdminSettings from "./pages/super-admin/SuperAdminSettings";
+// --- NEW IMPORT ---
+import SuperAdminGuardianRegistration from "./pages/super-admin/SuperAdminGuardianRegistration";
+
 import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import AdminDropAndPickHistory from "./pages/admin-teacher/AdminDropAndPickHistory";
@@ -29,8 +32,6 @@ import ParentEnrollment from "./pages/ParentEnrollment";
 import EnrollmentApproval from "./pages/admin-teacher/EnrollmentApproval";
 import GuardianPickupAndDropOffHistory from "../../frontend/src/pages/users/guardian/GuardianPickupAndDropOffHistory";
 import ForgotPassword from "../../frontend/src/pages/auth/ForgotPassword";
-
-// REMOVED: import SuperAdminBulkRegistration
 
 export default function App() {
   return (
@@ -54,6 +55,8 @@ export default function App() {
           <Route path="/superadmin/dashboard" element={<SuperAdminDashbooard />} />
           <Route path="/superadmin/manage-class" element={<SuperAdminClassManagement />} />
           <Route path="/superadmin/accounts" element={<SuperAdminAccounts />} />
+          {/* --- NEW ROUTE --- */}
+          <Route path="/superadmin/guardian-registration" element={<SuperAdminGuardianRegistration />} />
           <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
           <Route path="/superadmin/analytics" element={<SuperAdminAnalytics />} />
           <Route path="/superadmin/settings" element={<SuperAdminSettings />} />
