@@ -15,40 +15,31 @@ router.get('/api/announcement',
   hasRole('user'),
   async (req, res) => {
     try {
-      const parentId = req.user.user_id; //
+      const parentId = req.user.user_id;
       
-      // 1. Find all students linked to this parent
-      const students = await Student.find({ user_id: parentId });
-      
-      const superAdmins = await User.find({ role: 'superadmin' }).select('user_id');
-      const superAdminIds = superAdmins.map(sa => sa.user_id);
+      const students = await Student.find({ user_id: parentId, is_archive: false });
+      const mySectionIds = students.map(s => s.section_id).filter(id => id !== null);
 
-      if (!students || students.length === 0) {
-        // If no students, they only see SuperAdmin announcements
-        const globalAnnouncements = await Announcement.find({ 
-          user_id: { $in: superAdminIds } 
-        }).sort({ created_at: -1 }).limit(10);
+      const sections = await Section.find({ section_id: { $in: mySectionIds } });
+      const myTeacherIds = sections.map(sec => sec.user_id);
 
-        return res.json({ success: true, announcements: globalAnnouncements });
-      }
+      const superadmins = await User.find({ role: 'superadmin' }).select('user_id');
+      const superadminIds = superadmins.map(u => u.user_id);
 
-      const sectionIds = students.map(s => s.section_id).filter(id => id != null);
-      const sections = await Section.find({ section_id: { $in: sectionIds } });
-      const teacherIds = sections.map(sec => sec.user_id);
+      const validGlobalAuthors = [...superadminIds, ...myTeacherIds];
 
-      // 4. Combine Teacher IDs and SuperAdmin IDs
-      const allAuthorizedAuthors = [...new Set([...teacherIds, ...superAdminIds])];
-
-      // 5. Fetch announcements from both Teachers and SuperAdmins
-      const announcements = await Announcement.find({ 
-        user_id: { $in: allAuthorizedAuthors } 
+      const announcements = await Announcement.find({
+        $or: [
+          { section_id: null, user_id: { $in: validGlobalAuthors } },
+          { section_id: { $in: mySectionIds } }
+        ]
       })
       .sort({ created_at: -1 })
-      .limit(15); // Increased limit to accommodate more sources
+      .limit(20);
 
+      // 3. Populate Author Roles (to distinguish System vs Teacher in UI)
       const announcementsWithRoles = await Promise.all(announcements.map(async (ann) => {
-      const author = await User.findOne({ user_id: ann.user_id }).select('role');
-        
+        const author = await User.findOne({ user_id: ann.user_id }).select('role');
         return {
           ...ann.toObject(),
           role: author ? author.role : 'admin'
@@ -60,8 +51,8 @@ router.get('/api/announcement',
         announcements: announcementsWithRoles,
       });
     } catch (error) {
-      console.error("❌ Error fetching announcements:", error.message); //
-      return res.status(500).json({ error: "Failed to load announcements." }); //
+      console.error("❌ Error fetching announcements:", error.message);
+      return res.status(500).json({ error: "Failed to load announcements." });
     }
   }
 );
@@ -71,11 +62,9 @@ router.get('/api/announcement/teacher',
   hasRole('admin'),
   async (req, res) => {
     try {
-      // 1. Get all SuperAdmin IDs
       const superAdmins = await User.find({ role: 'superadmin' }).select('user_id');
       const superAdminIds = superAdmins.map(sa => sa.user_id);
 
-      // 2. Fetch announcements made by SuperAdmins
       const announcements = await Announcement.find({ 
         user_id: { $in: superAdminIds } 
       })
@@ -104,60 +93,79 @@ router.post('/api/announcements',
   isAuthenticated,
   hasRole('admin', 'superadmin'),
   async (req, res) => {
-    const { announcement, category } = req.body;
+    const { announcement, category, section_id } = req.body;
     const authorId = req.user.user_id;
-    const firstName = req.user.first_name || "Admin";
-    const lastName = req.user.last_name || "";
-    const fullName = `${firstName} ${lastName}`.trim();
-    const authorRole = req.user.role;
+    const { first_name, last_name, role: authorRole } = req.user;
+    const fullName = `${first_name} ${last_name}`.trim();
 
     try {
       if (!announcement?.trim()) {
         return res.status(400).json({ error: "Announcement content is required." });
       }
 
+      if (authorRole !== 'superadmin' && !section_id) {
+        return res.status(403).json({ error: "Teachers must select a section to post an announcement." });
+      }
+
+      const finalSectionId = section_id === 'all' ? null : (section_id || null);
+
       const newAnnouncement = new Announcement({
         user_id: authorId,
         full_name: fullName,
         announcement: announcement,
-        category: category || 'campaign' 
+        category: category || 'notifications_active',
+        section_id: finalSectionId
       });
-
       await newAnnouncement.save();
 
-      const targetRoles = authorRole === 'superadmin' ? ['user', 'admin'] : ['user'];
+      let recipientIds = [];
 
-      const recipients = await User.find({ 
-        role: { $in: targetRoles },
-        user_id: { $ne: authorId },
-        is_archive: false 
-      }).select('user_id');
+      if (finalSectionId) {
+        const students = await Student.find({ 
+          section_id: finalSectionId, 
+          is_archive: false 
+        }).select('user_id');
 
-      if (recipients.length > 0) {
-        const io = req.app.get('socketio');
-        const notificationPromises = recipients.map(async (recipient) => {
+        recipientIds = [...new Set(students.flatMap(s => s.user_id))]; 
+
+      } else if (section_id === 'all' && authorRole !== 'superadmin') {
+        const mySections = await Section.find({ user_id: authorId, is_archive: false }).select('section_id');
+        const mySecIds = mySections.map(s => s.section_id);
+        const students = await Student.find({ section_id: { $in: mySecIds }, is_archive: false }).select('user_id');
+        recipientIds = [...new Set(students.flatMap(s => s.user_id))];
+
+      } else {
+        const targetRoles = authorRole === 'superadmin' ? ['user', 'admin'] : ['user'];
+        const users = await User.find({ 
+          role: { $in: targetRoles },
+          user_id: { $ne: authorId },
+          is_archive: false 
+        }).select('user_id');
+        recipientIds = users.map(u => u.user_id); 
+      }
+
+      const io = req.app.get('socketio');
+      if (recipientIds.length > 0) {
+        const notificationPromises = recipientIds.map(async (rId) => {
           const newNotif = new Notification({
-            recipient_id: recipient.user_id,
+            recipient_id: rId,
             sender_id: authorId,
             type: 'Announcement',
-            title: authorRole === 'superadmin' ? 'System Announcement' : 'School Announcement',
+            title: section_id ? 'Section Announcement' : 'School Announcement',
             message: `${fullName} posted: ${announcement.substring(0, 30)}...`,
-            is_read: false
           });
+          await newNotif.save();
           
-          const savedNotif = await newNotif.save(); 
-          io.emit('new_notification', savedNotif);
-          return savedNotif;
+          io.to(rId.toString()).emit('new_notification', newNotif);
         });
-
-        await Promise.all(notificationPromises); // More efficient than a for-loop
+        await Promise.all(notificationPromises);
       }
 
       const payload = {
         ...newAnnouncement.toObject(),
         user: { 
-          first_name: firstName, 
-          last_name: lastName,
+          first_name: first_name, 
+          last_name: last_name,
           role: authorRole 
         },
         role: authorRole
@@ -165,18 +173,27 @@ router.post('/api/announcements',
       
       const userDoc = await User.findOne({ user_id: authorId });
 
+      let targetName = 'All Parents';
+      
+      if (finalSectionId) {
+        const targetSection = await Section.findOne({ section_id: finalSectionId }).select('section_name');
+        targetName = targetSection ? `Section ${targetSection.section_name}` : `Section ${finalSectionId}`;
+      } else if (section_id === 'all') {
+        targetName = 'All My Sections';
+      }
+
+      // 2. Save the Audit Log
       const auditLog = new Audit({
         user_id: authorId,
         full_name: fullName,
-        role: userDoc ? userDoc.role : 'user',
+        role: authorRole,
         action: "Posted Announcement",
-        target: 'Parent/Guardian'
+        target: targetName 
       });
-
       await auditLog.save();
       
-      req.app.get('socketio').emit('notification_received');
-      req.app.get('socketio').emit('new_announcement', payload);
+      io.emit('notification_received');
+      io.emit('new_announcement', payload);
 
       return res.status(201).json({ 
         success: true, 
