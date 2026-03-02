@@ -2,12 +2,13 @@ import { Router } from "express";
 import { validationResult, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { hashPassword } from "../utils/passwordUtils.js";
-// Ensuring we pull the TEACHER validation
 import { createTeacherValidationSchema } from '../validation/teacherValidation.js'
 import { User } from "../models/users.js";
 import { Section } from "../models/sections.js";
 import { Student } from "../models/students.js";
 import { Audit } from "../models/audits.js";
+import { Notification } from "../models/notification.js"; // <--- ADDED NOTIFICATION MODEL
+import { sendIprogBulkSMS } from "../utils/smsProvider.js"; // <--- ADDED SMS PROVIDER
 import bcrypt from 'bcrypt';
 import multer from "multer";
 import path from "path";
@@ -227,12 +228,12 @@ router.put('/api/teacher/:id',
   isAuthenticated,
   hasRole('superadmin'),
   upload.single('profile_photo'),
-  ...checkSchema(updateTeacherValidationSchema), // <--- THE FIX: Using the new optional password schema!
+  ...checkSchema(updateTeacherValidationSchema), 
   async (req, res) => {
     const result = validationResult(req);
 
     if (!result.isEmpty()) {
-      if (req.file) fs.unlinkSync(req.file.path); // Added cleanup to prevent orphaned uploads
+      if (req.file) fs.unlinkSync(req.file.path); 
       return res.status(400).send({ errors: result.array() });
     }
     
@@ -336,7 +337,6 @@ router.put('/api/teacher/archive/:id',
       });
       await auditLog.save();
 
-
       return res.status(200).json({ 
         success: true, 
         msg: "Teacher archived successfully.", 
@@ -430,18 +430,23 @@ router.get('/api/teacher/students',
   hasRole('admin'),
   async (req, res) => {
     try {
-      const section = await Section.findOne({ user_id: req.user.user_id });
+      // 1. Find ALL sections assigned to this teacher, not just one
+      const sections = await Section.find({ user_id: req.user.user_id });
 
-      if (!section) {
+      if (!sections || sections.length === 0) {
         return res.status(200).json({ 
           success: true, 
           students: [], 
-          msg: "No assigned section found for this teacher." 
+          msg: "No assigned sections found for this teacher." 
         });
       }
 
+      // 2. Extract an array of section_ids
+      const sectionIds = sections.map(sec => sec.section_id);
+
+      // 3. Find ALL students that belong to ANY of those section_ids
       const students = await Student.find({ 
-        section_id: section.section_id,
+        section_id: { $in: sectionIds },
         is_archive: false 
       }).populate('user_details');
 
@@ -457,5 +462,120 @@ router.get('/api/teacher/students',
     }
   }
 );
+
+
+// =========================================================================
+// TEACHER ACTION - EMERGENCY SMS BROADCAST (WITH TRACER LOGS)
+// =========================================================================
+router.post('/api/teacher/emergency-broadcast', 
+  isAuthenticated, 
+  hasRole('admin'), 
+  async (req, res) => {
+    try {
+        console.log("--- STARTING EMERGENCY BROADCAST ---");
+        const { recipientMode, studentIds, message } = req.body;
+        const currentUserId = req.user.user_id;
+        const teacherName = `${req.user.first_name} ${req.user.last_name}`;
+
+        console.log("0. Payload received:", { recipientMode, studentIdsLength: studentIds?.length, message });
+
+        if (!message || message.trim() === '') {
+            return res.status(400).json({ success: false, error: "Message content is required." });
+        }
+
+        if (!studentIds || studentIds.length === 0) {
+            return res.status(400).json({ success: false, error: "No students selected for broadcast." });
+        }
+
+        // 1. Fetch targeted students
+        const targetStudents = await Student.find({ student_id: { $in: studentIds } });
+        console.log(`1. Found ${targetStudents.length} matching students in DB.`);
+
+        // 2. Extract unique Parent/Guardian user IDs
+        const parentIds = new Set();
+        targetStudents.forEach(student => {
+            if (student.user_details && Array.isArray(student.user_details)) {
+                student.user_details.forEach(id => parentIds.add(Number(id)));
+            } else if (student.user_id && Array.isArray(student.user_id)) {
+                student.user_id.forEach(id => parentIds.add(Number(id)));
+            }
+        });
+        
+        console.log("2. Extracted Parent IDs:", Array.from(parentIds));
+
+        if (parentIds.size === 0) {
+            console.log("FAIL: No parent IDs found.");
+            return res.status(404).json({ success: false, error: "No linked guardian accounts found for the selected students." });
+        }
+
+        // 3. Fetch Parent documents & their active phone numbers
+        const parents = await User.find({ 
+            user_id: { $in: Array.from(parentIds) },
+            is_archive: false 
+        });
+
+        const rawPhoneNumbers = parents
+            .map(p => p.phone_number)
+            .filter(phone => phone && phone.trim() !== ''); 
+        
+        const uniquePhoneNumbers = [...new Set(rawPhoneNumbers)];
+        console.log(`3. Found ${uniquePhoneNumbers.length} unique phone numbers:`, uniquePhoneNumbers);
+
+        if (uniquePhoneNumbers.length === 0) {
+            console.log("FAIL: No valid phone numbers.");
+            return res.status(400).json({ success: false, error: "Found parents, but none have valid phone numbers on file." });
+        }
+
+        // 4. Transform array to comma-separated string for IprogSMS
+        const phoneNumbersString = uniquePhoneNumbers.join(',');
+
+        // 5. Dispatch SMS via IprogSMS
+        console.log("4. Firing SMS Provider Utility...");
+        await sendIprogBulkSMS(phoneNumbersString, message);
+        console.log("5. SMS Utility completed successfully.");
+
+        // 6. Create In-App Notifications
+        console.log("6. Attempting to create Notifications...");
+        const io = req.app.get('socketio');
+        
+        const notificationPromises = parents.map(async (parent) => {
+            const notif = new Notification({
+                recipient_id: parent.user_id,
+                sender_id: currentUserId,
+                type: 'Emergency',
+                title: '⚠️ EMERGENCY ALERT',
+                message: message,
+                is_read: false
+            });
+            const savedNotif = await notif.save();
+            if (io) io.emit('new_notification', savedNotif); 
+        });
+        
+        await Promise.all(notificationPromises);
+        console.log("7. Notifications created successfully.");
+
+        // 7. Audit Log
+        console.log("8. Attempting to create Audit Log...");
+        const auditLog = new Audit({
+            user_id: currentUserId,
+            full_name: teacherName,
+            role: req.user.role,
+            action: "Emergency Broadcast Sent",
+            target: `Sent SMS to ${uniquePhoneNumbers.length} recipients. Mode: ${recipientMode}`
+        });
+        await auditLog.save();
+        console.log("9. Audit Log created. FINISHED!");
+
+        return res.status(200).json({ 
+            success: true, 
+            message: `Emergency broadcast successfully sent to ${uniquePhoneNumbers.length} parent(s).` 
+        });
+
+    } catch (error) {
+        console.error("🚨 EMERGENCY BROADCAST CRASHED AT:", error.message);
+        console.error(error); // Full stack trace
+        return res.status(500).json({ success: false, error: "Failed to dispatch emergency broadcast. Please try again." });
+    }
+});
 
 export default router;
