@@ -156,7 +156,7 @@ router.post('/api/announcements',
           });
           await newNotif.save();
           
-          io.to(rId.toString()).emit('new_notification', newNotif);
+          io.to(`user_${rId}`).emit('new_notification', newNotif);
         });
         await Promise.all(notificationPromises);
       }

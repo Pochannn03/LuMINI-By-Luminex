@@ -176,11 +176,11 @@ export default function ManageApprovals() {
         
         // Safe Child Name
         let childName = "N/A";
-        if (req.student && req.student.first_name) {
-            childName = `${req.student.first_name} ${req.student.last_name}`;
-        } else if (typeof req.student === 'string') {
-             childName = "ID: " + req.student.substring(0, 5) + "..."; // Fallback if not populated
-        }
+          if (req.students && req.students.length > 0) {
+            childName = req.students.map(s => {
+              return s.first_name ? `${s.first_name} ${s.last_name}` : "Unknown";
+            }).join(", ");
+          }
 
         // Safe Status
         const status = (req.status || "Unknown").toUpperCase();
@@ -329,14 +329,14 @@ export default function ManageApprovals() {
                   {/* MIDDLE ROW 1: Linked Child */}
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
-                    <div className="student-badge-inline">
+                    <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
                       
-                      {/* --- THE FIX: DYNAMIC STUDENT NAME --- */}
-                      {req.student 
-                        ? `${req.student.first_name} ${req.student.last_name}` 
+                      {/* --- THE FIX: HANDLE THE ARRAY --- */}
+                      {req.students && req.students.length > 0 
+                        ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
-
+                        
                     </div>
                   </div>
 
@@ -400,7 +400,12 @@ export default function ManageApprovals() {
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
-                      {req.student ? `${req.student.first_name} ${req.student.last_name}` : "Unknown Student"}
+                      
+                      {/* --- THE FIX: HANDLE THE ARRAY --- */}
+                      {req.students && req.students.length > 0 
+                        ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
+                        : "Unknown Student"}
+                        
                     </div>
                   </div>
 

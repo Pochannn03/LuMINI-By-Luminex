@@ -226,9 +226,12 @@ router.get(
 // ==========================================
 // TEACHER ACTION: APPROVE REQUEST
 // ==========================================
+// ==========================================
+// TEACHER ACTION: APPROVE REQUEST
+// ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
-  hasRole('admin'),
+  hasRole('admin'), // Or whatever your teacher role is
   async (req, res) => {
     try {
         const requestId = req.params.id;
@@ -240,6 +243,7 @@ router.put('/api/teacher/guardian-requests/:id/approve',
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
+        // 1. Create the new Guardian account
         const newGuardian = new User({
             first_name: requestDoc.guardianDetails.firstName,
             last_name: requestDoc.guardianDetails.lastName,
@@ -255,42 +259,53 @@ router.put('/api/teacher/guardian-requests/:id/approve',
 
         const savedGuardian = await newGuardian.save();
 
-        if (savedGuardian.user_id) {
-            await Student.findByIdAndUpdate(requestDoc.student, {
-                $push: { user_id: savedGuardian.user_id } 
-            });
+        // 2. FIX: Link the Guardian to ALL requested students!
+        // We check if requestDoc.students exists and has items, then update them all at once.
+        if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
+            await Student.updateMany(
+                { _id: { $in: requestDoc.students } }, // Find all students in this array
+                { $push: { user_id: savedGuardian.user_id } } // Push the new Guardian's ID
+            );
         }
 
+        // 3. Mark the request as approved
         requestDoc.status = 'approved';
         requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
+        // 4. Send Notification to Parent
         if (requestDoc.parent && requestDoc.parent.user_id) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'System', 
                 title: 'Guardian Request Approved',
-                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active.`,
+                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active and linked to the selected student(s).`,
                 is_read: false
             });
 
             const savedNotif = await notification.save();
-            req.app.get('socketio').emit('new_notification', savedNotif);
+            
+            // Real-time notification update
+            const io = req.app.get('socketio');
+            if (io) {
+                io.emit('new_notification', savedNotif);
+            }
         } else {
             console.log("⚠️ Notification skipped: Parent not found or user_id missing.");
         }
 
+        // 5. Create an Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
           action: "Approve Guardian Request",
-          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name}`
+          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name} & linked to ${requestDoc.students.length} student(s)`
         });
         await auditLog.save();
 
-        return res.status(200).json({ message: "Guardian successfully approved and account created!" });
+        return res.status(200).json({ message: "Guardian successfully approved and linked to student(s)!" });
 
     } catch (error) {
         console.error("Approval Error:", error);

@@ -212,18 +212,25 @@ router.get('/api/queue',
 // QUEUE CHECKING FOR SCAN BUTTON ENABLER
 // Backend: Queue Check Endpoint
 router.get('/api/queue/check', 
-  isAuthenticated,
-  hasRole('user'),
+  isAuthenticated, 
   async (req, res) => {
-  try {
-    const queueCheck = await Queue.findOne({ 
-      user_id: req.user.user_id, 
-      on_queue: true 
-    });
-    res.json({ onQueue: !!queueCheck }); 
-  } catch (err) {
-    res.status(500).json({ error: "Server error checking queue status" });
-  }
+    try {
+      const { student_id } = req.query; // Accept student_id from frontend
+
+      if (!student_id) {
+         return res.json({ onQueue: false });
+      }
+
+      const queueEntry = await Queue.findOne({ 
+        user_id: req.user.user_id, 
+        student_id: student_id, // Match the specific child
+        on_queue: true 
+      });
+
+      res.json({ onQueue: !!queueEntry });
+    } catch (error) {
+      res.status(500).json({ error: "Server error" });
+    }
 });
 
 router.patch('/api/queue/remove/:userId', 

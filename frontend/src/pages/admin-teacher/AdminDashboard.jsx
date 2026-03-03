@@ -452,12 +452,14 @@ export default function AdminDashboard() {
                     onChange={(e) => setSelectedSection(e.target.value)}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
                   >
-                    <option value="" disabled>{user?.role === 'superadmin' ? "All" : "Select Section"}</option>
+                    <option value="" disabled hidden>
+                      Select Section
+                    </option>
                     
                     {/* Add the new "All My Sections" option for teachers */}
-                    {user?.role !== 'superadmin' && (
-                      <option value="">All Sections</option>
-                    )}
+                    <option value="all">
+                      {user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections"}
+                    </option>
                     
                     {sections.map((sec) => (
                       <option key={sec.section_id} value={sec.section_id}>
