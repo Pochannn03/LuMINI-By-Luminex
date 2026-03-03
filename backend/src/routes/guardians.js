@@ -13,11 +13,12 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-// --- NEW IMPORTS FOR EMAILS ---
+// --- UPDATED IMPORTS FOR EMAILS ---
 import { 
   sendGuardianVerifiedEmail, 
   sendGuardianFinalizedEmail, 
-  sendGuardianSetupCompleteEmail 
+  sendGuardianSetupCompleteEmail,
+  sendGuardianRejectedEmail // <-- NEW: Import the rejected email function
 } from '../utils/emailService.js';
 
 const router = Router();
@@ -388,14 +389,21 @@ router.put('/api/teacher/guardian-requests/:id/approve',
     }
 });
 
+// ==========================================
+// TIER 1: TEACHER REJECTS REQUEST
+// ==========================================
 router.put('/api/teacher/guardian-requests/:id/reject', 
   isAuthenticated,
   hasRole('admin'),
   async (req, res) => {
     try {
         const requestId = req.params.id;
+        const { reason } = req.body; 
+        
+        if (!reason) return res.status(400).json({ message: "Rejection reason is required." });
+
         const currentUserId = Number(req.user.user_id);
-        const teacherName = `${req.user.first_name} ${req.user.last_name}`;
+        const teacherName = `Teacher ${req.user.first_name} ${req.user.last_name}`;
 
         const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
         if (!requestDoc || requestDoc.status !== 'pending') {
@@ -412,17 +420,19 @@ router.put('/api/teacher/guardian-requests/:id/reject',
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
           action: "Reject Guardian Request",
-          target: `Rejected request for: ${guardianName}`
+          target: `Rejected request for: ${guardianName}. Reason: ${reason}`
         });
         await auditLog.save();
 
-        if (requestDoc.parent && requestDoc.parent.user_id) {
+        // Notify Parent (In-App + Email)
+        if (requestDoc.parent) {
+            // --- THE FIX: ADDED REASON TO IN-APP NOTIFICATION ---
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'Alert',
                 title: 'Guardian Request Rejected',
-                message: `Your request for ${guardianName} has been rejected by Teacher ${teacherName}. Please contact the school for more information.`,
+                message: `Your request for ${guardianName} to become an authorized personnel has been rejected by ${teacherName}. Reason: ${reason}`,
                 is_read: false
             });
 
@@ -435,8 +445,14 @@ router.put('/api/teacher/guardian-requests/:id/reject',
             if (io) {
                 io.to(`user_${requestDoc.parent.user_id}`).emit('new_notification', populatedNotif);
             }
+
+            // SEND EMAIL
+            if (requestDoc.parent.email) {
+                await sendGuardianRejectedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, "Teacher", reason);
+            }
         }
 
+        // Cleanup uploaded ID
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
         }
@@ -931,10 +947,16 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
     }
 });
 
-// 4. FINAL REJECT
+// ==========================================
+// 4. FINAL REJECT (SUPERADMIN)
+// ==========================================
 router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated, hasRole('superadmin'), async (req, res) => {
     try {
         const requestId = req.params.id;
+        const { reason } = req.body; 
+        
+        if (!reason) return res.status(400).json({ message: "Rejection reason is required." });
+
         const currentUserId = Number(req.user.user_id);
 
         const requestDoc = await GuardianRequest.findById(requestId)
@@ -950,46 +972,27 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
         requestDoc.status = 'rejected';
         await requestDoc.save();
 
-        const io = req.app.get('socketio');
-
-        // --- 2. NOTIFY PARENT ---
+        // Notify Parent (In-App + Email)
         if (requestDoc.parent && requestDoc.parent.user_id) {
-            const parentNotif = new Notification({
+            // --- THE FIX: ADDED REASON TO IN-APP NOTIFICATION ---
+            const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'Alert', // Renders red on the frontend
                 title: 'Guardian Registration Rejected',
-                message: `SuperAdmin has rejected the final registration for ${guardianName}. Please contact the school office for details.`,
+                message: `Your request for ${guardianName} to become an authorized personnel has been rejected by the Superadmin. Reason: ${reason}`,
                 is_read: false
             });
-            const savedParentNotif = await parentNotif.save();
-            const populatedParentNotif = await Notification.findById(savedParentNotif._id)
-                .populate('sender_details', 'first_name last_name profile_picture');
+            const savedNotif = await notification.save();
+            req.app.get('socketio').emit('new_notification', savedNotif);
 
-            if (io) {
-                io.to(`user_${requestDoc.parent.user_id}`).emit('new_notification', populatedParentNotif);
+            // SEND EMAIL
+            if (requestDoc.parent.email) {
+                await sendGuardianRejectedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, "Superadmin", reason);
             }
         }
 
-        // --- 3. NOTIFY TEACHER ---
-        if (requestDoc.teacher && requestDoc.teacher.user_id) {
-            const teacherNotif = new Notification({
-                recipient_id: Number(requestDoc.teacher.user_id),
-                sender_id: currentUserId,
-                type: 'Alert',
-                title: 'Guardian Request Rejected',
-                message: `The guardian request for ${guardianName} Parent: ${requestDoc.parent?.first_name} ${requestDoc.parent?.last_name} was rejected during final review by SuperAdmin.`,
-                is_read: false
-            });
-            const savedTeacherNotif = await teacherNotif.save();
-            const populatedTeacherNotif = await Notification.findById(savedTeacherNotif._id)
-                .populate('sender_details', 'first_name last_name profile_picture');
-
-            if (io) {
-                io.to(`user_${requestDoc.teacher.user_id}`).emit('new_notification', populatedTeacherNotif);
-            }
-        }
-
+        // Cleanup ID photo
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
         }
@@ -999,7 +1002,7 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
           action: "Reject Guardian Registration",
-          target: `Rejected final registration for: ${guardianName}`
+          target: `Rejected final registration for: ${guardianName}. Reason: ${reason}`
         });
         await auditLog.save();
 

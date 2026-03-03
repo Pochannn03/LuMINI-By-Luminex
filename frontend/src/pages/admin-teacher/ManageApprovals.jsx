@@ -22,7 +22,6 @@ export default function ManageApprovals() {
   const [historyRequests, setHistoryRequests] = useState([]); 
   const [loading, setLoading] = useState(true);
 
-  // --- NEW: Wired up the Search Bar ---
   const [searchQuery, setSearchQuery] = useState("");
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -33,6 +32,9 @@ export default function ManageApprovals() {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [modalType, setModalType] = useState("approve");
+  
+  // --- NEW: REJECT REASON STATE ---
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +66,6 @@ export default function ManageApprovals() {
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // Helper to filter lists based on search
   const filterBySearch = (list) => {
     if (!searchQuery) return list;
     const lowerQ = searchQuery.toLowerCase();
@@ -105,23 +106,35 @@ export default function ManageApprovals() {
     e.stopPropagation();
     setPendingActionId(id);
     setModalType("reject");
+    setRejectReason(""); // Reset reason field
     setConfirmModalOpen(true);
   };
 
+  // --- UPDATED: SEND REASON TO BACKEND ---
   const handleConfirmAction = async () => {
     const id = pendingActionId;
     const endpoint = modalType; 
+    
+    let payload = {};
+    if (modalType === "reject") {
+      if (!rejectReason.trim()) {
+        alert("Please provide a reason for rejection.");
+        return;
+      }
+      payload = { reason: rejectReason };
+    }
+
     setConfirmModalOpen(false); 
     
     try {
       const response = await axios.put(
         `${BACKEND_URL}/api/teacher/guardian-requests/${id}/${endpoint}`,
-        {}, { withCredentials: true }
+        payload, { withCredentials: true }
       );
 
       setSuccessMessage(modalType === "approve" 
         ? "Request verified and forwarded to Superadmin." 
-        : "Application has been rejected.");
+        : "Application has been rejected and the parent has been notified.");
       setShowSuccessModal(true);
 
       const actedRequest = requests.find(req => req._id === id);
@@ -216,10 +229,8 @@ export default function ManageApprovals() {
             <span className="material-symbols-outlined" style={{ fontSize: "48px", opacity: 0.8 }}>verified_user</span>
           </div>
 
-          {/* --- THE FIX: Z-Index 50 ensures the dropdown overlays the cards --- */}
           <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', position: 'relative', zIndex: 50 }}>
              
-             {/* ROW 1: TABS (50/50 split on mobile) */}
              <div className="tab-group" style={{ display: 'flex', flex: '1 1 auto', minWidth: '280px', background: '#f8fafc', padding: '4px', borderRadius: '10px' }}>
                 <button 
                   className={`tab-btn ${activeTab === "pending" ? "active" : ""}`} 
@@ -237,11 +248,7 @@ export default function ManageApprovals() {
                 </button>
              </div>
 
-             {/* ROW 2: SEARCH & ACTIONS */}
              <div style={{ display: 'flex', flex: '1 1 auto', gap: '12px', minWidth: '280px', alignItems: 'center' }}>
-                
-                {/* --- THE FIX: FLEXBOX SEARCH WRAPPER --- */}
-                {/* Notice how the container looks like an input box, and the input/buttons live cleanly inside it! */}
                 <div style={{ display: 'flex', flex: 1, alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', padding: '4px 4px 4px 12px' }}>
                   <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#94a3b8', marginRight: '8px' }}>search</span>
                   
@@ -253,7 +260,6 @@ export default function ManageApprovals() {
                     style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', minWidth: '50px', height: '34px' }} 
                   />
                   
-                  {/* Filter Wrapper (Lives inside the Search Bar container) */}
                   <div style={{ position: 'relative' }} ref={filterRef}>
                     <button 
                       onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -263,7 +269,6 @@ export default function ManageApprovals() {
                       <span className="hide-on-mobile">Filter</span>
                     </button>
 
-                    {/* Dropdown Menu (Z-index 9999 ensures it pops over everything) */}
                     {isFilterOpen && (
                       <div className="filter-dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, zIndex: 9999, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', padding: '8px', minWidth: '180px' }}>
                         <button className="filter-option" onClick={() => handleSort("surname")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>sort_by_alpha</span> Via Surname</button>
@@ -273,7 +278,6 @@ export default function ManageApprovals() {
                   </div>
                 </div>
 
-                {/* RESPONSIVE PDF BUTTON */}
                 {activeTab === "history" && (
                   <button 
                     className="btn-outline" 
@@ -290,7 +294,6 @@ export default function ManageApprovals() {
           </div>
 
           <div className="requests-grid">
-            
             {loading ? (
               <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
                  Fetching pending requests...
@@ -310,40 +313,39 @@ export default function ManageApprovals() {
             {activeTab === "pending" && !loading &&
               filteredPending.map((req) => (
                 <div className="request-card" key={req._id}>
-                  
                   <div className="card-split-header">
-                    
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
                       <div className="person-group">
-                        <img 
-                          src={req.parent ? getImageUrl(req.parent.profile_picture) : getImageUrl(null)} 
-                          alt="Parent" 
-                          className="header-avatar" 
-                        />
+                        <img src={req.parent ? getImageUrl(req.parent.profile_picture) : getImageUrl(null)} alt="Parent" className="header-avatar" />
                         <span className="info-value">
                           {req.parent ? `${req.parent.first_name} ${req.parent.last_name}` : "Unknown Parent"}
                         </span>
                       </div>
                     </div>
-
                     <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
                       <span className="info-label">Requested Guardian</span>
                       <div className="person-group">
-                        <img src={getImageUrl(req.guardianDetails.idPhotoPath)} alt="Guardian ID" className="header-avatar" />
+                        {/* --- THE FIX: ONERROR FOR CARD AVATAR --- */}
+                        <img 
+                          src={getImageUrl(req.guardianDetails.idPhotoPath)} 
+                          alt="Guardian ID" 
+                          className="header-avatar" 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                          }}
+                        />
                         <div className="name-stack">
                           <span className="info-value">{req.guardianDetails.firstName} {req.guardianDetails.lastName}</span>
                           <span className="role-tag">{req.guardianDetails.role}</span>
                         </div>
                       </div>
-                      
                       <div className="view-details-btn">
-                        <span className="material-symbols-outlined" style={{fontSize: '14px'}}>visibility</span>
-                        View Details
+                        <span className="material-symbols-outlined" style={{fontSize: '14px'}}>visibility</span> View Details
                       </div>
                     </div>
                   </div>
-
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
@@ -353,19 +355,14 @@ export default function ManageApprovals() {
                         : "Unknown Student"}
                     </div>
                   </div>
-
                   <div className="card-row">
                     <span className="info-label">Requested On</span>
-                    <span className="info-value" style={{fontWeight: 500, fontSize: '13px'}}>
-                      {formatDateTime(req.createdAt)}
-                    </span>
+                    <span className="info-value" style={{fontWeight: 500, fontSize: '13px'}}>{formatDateTime(req.createdAt)}</span>
                   </div>
-
                   <div className="card-actions">
                     <button className="btn-card btn-reject" onClick={(e) => handleRejectClick(e, req._id)}>Reject</button>
                     <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Verify</button>
                   </div>
-
                 </div>
               ))}
 
@@ -382,7 +379,6 @@ export default function ManageApprovals() {
             ) : activeTab === "history" && !loading && (
               filteredHistory.map((req) => (
                 <div className="request-card" key={req._id} style={{ opacity: 0.9 }}> 
-                  
                   <div className="card-split-header">
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
@@ -393,11 +389,19 @@ export default function ManageApprovals() {
                         </span>
                       </div>
                     </div>
-
                     <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
                       <span className="info-label">Requested Guardian</span>
                       <div className="person-group">
-                        <img src={getImageUrl(req.guardianDetails.idPhotoPath)} alt="Guardian ID" className="header-avatar" />
+                        {/* --- THE FIX: ONERROR FOR HISTORY CARD AVATAR --- */}
+                        <img 
+                          src={getImageUrl(req.guardianDetails.idPhotoPath)} 
+                          alt="Guardian ID" 
+                          className="header-avatar" 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                          }}
+                        />
                         <div className="name-stack">
                           <span className="info-value">{req.guardianDetails.firstName} {req.guardianDetails.lastName}</span>
                           <span className="role-tag" style={{ background: '#e2e8f0', color: '#64748b' }}>{req.guardianDetails.role}</span>
@@ -408,7 +412,6 @@ export default function ManageApprovals() {
                       </div>
                     </div>
                   </div>
-
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
@@ -418,7 +421,6 @@ export default function ManageApprovals() {
                         : "Unknown Student"}
                     </div>
                   </div>
-
                   <div className="card-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', padding: '16px' }}>
                     {req.status === 'teacher_approved' && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
@@ -441,7 +443,6 @@ export default function ManageApprovals() {
                       </span>
                     )}
                   </div>
-
                 </div>
               ))
             )}
@@ -467,12 +468,10 @@ export default function ManageApprovals() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px' }}>
-              
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Applicant Details
                 </h3>
-                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>First Name</label>
@@ -483,7 +482,6 @@ export default function ManageApprovals() {
                     <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.lastName}</div>
                   </div>
                 </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Relationship</label>
@@ -494,7 +492,6 @@ export default function ManageApprovals() {
                     <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.phone}</div>
                   </div>
                 </div>
-
                 <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                   <label style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
                   <div style={{ fontSize: '15px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
@@ -517,32 +514,31 @@ export default function ManageApprovals() {
                   onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
                   onMouseOut={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
                 >
+                  {/* --- THE FIX: ONERROR FOR ID DOCUMENT IN MODAL --- */}
                   <img 
                     src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath)} 
                     alt="ID Document" 
-                    style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px' }}
+                    style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px' }} 
+                    onError={(e) => {
+                      e.target.onerror = null; 
+                      e.target.src = `https://placehold.co/600x400/f8fafc/94a3b8?text=ID+Deleted+(Rejected)`;
+                    }}
                   />
                   <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
                     <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
                   </div>
                 </div>
               </div>
-
             </div>
             
-            {/* Modal Footer Actions */}
             {selectedRequest.status === 'pending' ? (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
-                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleRejectClick(e, selectedRequest._id)}>
-                  Reject
-                </button>
-                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApproveClick(e, selectedRequest._id)}>
-                  Verify
-                </button>
+                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleRejectClick(e, selectedRequest._id)}>Reject</button>
+                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApproveClick(e, selectedRequest._id)}>Verify</button>
               </div>
             ) : (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
-                {selectedRequest.status === 'teacher_approved' && (
+                 {selectedRequest.status === 'teacher_approved' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
                     <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
                   </span>
@@ -564,50 +560,60 @@ export default function ManageApprovals() {
                 )}
               </div>
             )}
-
           </div>
         </div>
       )}
 
       {expandedImage && (
-        <div 
-          style={{
-            position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out'
-          }}
-          onClick={() => setExpandedImage(null)}
-        >
-          <img 
-            src={expandedImage} 
-            alt="Expanded ID" 
-            style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} 
-          />
-          <button 
-            style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onClick={() => setExpandedImage(null)}
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }} onClick={() => setExpandedImage(null)}>
+          <img src={expandedImage} alt="Expanded ID" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
         </div>
       )}
 
-      <TeacherConfirmationModal
-        isOpen={confirmModalOpen}
-        onClose={() => setConfirmModalOpen(false)}
-        onConfirm={handleConfirmAction}
-        title={modalType === "approve" ? "Verify Application?" : "Reject Application?"}
-        message={modalType === "approve" 
-          ? "Are you sure? This will verify the request and forward it to the Superadmin for final approval." 
-          : "Are you sure you want to reject this request? This action cannot be undone."}
-        confirmText={modalType === "approve" ? "Yes, Verify" : "Yes, Reject"}
-        type={modalType === "approve" ? "info" : "danger"}
-      />
+      {modalType === "approve" && (
+        <TeacherConfirmationModal
+          isOpen={confirmModalOpen}
+          onClose={() => setConfirmModalOpen(false)}
+          onConfirm={handleConfirmAction}
+          title="Verify Application?"
+          message="Are you sure? This will verify the request and forward it to the Superadmin for final approval."
+          confirmText="Yes, Verify"
+          type="info"
+        />
+      )}
 
-      <SuccessModal
-        isOpen={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        message={successMessage}
-      />
+      {/* --- NEW CUSTOM REJECTION MODAL WITH REASON INPUT --- */}
+      {modalType === "reject" && confirmModalOpen && (
+        <div className="modal-overlay active" style={{ zIndex: 9999 }}>
+          <div className="modal-card" style={{ maxWidth: '400px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#ef4444' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>warning</span>
+              <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Reject Application?</h2>
+            </div>
+            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+              You are about to reject this guardian request. Please provide a reason to help the parent understand what needs to be fixed.
+            </p>
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                Reason for Rejection <span style={{color: '#ef4444'}}>*</span>
+              </label>
+              <textarea 
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g., ID is blurry, Name does not match, Unrecognized person..."
+                style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
+              />
+            </div>
+            {/* --- FIX: UPDATED JUSTIFYCONTENT SYNTAX --- */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button onClick={() => setConfirmModalOpen(false)} style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+              <button disabled={!rejectReason.trim()} onClick={handleConfirmAction} style={{ background: rejectReason.trim() ? '#ef4444' : '#fca5a5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: rejectReason.trim() ? 'pointer' : 'not-allowed' }}>Reject & Notify Parent</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} message={successMessage} />
 
     </div>
   );

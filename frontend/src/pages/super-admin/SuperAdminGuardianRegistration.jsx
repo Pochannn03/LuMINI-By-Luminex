@@ -1,3 +1,5 @@
+// frontend/src/pages/super-admin/SuperAdminGuardianRegistration.jsx
+
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import NavBar from "../../components/navigation/NavBar";
@@ -25,6 +27,9 @@ export default function SuperAdminGuardianRegistration() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [successConfig, setSuccessConfig] = useState({ isOpen: false, message: "" });
   const [warningConfig, setWarningConfig] = useState({ isOpen: false, title: "", message: "" });
+
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
     document.body.classList.add("dashboard-mode");
@@ -65,16 +70,23 @@ export default function SuperAdminGuardianRegistration() {
     try {
       const endpoint = actionType === 'approve' ? 'final-approve' : 'final-reject';
       
-      await axios.put(`${BACKEND_URL}/api/superadmin/guardian-requests/${selectedRequest._id}/${endpoint}`, {}, { withCredentials: true });
+      let payload = {};
+      if (actionType === 'reject') {
+        payload = { reason: rejectReason };
+      }
+      
+      await axios.put(`${BACKEND_URL}/api/superadmin/guardian-requests/${selectedRequest._id}/${endpoint}`, payload, { withCredentials: true });
 
       const message = actionType === 'approve' 
         ? "Guardian registration officially finalized & account created!" 
-        : "Guardian registration rejected.";
+        : "Guardian registration rejected and parent notified.";
       
       setSuccessConfig({ isOpen: true, message });
       
       setRequests(prev => prev.filter(r => r._id !== selectedRequest._id));
       setSelectedRequest(null);
+      setShowRejectModal(false);
+      setRejectReason("");
     } catch (error) {
       console.error("Action failed:", error);
       setWarningConfig({
@@ -181,10 +193,15 @@ export default function SuperAdminGuardianRegistration() {
 
                     <div className="flex items-center gap-4 mb-6">
                        <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white bg-slate-100 font-bold text-lg shadow-inner overflow-hidden shrink-0 border border-gray-100">
+                          {/* --- THE FIX: ONERROR FOR CARD AVATAR --- */}
                           <img 
                             src={getImageUrl(req.guardianDetails?.idPhotoPath, req.guardianDetails?.firstName)} 
                             alt="Avatar" 
                             className="w-full h-full object-cover" 
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails?.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                            }}
                           />
                        </div>
                       <div className="flex flex-col overflow-hidden">
@@ -220,7 +237,7 @@ export default function SuperAdminGuardianRegistration() {
         </div>
       </main>
 
-      {selectedRequest && (
+      {selectedRequest && !showRejectModal && (
         <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={() => !isProcessing && setSelectedRequest(null)}>
           <div className="bg-white rounded-3xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col transform scale-100 transition-transform" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
@@ -237,7 +254,16 @@ export default function SuperAdminGuardianRegistration() {
             </div>
             <div className="p-6 flex flex-col gap-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <div className="flex gap-4 items-center">
-                <img src={getImageUrl(selectedRequest.guardianDetails?.idPhotoPath, selectedRequest.guardianDetails?.firstName)} alt="Avatar" className="w-20 h-20 rounded-2xl object-cover border border-slate-200 shadow-sm" />
+                {/* --- THE FIX: ONERROR FOR MODAL AVATAR --- */}
+                <img 
+                  src={getImageUrl(selectedRequest.guardianDetails?.idPhotoPath, selectedRequest.guardianDetails?.firstName)} 
+                  alt="Avatar" 
+                  className="w-20 h-20 rounded-2xl object-cover border border-slate-200 shadow-sm" 
+                  onError={(e) => {
+                    e.target.onerror = null; 
+                    e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedRequest.guardianDetails?.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                  }}
+                />
                 <div className="flex flex-col">
                   <span className="text-[22px] font-black text-slate-800 leading-tight">{selectedRequest.guardianDetails?.firstName} {selectedRequest.guardianDetails?.lastName}</span>
                   <div className="flex items-center gap-2 mt-1">
@@ -267,10 +293,15 @@ export default function SuperAdminGuardianRegistration() {
                   className="w-full h-[180px] bg-slate-100 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden group cursor-zoom-in" 
                   onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails?.idPhotoPath, selectedRequest.guardianDetails?.firstName))}
                 >
+                  {/* --- THE FIX: ONERROR FOR MODAL ID DOCUMENT --- */}
                   <img 
                     src={getImageUrl(selectedRequest.guardianDetails?.idPhotoPath, selectedRequest.guardianDetails?.firstName)} 
                     alt="Submitted Document" 
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.onerror = null; 
+                      e.target.src = `https://placehold.co/600x400/f8fafc/94a3b8?text=ID+Deleted+(Rejected)`;
+                    }}
                   />
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-white bg-slate-900/0 group-hover:bg-slate-900/40 transition-all duration-300 opacity-0 group-hover:opacity-100">
                     <span className="material-symbols-outlined text-[32px] mb-1 drop-shadow-md">zoom_in</span>
@@ -280,17 +311,68 @@ export default function SuperAdminGuardianRegistration() {
               </div>
             </div>
             
-            {/* Action Buttons: Only show if pending */}
             {activeTab === 'pending' && (
               <div className="flex border-t border-slate-100 mt-auto p-4 gap-4 bg-gray-50/50">
-                <button className="flex-1 py-3 text-[14px] font-bold text-slate-500 bg-white border border-gray-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm" onClick={() => handleFinalAction('reject')} disabled={isProcessing}>
+                <button 
+                  className="flex-1 py-3 text-[14px] font-bold text-slate-500 bg-white border border-gray-200 rounded-xl hover:bg-slate-50 transition-colors shadow-sm" 
+                  onClick={() => setShowRejectModal(true)} 
+                  disabled={isProcessing}
+                >
                   Reject
                 </button>
-                <button className="flex-1 py-3 text-[14px] font-bold text-white bg-[#334155] rounded-xl hover:bg-slate-800 transition-colors shadow-sm disabled:bg-slate-400" onClick={() => handleFinalAction('approve')} disabled={isProcessing}>
+                <button 
+                  className="flex-1 py-3 text-[14px] font-bold text-white bg-[#334155] rounded-xl hover:bg-slate-800 transition-colors shadow-sm disabled:bg-slate-400" 
+                  onClick={() => handleFinalAction('approve')} 
+                  disabled={isProcessing}
+                >
                   {isProcessing ? "Processing..." : "Finalize Registration"}
                 </button>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showRejectModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]">
+          <div className="bg-white rounded-2xl w-full max-w-[400px] overflow-hidden shadow-2xl p-6">
+            <div className="flex items-center gap-3 mb-4 text-red-500">
+              <span className="material-symbols-outlined text-[32px]">warning</span>
+              <h2 className="text-[20px] font-extrabold text-slate-800">Final Rejection</h2>
+            </div>
+            
+            <p className="text-[14px] text-slate-600 mb-5 leading-relaxed">
+              Please provide a clear reason for denying this guardian access. This reason will be emailed to the parent.
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-[13px] font-bold text-slate-500 uppercase tracking-wide mb-2">
+                Reason <span className="text-red-500">*</span>
+              </label>
+              <textarea 
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g., The uploaded ID is expired, or name does not match the ID provided..."
+                className="w-full p-3 border border-slate-300 rounded-xl text-[14px] text-slate-700 focus:outline-none focus:border-red-400 focus:ring-2 focus:ring-red-100 min-h-[100px] resize-y"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowRejectModal(false)}
+                className="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                disabled={isProcessing}
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={!rejectReason.trim() || isProcessing}
+                onClick={() => handleFinalAction('reject')} 
+                className="flex-1 py-2.5 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 disabled:bg-red-300 transition-colors"
+              >
+                {isProcessing ? "Rejecting..." : "Send Rejection"}
+              </button>
+            </div>
           </div>
         </div>
       )}
