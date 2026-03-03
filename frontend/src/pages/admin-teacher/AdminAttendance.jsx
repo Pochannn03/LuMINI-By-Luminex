@@ -18,6 +18,26 @@ const dateToInputString = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const convertTo24Hour = (time12h) => {
+  if (!time12h || time12h === '---') return '';
+  const [time, modifier] = time12h.split(' ');
+  if (!time || !modifier) return '';
+  let [hours, minutes] = time.split(':');
+  if (hours === '12') hours = '00';
+  if (modifier === 'PM') hours = (parseInt(hours, 10) + 12).toString();
+  return `${hours.padStart(2, '0')}:${minutes}`;
+};
+
+const convertTo12Hour = (time24h) => {
+  if (!time24h) return '---';
+  let [hours, minutes] = time24h.split(':');
+  let hoursInt = parseInt(hours, 10);
+  const modifier = hoursInt >= 12 ? 'PM' : 'AM';
+  if (hoursInt === 0) hoursInt = 12;
+  if (hoursInt > 12) hoursInt -= 12;
+  return `${hoursInt}:${minutes} ${modifier}`;
+};
+
 // --- IMAGE HELPER ---
 const BACKEND_URL = "http://localhost:3000";
 
@@ -45,6 +65,9 @@ export default function AdminAttendance() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef(null);
   const dateInputRef = useRef(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- 1. FETCH DATA FROM DB ---
   useEffect(() => {
@@ -101,6 +124,63 @@ export default function AdminAttendance() {
     
     setStats({ present, late, absent });
   }, [filteredRecords]);
+
+  const handleLocalChange = (recordId, field, value) => {
+    setPendingChanges(prev => {
+      const existing = prev[recordId] || {};
+      return {
+        ...prev,
+        [recordId]: {
+          ...existing,
+          [field]: value
+        }
+      };
+    });
+  };
+
+  const handleSubmitChanges = async () => {
+    const updates = Object.keys(pendingChanges);
+    if (updates.length === 0) {
+      setIsEditMode(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await Promise.all(
+        updates.map(id => {
+          const currentRecord = attendanceData.find(r => r._id === id);
+          const payload = {
+            status: pendingChanges[id].status || currentRecord.status,
+            time_in: pendingChanges[id].time_in !== undefined ? pendingChanges[id].time_in : currentRecord.time_in
+          };
+          return axios.put(`http://localhost:3000/api/attendance/${id}`, payload, { withCredentials: true });
+        })
+      );
+
+      setAttendanceData(prevData => 
+        prevData.map(record => {
+          const pending = pendingChanges[record._id];
+          if (pending) {
+            return {
+              ...record,
+              status: pending.status || record.status,
+              time_in: pending.time_in !== undefined ? pending.time_in : record.time_in
+            };
+          }
+          return record;
+        })
+      );
+
+      setPendingChanges({});
+      setIsEditMode(false);
+    } catch (err) {
+      console.error("Failed to submit changes:", err);
+      alert("Failed to save changes. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
@@ -198,8 +278,11 @@ export default function AdminAttendance() {
           
           <div className="flex flex-col gap-6">
             <div className="card p-6 min-h-[500px]">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
-                <div className="flex items-center gap-3">
+              {/* --- HEADER AREA --- */}
+              <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-6">
+                
+                {/* Title & Icon */}
+                <div className="flex items-start gap-3 shrink-0">
                   <span className="material-symbols-outlined blue-icon text-[32px]">list_alt</span>
                   <div>
                     <h2 className="text-cdark text-[18px] font-bold">Student List</h2>
@@ -207,50 +290,19 @@ export default function AdminAttendance() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  {/* SECTION FILTER */}
-                  <div className="filter-wrapper" ref={filterRef}>
-                    <button 
-                      className={`btn-filter ${isFilterOpen ? "active" : ""}`} 
-                      onClick={() => setIsFilterOpen(!isFilterOpen)}
-                      style={{ height: '38px', textTransform: 'uppercase', fontSize: '12px' }}
-                    >
-                      <span className="material-symbols-outlined">filter_list</span> 
-                      {selectedSection === "all" ? "All Sections" : selectedSection}
-                    </button>
-
-                    {isFilterOpen && (
-                      <div className="filter-dropdown-menu" style={{ top: '42px', right: 0 }}>
-                        <button 
-                          className="filter-option" 
-                          onClick={() => { setSelectedSection("all"); setIsFilterOpen(false); }}
-                        >
-                          <span className="material-symbols-outlined">groups</span> All Sections
-                        </button>
-                        
-                        {teacherSections.map(section => (
-                          <button 
-                            key={section._id} 
-                            className="filter-option" 
-                            onClick={() => { setSelectedSection(section.section_name); setIsFilterOpen(false); }}
-                          >
-                            <span className="material-symbols-outlined">inbox</span> {section.section_name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* SHRUNK DATE NAVIGATOR */}
-                  <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm self-start sm:self-auto">
-                    <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                {/* Right Side Controls */}
+                <div className="flex flex-col gap-3 w-full xl:w-auto xl:ml-auto shrink-0 mt-4 xl:mt-0">
+                  
+                  {/* TOP ROW: DATE NAVIGATOR (Stretched to match width) */}
+                  <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm w-full h-[38px]">
+                    <button onClick={() => handleDateChange(-1)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0">
                       <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                     </button>
                     
-                    <div className="relative">
+                    <div className="relative h-full flex items-center flex-1">
                       <button 
                         onClick={() => dateInputRef.current.showPicker()} 
-                        className="flex items-center justify-between gap-3 px-3 py-1.5 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-[175px] cursor-pointer"
+                        className="flex items-center justify-center gap-3 px-3 h-full w-full rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 cursor-pointer"
                       >
                         <div className="flex items-center gap-2">
                           <span className="material-symbols-outlined text-[18px] text-blue-500">calendar_month</span>
@@ -258,8 +310,8 @@ export default function AdminAttendance() {
                             {monthDay}
                           </span>
                         </div>
-                        <div className="w-px h-3 bg-gray-300"></div>
-                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                        <div className="w-px h-3 bg-gray-300 hidden sm:block"></div>
+                        <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide hidden sm:block">
                           {weekday.slice(0, 3)}
                         </span>
                       </button>
@@ -273,29 +325,103 @@ export default function AdminAttendance() {
                       />
                     </div>
 
-                    <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                    <button onClick={() => handleDateChange(1)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0">
                       <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                     </button>
+                  </div>
+
+                  {/* BOTTOM ROW: FILTER & EDIT/SUBMIT BUTTONS */}
+                  <div className="flex items-center justify-between sm:justify-end gap-2 w-full">
+                    
+                    {/* 1. SECTION FILTER */}
+                    <div className="filter-wrapper relative flex-1 min-w-0 max-w-40 sm:max-w-none" ref={filterRef}>
+                      <button 
+                        className={`btn-filter flex w-full items-center justify-center gap-1.5 px-2 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all font-bold text-slate-700 ${isFilterOpen ? "active ring-2 ring-blue-100" : ""}`} 
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        style={{ height: '38px', textTransform: 'uppercase' }}
+                      >
+                        <span className="material-symbols-outlined text-[16px] sm:text-[18px] shrink-0">filter_list</span> 
+                        <span className="text-[11px] sm:text-[12px] whitespace-nowrap truncate">
+                          {selectedSection === "all" ? "All Sections" : selectedSection}
+                        </span>
+                      </button>
+                      
+                      {isFilterOpen && (
+                        <div className="filter-dropdown-menu absolute bg-white shadow-lg border border-slate-100 rounded-xl mt-2 w-48 z-50 overflow-hidden" style={{ top: '100%', left: 0 }}>
+                          <button 
+                            className="filter-option w-full text-left px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors border-b border-slate-50" 
+                            onClick={() => { setSelectedSection("all"); setIsFilterOpen(false); }}
+                          >
+                            <span className="material-symbols-outlined text-[16px]">groups</span> All Sections
+                          </button>
+                          
+                          {teacherSections.map(section => (
+                            <button 
+                              key={section._id} 
+                              className="filter-option w-full text-left px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors border-b border-slate-50 last:border-0" 
+                              onClick={() => { setSelectedSection(section.section_name); setIsFilterOpen(false); }}
+                            >
+                              <span className="material-symbols-outlined text-[16px]">inbox</span> {section.section_name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. EDIT / SUBMIT BUTTONS */}
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                      {isEditMode ? (
+                        <>
+                          <button
+                            onClick={() => { setIsEditMode(false); setPendingChanges({}); }}
+                            className="text-slate-500 hover:text-slate-800 font-extrabold px-2 sm:px-3 text-[11px] sm:text-[12px] uppercase cursor-pointer h-[38px] flex items-center tracking-wider transition-colors shrink-0"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSubmitChanges}
+                            disabled={isSubmitting}
+                            className="bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl font-bold px-3 sm:px-5 flex items-center gap-1.5 text-[12px] sm:text-[13px] transition-all shadow-sm cursor-pointer disabled:opacity-50 h-[38px] shrink-0 whitespace-nowrap"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">
+                              {isSubmitting ? 'hourglass_empty' : 'check_circle'}
+                            </span>
+                            {isSubmitting ? 'Save' : 'Submit'}
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          onClick={() => setIsEditMode(true)}
+                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold px-4 flex items-center gap-2 text-[12px] sm:text-[13px] transition-all shadow-sm cursor-pointer h-[38px] w-full sm:w-auto justify-center shrink-0 whitespace-nowrap"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                          Edit
+                        </button>
+                      )}
+                    </div>
+
                   </div>
                 </div>
               </div>
 
-              <div className="overflow-visible">
-                <table className="w-full text-left border-separate border-spacing-0">
+              <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+                <table className="w-full min-w-[750px] text-left border-separate border-spacing-0">
                   <thead>
                     <tr className="border-b border-gray-100">
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%]">Student</th>
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[20%] text-center">Time</th>
-                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%] text-center">Status</th>
-                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%] text-center">Remarks</th>
+                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[30%] text-center">Status</th>
+                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[10%] text-center">Remarks</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {loading ? (
-                      <tr><td colSpan="3" className="py-10 text-center italic text-gray-400">Loading records...</td></tr>
+                      <tr><td colSpan="4" className="py-10 text-center italic text-gray-400">Loading records...</td></tr>
                     ) : filteredRecords.length > 0 ? (
                       filteredRecords.map((record) => (
                         <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
+                          
+                          {/* 1. STUDENT COLUMN */}
                           <td className="py-4 px-2">
                             <div className="flex items-center gap-3">
                               <img 
@@ -312,19 +438,69 @@ export default function AdminAttendance() {
                               </div>
                             </div>
                           </td>
+
+                          {/* 2. TIME COLUMN */}
                           <td className="py-4 px-2 text-center">
-                            <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1 rounded-lg">
-                              {record.time_in}
-                            </span>
+                            {isEditMode ? (
+                              <div className="flex justify-center">
+                                <input
+                                  type="time"
+                                  className="bg-white border border-slate-200 text-slate-700 text-[12px] font-bold px-2 py-1.5 rounded-lg w-[110px] text-center shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-text"
+                                  value={convertTo24Hour(pendingChanges[record._id]?.time_in !== undefined ? pendingChanges[record._id].time_in : record.time_in)}
+                                  onChange={(e) => handleLocalChange(record._id, 'time_in', convertTo12Hour(e.target.value))}
+                                />
+                              </div>
+                            ) : (
+                              <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1 rounded-lg whitespace-nowrap">
+                                {record.time_in || "---"}
+                              </span>
+                            )}
                           </td>
+
+                          {/* 3. STATUS COLUMN */}
                           <td className="py-4 px-2 text-center">
-                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              record.status === 'Present' ? 'bg-green-50 text-green-600' : 
-                              record.status === 'Late' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
-                            }`}>
-                              {record.status}
-                            </span>
+                            {isEditMode ? (
+                              /* Interactive Status Toggle (Edit Mode) */
+                              <div className="flex flex-nowrap whitespace-nowrap bg-[#f1f5f9] rounded-xl p-1 w-max mx-auto shadow-inner border border-slate-100 items-center">
+                                {['Present', 'Late', 'Absent'].map((statusOption) => {
+                                  const currentStatus = pendingChanges[record._id]?.status || record.status;
+                                  const isActive = currentStatus === statusOption;
+                                  
+                                  // Assign Colors: Green, Yellow, Red
+                                  let activeTextColor = 'text-slate-800';
+                                  if (isActive) {
+                                    if (statusOption === 'Present') activeTextColor = 'text-green-600'; 
+                                    if (statusOption === 'Late') activeTextColor = 'text-yellow-600';
+                                    if (statusOption === 'Absent') activeTextColor = 'text-red-600';
+                                  }
+
+                                  return (
+                                    <button
+                                      key={statusOption}
+                                      onClick={() => handleLocalChange(record._id, 'status', statusOption)}
+                                      className={`px-4 py-1.5 rounded-lg text-[13px] font-bold transition-all duration-200 cursor-pointer ${
+                                        isActive
+                                          ? `bg-white shadow-sm border border-slate-200/60 ${activeTextColor}`
+                                          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 border border-transparent'
+                                      }`}
+                                    >
+                                      {statusOption}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              /* Read-Only Status Badge (Default Mode) */
+                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block ${
+                                record.status === 'Present' ? 'bg-green-50 text-green-600' : 
+                                record.status === 'Late' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
+                              }`}>
+                                {record.status}
+                              </span>
+                            )}
                           </td>
+
+                          {/* 4. REMARKS COLUMN */}
                           <td className="py-3 px-2 text-center relative overflow-visible">
                             {record.details ? (
                               <div className="inline-flex items-center justify-center relative group/note">
@@ -338,23 +514,18 @@ export default function AdminAttendance() {
                                                 absolute z-[9999] bottom-[130%] left-1/2 -translate-x-1/2 mb-2
                                                 w-[260px] h-auto pointer-events-none transition-all duration-200 ease-out origin-bottom">
                                   
-                                  {/* Changed background to Primary Blue (bg-[#39A8ED] or similar) */}
                                   <div className="bg-[#39A8ED] text-white p-4 rounded-2xl shadow-[0_10px_30px_-5px_rgba(57,168,237,0.4)] border border-blue-300/30 relative">
-                                    
-                                    {/* Header */}
                                     <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/20">
                                       <span className="material-symbols-outlined text-white text-[16px]">chat_bubble</span>
                                       <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white">Absence Note</span>
                                     </div>
 
-                                    {/* Note Content - Wraps and expands naturally */}
                                     <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
                                       <p className="text-[11px]! leading-normal text-white! font-medium italic text-left whitespace-normal wrap-break-word">
                                         "{record.details}"
                                       </p>
                                     </div>
 
-                                    {/* The Pointy Arrow (Colored to match the Primary Blue) */}
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 
                                                     border-l-10 border-l-transparent 
                                                     border-r-10 border-r-transparent 
@@ -369,12 +540,13 @@ export default function AdminAttendance() {
                               </span>
                             )}
                           </td>
+
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan="3" className="py-10 text-center italic text-gray-400">
-                          <div className="flex flex-col gap-1">
+                        <td colSpan="4" className="py-10 text-center italic text-gray-400">
+                          <div className="flex flex-col gap-1 items-center justify-center">
                             <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
                             No records found for {monthDay}.
                           </div>
