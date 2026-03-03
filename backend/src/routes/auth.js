@@ -25,17 +25,26 @@ router.post("/api/auth", (req, res, next) => {
     }
 
     if (!user) {
+      // --- NEW: Identify the user's role before rejecting them ---
+      const attemptedUser = await User.findOne({ username: req.body.username });
+      const userRole = attemptedUser ? attemptedUser.role : null;
+
       const failedAudit = new Audit({
-        user_id: 0, // 0 or null represents an unauthenticated/unknown user
-        full_name: "Unauthenticated System Attempt",
-        role: "user",
+        user_id: attemptedUser ? attemptedUser.user_id : 0, 
+        full_name: attemptedUser ? `${attemptedUser.first_name} ${attemptedUser.last_name}` : "Unauthenticated System Attempt",
+        role: userRole || "user",
         action: "Login Failed",
         target: `Failed login attempt for username: ${req.body.username || 'Unknown'}`
       });
 
       await failedAudit.save().catch(e => console.error("Audit Save Error:", e));
 
-      return res.status(401).json({ message: "Invalid Credentials" });
+      // We send back the role so the frontend knows if it should count the strikes!
+      return res.status(401).json({ 
+          message: "Invalid Credentials",
+          role: userRole,
+          isUserFound: !!attemptedUser
+      });
     }
 
     if (user.is_archive === true) {
@@ -65,7 +74,6 @@ router.post("/api/auth", (req, res, next) => {
         return res.status(500).json({ message: "Session login failed" });
       }
 
-      // 3. Force Session Save (The fix we discussed)
       req.session.save(async (err) => {
         if (err) {
           return res.status(500).json({ message: "Session save failed" });
