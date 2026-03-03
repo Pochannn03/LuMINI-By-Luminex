@@ -13,6 +13,13 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+// --- NEW IMPORTS FOR EMAILS ---
+import { 
+  sendGuardianVerifiedEmail, 
+  sendGuardianFinalizedEmail, 
+  sendGuardianSetupCompleteEmail 
+} from '../utils/emailService.js';
+
 const router = Router();
 
 // ==========================================
@@ -241,7 +248,7 @@ router.get(
 });
 
 // ==========================================
-// TIER 1: TEACHER VERIFIES REQUEST (NO ACCOUNT CREATION)
+// TIER 1: TEACHER VERIFIES REQUEST
 // ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
@@ -252,17 +259,17 @@ router.put('/api/teacher/guardian-requests/:id/approve',
         const currentUserId = Number(req.user.user_id);
         const teacherName = `${req.user.first_name} ${req.user.last_name}`;
 
-        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        // Populate students array so we can grab their names for the email
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent').populate('students');
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
-        // 1. ONLY update status to teacher_approved. No user creation.
         requestDoc.status = 'teacher_approved';
         await requestDoc.save();
 
-        // 2. Notify Parent it's forwarded to Admin
-        if (requestDoc.parent && requestDoc.parent.user_id) {
+        // Notify Parent (In-App + Email)
+        if (requestDoc.parent) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
@@ -274,9 +281,15 @@ router.put('/api/teacher/guardian-requests/:id/approve',
 
             const savedNotif = await notification.save();
             req.app.get('socketio').emit('new_notification', savedNotif);
+
+            // SEND EMAIL
+            if (requestDoc.parent.email) {
+                const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
+                const childNames = requestDoc.students.map(s => s.first_name).join(', ');
+                await sendGuardianVerifiedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, childNames);
+            }
         }
 
-        // 3. Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
@@ -485,6 +498,9 @@ router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
   }
 });
 
+// ==========================================
+// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP
+// ==========================================
 router.put(
   '/api/guardian/setup', 
   isAuthenticated, 
@@ -530,6 +546,17 @@ router.put(
       user.is_first_login = false;
       await user.save();
 
+      // Find the original request so we can email the parent
+      const originalRequest = await GuardianRequest.findOne({ 'guardianDetails.createdUserId': userId }).populate('parent');
+      
+      if (originalRequest && originalRequest.parent && originalRequest.parent.email) {
+          await sendGuardianSetupCompleteEmail(
+              originalRequest.parent.email,
+              originalRequest.parent.first_name,
+              `${user.first_name} ${user.last_name}`
+          );
+      }
+
       const auditLog = new Audit({
         user_id: user.user_id,
         full_name: `${user.first_name} ${user.last_name}`,
@@ -561,7 +588,6 @@ router.get(
             parent: parentId, 
             status: 'approved' 
         })
-        // THE FIX: Populate the live user data straight into the history request!
         .populate('guardianDetails.createdUserId', 'first_name last_name username profile_picture is_first_login phone_number')
         .sort({ updatedAt: -1 });
 
@@ -638,7 +664,7 @@ router.get('/api/superadmin/guardian-requests/pending-final', isAuthenticated, h
     try {
         const requests = await GuardianRequest.find({ status: 'teacher_approved' })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('students', 'first_name last_name student_id') // <-- FIXED BUG HERE
+            .populate('students', 'first_name last_name student_id') 
             .populate('teacher', 'first_name last_name') 
             .sort({ updatedAt: -1 }); 
 
@@ -656,7 +682,7 @@ router.get('/api/superadmin/guardian-requests/history', isAuthenticated, hasRole
               status: { $in: ['approved', 'rejected', 'revoked'] } 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('students', 'first_name last_name student_id') // <-- FIXED BUG HERE
+            .populate('students', 'first_name last_name student_id') 
             .populate('teacher', 'first_name last_name')
             .sort({ updatedAt: -1 }); 
 
@@ -673,12 +699,11 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
         const requestId = req.params.id;
         const currentUserId = Number(req.user.user_id);
 
-        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent').populate('students');
         if (!requestDoc || requestDoc.status !== 'teacher_approved') {
             return res.status(404).json({ message: "Request not found or not ready for final approval." });
         }
 
-        // CREATE THE ACTUAL USER ACCOUNT
         const newGuardian = new User({
             first_name: requestDoc.guardianDetails.firstName,
             last_name: requestDoc.guardianDetails.lastName,
@@ -694,7 +719,6 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
 
         const savedGuardian = await newGuardian.save();
 
-        // LINK TO ALL SELECTED STUDENTS (FIXED HIDDEN BUG HERE)
         if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
             await Student.updateMany(
                 { _id: { $in: requestDoc.students } }, 
@@ -702,13 +726,12 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
             );
         }
 
-        // UPDATE REQUEST STATUS
         requestDoc.status = 'approved';
         requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
-        // NOTIFY PARENT
-        if (requestDoc.parent && requestDoc.parent.user_id) {
+        // Notify Parent (In-App + Email)
+        if (requestDoc.parent) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
@@ -719,9 +742,15 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
             });
             const savedNotif = await notification.save();
             req.app.get('socketio').emit('new_notification', savedNotif);
+
+            // SEND EMAIL
+            if (requestDoc.parent.email) {
+                const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
+                const childNames = requestDoc.students.map(s => s.first_name).join(', ');
+                await sendGuardianFinalizedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, childNames, requestDoc.guardianDetails.tempUsername);
+            }
         }
 
-        // AUDIT LOG
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
@@ -755,7 +784,6 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
         requestDoc.status = 'rejected';
         await requestDoc.save();
 
-        // NOTIFY PARENT
         if (requestDoc.parent && requestDoc.parent.user_id) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
@@ -769,12 +797,10 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
             req.app.get('socketio').emit('new_notification', savedNotif);
         }
 
-        // CLEANUP ID PHOTO
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
         }
 
-        // AUDIT LOG
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
