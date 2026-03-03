@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [childData, setChildData] = useState(null);
+  const [allChildren, setAllChildren] = useState([]);
   const [rawStudentData, setRawStudentData] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
@@ -61,6 +62,8 @@ export default function Dashboard() {
         }
 
         if (Array.isArray(children) && children.length > 0) {
+          setAllChildren(children);
+
           const firstChild = children[0];
           setRawStudentData(firstChild);
 
@@ -84,8 +87,10 @@ export default function Dashboard() {
 
   useEffect(() => {
     const checkQueueStatus = async () => {
+      if (!rawStudentData?.student_id) return; 
+
       try {
-        const response = await axios.get('http://localhost:3000/api/queue/check', { 
+        const response = await axios.get(`http://localhost:3000/api/queue/check?student_id=${rawStudentData.student_id}`, { 
           withCredentials: true 
         });
         setIsParentOnQueue(response.data.onQueue);
@@ -94,7 +99,7 @@ export default function Dashboard() {
       }
     };
     checkQueueStatus();
-  }, []);
+  }, [rawStudentData]);
 
   useEffect(() => {
     const fetchAnnouncements = async () => {
@@ -117,14 +122,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     const fetchPickers = async () => {
-      // CHANGE: Use rawStudentData.user_id to match your database field name
       const idsToFetch = rawStudentData?.user_id; 
 
       if (idsToFetch && idsToFetch.length > 0) {
         try {
           setLoadingPickers(true);
           const response = await axios.post('http://localhost:3000/api/users/profiles', {
-            userIds: idsToFetch // Sending the array [1000, 1001, ...]
+            userIds: idsToFetch
           }, { withCredentials: true });
 
           if (response.data.success) {
@@ -146,7 +150,7 @@ export default function Dashboard() {
     const socket = io("http://localhost:3000", { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
-      if (entry.user_id === user?.user_id) {
+      if (entry.user_id === user?.user_id && entry.student_id === rawStudentData?.student_id) {
         setIsParentOnQueue(true);
       }
     });
@@ -165,9 +169,11 @@ export default function Dashboard() {
 
     socket.on('new_announcement', (newAnn) => {
       setAnnouncements(prev => {
+        // Prevent duplicates
         const exists = prev.some(ann => ann._id === newAnn._id);
         if (exists) return prev;
 
+        // Check if the announcement is global or matches the child's section
         const isGlobal = !newAnn.section_id;
         const matchesSection = rawStudentData && Number(newAnn.section_id) === Number(rawStudentData.section_id);
 
@@ -185,6 +191,24 @@ export default function Dashboard() {
       socket.disconnect();
     };
   }, [rawStudentData, user]);
+
+  const handleChildSwitch = (e) => {
+    const selectedId = e.target.value;
+    const selectedChild = allChildren.find(c => c.student_id === selectedId);
+    
+    if (selectedChild) {
+      setRawStudentData(selectedChild);
+      setChildData({
+        firstName: selectedChild.first_name,
+        lastName: selectedChild.last_name,
+        profilePicture: selectedChild.profile_picture,
+        sectionName: selectedChild.section_details?.section_name || "Not Assigned",
+        status: selectedChild.status,
+        onQueue: selectedChild.on_queue
+      });
+      setIsParentOnQueue(selectedChild.on_queue || false);
+    }
+  };
 
   const handleStatusUpdate = async (statusLabel, isEarlyPickup = false, authorizedPickerId = null) => {
     if (!rawStudentData) {
@@ -209,8 +233,6 @@ export default function Dashboard() {
         status: statusLabel,
         purpose: transferType,
         isEarly: isEarlyPickup,
-        // SEND THE PICKER ID: If it's early pickup, use the selected ID, 
-        // otherwise default to the parent's ID
         authorized_picker_id: authorizedPickerId || user?.user_id 
       }, { withCredentials: true });
 
@@ -239,7 +261,8 @@ export default function Dashboard() {
   };
 
   const hasActivePass = () => {
-    const STORAGE_KEY = "lumini_pickup_pass";
+    if (!rawStudentData) return false;
+    const STORAGE_KEY = `lumini_pickup_pass_${rawStudentData.student_id}`; 
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -322,7 +345,30 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
             <div className="flex flex-col gap-6"> 
               <div className="card flex flex-col items-center gap-7 py-10 px-6 bg-[#e1f5fe] border border-[#b3e5fc] rounded-[20px]">
-                <div className="flex flex-col items-center gap-1.5">
+                {allChildren.length > 1 && (
+                  <div className="w-full flex justify-start mb-[-15px]"> 
+                    {/* w-full and justify-start keeps it top-left inside the card */}
+                    <div className="relative inline-block">
+                      <select 
+                        className="appearance-none bg-white border border-[#b3e5fc] text-cdark text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#39a8ed] transition-all"
+                        value={rawStudentData?.student_id || ""}
+                        onChange={handleChildSwitch}
+                      >
+                        {allChildren.map(child => (
+                          <option key={child.student_id} value={child.student_id}>
+                            {child.first_name} {child.last_name}
+                          </option>
+                        ))}
+                      </select>
+                      {/* Material Icon for the dropdown arrow */}
+                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-cgray pointer-events-none text-[18px]">
+                        expand_more
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex flex-col items-center gap-1.5 mt-2">
                   <div className="p-1 bg-white rounded-full shadow-[0_4px_12px_rgba(57,168,237,0.2)] mb-2">
                     <img 
                       src={getImageUrl(childData?.profilePicture)} 
@@ -666,6 +712,7 @@ export default function Dashboard() {
       <PassModal 
          isOpen={showPassModal} 
          onClose={() => setShowPassModal(false)} 
+         studentId={rawStudentData?.student_id}
       />
 
       <ParentNewDayModal 
@@ -680,6 +727,7 @@ export default function Dashboard() {
           setSuccessMessage(msg);
           setIsSuccessModalOpen(true);
         }}
+        studentId={rawStudentData?.student_id}
       />
       
     </div>

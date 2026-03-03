@@ -16,12 +16,20 @@ router.post('/api/pass/generate',
   hasRole('user'),
   async (req, res) => {
     try {
+      const { student_id } = req.body;
+
+      if (!student_id) {
+        return res.status(400).json({ error: "Student ID is required to generate a pass." });
+      }
+
       const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
       const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
 
       const student = await Student.findOne({ 
+        student_id: student_id,
         user_id: req.user.user_id 
       });
+
       if (!student) return res.status(404).json({ error: "Student not found" });
 
       const existingTransfer = await Transfer.findOne({
@@ -33,12 +41,12 @@ router.post('/api/pass/generate',
 
       const existingPass = await AccessPass.findOne({
         user: req.user._id,
+        student_id: student.student_id,
         purpose: autoPurpose,
         createdAt: { $gt: tenMinutesAgo } // $gt means "Greater Than" (newer than)
       });
 
       if (existingPass) {
-        console.log("Restoring active pass for User:", req.user.user_id);
         return res.json({
           success: true,
           token: existingPass.token,

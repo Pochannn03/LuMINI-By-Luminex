@@ -472,12 +472,14 @@ export default function AdminDashboard() {
                     onChange={(e) => setSelectedSection(e.target.value)}
                     className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
                   >
-                    <option value="" disabled>{user?.role === 'superadmin' ? "All" : "Select Section"}</option>
+                    <option value="" disabled hidden>
+                      Select Section
+                    </option>
                     
                     {/* Add the new "All My Sections" option for teachers */}
-                    {user?.role !== 'superadmin' && (
-                      <option value="" className="font-bold">All My Sections</option>
-                    )}
+                    <option value="all">
+                      {user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections"}
+                    </option>
                     
                     {sections.map((sec) => (
                       <option key={sec.section_id} value={sec.section_id}>
@@ -548,7 +550,6 @@ export default function AdminDashboard() {
                 <span className="material-symbols-outlined text-[20px]!">center_focus_weak</span>
                   Scan Parent or Guardian QR Code
               </button>
-              <button className="btn btn-outline gap-2 h-[50px] font-semibold rounded-xl text-[14px]! border-none w-full">Verify Manually</button>
             </div>
           </div>
 
