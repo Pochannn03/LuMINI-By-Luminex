@@ -279,6 +279,15 @@ router.post('/api/user/request-password-otp', isAuthenticated, async (req, res) 
     const emailSent = await sendPasswordUpdateOTP(user.email, otp, user.first_name);
 
     if (emailSent) {
+      const auditLog = new Audit({
+        user_id: user.user_id, 
+        full_name: `${user.first_name} ${user.last_name}`,
+        role: user.role,
+        action: "Reset",
+        target: `OTP sent to verified email: ${user.email}`
+      });
+      await auditLog.save();
+
       return res.status(200).json({ message: "OTP sent successfully!" });
     } else {
       return res.status(500).json({ message: "Failed to send email. Please try again." });
@@ -322,6 +331,15 @@ router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) =>
     user.reset_otp_expires = null;
     await user.save();
 
+    const auditLog = new Audit({
+      user_id: user.user_id,
+      full_name: `${user.first_name} ${user.last_name}`,
+      role: user.role,
+      action: "Password Reset",
+      target: `Password updated via OTP verification for user ID: ${user.user_id}`
+    });
+    await auditLog.save();
+
     res.status(200).json({ message: "Password updated successfully!" });
 
   } catch (error) {
@@ -335,7 +353,6 @@ router.post('/api/users/profiles',
   async (req, res) => {
   try {
     const { userIds } = req.body;
-    // Get current user's ID from the session/token
     const currentUserId = req.user.user_id;
 
     const numericIds = Array.isArray(userIds) ? userIds.map(id => Number(id)) : [];
@@ -343,10 +360,19 @@ router.post('/api/users/profiles',
     const users = await User.find({ 
       user_id: { 
         $in: numericIds, 
-        $ne: currentUserId // Exclude the current authenticated user
+        $ne: currentUserId
       },
       is_archive: false 
     }).select('user_id first_name last_name profile_picture relationship');
+
+    const auditLog = new Audit({
+      user_id: req.user.user_id,
+      full_name: `${req.user.first_name} ${req.user.last_name}`,
+      role: req.user.role,
+      action: "Fetch Profiles",
+      target: `Accessed ${users.length} profiles. IDs: [${numericIds.join(', ')}]`
+    });
+    await auditLog.save().catch(e => console.error("Audit Save Error:", e));
 
     res.status(200).json({ success: true, users });
   } catch (err) {

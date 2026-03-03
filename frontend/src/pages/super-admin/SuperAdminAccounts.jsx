@@ -332,7 +332,7 @@ export default function SuperAdminAccounts() {
                           </div>
                           <div>
                             <span className="block text-gray-400">ID Number</span>
-                            <span className="font-medium text-gray-700">{acc.user_id_number || "-"}</span>
+                            <span className="font-medium text-gray-700">{acc.user_id || "-"}</span>
                           </div>
                           <div className="col-span-2 mt-1">
                             <span className={`font-bold inline-flex items-center gap-1 ${!acc.is_archive ? 'text-green-600' : 'text-red-600'}`}>

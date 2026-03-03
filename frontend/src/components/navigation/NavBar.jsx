@@ -38,12 +38,6 @@ const NAV_ITEMS = [
     icon: "analytics",
     allowedRoles: ["superadmin"],
   },
-  {
-    label: "Settings",
-    path: "/superadmin/settings",
-    icon: "settings",
-    allowedRoles: ["superadmin"],
-  },
 
   /* Admin (Teacher) */
   {
