@@ -6,9 +6,9 @@ import { isAuthenticated } from '../middleware/authMiddleware.js';
 import { EnrollmentRequest } from "../models/EnrollmentRequest.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js";
-import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js"; // <-- Ensure Audit is imported
 
-import { sendInvitationEmail, sendBulkSectionInvite } from '../utils/emailService.js';
+import { sendInvitationEmail, sendBulkSectionInvite, sendEnrollmentRejectedEmail } from '../utils/emailService.js';
 
 const router = Router();
 
@@ -59,26 +59,23 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
     const existingApplication = await EnrollmentRequest.findOne({
       student_first_name: studentFirstName,
       student_last_name: studentLastName,
-      student_dob: studentBirthdate, // Mongoose handles date casting automatically
+      student_dob: studentBirthdate, 
       parent_email: parentEmail,
       section_id: section.section_id,
-      status: { $in: ['Pending', 'Registered'] } // Allow retries if previously 'Rejected'
+      status: { $in: ['Pending', 'Registered'] } 
     });
 
     if (existingApplication) {
-      // 🧹 Clean up the uploaded file so spam doesn't fill up the server storage
       if (req.file && fs.existsSync(req.file.path)) {
         fs.unlinkSync(req.file.path);
       }
 
-      // Generate a specific, helpful error message for the frontend
       const statusMsg = existingApplication.status === 'Pending'
         ? "An enrollment application for this specific student is already pending review by the teacher."
         : "This student is already officially registered in this section.";
 
       console.log(`🚫 Blocked duplicate submission for ${studentFirstName} ${studentLastName}`);
       
-      // Return 409 Conflict with the specific errorDetails your frontend expects
       return res.status(409).json({ 
         success: false, 
         msg: "Duplicate application detected.", 
@@ -117,7 +114,6 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
 
   } catch (error) {
     console.error("❌ SUBMISSION ERROR CRASH:", error);
-    // Cleanup file if the database crashes
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
     }
@@ -164,7 +160,7 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
        return res.status(403).json({ success: false, msg: "Access denied." });
     }
 
-    const { status } = req.body; 
+    const { status, reason } = req.body; 
     const requestId = req.params.id;
 
     if (!['Registered', 'Rejected'].includes(status)) {
@@ -176,6 +172,7 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
       return res.status(404).json({ success: false, msg: "Request not found." });
     }
 
+    // --- LOGIC FOR APPROVING & REGISTERING ---
     if (status === 'Registered') {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
       let invCode = '';
@@ -226,6 +223,27 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
           reqData.student_first_name
         );
       }
+    } 
+    // --- LOGIC FOR REJECTING ---
+    else if (status === 'Rejected') {
+      if (!reason) {
+        return res.status(400).json({ success: false, msg: "Rejection reason is required." });
+      }
+
+      // Cleanup student photo if rejected
+      if (reqData.student_photo && fs.existsSync(reqData.student_photo)) {
+        fs.unlinkSync(reqData.student_photo);
+      }
+
+      // Send rejection email
+      if (reqData.parent_email) {
+        await sendEnrollmentRejectedEmail(
+          reqData.parent_email,
+          reqData.parent_name,
+          reqData.student_first_name,
+          reason
+        );
+      }
     }
 
     reqData.status = status;
@@ -236,13 +254,13 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
       full_name: `${req.user.first_name} ${req.user.last_name}`,
       role: req.user.role,
       action: "Enrollment Update",
-      target: `Updated status to ${status} for student: ${reqData.student_first_name} ${reqData.student_last_name}`
+      target: `Updated status to ${status} for student: ${reqData.student_first_name} ${reqData.student_last_name}` + (status === 'Rejected' ? `. Reason: ${reason}` : "")
     });
     await auditLog.save().catch(e => console.error("Audit Save Error:", e));
 
     res.status(200).json({ 
       success: true, 
-      msg: status === 'Registered' ? "Student successfully registered and parent notified!" : "Application rejected.", 
+      msg: status === 'Registered' ? "Student successfully registered and parent notified!" : "Application rejected and parent notified.", 
       request: reqData 
     });
   } catch (error) {

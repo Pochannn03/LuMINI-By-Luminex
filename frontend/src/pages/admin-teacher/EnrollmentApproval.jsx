@@ -1,3 +1,5 @@
+// frontend/src/pages/admin-teacher/EnrollmentApproval.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import * as XLSX from "xlsx"; 
@@ -40,6 +42,7 @@ export default function EnrollmentApproval() {
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false); 
   const [isSendConfirmOpen, setIsSendConfirmOpen] = useState(false); 
   
+  // --- APPROVAL CONFIRMATION CONFIG ---
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     title: "",
@@ -48,6 +51,11 @@ export default function EnrollmentApproval() {
     isDestructive: false,
     actionData: null 
   });
+
+  // --- NEW: REJECT MODAL STATE ---
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejectActionData, setRejectActionData] = useState(null);
 
   const [warningConfig, setWarningConfig] = useState({
     isOpen: false,
@@ -258,30 +266,28 @@ export default function EnrollmentApproval() {
   // ==========================================
   // DIRECT REGISTRATION / REJECT FLOW
   // ==========================================
-  const promptUpdateStatus = (id, newStatus, studentName) => {
-    // UPDATED: Now looks for 'Registered'
-    if (newStatus === 'Registered') {
-      setConfirmConfig({
-        isOpen: true,
-        title: "Approve & Register Student?",
-        message: `You are about to approve the enrollment application for ${studentName}. This will instantly register the student into your class and email the parent their invitation code. Do you want to proceed?`,
-        confirmText: "Yes, Register",
-        isDestructive: false,
-        actionData: { id, status: newStatus }
-      });
-    } else {
-      setConfirmConfig({
-        isOpen: true,
-        title: "Reject Application?",
-        message: `You are about to reject the enrollment application for ${studentName}. This action will discard the request. Do you wish to proceed?`,
-        confirmText: "Yes, Reject",
-        isDestructive: true,
-        actionData: { id, status: newStatus }
-      });
-    }
+  
+  // Triggers the standard ConfirmModal for Approval
+  const promptApprove = (id, studentName) => {
+    setConfirmConfig({
+      isOpen: true,
+      title: "Approve & Register Student?",
+      message: `You are about to approve the enrollment application for ${studentName}. This will instantly register the student into your class and email the parent their invitation code. Do you want to proceed?`,
+      confirmText: "Yes, Register",
+      isDestructive: false,
+      actionData: { id, status: 'Registered' }
+    });
   };
 
-  const executeStatusUpdate = async () => {
+  // Triggers the custom Reject Modal for Denial
+  const promptReject = (id, studentName) => {
+    setRejectActionData({ id, studentName });
+    setRejectReason("");
+    setShowRejectModal(true);
+  };
+
+  // Executes Approve Action
+  const executeApproveAction = async () => {
     const { id, status } = confirmConfig.actionData;
     
     try {
@@ -297,12 +303,43 @@ export default function EnrollmentApproval() {
         );
         setSelectedApplication(null); 
         
-        setSuccessMessage(`Application successfully ${status === 'Rejected' ? 'rejected' : 'approved and registered'}!`);
+        setSuccessMessage("Student successfully approved and registered!");
         setShowSuccessModal(true);
       }
     } catch (error) {
       console.error("Failed to update status:", error);
       showWarning("Registration Error", "Something went wrong while processing the application. Please try again.");
+    } finally {
+      setConfirmConfig({ ...confirmConfig, isOpen: false });
+    }
+  };
+
+  // Executes Reject Action
+  const executeRejectAction = async () => {
+    const { id } = rejectActionData;
+
+    try {
+      const response = await axios.put(
+        `${BACKEND_URL}/api/teacher/enrollments/${id}/status`,
+        { status: 'Rejected', reason: rejectReason },
+        { withCredentials: true }
+      );
+
+      if (response.data.success) {
+        setRequests(prevRequests => 
+          prevRequests.map(req => req._id === id ? { ...req, status: 'Rejected' } : req)
+        );
+        setSelectedApplication(null); 
+        
+        setSuccessMessage("Application rejected and parent notified via email.");
+        setShowSuccessModal(true);
+      }
+    } catch (error) {
+      console.error("Failed to reject application:", error);
+      showWarning("Rejection Error", "Something went wrong while rejecting the application. Please try again.");
+    } finally {
+      setShowRejectModal(false);
+      setRejectReason("");
     }
   };
 
@@ -311,7 +348,6 @@ export default function EnrollmentApproval() {
   const reviewedRequestsCount = requests.filter(r => r.status !== 'Pending').length;
 
   const filteredRequests = requests.filter(req => {
-    // We only care about Pending, Rejected, and Registered now
     const matchesTab = activeTab === 'pending' 
       ? req.status === 'Pending' 
       : ['Rejected', 'Registered'].includes(req.status);
@@ -333,12 +369,60 @@ export default function EnrollmentApproval() {
       <ConfirmModal 
         isOpen={confirmConfig.isOpen}
         onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
-        onConfirm={executeStatusUpdate}
+        onConfirm={executeApproveAction}
         title={confirmConfig.title}
         message={confirmConfig.message}
         confirmText={confirmConfig.confirmText}
         isDestructive={confirmConfig.isDestructive}
       />
+
+      {/* --- NEW: CUSTOM REJECT MODAL FOR ENROLLMENT --- */}
+      {showRejectModal && (
+        <div className="modal-overlay active" style={{ zIndex: 9999 }}>
+          <div className="modal-card" style={{ maxWidth: '400px', padding: '24px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#ef4444' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>warning</span>
+              <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Reject Application?</h2>
+            </div>
+            
+            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+              You are about to reject the pre-enrollment for <strong>{rejectActionData?.studentName}</strong>. Please provide a reason to help the parent understand what needs to be fixed.
+            </p>
+
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
+                Reason for Rejection <span style={{color: '#ef4444'}}>*</span>
+              </label>
+              <textarea 
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g., Child is not on my masterlist, Wrong section code used..."
+                style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={() => setShowRejectModal(false)}
+                style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={!rejectReason.trim()}
+                onClick={executeRejectAction} 
+                style={{ 
+                  background: rejectReason.trim() ? '#ef4444' : '#fca5a5', 
+                  color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, 
+                  cursor: rejectReason.trim() ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Reject & Notify Parent
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal 
         isOpen={isClearConfirmOpen}
@@ -467,6 +551,10 @@ export default function EnrollmentApproval() {
                           src={getImageUrl(req.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${req.student_first_name}`} 
                           alt="Student" 
                           className="header-avatar object-cover bg-slate-100"
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.student_first_name)}&backgroundColor=e2e8f0&textColor=475569`;
+                          }}
                         />
                         <div className="name-stack overflow-hidden">
                           <span className="info-value truncate" title={`${req.student_first_name} ${req.student_last_name}`}>
@@ -500,17 +588,18 @@ export default function EnrollmentApproval() {
                   <div className="w-full p-4 pt-2 border-t border-slate-100 bg-slate-50/50 rounded-b-xl">
                     {req.status === 'Pending' ? (
                       <div className="flex w-full gap-3">
+                        {/* --- CHANGED TO OPEN REJECT MODAL --- */}
                         <button 
                           className="btn-card btn-reject flex-1 flex items-center justify-center gap-1.5"
-                          onClick={() => promptUpdateStatus(req._id, 'Rejected', `${req.student_first_name} ${req.student_last_name}`)}
+                          onClick={() => promptReject(req._id, `${req.student_first_name} ${req.student_last_name}`)}
                         >
                           <span className="material-symbols-outlined text-[18px]">close</span>
                           <span className="hidden sm:inline">Reject Application</span>
                         </button>
-                        {/* THE FIX: Button changed to direct register payload */}
+                        {/* --- CHANGED TO TRIGGER APPROVE FLOW --- */}
                         <button 
                           className="btn-card btn-approve flex-1 flex items-center justify-center gap-1.5"
-                          onClick={() => promptUpdateStatus(req._id, 'Registered', `${req.student_first_name} ${req.student_last_name}`)}
+                          onClick={() => promptApprove(req._id, `${req.student_first_name} ${req.student_last_name}`)}
                         >
                           <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
                           <span className="hidden sm:inline">Approve & Register</span>
@@ -834,6 +923,10 @@ export default function EnrollmentApproval() {
                   className="w-24 h-24 sm:w-28 sm:h-28 rounded-full border-4 border-white shadow-md object-cover bg-slate-100 cursor-zoom-in hover:scale-105 transition-transform"
                   onClick={() => setViewImage(getImageUrl(selectedApplication.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedApplication.student_first_name}`)}
                   title="Click to enlarge"
+                  onError={(e) => {
+                    e.target.onerror = null; 
+                    e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedApplication.student_first_name)}&backgroundColor=e2e8f0&textColor=475569`;
+                  }}
                 />
                 <h3 className="text-[18px] font-bold text-slate-800 mt-3">
                   {selectedApplication.student_first_name} {selectedApplication.student_last_name} {selectedApplication.student_suffix}
@@ -894,10 +987,13 @@ export default function EnrollmentApproval() {
               {selectedApplication.status === 'Pending' && (
                 <button 
                   className="btn btn-primary flex-1 h-[45px] rounded-xl flex justify-center items-center gap-2" 
-                  onClick={() => promptUpdateStatus(selectedApplication._id, 'Registered', `${selectedApplication.student_first_name} ${selectedApplication.student_last_name}`)}
+                  onClick={() => {
+                    setSelectedApplication(null); // Close Details modal
+                    promptApprove(selectedApplication._id, `${selectedApplication.student_first_name} ${selectedApplication.student_last_name}`); // Open confirmation modal
+                  }}
                 >
                   <span className="material-symbols-outlined text-[18px]">how_to_reg</span>
-                  <span className="hidden sm:inline">Approve & Register</span>
+                  <span className="hidden sm:inline">Approve</span>
                 </button>
               )}
             </div>
