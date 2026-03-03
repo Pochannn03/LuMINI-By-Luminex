@@ -7,6 +7,7 @@ import NavBar from "../../../components/navigation/NavBar";
 import AddGuardianModal from "../../../components/modals/user/parent/manage-guardian/AddGuardianModal";
 import SuccessModal from "../../../components/SuccessModal";
 import ConfirmModal from "../../../components/ConfirmModal";
+import WarningModal from "../../../components/WarningModal";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -17,24 +18,20 @@ export default function ManageGuardians() {
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // --- STATES FOR THE DETAILS MODAL ---
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
 
-  // --- States for the Cancel/Success Feedback ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
-  // --- States for Confirmation Modal (Cancel) ---
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [requestToCancel, setRequestToCancel] = useState(null);
 
-  // --- States for Revoke Modal ---
   const [showRevokeModal, setShowRevokeModal] = useState(false);
   const [requestToRevoke, setRequestToRevoke] = useState(null);
   const [revokeConfirmationText, setRevokeConfirmationText] = useState("");
 
-  // --- THE FIX: Smart Image URL Generator with Fallback Initials ---
   const getImageUrl = (path, fallbackName = "User") => {
     if (!path || path === "" || path === "null") {
       return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fallbackName)}&backgroundColor=e2e8f0&textColor=475569`;
@@ -43,7 +40,6 @@ export default function ManageGuardians() {
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // --- REFRESH DATA LOGIC ---
   const refreshData = async () => {
     try {
       const [guardiansRes, pendingRes, historyRes] = await Promise.all([
@@ -66,7 +62,15 @@ export default function ManageGuardians() {
     refreshData();
   }, []);
 
-  // --- CANCEL FLOW ---
+  const handleOpenAddModal = () => {
+    const totalGuardians = guardians.length + pendingRequests.length + approvedRequests.length;
+    if (totalGuardians >= 3) {
+      setShowWarningModal(true); 
+    } else {
+      setIsAddModalOpen(true); 
+    }
+  };
+
   const triggerCancelConfirm = (id) => {
     setRequestToCancel(id);
     setShowConfirmModal(true);
@@ -91,7 +95,6 @@ export default function ManageGuardians() {
     }
   };
 
-  // --- REVOKE FLOW ---
   const triggerRevokeConfirm = (req) => {
     setRequestToRevoke(req);
     setRevokeConfirmationText(""); 
@@ -133,7 +136,6 @@ export default function ManageGuardians() {
         <main className="main-content" style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
           <div className="guardians-container" style={{ width: '100%', maxWidth: '1200px' }}>
             
-            {/* 1. HEADER BANNER */}
             <div className="header-banner" style={{ marginBottom: '24px' }}>
               <div className="header-title">
                 <h1>Manage Guardians</h1>
@@ -141,27 +143,26 @@ export default function ManageGuardians() {
               </div>
             </div>
 
-            {/* FILTER BAR HAS BEEN REMOVED */}
-
-            {/* 3. CARD GRID CONTAINER (NOW WITH WHITE BACKGROUND AND STYLING) */}
             <div className="table-card" style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', width: '100%' }}>
               
-              {/* --- NEW HEADER INJECTED INTO THE CONTAINER --- */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              {/* --- HEADER FIX: Pinned Button & Responsive Title Stack --- */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+                
+                <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>Authorized Personnel List</h3>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '20px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {guardians.length + pendingRequests.length + approvedRequests.length} / 3 Registered
                   </span>
                 </div>
                 
                 <button 
-                  onClick={() => setIsAddModalOpen(true)}
+                  onClick={handleOpenAddModal} 
                   style={{ 
                     display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', 
                     color: '#ffffff', border: 'none', borderRadius: '8px', padding: '8px 16px', 
                     fontSize: '14px', fontWeight: '600', cursor: 'pointer',
-                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)', transition: 'background-color 0.2s, transform 0.1s'
+                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)', transition: 'background-color 0.2s, transform 0.1s',
+                    whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '12px'
                   }}
                   onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
                   onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
@@ -187,109 +188,140 @@ export default function ManageGuardians() {
                 </div>
               ) : (
                 
-                /* --- GRID LAYOUT FIX --- */
                 <div className="guardian-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                   
-                  {/* --- ACTIVE GUARDIANS (Fetched from User Model) --- */}
+                  {/* --- 1. ACTIVE GUARDIANS (Green Gradient) --- */}
                   {guardians.map((guardian) => (
-                    <div className="guardian-card border-active" key={guardian._id}>
-                      <div className="card-header-row">
-                        <div className="card-user-info">
-                          <img 
-                            src={getImageUrl(guardian.profile_picture, guardian.first_name)} 
-                            className="card-avatar" 
-                            alt="Avatar" 
-                            onError={(e) => {
-                              e.target.onerror = null; 
-                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guardian.first_name || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
-                            }}
-                          />
-                          <div className="card-name-stack">
-                            <span className="card-user-name">{guardian.first_name} {guardian.last_name}</span>
-                          </div>
+                    <div className="guardian-card" key={guardian._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <img 
+                          src={getImageUrl(guardian.profile_picture, guardian.first_name)} 
+                          alt="Avatar" 
+                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.2)' }} 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guardian.first_name || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                          }}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                            {guardian.first_name} {guardian.last_name}
+                          </span>
+                          <span style={{ backgroundColor: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
+                            {guardian.relationship || "Guardian"}
+                          </span>
                         </div>
-                        <span className="role-badge">{guardian.relationship || "Guardian"}</span>
                       </div>
-                      <div className="card-middle-row">
-                        <div className="detail-line"><span className="detail-label">USERNAME:</span> {guardian.username || "N/A"}</div>
-                        <div className="detail-line"><span className="detail-label">CONTACT#:</span> {guardian.phone_number || "N/A"}</div>
+
+                      <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{guardian.username || "N/A"}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{guardian.phone_number || "N/A"}</span>
+                        </div>
                       </div>
-                      <div className="card-actions-row">
-                        <button className="btn-action view-btn" style={{flex: 1}}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>more_horiz</span>
+
+                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                        <button style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#94a3b8', fontWeight: '700', fontSize: '12px', cursor: 'not-allowed' }} disabled>
+                          ACTIVE
+                        </button>
+                        <button onClick={() => triggerRevokeConfirm(guardian)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          REVOKE
                         </button>
                       </div>
                     </div>
                   ))}
 
-                  {/* --- PENDING REQUESTS --- */}
+                  {/* --- 2. PENDING REQUESTS (Orange Gradient) --- */}
                   {pendingRequests.map((req) => (
-                    <div className="guardian-card border-pending" key={req._id}>
-                      <div className="card-header-row">
-                        <div className="card-user-info">
-                          <img 
-                            src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
-                            className="card-avatar grayscale" 
-                            alt="ID" 
-                            onError={(e) => {
-                              e.target.onerror = null; 
-                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=fef3c7&textColor=d97706`;
-                            }}
-                          />
-                          <div className="card-name-stack">
-                            <span className="card-user-name text-muted">
-                              {req.guardianDetails.firstName} {req.guardianDetails.lastName}
-                            </span>
-                          </div>
+                    <div className="guardian-card border-pending" key={req._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #fffbeb 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <img 
+                          src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
+                          alt="ID" 
+                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(245, 158, 11, 0.2)', filter: 'grayscale(100%)' }} 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=fef3c7&textColor=d97706`;
+                          }}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                            {req.guardianDetails.firstName} {req.guardianDetails.lastName}
+                          </span>
+                          <span style={{ backgroundColor: '#fef3c7', color: '#d97706', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
+                            {req.guardianDetails.role}
+                          </span>
                         </div>
-                        <span className="role-badge muted-badge">{req.guardianDetails.role}</span>
                       </div>
-                      <div className="card-middle-row">
-                        <div className="detail-line"><span className="detail-label">USERNAME:</span> {req.guardianDetails.tempUsername}</div>
-                        <div className="detail-line"><span className="detail-label">CONTACT#:</span> {req.guardianDetails.phone}</div>
+
+                      <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>{req.guardianDetails.tempUsername}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>{req.guardianDetails.phone}</span>
+                        </div>
                       </div>
-                      <div className="card-actions-row">
-                        <button className="btn-action view-btn" onClick={() => setSelectedRequest(req)}>
+
+                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                        <button onClick={() => setSelectedRequest(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
                           VIEW
                         </button>
-                        <button className="btn-action cancel-btn" onClick={() => triggerCancelConfirm(req._id)}>
+                        <button onClick={() => triggerCancelConfirm(req._id)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
                           CANCEL
                         </button>
                       </div>
                     </div>
                   ))}
 
-                  {/* --- APPROVED HISTORY --- */}
+                  {/* --- 3. APPROVED HISTORY (Green Gradient) --- */}
                   {approvedRequests.map((req) => (
-                    <div className="guardian-card border-approved" key={req._id}>
-                      <div className="card-header-row">
-                        <div className="card-user-info">
-                          <img 
-                            src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
-                            className="card-avatar" 
-                            alt="ID" 
-                            onError={(e) => {
-                              e.target.onerror = null; 
-                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
-                            }}
-                          />
-                          <div className="card-name-stack">
-                            <span className="card-user-name">
-                              {req.guardianDetails.firstName} {req.guardianDetails.lastName}
-                            </span>
-                          </div>
+                    <div className="guardian-card border-approved" key={req._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <img 
+                          src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
+                          alt="ID" 
+                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.2)' }} 
+                          onError={(e) => {
+                            e.target.onerror = null; 
+                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                          }}
+                        />
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                            {req.guardianDetails.firstName} {req.guardianDetails.lastName}
+                          </span>
+                          <span style={{ backgroundColor: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
+                            {req.guardianDetails.role}
+                          </span>
                         </div>
-                        <span className="role-badge muted-badge">{req.guardianDetails.role}</span>
                       </div>
-                      <div className="card-middle-row">
-                        <div className="detail-line"><span className="detail-label">USERNAME:</span> {req.guardianDetails.tempUsername}</div>
-                        <div className="detail-line"><span className="detail-label">CONTACT#:</span> {req.guardianDetails.phone}</div>
+
+                      <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{req.guardianDetails.tempUsername}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
+                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{req.guardianDetails.phone}</span>
+                        </div>
                       </div>
-                      <div className="card-actions-row">
-                        <button className="btn-action view-btn" onClick={() => setSelectedRequest(req)}>
+
+                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                        <button onClick={() => setSelectedRequest(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
                           VIEW
                         </button>
-                        <button className="btn-action revoke-btn" onClick={() => triggerRevokeConfirm(req)}>
+                        <button onClick={() => triggerRevokeConfirm(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
                           REVOKE
                         </button>
                       </div>
@@ -462,6 +494,14 @@ export default function ManageGuardians() {
           onClose={() => setShowSuccessModal(false)}
           message={successMessage}
         />
+
+        <WarningModal
+          isOpen={showWarningModal}
+          onClose={() => setShowWarningModal(false)}
+          title="Guardian Limit Reached"
+          message="You can only have a maximum of 3 authorized guardians. Please revoke access or cancel a pending request to add a new one."
+        />
+
       </div>
     </>
   );

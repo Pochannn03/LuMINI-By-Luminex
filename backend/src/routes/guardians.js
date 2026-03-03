@@ -131,6 +131,37 @@ router.post(
             return res.status(400).json({ message: "Please select at least one student." });
         }
 
+        // =======================================================
+        // 🛑 RULE 1: STRICT 3 GUARDIAN LIMIT ENFORCEMENT
+        // =======================================================
+        const allParentStudents = await Student.find({ user_id: parentCustomId });
+        const allLinkedUserIds = allParentStudents.flatMap(s => s.user_id);
+        const uniqueGuardianIds = [...new Set(allLinkedUserIds)].filter(id => id !== parentCustomId);
+        
+        const activeGuardiansCount = await User.countDocuments({
+            user_id: { $in: uniqueGuardianIds },
+            relationship: "Guardian",
+            is_archive: false
+        });
+
+        const pendingRequestsCount = await GuardianRequest.countDocuments({
+            parent: parentObjectId,
+            status: { $in: ['pending', 'teacher_approved'] }
+        });
+
+        // THE FIX: We no longer count 'approvedRequestsCount' because approved 
+        // guardians are already counted in 'activeGuardiansCount'. Double counting resolved!
+        const totalGuardianCount = activeGuardiansCount + pendingRequestsCount;
+
+        // Backend acts as the Vault: Reject and delete image if limit is hit
+        if (totalGuardianCount >= 3) {
+            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(403).json({ 
+                message: "Guardian limit reached. You can only have a maximum of 3 authorized guardians. Please revoke access or cancel a pending request to add a new one." 
+            });
+        }
+        // =======================================================
+
         const idPhotoPath = req.file ? req.file.path : null;
         if (!idPhotoPath) return res.status(400).json({ message: "ID photo is required." });
 
@@ -151,7 +182,7 @@ router.post(
         const studentObjectIds = linkedStudents.map(student => student._id);
         const requestedChildNames = linkedStudents.map(student => student.first_name);
 
-        // 4. Find the primary teacher to notify (takes the first valid teacher found)
+        // 4. Find the primary teacher to notify
         let primaryTeacherId = null;
         for (const student of linkedStudents) {
             if (student.section_id && !primaryTeacherId) {
@@ -166,7 +197,7 @@ router.post(
         // 5. CREATE ONE SINGLE REQUEST WITH ALL STUDENTS
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
-            students: studentObjectIds, // <-- Array of ObjectIds
+            students: studentObjectIds, 
             teacher: primaryTeacherId, 
             guardianDetails: {
                 firstName, lastName, phone, role,
@@ -212,7 +243,6 @@ router.get(
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            // FIX: Populate 'students' (array) instead of 'student'
             .populate('students', 'first_name last_name') 
             .sort({ createdAt: -1 }); 
 
@@ -223,12 +253,6 @@ router.get(
     }
 });
 
-// ==========================================
-// TEACHER ACTION: PRE-APPROVE REQUEST (PASS TO ADMIN)
-// ==========================================
-// ==========================================
-// TEACHER ACTION: APPROVE REQUEST
-// ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
   hasRole('admin'),
@@ -259,12 +283,11 @@ router.put('/api/teacher/guardian-requests/:id/approve',
 
         const savedGuardian = await newGuardian.save();
 
-        // 2. FIX: Link the Guardian to ALL requested students!
-        // We check if requestDoc.students exists and has items, then update them all at once.
+        // 2. Link the Guardian to ALL requested students
         if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
             await Student.updateMany(
-                { _id: { $in: requestDoc.students } }, // Find all students in this array
-                { $push: { user_id: savedGuardian.user_id } } // Push the new Guardian's ID
+                { _id: { $in: requestDoc.students } }, 
+                { $push: { user_id: savedGuardian.user_id } } 
             );
         }
 
@@ -306,9 +329,6 @@ router.put('/api/teacher/guardian-requests/:id/approve',
     }
 });
 
-// ==========================================
-// TEACHER ACTION: REJECT REQUEST
-// ==========================================
 router.put('/api/teacher/guardian-requests/:id/reject', 
   isAuthenticated,
   hasRole('admin'),
@@ -348,8 +368,6 @@ router.put('/api/teacher/guardian-requests/:id/reject',
             });
 
             const savedNotif = await notification.save();
-
-            // Real-time update via Socket.io
             const io = req.app.get('socketio');
             if (io) {
                 io.emit('new_notification', savedNotif);
@@ -502,13 +520,9 @@ router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
   }
 });
 
-// ==========================================
-// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP (UPDATED FOR BIOMETRICS)
-// ==========================================
 router.put(
   '/api/guardian/setup', 
   isAuthenticated, 
-  // THE FIX: Use upload.fields to catch both the cropped profile pic and the raw facial capture
   upload.fields([
     { name: 'profilePic', maxCount: 1 },
     { name: 'facialCapture', maxCount: 1 }
@@ -519,13 +533,12 @@ router.put(
       const { 
         username, password, firstName, lastName,
         email, contact, houseUnit, street, barangay, city, zipCode,
-        facialDescriptor // <-- Received as stringified JSON
+        facialDescriptor 
       } = req.body;
 
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "User not found." });
 
-      // Update Basic Info
       if (username) user.username = username;
       if (firstName) user.first_name = firstName;
       if (lastName) user.last_name = lastName;
@@ -536,7 +549,6 @@ router.put(
       const fullAddress = [houseUnit, street, barangay, city, zipCode].filter(Boolean).join(', ');
       if (fullAddress) user.address = fullAddress;
 
-      // Extract and save the files
       if (req.files) {
         if (req.files['profilePic']) {
             user.profile_picture = req.files['profilePic'][0].path;
@@ -546,7 +558,6 @@ router.put(
         }
       }
 
-      // Parse and save the mathematical Face Descriptor
       if (facialDescriptor) {
           user.facial_descriptor = JSON.parse(facialDescriptor);
       }
@@ -620,9 +631,13 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         }
 
         if (guardianUser) {
-            await Student.findByIdAndUpdate(requestDoc.student, {
-                $pull: { user_id: guardianUser.user_id } 
-            });
+            // THE FIX: Unlink the guardian from ALL students associated with the request
+            if (requestDoc.students && requestDoc.students.length > 0) {
+                await Student.updateMany(
+                    { _id: { $in: requestDoc.students } },
+                    { $pull: { user_id: guardianUser.user_id } } 
+                );
+            }
             guardianUser.is_archive = true;
             await guardianUser.save();
         }
@@ -657,7 +672,7 @@ router.get('/api/superadmin/guardian-requests/pending-final', isAuthenticated, h
         const requests = await GuardianRequest.find({ status: 'teacher_approved' })
             .populate('parent', 'first_name last_name profile_picture')
             .populate('student', 'first_name last_name student_id') 
-            .populate('teacher', 'first_name last_name') // Needed to show who verified it
+            .populate('teacher', 'first_name last_name') 
             .sort({ updatedAt: -1 }); 
 
         return res.status(200).json(requests);
