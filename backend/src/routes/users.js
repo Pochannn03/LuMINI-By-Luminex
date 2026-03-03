@@ -365,15 +365,6 @@ router.post('/api/users/profiles',
       is_archive: false 
     }).select('user_id first_name last_name profile_picture relationship');
 
-    const auditLog = new Audit({
-      user_id: req.user.user_id,
-      full_name: `${req.user.first_name} ${req.user.last_name}`,
-      role: req.user.role,
-      action: "Fetch Profiles",
-      target: `Accessed ${users.length} profiles. IDs: [${numericIds.join(', ')}]`
-    });
-    await auditLog.save().catch(e => console.error("Audit Save Error:", e));
-
     res.status(200).json({ success: true, users });
   } catch (err) {
     console.error("Profile Fetch Error:", err);
