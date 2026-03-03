@@ -12,8 +12,9 @@ export default function Header({ onToggle }) {
   const { user } = useAuth();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
   const notifRef = useRef(null);
+
+  const unreadCount = notifications.filter(notif => !notif.is_read).length;
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -32,7 +33,6 @@ export default function Header({ onToggle }) {
           withCredentials: true 
         });
         setNotifications(response.data.notifications);
-        setUnreadCount(response.data.unreadCount);
       } catch (err) {
         console.error("Failed to fetch notifications", err);
       }
@@ -56,7 +56,6 @@ export default function Header({ onToggle }) {
       setNotifications(prev => 
         prev.map(n => n._id === id ? { ...n, is_read: true } : n)
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
 
     } catch (err) {
       console.error("Error marking as read:", err.response?.data || err.message);
@@ -67,40 +66,50 @@ export default function Header({ onToggle }) {
     try {
       await axios.put(`${BACKEND_URL}/api/notifications/read-all`, {}, { withCredentials: true });
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setUnreadCount(0);
     } catch (err) {
       console.error("Failed to clear notifications", err);
     }
   };
 
   useEffect(() => {
+    // 1. Initialize socket connection
     const socket = io("http://localhost:3000", { withCredentials: true });
 
-    if (user?.user_id) {
-      socket.emit("join", `user_${user.user_id}`); 
-      socket.emit("join", user.user_id); 
-    }
+    // 2. WAIT FOR CONNECTION before joining
+    socket.on("connect", () => {
+      console.log("🟢 Socket Connected! ID:", socket.id);
+      
+      if (user?.user_id) {
+        // Send ONLY the numeric ID, as your backend already adds "user_"
+        socket.emit("join", user.user_id); 
+        console.log(`🚪 Requested to join room for user: ${user.user_id}`);
+      }
+    });
 
+    // 3. Listen for incoming notifications
     socket.on('new_notification', (newNotif) => {
+      console.log("🚨 Received new notification!", newNotif);
+      
       const notifRecipient = String(newNotif.recipient_id);
       const currentUser = String(user?.user_id);
       
+      // Double check it belongs to this user
       if (notifRecipient === currentUser) {
         setNotifications(prev => {
+          // Prevent duplicates
           const exists = prev.some(n => String(n._id) === String(newNotif._id));
+          if (exists) return prev; 
           
-          if (exists) {
-            const filtered = prev.filter(n => String(n._id) !== String(newNotif._id));
-            return [newNotif, ...filtered];
-          }
-          
-          setUnreadCount(count => count + 1);
+          // REMOVED setUnreadCount HERE!
+          // Just return the updated array. The red dot handles itself now.
           return [newNotif, ...prev];
         });
       }
     });
 
+    // 4. Clean up the connection if the component unmounts
     return () => {
+      socket.off('connect');
       socket.off('new_notification');
       socket.disconnect();
     };
