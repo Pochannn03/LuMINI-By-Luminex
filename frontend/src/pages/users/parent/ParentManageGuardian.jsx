@@ -12,7 +12,6 @@ import WarningModal from "../../../components/WarningModal";
 const BACKEND_URL = "http://localhost:3000";
 
 export default function ManageGuardians() {
-  const [guardians, setGuardians] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [approvedRequests, setApprovedRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,13 +41,13 @@ export default function ManageGuardians() {
 
   const refreshData = async () => {
     try {
-      const [guardiansRes, pendingRes, historyRes] = await Promise.all([
-        axios.get(`${BACKEND_URL}/api/parent/guardians`, { withCredentials: true }),
+      // THE FIX: Removed the redundant 'guardians' endpoint. 
+      // We now fetch everything we need from the requests pipeline!
+      const [pendingRes, historyRes] = await Promise.all([
         axios.get(`${BACKEND_URL}/api/parent/guardian-requests/pending`, { withCredentials: true }),
         axios.get(`${BACKEND_URL}/api/parent/guardian-requests/history`, { withCredentials: true })
       ]);
       
-      setGuardians(guardiansRes.data);
       setPendingRequests(pendingRes.data);
       setApprovedRequests(historyRes.data);
     } catch (err) {
@@ -63,7 +62,7 @@ export default function ManageGuardians() {
   }, []);
 
   const handleOpenAddModal = () => {
-    const totalGuardians = guardians.length + pendingRequests.length + approvedRequests.length;
+    const totalGuardians = pendingRequests.length + approvedRequests.length;
     if (totalGuardians >= 3) {
       setShowWarningModal(true); 
     } else {
@@ -150,7 +149,7 @@ export default function ManageGuardians() {
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
                   <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>Authorized Personnel List</h3>
                   <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '20px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {guardians.length + pendingRequests.length + approvedRequests.length} / 3 Registered
+                    {pendingRequests.length + approvedRequests.length} / 3 Registered
                   </span>
                 </div>
                 
@@ -177,7 +176,7 @@ export default function ManageGuardians() {
                 <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
                   Loading guardians...
                 </div>
-              ) : guardians.length === 0 && pendingRequests.length === 0 && approvedRequests.length === 0 ? (
+              ) : pendingRequests.length === 0 && approvedRequests.length === 0 ? (
                 <div className="empty-state" style={{ background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
                   <span className="material-symbols-outlined empty-icon">diversity_3</span>
                   <h3 className="empty-text">No Guardians Found</h3>
@@ -189,53 +188,7 @@ export default function ManageGuardians() {
                 
                 <div className="guardian-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                   
-                  {/* --- 1. ACTIVE GUARDIANS --- */}
-                  {guardians.map((guardian) => (
-                    <div className="guardian-card" key={guardian._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <img 
-                          src={getImageUrl(guardian.profile_picture, guardian.first_name)} 
-                          alt="Avatar" 
-                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.2)' }} 
-                          onError={(e) => {
-                            e.target.onerror = null; 
-                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guardian.first_name || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
-                          }}
-                        />
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                            {guardian.first_name} {guardian.last_name}
-                          </span>
-                          <span style={{ backgroundColor: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
-                            {guardian.relationship || "Guardian"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{guardian.username || "N/A"}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{guardian.phone_number || "N/A"}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                        <button style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#94a3b8', fontWeight: '700', fontSize: '12px', cursor: 'not-allowed' }} disabled>
-                          ACTIVE
-                        </button>
-                        <button onClick={() => triggerRevokeConfirm(guardian)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                          REVOKE
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* --- 2. PENDING REQUESTS (Tier 1 & Tier 2) --- */}
+                  {/* --- 1. PENDING REQUESTS (Tier 1 & Tier 2) --- */}
                   {pendingRequests.map((req) => {
                     const isTier2 = req.status === 'teacher_approved';
                     
@@ -261,7 +214,6 @@ export default function ManageGuardians() {
                                 {req.guardianDetails.role}
                               </span>
                               
-                              {/* DYNAMIC BADGE BASED ON VERIFICATION TIER */}
                               <span style={{ backgroundColor: isTier2 ? '#dbeafe' : '#fef3c7', color: isTier2 ? '#1d4ed8' : '#d97706', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                 {isTier2 ? "Pending Admin" : "Pending Teacher"}
                               </span>
@@ -292,51 +244,83 @@ export default function ManageGuardians() {
                     );
                   })}
 
-                  {/* --- 3. APPROVED HISTORY --- */}
-                  {approvedRequests.map((req) => (
-                    <div className="guardian-card border-approved" key={req._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <img 
-                          src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
-                          alt="ID" 
-                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.2)' }} 
-                          onError={(e) => {
-                            e.target.onerror = null; 
-                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
-                          }}
-                        />
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                            {req.guardianDetails.firstName} {req.guardianDetails.lastName}
-                          </span>
-                          <span style={{ backgroundColor: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
-                            {req.guardianDetails.role}
-                          </span>
-                        </div>
-                      </div>
+                  {/* --- 2. APPROVED GUARDIANS (Smart Logic for Setup Status) --- */}
+                  {approvedRequests.map((req) => {
+                    // Pull the embedded live User data that the backend populated
+                    const liveUser = req.guardianDetails?.createdUserId;
+                    // Check if they've finished logging in/setting up
+                    const isSetupComplete = liveUser && liveUser.is_first_login === false;
 
-                      <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{req.guardianDetails.tempUsername}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{req.guardianDetails.phone}</span>
-                        </div>
-                      </div>
+                    // SMART DATA ROUTING
+                    const avatarSrc = isSetupComplete 
+                      ? getImageUrl(liveUser.profile_picture, liveUser.first_name)
+                      : getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName);
 
-                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                        <button onClick={() => setSelectedRequest(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                          VIEW
-                        </button>
-                        <button onClick={() => triggerRevokeConfirm(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                          REVOKE
-                        </button>
+                    const displayName = isSetupComplete
+                      ? `${liveUser.first_name} ${liveUser.last_name}`
+                      : `${req.guardianDetails.firstName} ${req.guardianDetails.lastName}`;
+
+                    const displayUsername = isSetupComplete
+                      ? liveUser.username
+                      : req.guardianDetails.tempUsername;
+
+                    const displayPhone = isSetupComplete
+                      ? (liveUser.phone_number || "N/A")
+                      : req.guardianDetails.phone;
+
+                    return (
+                      <div className="guardian-card border-approved" key={req._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <img 
+                            src={avatarSrc} 
+                            alt="Avatar" 
+                            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(34, 197, 94, 0.2)' }} 
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(displayName)}&backgroundColor=e2e8f0&textColor=475569`;
+                            }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '16px', fontWeight: '800', color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                              {displayName}
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                              <span style={{ backgroundColor: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                {req.guardianDetails.role}
+                              </span>
+                              {/* Warning Badge if they haven't finished setup */}
+                              {!isSetupComplete && (
+                                <span style={{ backgroundColor: '#fef3c7', color: '#d97706', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  Awaiting Setup
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{displayUsername}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e293b' }}>{displayPhone}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                          <button onClick={() => setSelectedRequest(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                            VIEW
+                          </button>
+                          <button onClick={() => triggerRevokeConfirm(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                            REVOKE
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                 </div>
               )}
@@ -345,75 +329,94 @@ export default function ManageGuardians() {
         </main>
 
         {/* --- DETAILS MODAL --- */}
-        {selectedRequest && (
-          <div className="modal-overlay active" onClick={() => setSelectedRequest(null)} style={{ zIndex: 9000 }}>
-            <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%', padding: 0, overflow: 'hidden' }}>
-              
-              <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px', marginTop: 0}}>Guardian Details</h2>
-                  <p style={{color: '#64748b', fontSize: '13px', margin: 0}}>Reviewing details submitted for approval.</p>
-                </div>
-                <button className="close-modal-btn" onClick={() => setSelectedRequest(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#64748b' }}>close</span>
-                </button>
-              </div>
+        {selectedRequest && (() => {
+          // Re-calculate the live user data for the details modal
+          const liveUser = selectedRequest.guardianDetails?.createdUserId;
+          const isSetupComplete = liveUser && liveUser.is_first_login === false;
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          const modalName = isSetupComplete
+            ? `${liveUser.first_name} ${liveUser.last_name}`
+            : `${selectedRequest.guardianDetails.firstName} ${selectedRequest.guardianDetails.lastName}`;
+
+          const modalUsername = isSetupComplete
+            ? liveUser.username
+            : selectedRequest.guardianDetails.tempUsername;
+
+          const modalPhone = isSetupComplete
+            ? (liveUser.phone_number || "N/A")
+            : selectedRequest.guardianDetails.phone;
+
+          return (
+            <div className="modal-overlay active" onClick={() => setSelectedRequest(null)} style={{ zIndex: 9000 }}>
+              <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%', padding: 0, overflow: 'hidden' }}>
+                
+                <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Name</label>
-                    <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>
-                      {selectedRequest.guardianDetails.firstName} {selectedRequest.guardianDetails.lastName}
+                    <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px', marginTop: 0}}>Guardian Details</h2>
+                    <p style={{color: '#64748b', fontSize: '13px', margin: 0}}>Reviewing approved guardian details.</p>
+                  </div>
+                  <button className="close-modal-btn" onClick={() => setSelectedRequest(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#64748b' }}>close</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Name</label>
+                      <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>
+                        {modalName}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Relationship</label>
+                      <div className="role-tag" style={{ background: '#e2e8f0', color: '#64748b', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
+                        {selectedRequest.guardianDetails.role}
+                      </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Relationship</label>
-                    <div className="role-tag" style={{ background: '#e2e8f0', color: '#64748b', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
-                      {selectedRequest.guardianDetails.role}
+
+                  <div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Phone Number</label>
+                    <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{modalPhone}</div>
+                  </div>
+
+                  <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
+                    <div style={{ fontSize: '16px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
+                      {modalUsername}
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Phone Number</label>
-                  <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.phone}</div>
-                </div>
-
-                <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
-                  <div style={{ fontSize: '16px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
-                    {selectedRequest.guardianDetails.tempUsername}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Submitted ID</label>
-                  <div 
-                    onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName))}
-                    style={{ 
-                      background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '8px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', position: 'relative'
-                    }}
-                  >
-                    <img 
-                      src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName)} 
-                      alt="ID Document" 
-                      style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px' }}
-                      onError={(e) => {
-                        e.target.onerror = null; 
-                        e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedRequest.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                  {/* Always show the original submitted ID document here for their reference */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Submitted ID</label>
+                    <div 
+                      onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName))}
+                      style={{ 
+                        background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '8px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', position: 'relative'
                       }}
-                    />
-                    <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
+                    >
+                      <img 
+                        src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName)} 
+                        alt="ID Document" 
+                        style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px' }}
+                        onError={(e) => {
+                          e.target.onerror = null; 
+                          e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedRequest.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                        }}
+                      />
+                      <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
+                        <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* --- LIGHTBOX MODAL --- */}
         {expandedImage && (

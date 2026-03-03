@@ -560,7 +560,10 @@ router.get(
         const approvedRequests = await GuardianRequest.find({ 
             parent: parentId, 
             status: 'approved' 
-        }).sort({ updatedAt: -1 });
+        })
+        // THE FIX: Populate the live user data straight into the history request!
+        .populate('guardianDetails.createdUserId', 'first_name last_name username profile_picture is_first_login phone_number')
+        .sort({ updatedAt: -1 });
 
         return res.status(200).json(approvedRequests);
     } catch (error) {

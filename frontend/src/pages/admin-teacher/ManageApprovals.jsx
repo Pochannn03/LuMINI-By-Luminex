@@ -22,6 +22,9 @@ export default function ManageApprovals() {
   const [historyRequests, setHistoryRequests] = useState([]); 
   const [loading, setLoading] = useState(true);
 
+  // --- NEW: Wired up the Search Bar ---
+  const [searchQuery, setSearchQuery] = useState("");
+
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
@@ -60,6 +63,20 @@ export default function ManageApprovals() {
     if (path.startsWith("http")) return path;
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
+
+  // Helper to filter lists based on search
+  const filterBySearch = (list) => {
+    if (!searchQuery) return list;
+    const lowerQ = searchQuery.toLowerCase();
+    return list.filter(req => {
+      const gName = `${req.guardianDetails?.firstName || ''} ${req.guardianDetails?.lastName || ''}`.toLowerCase();
+      const pName = req.parent ? `${req.parent.first_name} ${req.parent.last_name}`.toLowerCase() : '';
+      return gName.includes(lowerQ) || pName.includes(lowerQ);
+    });
+  };
+
+  const filteredPending = filterBySearch(requests);
+  const filteredHistory = filterBySearch(historyRequests);
 
   const pendingCount = requests.length;
   const historyCount = historyRequests.length;
@@ -102,7 +119,6 @@ export default function ManageApprovals() {
         {}, { withCredentials: true }
       );
 
-      // TIER 1 SUCCESS MESSAGE FIX
       setSuccessMessage(modalType === "approve" 
         ? "Request verified and forwarded to Superadmin." 
         : "Application has been rejected.");
@@ -111,7 +127,6 @@ export default function ManageApprovals() {
       const actedRequest = requests.find(req => req._id === id);
       if (actedRequest) {
         setRequests(requests.filter(req => req._id !== id));
-        // Move to history with correct TIER 1 status
         setHistoryRequests([{ ...actedRequest, status: modalType === 'approve' ? 'teacher_approved' : 'rejected' }, ...historyRequests]);
       }
       setSelectedRequest(null);
@@ -123,7 +138,7 @@ export default function ManageApprovals() {
 
   const exportHistoryToPDF = () => {
     try {
-      if (!historyRequests || historyRequests.length === 0) {
+      if (!filteredHistory || filteredHistory.length === 0) {
         alert("No history records to export.");
         return;
       }
@@ -141,7 +156,7 @@ export default function ManageApprovals() {
       const tableColumn = ["Date", "Parent", "Guardian", "Role", "Child", "Status"];
       const tableRows = [];
 
-      historyRequests.forEach(req => {
+      filteredHistory.forEach(req => {
         const date = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Unknown";
         
         let parentName = "N/A";
@@ -201,44 +216,76 @@ export default function ManageApprovals() {
             <span className="material-symbols-outlined" style={{ fontSize: "48px", opacity: 0.8 }}>verified_user</span>
           </div>
 
-          <div className="controls-bar">
-             <div className="controls-left">
-                <div className="tab-group">
-                  <button className={`tab-btn ${activeTab === "pending" ? "active" : ""}`} onClick={() => setActiveTab("pending")}>
-                    Pending Requests {pendingCount > 0 && <span className="tab-badge" style={{ marginLeft: "8px" }}>{pendingCount}</span>}
-                  </button>
-                  <button className={`tab-btn ${activeTab === "history" ? "active" : ""}`} onClick={() => setActiveTab("history")}>
-                    Approval History <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: "6px" }}>{historyCount}</span>
-                  </button>
-                </div>
-                <div className="search-mini">
-                  <span className="material-symbols-outlined" style={{ fontSize: "20px", color: "#94a3b8" }}>search</span>
-                  <input type="text" placeholder="Search by name or ID..." />
-                </div>
+          {/* --- THE FIX: Z-Index 50 ensures the dropdown overlays the cards --- */}
+          <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', position: 'relative', zIndex: 50 }}>
+             
+             {/* ROW 1: TABS (50/50 split on mobile) */}
+             <div className="tab-group" style={{ display: 'flex', flex: '1 1 auto', minWidth: '280px', background: '#f8fafc', padding: '4px', borderRadius: '10px' }}>
+                <button 
+                  className={`tab-btn ${activeTab === "pending" ? "active" : ""}`} 
+                  onClick={() => setActiveTab("pending")}
+                  style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: 0, borderRadius: '8px' }}
+                >
+                  Pending {pendingCount > 0 && <span className="tab-badge" style={{ marginLeft: "8px" }}>{pendingCount}</span>}
+                </button>
+                <button 
+                  className={`tab-btn ${activeTab === "history" ? "active" : ""}`} 
+                  onClick={() => setActiveTab("history")}
+                  style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: 0, borderRadius: '8px' }}
+                >
+                  History <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: "6px" }}>{historyCount}</span>
+                </button>
              </div>
-             <div className="controls-right" ref={filterRef}>
+
+             {/* ROW 2: SEARCH & ACTIONS */}
+             <div style={{ display: 'flex', flex: '1 1 auto', gap: '12px', minWidth: '280px', alignItems: 'center' }}>
+                
+                {/* --- THE FIX: FLEXBOX SEARCH WRAPPER --- */}
+                {/* Notice how the container looks like an input box, and the input/buttons live cleanly inside it! */}
+                <div style={{ display: 'flex', flex: 1, alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', padding: '4px 4px 4px 12px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#94a3b8', marginRight: '8px' }}>search</span>
+                  
+                  <input 
+                    type="text" 
+                    placeholder="Search by name or ID..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', minWidth: '50px', height: '34px' }} 
+                  />
+                  
+                  {/* Filter Wrapper (Lives inside the Search Bar container) */}
+                  <div style={{ position: 'relative' }} ref={filterRef}>
+                    <button 
+                      onClick={() => setIsFilterOpen(!isFilterOpen)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 12px', background: isFilterOpen ? '#f1f5f9' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#475569', fontSize: '13px', fontWeight: '600', transition: 'background 0.2s', height: '100%' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
+                      <span className="hide-on-mobile">Filter</span>
+                    </button>
+
+                    {/* Dropdown Menu (Z-index 9999 ensures it pops over everything) */}
+                    {isFilterOpen && (
+                      <div className="filter-dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, zIndex: 9999, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', padding: '8px', minWidth: '180px' }}>
+                        <button className="filter-option" onClick={() => handleSort("surname")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>sort_by_alpha</span> Via Surname</button>
+                        <button className="filter-option" onClick={() => handleSort("date")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span> Via Date</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RESPONSIVE PDF BUTTON */}
                 {activeTab === "history" && (
                   <button 
                     className="btn-outline" 
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '44px', padding: '0 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'white'}
                     onClick={() => exportHistoryToPDF()}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>picture_as_pdf</span>
-                    Export PDF
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>picture_as_pdf</span>
+                    <span className="hide-on-mobile" style={{ fontWeight: 600, fontSize: '14px' }}>Export PDF</span>
                   </button>
                 )}
-
-                <div className="filter-wrapper">
-                  <button className={`btn-filter ${isFilterOpen ? "active" : ""}`} onClick={() => setIsFilterOpen(!isFilterOpen)}>
-                    <span className="material-symbols-outlined">filter_list</span> Filter
-                  </button>
-                  {isFilterOpen && (
-                    <div className="filter-dropdown-menu">
-                      <button className="filter-option" onClick={() => handleSort("surname")}><span className="material-symbols-outlined">sort_by_alpha</span> Via Surname</button>
-                      <button className="filter-option" onClick={() => handleSort("date")}><span className="material-symbols-outlined">calendar_month</span> Via Date</button>
-                    </div>
-                  )}
-                </div>
              </div>
           </div>
 
@@ -248,16 +295,20 @@ export default function ManageApprovals() {
               <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
                  Fetching pending requests...
               </div>
-            ) : activeTab === "pending" && requests.length === 0 ? (
+            ) : activeTab === "pending" && filteredPending.length === 0 ? (
               <div className="empty-queue">
                 <span className="material-symbols-outlined empty-queue-icon">inbox_customize</span>
-                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>All Caught Up!</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px" }}>There are no pending account requests at the moment.</p>
+                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>
+                  {searchQuery ? "No matches found." : "All Caught Up!"}
+                </h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+                  {searchQuery ? "Try a different search term." : "There are no pending account requests at the moment."}
+                </p>
               </div>
             ) : null}
 
             {activeTab === "pending" && !loading &&
-              requests.map((req) => (
+              filteredPending.map((req) => (
                 <div className="request-card" key={req._id}>
                   
                   <div className="card-split-header">
@@ -318,14 +369,18 @@ export default function ManageApprovals() {
                 </div>
               ))}
 
-            {activeTab === "history" && !loading && historyRequests.length === 0 ? (
+            {activeTab === "history" && !loading && filteredHistory.length === 0 ? (
               <div className="empty-queue">
                 <span className="material-symbols-outlined empty-queue-icon">history</span>
-                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>No History Yet</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px" }}>Approved and rejected applications will appear here.</p>
+                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>
+                  {searchQuery ? "No matches found." : "No History Yet"}
+                </h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+                  {searchQuery ? "Try a different search term." : "Approved and rejected applications will appear here."}
+                </p>
               </div>
             ) : activeTab === "history" && !loading && (
-              historyRequests.map((req) => (
+              filteredHistory.map((req) => (
                 <div className="request-card" key={req._id} style={{ opacity: 0.9 }}> 
                   
                   <div className="card-split-header">
@@ -364,7 +419,6 @@ export default function ManageApprovals() {
                     </div>
                   </div>
 
-                  {/* TIER 1 SMART HISTORY BADGES */}
                   <div className="card-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', padding: '16px' }}>
                     {req.status === 'teacher_approved' && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
@@ -395,6 +449,7 @@ export default function ManageApprovals() {
         </div>
       </main>
 
+      {/* --- UNIFIED DETAILS MODAL --- */}
       {selectedRequest && (
         <div className="approval-modal-overlay" onClick={() => setSelectedRequest(null)}>
           <div className="approval-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
@@ -536,7 +591,6 @@ export default function ManageApprovals() {
         </div>
       )}
 
-      {/* TIER 1 CONFIRMATION MODAL FIX */}
       <TeacherConfirmationModal
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
