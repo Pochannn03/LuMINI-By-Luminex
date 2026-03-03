@@ -180,15 +180,44 @@ router.post(
         const requestedChildNames = linkedStudents.map(student => student.first_name);
 
         let primaryTeacherId = null;
+        let primaryTeacherCustomId = null;
+
+        console.log("🔍 --- STARTING TEACHER SEARCH ---");
+        
         for (const student of linkedStudents) {
+            console.log(`Checking student: ${student.first_name}, Section ID: ${student.section_id}`);
+            
             if (student.section_id && !primaryTeacherId) {
-                const section = await Section.findOne({ section_id: student.section_id });
-                if (section && section.user_id) {
-                    const teacher = await User.findOne({ user_id: section.user_id });
-                    if (teacher) primaryTeacherId = teacher._id;
+                // ADDED Number() to prevent type mismatch
+                const section = await Section.findOne({ section_id: Number(student.section_id) }); 
+                
+                if (section) {
+                    console.log(`Found Section: ${section.section_name}, Teacher User ID: ${section.user_id}`);
+                    
+                    if (section.user_id) {
+                        // ADDED Number() to prevent type mismatch
+                        const teacher = await User.findOne({ user_id: Number(section.user_id) });
+                        
+                        if (teacher) {
+                            primaryTeacherId = teacher._id;
+                            primaryTeacherCustomId = teacher.user_id;
+                            console.log(`✅ Teacher Found! ID: ${primaryTeacherCustomId}`);
+                        } else {
+                            console.log("❌ Teacher user_id exists in section, but no User found in DB.");
+                        }
+                    } else {
+                        console.log("❌ Section found, but no user_id (teacher) is assigned to it.");
+                    }
+                } else {
+                    console.log("❌ Section ID exists on student, but Section not found in DB.");
                 }
+            } else if (!student.section_id) {
+                console.log("❌ This student has no section_id assigned.");
             }
         }
+        
+        console.log("🔍 --- END TEACHER SEARCH ---");
+        console.log("Final primaryTeacherCustomId:", primaryTeacherCustomId);
 
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
@@ -203,6 +232,34 @@ router.post(
         });
 
         await newRequest.save();
+
+        if (primaryTeacherCustomId) {
+            try {
+                const newNotif = new Notification({
+                    recipient_id: primaryTeacherCustomId, 
+                    sender_id: req.user.user_id,
+                    sender_details: parentObjectId,       
+                    title: "New Guardian Request",
+                    message: `${req.user.first_name} ${req.user.last_name} requested to add ${firstName} ${lastName} as a guardian for ${requestedChildNames.join(', ')}.`,
+                    type: "System",
+                    is_read: false
+                });
+                await newNotif.save();
+
+                const populatedNotif = await Notification.findById(newNotif._id)
+                    .populate('sender_details', 'first_name last_name profile_picture');
+
+                const io = req.app.get('socketio'); 
+                if (io) {
+                    const targetRoom = `user_${primaryTeacherCustomId}`;
+                    io.to(targetRoom).emit('new_notification', populatedNotif);
+                } else {
+                    console.error("⚠️ Socket.io instance not found on req.app");
+                }
+            } catch (notifErr) {
+                console.error("Notification Generation Error:", notifErr);
+            }
+        }
 
         const auditLog = new Audit({
           user_id: req.user.user_id,
@@ -267,6 +324,8 @@ router.put('/api/teacher/guardian-requests/:id/approve',
 
         requestDoc.status = 'teacher_approved';
         await requestDoc.save();
+        
+        const io = req.app.get('socketio');
 
         // Notify Parent (In-App + Email)
         if (requestDoc.parent) {
@@ -287,6 +346,28 @@ router.put('/api/teacher/guardian-requests/:id/approve',
                 const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
                 const childNames = requestDoc.students.map(s => s.first_name).join(', ');
                 await sendGuardianVerifiedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, childNames);
+            }
+        }
+
+        const superAdmins = await User.find({ role: 'superadmin', is_archive: false });
+
+        for (const admin of superAdmins) {
+            const adminNotif = new Notification({
+                recipient_id: Number(admin.user_id),
+                sender_id: currentUserId,
+                type: 'System',
+                title: 'Guardian Request Needs Final Approval',
+                message: `Teacher ${teacherName} verified a guardian request for ${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}. Awaiting your final approval.`,
+                is_read: false
+            });
+
+            const savedAdminNotif = await adminNotif.save();
+
+            const populatedAdminNotif = await Notification.findById(savedAdminNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
+            if (io) {
+                io.to(`user_${admin.user_id}`).emit('new_notification', populatedAdminNotif);
             }
         }
 
@@ -339,16 +420,20 @@ router.put('/api/teacher/guardian-requests/:id/reject',
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
-                type: 'System', 
+                type: 'Alert',
                 title: 'Guardian Request Rejected',
                 message: `Your request for ${guardianName} has been rejected by Teacher ${teacherName}. Please contact the school for more information.`,
                 is_read: false
             });
 
             const savedNotif = await notification.save();
+
+            const populatedNotif = await Notification.findById(savedNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
             const io = req.app.get('socketio');
             if (io) {
-                io.emit('new_notification', savedNotif);
+                io.to(`user_${requestDoc.parent.user_id}`).emit('new_notification', populatedNotif);
             }
         }
 
@@ -609,7 +694,7 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
             _id: requestId,
             parent: parentId,
             status: 'approved'
-        });
+        }).populate('teacher');
 
         if (!requestDoc) {
             return res.status(404).json({ message: "Approved request not found." });
@@ -637,6 +722,55 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
 
         requestDoc.status = 'revoked';
         await requestDoc.save();
+
+        const io = req.app.get('socketio');
+        const notificationMessage = `Parent ${fullName} has revoked guardian access for ${guardianName}.`;
+
+        if (requestDoc.teacher && requestDoc.teacher.user_id) {
+            const teacherNotif = new Notification({
+                recipient_id: Number(requestDoc.teacher.user_id), 
+                sender_id: parentUserId,
+                type: 'Alert',
+                title: 'Guardian Access Revoked',
+                message: notificationMessage,
+                is_read: false
+            });
+
+            const savedTeacherNotif = await teacherNotif.save();
+            const populatedTeacherNotif = await Notification.findById(savedTeacherNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
+            if (io) {
+                io.to(`user_${requestDoc.teacher.user_id}`).emit('new_notification', populatedTeacherNotif);
+            }
+        }
+
+        const superAdmins = await User.find({ 
+            $or: [
+                { role: 'superadmin' }, 
+                { relationship: 'SuperAdmin' }
+            ],
+            is_archive: false 
+        });
+
+        for (const admin of superAdmins) {
+            const adminNotif = new Notification({
+                recipient_id: Number(admin.user_id),
+                sender_id: parentUserId,
+                type: 'Alert',
+                title: 'Guardian Access Revoked',
+                message: notificationMessage,
+                is_read: false
+            });
+
+            const savedAdminNotif = await adminNotif.save();
+            const populatedAdminNotif = await Notification.findById(savedAdminNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
+            if (io) {
+                io.to(`user_${admin.user_id}`).emit('new_notification', populatedAdminNotif);
+            }
+        }
 
         const auditLog = new Audit({
           user_id: parentUserId,
@@ -699,7 +833,10 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
         const requestId = req.params.id;
         const currentUserId = Number(req.user.user_id);
 
-        const requestDoc = await GuardianRequest.findById(requestId).populate('parent').populate('students');
+        const requestDoc = await GuardianRequest.findById(requestId)
+                                                .populate('parent')
+                                                .populate('students')
+                                                .populate('teacher');
         if (!requestDoc || requestDoc.status !== 'teacher_approved') {
             return res.status(404).json({ message: "Request not found or not ready for final approval." });
         }
@@ -730,24 +867,50 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
         requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
-        // Notify Parent (In-App + Email)
+        const io = req.app.get('socketio');
+        const guardianFullName = `${savedGuardian.first_name} ${savedGuardian.last_name}`;
+
+        // --- 2. NOTIFY PARENT (Targeted Socket) ---
         if (requestDoc.parent) {
-            const notification = new Notification({
+            const parentNotif = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'System', 
                 title: 'Guardian Registration Finalized',
-                message: `SuperAdmin has officially registered ${savedGuardian.first_name} ${savedGuardian.last_name}. Their guardian account is now active.`,
+                message: `SuperAdmin has officially registered ${guardianFullName}. Their guardian account is now active.`,
                 is_read: false
             });
-            const savedNotif = await notification.save();
-            req.app.get('socketio').emit('new_notification', savedNotif);
+            const savedParentNotif = await parentNotif.save();
+            const populatedParentNotif = await Notification.findById(savedParentNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
 
-            // SEND EMAIL
+            if (io) {
+                io.to(`user_${requestDoc.parent.user_id}`).emit('new_notification', populatedParentNotif);
+            }
+
+            // EMAIL logic remains the same
             if (requestDoc.parent.email) {
-                const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
                 const childNames = requestDoc.students.map(s => s.first_name).join(', ');
-                await sendGuardianFinalizedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, childNames, requestDoc.guardianDetails.tempUsername);
+                await sendGuardianFinalizedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianFullName, childNames, requestDoc.guardianDetails.tempUsername);
+            }
+        }
+
+        // --- 3. NOTIFY TEACHER (Targeted Socket) ---
+        if (requestDoc.teacher && requestDoc.teacher.user_id) {
+            const teacherNotif = new Notification({
+                recipient_id: Number(requestDoc.teacher.user_id),
+                sender_id: currentUserId,
+                type: 'System',
+                title: 'Guardian Request Approved',
+                message: `The guardian request for ${guardianFullName} Parent: ${requestDoc.parent?.first_name} ${requestDoc.parent?.last_name} has been finalized by SuperAdmin.`,
+                is_read: false
+            });
+            const savedTeacherNotif = await teacherNotif.save();
+            const populatedTeacherNotif = await Notification.findById(savedTeacherNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
+            if (io) {
+                io.to(`user_${requestDoc.teacher.user_id}`).emit('new_notification', populatedTeacherNotif);
             }
         }
 
@@ -774,7 +937,10 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
         const requestId = req.params.id;
         const currentUserId = Number(req.user.user_id);
 
-        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        const requestDoc = await GuardianRequest.findById(requestId)
+                                                .populate('parent')
+                                                .populate('teacher');
+
         if (!requestDoc || requestDoc.status !== 'teacher_approved') {
             return res.status(404).json({ message: "Request not found or not ready for final review." });
         }
@@ -784,17 +950,44 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
         requestDoc.status = 'rejected';
         await requestDoc.save();
 
+        const io = req.app.get('socketio');
+
+        // --- 2. NOTIFY PARENT ---
         if (requestDoc.parent && requestDoc.parent.user_id) {
-            const notification = new Notification({
+            const parentNotif = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
-                type: 'System', 
+                type: 'Alert', // Renders red on the frontend
                 title: 'Guardian Registration Rejected',
-                message: `SuperAdmin has rejected the final registration for ${guardianName}. Please contact the office.`,
+                message: `SuperAdmin has rejected the final registration for ${guardianName}. Please contact the school office for details.`,
                 is_read: false
             });
-            const savedNotif = await notification.save();
-            req.app.get('socketio').emit('new_notification', savedNotif);
+            const savedParentNotif = await parentNotif.save();
+            const populatedParentNotif = await Notification.findById(savedParentNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
+            if (io) {
+                io.to(`user_${requestDoc.parent.user_id}`).emit('new_notification', populatedParentNotif);
+            }
+        }
+
+        // --- 3. NOTIFY TEACHER ---
+        if (requestDoc.teacher && requestDoc.teacher.user_id) {
+            const teacherNotif = new Notification({
+                recipient_id: Number(requestDoc.teacher.user_id),
+                sender_id: currentUserId,
+                type: 'Alert',
+                title: 'Guardian Request Rejected',
+                message: `The guardian request for ${guardianName} Parent: ${requestDoc.parent?.first_name} ${requestDoc.parent?.last_name} was rejected during final review by SuperAdmin.`,
+                is_read: false
+            });
+            const savedTeacherNotif = await teacherNotif.save();
+            const populatedTeacherNotif = await Notification.findById(savedTeacherNotif._id)
+                .populate('sender_details', 'first_name last_name profile_picture');
+
+            if (io) {
+                io.to(`user_${requestDoc.teacher.user_id}`).emit('new_notification', populatedTeacherNotif);
+            }
         }
 
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {

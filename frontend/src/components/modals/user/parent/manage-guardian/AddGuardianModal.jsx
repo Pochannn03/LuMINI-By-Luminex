@@ -415,7 +415,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
               (step === 3 && !formData.idFile)
             }
           >
-            {isSubmitting ? "Submitting..." : step === 4 ? "Submit Registration" : "Next Step"}
+            {isSubmitting ? "Submitting..." : step === 4 ? "Submit" : "Next Step"}
           </button>
         </div>
       </div>

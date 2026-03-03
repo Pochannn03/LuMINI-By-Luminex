@@ -18,7 +18,6 @@ const NotificationSchema = new mongoose.Schema({
   },
   type: { 
     type: String, 
-    // 👇 FIX: Added 'Emergency' to the allowed enum list!
     enum: ['Announcement', 'Attendance', 'Transfer', 'System', 'Alert', 'Emergency'], 
     required: true 
   },
