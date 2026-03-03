@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { hasRole, isAuthenticated } from "../middleware/authMiddleware.js";
 import { Transfer } from "../models/transfers.js";
+import { Settings } from "../models/settings.js";
 import { Audit } from "../models/audits.js"; 
 import { User } from "../models/users.js"; 
 import { Section } from "../models/sections.js"; 
@@ -36,17 +37,40 @@ router.post('/api/queue',
           return res.status(400).json({ msg: "Section data not found for this student." });
         }
 
-        const schedule = student.section_details.class_schedule;
+        // --- FETCH DYNAMIC SETTINGS ---
+        const { Settings } = await import("../models/settings.js"); // Ensure correct path
+        let sysSettings = await Settings.findOne();
+        if (!sysSettings) {
+            sysSettings = { morning_end: "11:30", afternoon_end: "16:30" }; // Fallback
+        }
+
+        const scheduleType = student.section_details.class_schedule; // "Morning" or "Afternoon"
         const now = new Date();
         const manilaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Manila" }));
         const currentMins = (manilaTime.getHours() * 60) + manilaTime.getMinutes();
 
-        const dismissalMins = (schedule === 'Morning') ? (11 * 60 + 30) : (16 * 60 + 30);
+        // Get the end time string from settings (e.g., "11:30" or "17:00")
+        const endTimeStr = scheduleType?.includes('Morning') 
+            ? sysSettings.morning_end 
+            : sysSettings.afternoon_end;
+
+        // Convert "HH:mm" to total minutes
+        const [endHr, endMin] = endTimeStr.split(':').map(Number);
+        const dismissalMins = (endHr * 60) + endMin;
+        
+        // Window opens 20 minutes before the dynamic dismissal time
         const windowOpenMins = dismissalMins - 20;
 
         if (currentMins < windowOpenMins) {
+          // Format the end time for the error message (e.g., "11:30 AM")
+          const displayTime = new Date();
+          displayTime.setHours(endHr, endMin);
+          const formattedDisplay = displayTime.toLocaleTimeString('en-US', { 
+            hour: 'numeric', minute: '2-digit', hour12: true 
+          });
+
           return res.status(403).json({ 
-            msg: `Pick-up window hasn't opened yet. Please try again 20 mins before dismissal.` 
+            msg: `Pick-up window hasn't opened yet. Dismissal is at ${formattedDisplay}. Please try again 20 mins before.` 
           });
         }
       }
@@ -62,7 +86,7 @@ router.post('/api/queue',
 
       // 3. Update or Create Queue Entry
       const queueEntry = await Queue.findOneAndUpdate(
-            { user_id: actualId }, // This ensures the Guardian is the record owner
+            { user_id: actualId, student_id: student_id }, // This ensures the Guardian is the record owner
             { 
               student_id, 
               section_id, 
@@ -188,18 +212,25 @@ router.get('/api/queue',
 // QUEUE CHECKING FOR SCAN BUTTON ENABLER
 // Backend: Queue Check Endpoint
 router.get('/api/queue/check', 
-  isAuthenticated,
-  hasRole('user'),
+  isAuthenticated, 
   async (req, res) => {
-  try {
-    const queueCheck = await Queue.findOne({ 
-      user_id: req.user.user_id, 
-      on_queue: true 
-    });
-    res.json({ onQueue: !!queueCheck }); 
-  } catch (err) {
-    res.status(500).json({ error: "Server error checking queue status" });
-  }
+    try {
+      const { student_id } = req.query; // Accept student_id from frontend
+
+      if (!student_id) {
+         return res.json({ onQueue: false });
+      }
+
+      const queueEntry = await Queue.findOne({ 
+        user_id: req.user.user_id, 
+        student_id: student_id, // Match the specific child
+        on_queue: true 
+      });
+
+      res.json({ onQueue: !!queueEntry });
+    } catch (error) {
+      res.status(500).json({ error: "Server error" });
+    }
 });
 
 router.patch('/api/queue/remove/:userId', 

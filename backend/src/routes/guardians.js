@@ -116,29 +116,19 @@ router.post(
         
         const parentObjectId = req.user._id; 
         const parentCustomId = req.user.user_id; 
-        
-        const linkedStudent = await Student.findOne({ user_id: parentCustomId }); 
-        
-        if (!linkedStudent) {
-             if (req.file) fs.unlinkSync(req.file.path);
-             return res.status(404).json({ message: "No linked child found for this parent account." });
+
+        // 1. Parse the JSON array of student IDs
+        let studentIdsArray = [];
+        try {
+            studentIdsArray = JSON.parse(req.body.student_ids);
+        } catch (e) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ message: "Invalid student selection format." });
         }
 
-        const studentId = linkedStudent._id; 
-
-        let actualTeacherId = null;
-        if (linkedStudent.section_id) {
-            const section = await Section.findOne({ section_id: linkedStudent.section_id });
-            if (section && section.user_id) {
-                const teacher = await User.findOne({ user_id: section.user_id });
-                if (teacher) actualTeacherId = teacher._id;
-            }
-        }
-
-        const finalTeacherId = actualTeacherId || req.body.teacherId;
-        if (!finalTeacherId) {
-             if (req.file) fs.unlinkSync(req.file.path);
-             return res.status(400).json({ message: "No teacher assigned to this student's section." });
+        if (!Array.isArray(studentIdsArray) || studentIdsArray.length === 0) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(400).json({ message: "Please select at least one student." });
         }
 
         const idPhotoPath = req.file ? req.file.path : null;
@@ -146,10 +136,38 @@ router.post(
 
         const hashedPassword = await hashPassword(password);
 
+        // 2. Find all selected students
+        const linkedStudents = await Student.find({ 
+            student_id: { $in: studentIdsArray },
+            user_id: parentCustomId 
+        });
+
+        if (linkedStudents.length === 0) {
+            if (req.file) fs.unlinkSync(req.file.path);
+            return res.status(404).json({ message: "Selected students not found or not linked." });
+        }
+
+        // 3. Extract the ObjectIds and Names into arrays
+        const studentObjectIds = linkedStudents.map(student => student._id);
+        const requestedChildNames = linkedStudents.map(student => student.first_name);
+
+        // 4. Find the primary teacher to notify (takes the first valid teacher found)
+        let primaryTeacherId = null;
+        for (const student of linkedStudents) {
+            if (student.section_id && !primaryTeacherId) {
+                const section = await Section.findOne({ section_id: student.section_id });
+                if (section && section.user_id) {
+                    const teacher = await User.findOne({ user_id: section.user_id });
+                    if (teacher) primaryTeacherId = teacher._id;
+                }
+            }
+        }
+
+        // 5. CREATE ONE SINGLE REQUEST WITH ALL STUDENTS
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
-            student: studentId,
-            teacher: finalTeacherId,
+            students: studentObjectIds, // <-- Array of ObjectIds
+            teacher: primaryTeacherId, 
             guardianDetails: {
                 firstName, lastName, phone, role,
                 tempUsername: username,
@@ -160,18 +178,19 @@ router.post(
 
         await newRequest.save();
 
+        // 6. Save a single Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
           action: "Submit Guardian Request",
-          target: `Submitted request for ${firstName} ${lastName}`
+          target: `Submitted request for ${firstName} ${lastName} (Children: ${requestedChildNames.join(', ')})`
         });
         await auditLog.save();
 
         return res.status(201).json({ 
-            message: "Guardian request submitted successfully to the teacher!",
-            request: newRequest 
+            message: "Guardian request submitted successfully!",
+            request: newRequest
         });
 
     } catch (error) {
@@ -193,7 +212,8 @@ router.get(
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name') 
+            // FIX: Populate 'students' (array) instead of 'student'
+            .populate('students', 'first_name last_name') 
             .sort({ createdAt: -1 }); 
 
         return res.status(200).json(requests);
@@ -206,9 +226,12 @@ router.get(
 // ==========================================
 // TEACHER ACTION: PRE-APPROVE REQUEST (PASS TO ADMIN)
 // ==========================================
+// ==========================================
+// TEACHER ACTION: APPROVE REQUEST
+// ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
-  hasRole('admin'), // 'admin' is the teacher role in your system
+  hasRole('admin'),
   async (req, res) => {
     try {
         const requestId = req.params.id;
@@ -220,18 +243,44 @@ router.put('/api/teacher/guardian-requests/:id/approve',
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
-        // 1. JUST CHANGE THE STATUS (NO ACCOUNT CREATION HERE!)
-        requestDoc.status = 'teacher_approved';
+        // 1. Create the new Guardian account
+        const newGuardian = new User({
+            first_name: requestDoc.guardianDetails.firstName,
+            last_name: requestDoc.guardianDetails.lastName,
+            username: requestDoc.guardianDetails.tempUsername,
+            password: requestDoc.guardianDetails.tempPassword, 
+            phone_number: requestDoc.guardianDetails.phone,
+            relationship: "Guardian", 
+            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, 
+            address: "Not Provided", 
+            role: "user", 
+            is_archive: false,
+        });
+
+        const savedGuardian = await newGuardian.save();
+
+        // 2. FIX: Link the Guardian to ALL requested students!
+        // We check if requestDoc.students exists and has items, then update them all at once.
+        if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
+            await Student.updateMany(
+                { _id: { $in: requestDoc.students } }, // Find all students in this array
+                { $push: { user_id: savedGuardian.user_id } } // Push the new Guardian's ID
+            );
+        }
+
+        // 3. Mark the request as approved
+        requestDoc.status = 'approved';
+        requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
-        // 2. NOTIFY PARENT IT WAS PASSED TO ADMIN
+        // 4. Send Notification to Parent
         if (requestDoc.parent && requestDoc.parent.user_id) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'System', 
-                title: 'Guardian Request Pre-Approved',
-                message: `Teacher ${teacherName} has verified your request for ${requestDoc.guardianDetails.firstName}. It is now with the SuperAdmin for final system registration.`,
+                title: 'Guardian Request Approved',
+                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active and linked to the selected student(s).`,
                 is_read: false
             });
 
@@ -244,12 +293,12 @@ router.put('/api/teacher/guardian-requests/:id/approve',
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
-          action: "Pre-Approve Guardian",
-          target: `Verified identity for ${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`
+          action: "Approve Guardian Request",
+          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name} & linked to ${requestDoc.students.length} student(s)`
         });
         await auditLog.save();
 
-        return res.status(200).json({ message: "Request verified and forwarded to SuperAdmin!" });
+        return res.status(200).json({ message: "Guardian successfully approved and linked to student(s)!" });
 
     } catch (error) {
         console.error("Pre-Approval Error:", error);
@@ -331,7 +380,7 @@ router.get(
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name')
+            .populate('students', 'first_name last_name')
             .sort({ updatedAt: -1 }); 
 
         return res.status(200).json(history);

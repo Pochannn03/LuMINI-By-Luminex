@@ -212,7 +212,6 @@ router.put('/api/students/:id',
         full_name: `${req.user.first_name} ${req.user.last_name}`,
         role: req.user.role,
         action: "Edit Student Info",
-        // THE FIX 1: Changed `updatedUser` to `updatedStudent`
         target: `Updated student ${updatedStudent.first_name} ${updatedStudent.last_name}`
       });
       await auditLog.save();
@@ -524,6 +523,85 @@ router.post('/api/students/send-invitation',
     return res.status(500).json({ success: false, msg: "Server error while sending email." });
   }
 });
+
+router.put('/api/parent/link-student',
+  isAuthenticated,
+  hasRole('user'), // Ensures only parents can trigger this
+  async (req, res) => {
+    try {
+      const { code } = req.body;
+      const currentUserId = Number(req.user.user_id);
+
+      // 1. Basic validation
+      if (!code || code.length !== 6) {
+        return res.status(400).json({ success: false, message: "A valid 6-character invitation code is required." });
+      }
+
+      // 2. Find the student by the exact invitation code
+      const student = await Student.findOne({ invitation_code: code.toUpperCase() });
+
+      if (!student) {
+        return res.status(404).json({ success: false, message: "Invalid invitation code. Please check and try again." });
+      }
+
+      // 3. Validate the status of the code
+      if (student.invitation_status === 'used') {
+        return res.status(400).json({ success: false, message: "This invitation code has already been used." });
+      }
+
+      if (student.invitation_status === 'expired') {
+        return res.status(400).json({ success: false, message: "This invitation code has expired." });
+      }
+
+      // 4. Check if the parent is ALREADY linked to prevent duplicates
+      if (student.user_id.includes(currentUserId)) {
+        return res.status(400).json({ success: false, message: "You are already linked to this student." });
+      }
+
+      // 5. Link the parent and update code status
+      student.user_id.push(currentUserId);
+      student.invitation_status = 'used';
+      student.invitation_used_at = new Date();
+
+      // 6. Mark the passive parent record as verified
+      if (student.passive_parent) {
+        student.passive_parent.is_verified = true;
+      }
+
+      await student.save();
+
+      // 7. Re-fetch the student and POPULATE section details so the frontend card renders perfectly
+      const updatedStudent = await Student.findById(student._id).populate({
+        path: "section_details",
+        populate: {
+          path: "user_details",
+          select: "first_name last_name email phone_number",
+        },
+      });
+
+      // 8. (Optional) Audit Trail Logging
+      const auditLog = new Audit({
+        user_id: currentUserId,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Linked Student via Code",
+        target: `Student: ${student.first_name} ${student.last_name} (${student.student_id})`
+      });
+      await auditLog.save();
+
+      // 9. Send success response
+      res.status(200).json({
+        success: true,
+        message: "Student linked successfully.",
+        student: updatedStudent
+      });
+
+    } catch (error) {
+      console.error("Link Student Error:", error);
+      res.status(500).json({ success: false, message: "Server error while linking student." });
+    }
+  }
+);
 
 
 export default router;

@@ -2,11 +2,13 @@ import { useEffect, useState, useRef } from "react";
 import AvatarEditor from "react-avatar-editor";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import * as faceapi from "face-api.js"; // <-- NEW: Added face-api
+import * as faceapi from "face-api.js";
 import "../../../styles/user/parent/parent-profile.css";
 import NavBar from "../../../components/navigation/NavBar";
 import SuccessModal from "../../../components/SuccessModal";
 import { useAuth } from "../../../context/AuthProvider";
+import ParentAddStudentModal from "../../../components/modals/user/parent/profile/ParentAddStudentModal";
+import WarningModal from "../../../components/WarningModal";
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -52,8 +54,6 @@ export default function ParentProfile() {
   const [formData, setFormData] = useState({});
   const [children, setChildren] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   // --- Address Splicing States ---
   const [addressParts, setAddressParts] = useState({
@@ -88,6 +88,18 @@ export default function ParentProfile() {
   const [studentMedicalData, setStudentMedicalData] = useState({
     allergies: "", medical_history: ""
   });
+
+  // ADDING A STUDENT MODAL
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+
+  // Modals & Messages States
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+  
+  // ---> ADD THESE THREE LINES:
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
 
   // ==========================================
   // FACIAL VERIFICATION STATES & REFS
@@ -280,6 +292,19 @@ export default function ParentProfile() {
       if (isDetecting) { setTimeout(runDetection, 100); }
     };
     runDetection(); 
+  };
+
+  const handleStudentLinkError = (title, message) => {
+    setShowAddStudentModal(false); 
+    setWarningTitle(title);
+    setWarningMessage(message);
+    setShowWarningModal(true);
+  };
+
+  const handleStudentLinked = (newStudent, message) => {
+    setChildren(prev => [...prev, newStudent]);
+    setSuccessMessage(message);
+    setShowSuccessModal(true);
   };
 
   const handleChange = (e) => {
@@ -709,7 +734,28 @@ export default function ParentProfile() {
 
             <div className="right-stack">
               <div className="card form-card">
-                <div className="card-header"><h3><span className="material-symbols-outlined header-icon">face</span> Linked Students</h3><p>Children linked to this account.</p></div>
+                <div className="flex flex-row justify-between">
+                  <div className="card-header">
+                  <h3>
+                    <span className="material-symbols-outlined header-icon">
+                      face
+                    </span> 
+                    Linked Students
+                  </h3>
+                  <p>Children linked to this account.</p>
+                </div>
+                <div>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAddStudentModal(true)}
+                    className="btn btn-outline -mr-2" 
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', fontSize: '12px', borderRadius: '8px', height: 'auto' }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '16px' }}>add_circle</span>
+                    Add Student
+                  </button>
+                </div>
+                </div>
                 <div className="children-list">
                   {children.length === 0 ? (<p style={{ padding: "10px", color: "#94a3b8" }}>No students linked yet.</p>) : (
                     children.map((child) => (
@@ -801,6 +847,27 @@ export default function ParentProfile() {
           </div>
         </div>
       )}
+
+      <ParentAddStudentModal 
+        isOpen={showAddStudentModal} 
+        onClose={() => setShowAddStudentModal(false)}
+        onSuccess={handleStudentLinked}
+        onError={handleStudentLinkError}
+      />
+
+      <SuccessModal 
+        isOpen={showSuccessModal} 
+        onClose={() => setShowSuccessModal(false)} 
+        message={successMessage} 
+      />
+
+      <WarningModal 
+        isOpen={showWarningModal} 
+        onClose={() => setShowWarningModal(false)} 
+        title={warningTitle} 
+        message={warningMessage} 
+      />
+
     </div>
   );
 }

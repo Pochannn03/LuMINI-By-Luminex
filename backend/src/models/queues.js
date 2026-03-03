@@ -5,7 +5,6 @@ const QueueingSchema = new mongoose.Schema({
     type: Number,
     ref: 'User',
     required: true,
-    unique: true,
   },
   student_id: {
     type: String,

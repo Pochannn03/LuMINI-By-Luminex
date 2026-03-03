@@ -3,15 +3,18 @@ import { createPortal } from "react-dom";
 import QRCode from "react-qr-code";
 import axios from "axios";
 
-export default function GuardianPassModal({ isOpen, onClose }) {
+// 1. ADD studentId AS A PROP
+export default function PassModal({ isOpen, onClose, studentId }) {
   const [passData, setPassData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(300); 
   const [error, setError] = useState(null);
-  const STORAGE_KEY = "lumini_pickup_pass";
+  
+  // 2. MAKE THE STORAGE KEY DYNAMIC PER STUDENT
+  const STORAGE_KEY = `lumini_pickup_pass_${studentId}`; 
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !studentId) return; // Ensure studentId exists
 
     const initPass = async () => {
       setLoading(true);
@@ -34,23 +37,22 @@ export default function GuardianPassModal({ isOpen, onClose }) {
             localStorage.removeItem(STORAGE_KEY);
           }
         } catch (err) {
-          console.log(err)
           localStorage.removeItem(STORAGE_KEY);
         }
       }
 
-      // B. GENERATE NEW PASS IF NOT IN STORAGE
+      // B. GENERATE NEW PASS
       try {
         const res = await axios.post(
           "http://localhost:3000/api/pass/generate",
-          { purpose: 'pickup' },
+          { student_id: studentId }, // 3. SEND THE STUDENT ID TO BACKEND
           { withCredentials: true }
         );
 
         if (res.data.success) {
           const { token, createdAt } = res.data;
           const createdTime = new Date(createdAt).getTime();
-          const expiryTime = createdTime + (600 * 1000); // 10 mins in ms
+          const expiryTime = createdTime + (600 * 1000); // 10 mins
           const now = Date.now();
           const secondsLeft = Math.floor((expiryTime - now) / 1000);
 
@@ -59,7 +61,6 @@ export default function GuardianPassModal({ isOpen, onClose }) {
              return;
           }
 
-          // 3. SAVE TO STORAGE & STATE
           localStorage.setItem(STORAGE_KEY, JSON.stringify({
             token: token,
             expiry: expiryTime
@@ -77,7 +78,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
     };
 
     initPass();
-  }, [isOpen]);
+  }, [isOpen, studentId]); // Added studentId as dependency
 
   useEffect(() => {
     if (!isOpen || timeLeft <= 0) return;
@@ -85,7 +86,6 @@ export default function GuardianPassModal({ isOpen, onClose }) {
     const timerId = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          // Time's up: clear storage
           localStorage.removeItem(STORAGE_KEY);
           return 0;
         }
@@ -94,8 +94,7 @@ export default function GuardianPassModal({ isOpen, onClose }) {
     }, 1000);
 
     return () => clearInterval(timerId);
-  }, [isOpen, timeLeft]);
-
+  }, [isOpen, timeLeft, STORAGE_KEY]);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
