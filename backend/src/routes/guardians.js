@@ -13,6 +13,13 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
+// --- NEW IMPORTS FOR EMAILS ---
+import { 
+  sendGuardianVerifiedEmail, 
+  sendGuardianFinalizedEmail, 
+  sendGuardianSetupCompleteEmail 
+} from '../utils/emailService.js';
+
 const router = Router();
 
 // ==========================================
@@ -117,7 +124,6 @@ router.post(
         const parentObjectId = req.user._id; 
         const parentCustomId = req.user.user_id; 
 
-        // 1. Parse the JSON array of student IDs
         let studentIdsArray = [];
         try {
             studentIdsArray = JSON.parse(req.body.student_ids);
@@ -131,12 +137,35 @@ router.post(
             return res.status(400).json({ message: "Please select at least one student." });
         }
 
+        const allParentStudents = await Student.find({ user_id: parentCustomId });
+        const allLinkedUserIds = allParentStudents.flatMap(s => s.user_id);
+        const uniqueGuardianIds = [...new Set(allLinkedUserIds)].filter(id => id !== parentCustomId);
+        
+        const activeGuardiansCount = await User.countDocuments({
+            user_id: { $in: uniqueGuardianIds },
+            relationship: "Guardian",
+            is_archive: false
+        });
+
+        const pendingRequestsCount = await GuardianRequest.countDocuments({
+            parent: parentObjectId,
+            status: { $in: ['pending', 'teacher_approved'] }
+        });
+
+        const totalGuardianCount = activeGuardiansCount + pendingRequestsCount;
+
+        if (totalGuardianCount >= 3) {
+            if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+            return res.status(403).json({ 
+                message: "Guardian limit reached. You can only have a maximum of 3 authorized guardians. Please revoke access or cancel a pending request to add a new one." 
+            });
+        }
+
         const idPhotoPath = req.file ? req.file.path : null;
         if (!idPhotoPath) return res.status(400).json({ message: "ID photo is required." });
 
         const hashedPassword = await hashPassword(password);
 
-        // 2. Find all selected students
         const linkedStudents = await Student.find({ 
             student_id: { $in: studentIdsArray },
             user_id: parentCustomId 
@@ -147,11 +176,9 @@ router.post(
             return res.status(404).json({ message: "Selected students not found or not linked." });
         }
 
-        // 3. Extract the ObjectIds and Names into arrays
         const studentObjectIds = linkedStudents.map(student => student._id);
         const requestedChildNames = linkedStudents.map(student => student.first_name);
 
-        // 4. Find the primary teacher to notify (takes the first valid teacher found)
         let primaryTeacherId = null;
         for (const student of linkedStudents) {
             if (student.section_id && !primaryTeacherId) {
@@ -163,10 +190,9 @@ router.post(
             }
         }
 
-        // 5. CREATE ONE SINGLE REQUEST WITH ALL STUDENTS
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
-            students: studentObjectIds, // <-- Array of ObjectIds
+            students: studentObjectIds, 
             teacher: primaryTeacherId, 
             guardianDetails: {
                 firstName, lastName, phone, role,
@@ -178,7 +204,6 @@ router.post(
 
         await newRequest.save();
 
-        // 6. Save a single Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
@@ -212,7 +237,6 @@ router.get(
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            // FIX: Populate 'students' (array) instead of 'student'
             .populate('students', 'first_name last_name') 
             .sort({ createdAt: -1 }); 
 
@@ -224,10 +248,7 @@ router.get(
 });
 
 // ==========================================
-// TEACHER ACTION: PRE-APPROVE REQUEST (PASS TO ADMIN)
-// ==========================================
-// ==========================================
-// TEACHER ACTION: APPROVE REQUEST
+// TIER 1: TEACHER VERIFIES REQUEST
 // ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
@@ -238,67 +259,47 @@ router.put('/api/teacher/guardian-requests/:id/approve',
         const currentUserId = Number(req.user.user_id);
         const teacherName = `${req.user.first_name} ${req.user.last_name}`;
 
-        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        // Populate students array so we can grab their names for the email
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent').populate('students');
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
-        // 1. Create the new Guardian account
-        const newGuardian = new User({
-            first_name: requestDoc.guardianDetails.firstName,
-            last_name: requestDoc.guardianDetails.lastName,
-            username: requestDoc.guardianDetails.tempUsername,
-            password: requestDoc.guardianDetails.tempPassword, 
-            phone_number: requestDoc.guardianDetails.phone,
-            relationship: "Guardian", 
-            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, 
-            address: "Not Provided", 
-            role: "user", 
-            is_archive: false,
-        });
-
-        const savedGuardian = await newGuardian.save();
-
-        // 2. FIX: Link the Guardian to ALL requested students!
-        // We check if requestDoc.students exists and has items, then update them all at once.
-        if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
-            await Student.updateMany(
-                { _id: { $in: requestDoc.students } }, // Find all students in this array
-                { $push: { user_id: savedGuardian.user_id } } // Push the new Guardian's ID
-            );
-        }
-
-        // 3. Mark the request as approved
-        requestDoc.status = 'approved';
-        requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
+        requestDoc.status = 'teacher_approved';
         await requestDoc.save();
 
-        // 4. Send Notification to Parent
-        if (requestDoc.parent && requestDoc.parent.user_id) {
+        // Notify Parent (In-App + Email)
+        if (requestDoc.parent) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'System', 
-                title: 'Guardian Request Approved',
-                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active and linked to the selected student(s).`,
+                title: 'Guardian Request Verified',
+                message: `Teacher ${teacherName} has verified your request. It is now pending final approval from the Superadmin.`,
                 is_read: false
             });
 
             const savedNotif = await notification.save();
             req.app.get('socketio').emit('new_notification', savedNotif);
+
+            // SEND EMAIL
+            if (requestDoc.parent.email) {
+                const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
+                const childNames = requestDoc.students.map(s => s.first_name).join(', ');
+                await sendGuardianVerifiedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, childNames);
+            }
         }
 
-        // 3. LOG THE ACTION
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
-          action: "Approve Guardian Request",
-          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name} & linked to ${requestDoc.students.length} student(s)`
+          action: "Verify Guardian Request",
+          target: `Forwarded application for ${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName} to Superadmin`
         });
         await auditLog.save();
 
-        return res.status(200).json({ message: "Guardian successfully approved and linked to student(s)!" });
+        return res.status(200).json({ message: "Request verified and forwarded to Superadmin!" });
 
     } catch (error) {
         console.error("Pre-Approval Error:", error);
@@ -306,9 +307,6 @@ router.put('/api/teacher/guardian-requests/:id/approve',
     }
 });
 
-// ==========================================
-// TEACHER ACTION: REJECT REQUEST
-// ==========================================
 router.put('/api/teacher/guardian-requests/:id/reject', 
   isAuthenticated,
   hasRole('admin'),
@@ -348,8 +346,6 @@ router.put('/api/teacher/guardian-requests/:id/reject',
             });
 
             const savedNotif = await notification.save();
-
-            // Real-time update via Socket.io
             const io = req.app.get('socketio');
             if (io) {
                 io.emit('new_notification', savedNotif);
@@ -376,7 +372,7 @@ router.get(
         const teacherMongoId = req.user._id;
 
         const history = await GuardianRequest.find({ 
-              status: { $in: ['approved', 'rejected', 'revoked'] },
+              status: { $in: ['teacher_approved', 'approved', 'rejected', 'revoked'] },
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
@@ -400,7 +396,7 @@ router.get(
 
         const pendingRequests = await GuardianRequest.find({ 
             parent: parentId, 
-            status: 'pending' 
+            status: { $in: ['pending', 'teacher_approved'] } 
         }).sort({ createdAt: -1 });
 
         return res.status(200).json(pendingRequests);
@@ -423,7 +419,7 @@ router.delete(
         const requestDoc = await GuardianRequest.findOne({
             _id: requestId,
             parent: parentId,
-            status: 'pending'
+            status: { $in: ['pending', 'teacher_approved'] }
         });
 
         if (!requestDoc) {
@@ -503,12 +499,11 @@ router.get('/api/guardian/children', isAuthenticated, async (req, res) => {
 });
 
 // ==========================================
-// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP (UPDATED FOR BIOMETRICS)
+// GUARDIAN ACTION: COMPLETE FIRST-TIME SETUP
 // ==========================================
 router.put(
   '/api/guardian/setup', 
   isAuthenticated, 
-  // THE FIX: Use upload.fields to catch both the cropped profile pic and the raw facial capture
   upload.fields([
     { name: 'profilePic', maxCount: 1 },
     { name: 'facialCapture', maxCount: 1 }
@@ -519,13 +514,12 @@ router.put(
       const { 
         username, password, firstName, lastName,
         email, contact, houseUnit, street, barangay, city, zipCode,
-        facialDescriptor // <-- Received as stringified JSON
+        facialDescriptor 
       } = req.body;
 
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: "User not found." });
 
-      // Update Basic Info
       if (username) user.username = username;
       if (firstName) user.first_name = firstName;
       if (lastName) user.last_name = lastName;
@@ -536,7 +530,6 @@ router.put(
       const fullAddress = [houseUnit, street, barangay, city, zipCode].filter(Boolean).join(', ');
       if (fullAddress) user.address = fullAddress;
 
-      // Extract and save the files
       if (req.files) {
         if (req.files['profilePic']) {
             user.profile_picture = req.files['profilePic'][0].path;
@@ -546,13 +539,23 @@ router.put(
         }
       }
 
-      // Parse and save the mathematical Face Descriptor
       if (facialDescriptor) {
           user.facial_descriptor = JSON.parse(facialDescriptor);
       }
 
       user.is_first_login = false;
       await user.save();
+
+      // Find the original request so we can email the parent
+      const originalRequest = await GuardianRequest.findOne({ 'guardianDetails.createdUserId': userId }).populate('parent');
+      
+      if (originalRequest && originalRequest.parent && originalRequest.parent.email) {
+          await sendGuardianSetupCompleteEmail(
+              originalRequest.parent.email,
+              originalRequest.parent.first_name,
+              `${user.first_name} ${user.last_name}`
+          );
+      }
 
       const auditLog = new Audit({
         user_id: user.user_id,
@@ -584,7 +587,9 @@ router.get(
         const approvedRequests = await GuardianRequest.find({ 
             parent: parentId, 
             status: 'approved' 
-        }).sort({ updatedAt: -1 });
+        })
+        .populate('guardianDetails.createdUserId', 'first_name last_name username profile_picture is_first_login phone_number')
+        .sort({ updatedAt: -1 });
 
         return res.status(200).json(approvedRequests);
     } catch (error) {
@@ -620,9 +625,12 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         }
 
         if (guardianUser) {
-            await Student.findByIdAndUpdate(requestDoc.student, {
-                $pull: { user_id: guardianUser.user_id } 
-            });
+            if (requestDoc.students && requestDoc.students.length > 0) {
+                await Student.updateMany(
+                    { _id: { $in: requestDoc.students } },
+                    { $pull: { user_id: guardianUser.user_id } } 
+                );
+            }
             guardianUser.is_archive = true;
             await guardianUser.save();
         }
@@ -648,7 +656,7 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
 });
 
 // =========================================================================
-// SUPERADMIN ROUTES: FINAL GUARDIAN REGISTRATION
+// TIER 2: SUPERADMIN ROUTES: FINAL GUARDIAN REGISTRATION
 // =========================================================================
 
 // 1. GET PENDING FINAL APPROVALS
@@ -656,8 +664,8 @@ router.get('/api/superadmin/guardian-requests/pending-final', isAuthenticated, h
     try {
         const requests = await GuardianRequest.find({ status: 'teacher_approved' })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name student_id') 
-            .populate('teacher', 'first_name last_name') // Needed to show who verified it
+            .populate('students', 'first_name last_name student_id') 
+            .populate('teacher', 'first_name last_name') 
             .sort({ updatedAt: -1 }); 
 
         return res.status(200).json(requests);
@@ -674,7 +682,7 @@ router.get('/api/superadmin/guardian-requests/history', isAuthenticated, hasRole
               status: { $in: ['approved', 'rejected', 'revoked'] } 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name student_id')
+            .populate('students', 'first_name last_name student_id') 
             .populate('teacher', 'first_name last_name')
             .sort({ updatedAt: -1 }); 
 
@@ -691,12 +699,11 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
         const requestId = req.params.id;
         const currentUserId = Number(req.user.user_id);
 
-        const requestDoc = await GuardianRequest.findById(requestId).populate('parent');
+        const requestDoc = await GuardianRequest.findById(requestId).populate('parent').populate('students');
         if (!requestDoc || requestDoc.status !== 'teacher_approved') {
             return res.status(404).json({ message: "Request not found or not ready for final approval." });
         }
 
-        // CREATE THE ACTUAL USER ACCOUNT
         const newGuardian = new User({
             first_name: requestDoc.guardianDetails.firstName,
             last_name: requestDoc.guardianDetails.lastName,
@@ -712,20 +719,19 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
 
         const savedGuardian = await newGuardian.save();
 
-        // LINK TO STUDENT
-        if (savedGuardian.user_id) {
-            await Student.findByIdAndUpdate(requestDoc.student, {
-                $push: { user_id: savedGuardian.user_id } 
-            });
+        if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
+            await Student.updateMany(
+                { _id: { $in: requestDoc.students } }, 
+                { $push: { user_id: savedGuardian.user_id } } 
+            );
         }
 
-        // UPDATE REQUEST STATUS
         requestDoc.status = 'approved';
         requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
         await requestDoc.save();
 
-        // NOTIFY PARENT
-        if (requestDoc.parent && requestDoc.parent.user_id) {
+        // Notify Parent (In-App + Email)
+        if (requestDoc.parent) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
@@ -736,9 +742,15 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
             });
             const savedNotif = await notification.save();
             req.app.get('socketio').emit('new_notification', savedNotif);
+
+            // SEND EMAIL
+            if (requestDoc.parent.email) {
+                const guardianName = `${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName}`;
+                const childNames = requestDoc.students.map(s => s.first_name).join(', ');
+                await sendGuardianFinalizedEmail(requestDoc.parent.email, requestDoc.parent.first_name, guardianName, childNames, requestDoc.guardianDetails.tempUsername);
+            }
         }
 
-        // AUDIT LOG
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
@@ -772,7 +784,6 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
         requestDoc.status = 'rejected';
         await requestDoc.save();
 
-        // NOTIFY PARENT
         if (requestDoc.parent && requestDoc.parent.user_id) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
@@ -786,12 +797,10 @@ router.put('/api/superadmin/guardian-requests/:id/final-reject', isAuthenticated
             req.app.get('socketio').emit('new_notification', savedNotif);
         }
 
-        // CLEANUP ID PHOTO
         if (requestDoc.guardianDetails.idPhotoPath && fs.existsSync(requestDoc.guardianDetails.idPhotoPath)) {
             fs.unlinkSync(requestDoc.guardianDetails.idPhotoPath);
         }
 
-        // AUDIT LOG
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,

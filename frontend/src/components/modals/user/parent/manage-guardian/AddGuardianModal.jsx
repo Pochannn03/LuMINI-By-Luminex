@@ -1,3 +1,5 @@
+// frontend/src/components/modals/user/parent/manage-guardian/AddGuardianModal.jsx
+
 import React, { useState, useEffect } from "react";
 import axios from "axios"; 
 import "../../../../../styles/user/parent/manage-guardian.css";
@@ -15,13 +17,12 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
 
   const [childrenList, setChildrenList] = useState([]);
 
-  // --- CHANGED: student_ids is now an array ---
   const [formData, setFormData] = useState({
     student_ids: [], 
     firstName: "",
     lastName: "",
     email: "",
-    phone: "",
+    phone: "09", // <-- DEFAULT TO "09"
     role: "",
     username: "",
     password: "",
@@ -57,11 +58,11 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
     setShowPassword(false);
     setPreviewUrl(null);
     setFormData({
-      student_ids: [], // Reset array
+      student_ids: [], 
       firstName: "",
       lastName: "",
       email: "",
-      phone: "",
+      phone: "09", // <-- RESET BACK TO "09"
       role: "",
       username: "",
       password: "",
@@ -83,25 +84,41 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    let newFormData = { ...formData, [name]: value };
+    let newFormData = { ...formData };
+
+    // --- NEW: STRICT PHONE NUMBER LOGIC ---
+    if (name === "phone") {
+      // 1. Remove anything that isn't a number
+      let numericVal = value.replace(/\D/g, '');
+      
+      // 2. Force it to always start with 09
+      if (numericVal.length < 2) {
+        numericVal = "09"; 
+      } else if (!numericVal.startsWith("09")) {
+        numericVal = "09" + numericVal.substring(2);
+      }
+      
+      // 3. Cap at 11 digits max
+      newFormData.phone = numericVal.slice(0, 11);
+    } else {
+      newFormData[name] = value;
+    }
 
     if (name === "firstName" || name === "lastName") {
       const fName = name === "firstName" ? value : formData.firstName;
       const lName = name === "lastName" ? value : formData.lastName;
       newFormData.username = generateUsername(fName, lName);
     }
+    
     setFormData(newFormData);
   };
 
-  // --- NEW: Handle Checkbox toggles ---
   const handleCheckboxChange = (studentId) => {
     setFormData(prev => {
       const isSelected = prev.student_ids.includes(studentId);
       if (isSelected) {
-        // Remove from array
         return { ...prev, student_ids: prev.student_ids.filter(id => id !== studentId) };
       } else {
-        // Add to array
         return { ...prev, student_ids: [...prev.student_ids, studentId] };
       }
     });
@@ -118,10 +135,10 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
 
   const isStep2Valid = () => {
     return (
-      formData.student_ids.length > 0 && // Must have at least 1 child selected
+      formData.student_ids.length > 0 && 
       formData.firstName.trim() !== "" &&
       formData.lastName.trim() !== "" &&
-      formData.phone.trim() !== "" &&
+      formData.phone.length === 11 && // <-- MUST BE EXACTLY 11 DIGITS NOW
       formData.role.trim() !== "" &&
       formData.password.length >= 8
     );
@@ -131,7 +148,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
     setIsSubmitting(true);
     try {
       const dataToSend = new FormData();
-      // Send the array as a JSON string so backend can parse it
       dataToSend.append("student_ids", JSON.stringify(formData.student_ids)); 
       dataToSend.append("firstName", formData.firstName);
       dataToSend.append("lastName", formData.lastName);
@@ -193,7 +209,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             
-            {/* --- NEW: CHECKBOXES FOR STUDENTS --- */}
             <div className="form-group p-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl">
               <label className="modal-label" style={{ marginBottom: "12px" }}>Assign Guardian To Student(s):</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -230,7 +245,14 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
             <div className="form-grid-2">
               <div>
                 <label className="modal-label">Phone Number</label>
-                <input name="phone" className="modal-input" placeholder="0912..." value={formData.phone} onChange={handleInputChange} />
+                <input 
+                  name="phone" 
+                  className="modal-input" 
+                  placeholder="09123456789" 
+                  value={formData.phone} 
+                  onChange={handleInputChange} 
+                  maxLength={11} // <-- EXTRA HTML CONSTRAINT
+                />
               </div>
               <div>
                 <label className="modal-label">Relationship to Child</label>
@@ -294,7 +316,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
         );
 
       case 4:
-        // Get names of all selected children for the summary
         const selectedChildNames = childrenList
           .filter(c => formData.student_ids.includes(c.student_id))
           .map(c => `${c.first_name} ${c.last_name}`)
@@ -324,7 +345,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
                 <span className="sum-value">{formData.username}</span>
               </div>
 
-              {/* --- NEW PASSWORD ROW WITH EYE TOGGLE --- */}
               <div className="summary-row">
                 <span className="sum-label">Temp Password</span>
                 <div className="sum-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

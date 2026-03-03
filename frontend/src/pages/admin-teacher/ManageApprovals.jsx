@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import jsPDF from "jspdf"; // <- FOR PDF
-import autoTable from "jspdf-autotable"; // <- FOR PDF
+import jsPDF from "jspdf"; 
+import autoTable from "jspdf-autotable"; 
 import "../../styles/admin-teacher/admin-manage-approvals.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
@@ -18,22 +18,22 @@ export default function ManageApprovals() {
   const filterRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
- // --- REAL DATA STATE ---
-  const [requests, setRequests] = useState([]); // Pending requests
-  const [historyRequests, setHistoryRequests] = useState([]); // History requests
+  const [requests, setRequests] = useState([]); 
+  const [historyRequests, setHistoryRequests] = useState([]); 
   const [loading, setLoading] = useState(true);
+
+  // --- NEW: Wired up the Search Bar ---
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
   const [expandedImage, setExpandedImage] = useState(null);
 
-  // CONFIRMATION STATE
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [modalType, setModalType] = useState("approve");
 
-  // Fetch both pending and history requests on load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,24 +53,34 @@ export default function ManageApprovals() {
     fetchData();
   }, []);
 
-  // Helper for formatting Dates beautifully
   const formatDateTime = (dateString) => {
     const options = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('en-US', options).replace(',', ' •');
   };
 
-  // Helper for Images (Avatars)
   const getImageUrl = (path) => {
-    if (!path) return "https://via.placeholder.com/150"; // Fallback image
+    if (!path) return "https://via.placeholder.com/150"; 
     if (path.startsWith("http")) return path;
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // Make the counters dynamic!
+  // Helper to filter lists based on search
+  const filterBySearch = (list) => {
+    if (!searchQuery) return list;
+    const lowerQ = searchQuery.toLowerCase();
+    return list.filter(req => {
+      const gName = `${req.guardianDetails?.firstName || ''} ${req.guardianDetails?.lastName || ''}`.toLowerCase();
+      const pName = req.parent ? `${req.parent.first_name} ${req.parent.last_name}`.toLowerCase() : '';
+      return gName.includes(lowerQ) || pName.includes(lowerQ);
+    });
+  };
+
+  const filteredPending = filterBySearch(requests);
+  const filteredHistory = filterBySearch(historyRequests);
+
   const pendingCount = requests.length;
   const historyCount = historyRequests.length;
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -83,9 +93,7 @@ export default function ManageApprovals() {
 
   const handleSort = (type) => setIsFilterOpen(false);
   const handleCardClick = (req) => setSelectedRequest(req);
-  // ==========================================
-  // --- ACTION: APPROVE ---
-  // ==========================================
+
   const handleApproveClick = (e, id) => {
     e.stopPropagation();
     setPendingActionId(id);
@@ -93,9 +101,6 @@ export default function ManageApprovals() {
     setConfirmModalOpen(true);
   };
 
-  // ==========================================
-  // --- ACTION: REJECT ---
-  // ==========================================
   const handleRejectClick = (e, id) => {
     e.stopPropagation();
     setPendingActionId(id);
@@ -105,7 +110,7 @@ export default function ManageApprovals() {
 
   const handleConfirmAction = async () => {
     const id = pendingActionId;
-    const endpoint = modalType; // 'approve' or 'reject'
+    const endpoint = modalType; 
     setConfirmModalOpen(false); 
     
     try {
@@ -115,14 +120,14 @@ export default function ManageApprovals() {
       );
 
       setSuccessMessage(modalType === "approve" 
-        ? "Guardian account successfully created!" 
+        ? "Request verified and forwarded to Superadmin." 
         : "Application has been rejected.");
       setShowSuccessModal(true);
 
       const actedRequest = requests.find(req => req._id === id);
       if (actedRequest) {
         setRequests(requests.filter(req => req._id !== id));
-        setHistoryRequests([{ ...actedRequest, status: modalType === 'approve' ? 'approved' : 'rejected' }, ...historyRequests]);
+        setHistoryRequests([{ ...actedRequest, status: modalType === 'approve' ? 'teacher_approved' : 'rejected' }, ...historyRequests]);
       }
       setSelectedRequest(null);
     } catch (error) {
@@ -131,19 +136,15 @@ export default function ManageApprovals() {
     }
   };
 
-  // ==========================================
-  // --- PDF EXPORT FUNCTION (BULLETPROOF) ---
-  // ==========================================
   const exportHistoryToPDF = () => {
     try {
-      if (!historyRequests || historyRequests.length === 0) {
+      if (!filteredHistory || filteredHistory.length === 0) {
         alert("No history records to export.");
         return;
       }
 
       const doc = new jsPDF();
       
-      // 1. Add Title and Date
       doc.setFontSize(18);
       doc.setTextColor(30, 41, 59);
       doc.text("Guardian Approval History", 14, 22);
@@ -152,29 +153,23 @@ export default function ManageApprovals() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      // 2. Define Table Columns
       const tableColumn = ["Date", "Parent", "Guardian", "Role", "Child", "Status"];
       const tableRows = [];
 
-      // 3. Map the data SAFELY
-      historyRequests.forEach(req => {
-        // Safe Date
+      filteredHistory.forEach(req => {
         const date = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Unknown";
         
-        // Safe Parent Name
         let parentName = "N/A";
         if (req.parent && req.parent.first_name) {
             parentName = `${req.parent.first_name} ${req.parent.last_name}`;
         } else if (typeof req.parent === 'string') {
-            parentName = "ID: " + req.parent.substring(0, 5) + "..."; // Fallback if not populated
+            parentName = "ID: " + req.parent.substring(0, 5) + "..."; 
         }
 
-        // Safe Guardian Name
         const gDetails = req.guardianDetails || {};
         const guardianName = `${gDetails.firstName || 'Unknown'} ${gDetails.lastName || ''}`.trim();
         const role = gDetails.role || "N/A";
         
-        // Safe Child Name
         let childName = "N/A";
           if (req.students && req.students.length > 0) {
             childName = req.students.map(s => {
@@ -182,14 +177,11 @@ export default function ManageApprovals() {
             }).join(", ");
           }
 
-        // Safe Status
         const status = (req.status || "Unknown").toUpperCase();
 
-        // Push the clean row
         tableRows.push([date, parentName, guardianName, role, childName, status]);
       });
 
-      // 4. Generate the Table (Safely passing the doc in)
       autoTable(doc, {
         startY: 36,
         head: [tableColumn],
@@ -200,7 +192,6 @@ export default function ManageApprovals() {
         alternateRowStyles: { fillColor: [248, 250, 252] }
       });
 
-      // 5. Download the file
       doc.save("Guardian_Approval_History.pdf");
 
     } catch (error) {
@@ -217,7 +208,6 @@ export default function ManageApprovals() {
       <main className="main-content">
         <div className="approvals-container">
           
-          {/* 1. HEADER BANNER */}
           <div className="header-banner">
              <div className="header-title">
               <h1>Account Approvals</h1>
@@ -226,73 +216,103 @@ export default function ManageApprovals() {
             <span className="material-symbols-outlined" style={{ fontSize: "48px", opacity: 0.8 }}>verified_user</span>
           </div>
 
-          {/* 2. CONTROLS BAR */}
-          <div className="controls-bar">
-             <div className="controls-left">
-                <div className="tab-group">
-                  <button className={`tab-btn ${activeTab === "pending" ? "active" : ""}`} onClick={() => setActiveTab("pending")}>
-                    Pending Requests {pendingCount > 0 && <span className="tab-badge" style={{ marginLeft: "8px" }}>{pendingCount}</span>}
-                  </button>
-                  <button className={`tab-btn ${activeTab === "history" ? "active" : ""}`} onClick={() => setActiveTab("history")}>
-                    Approval History <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: "6px" }}>{historyCount}</span>
-                  </button>
-                </div>
-                <div className="search-mini">
-                  <span className="material-symbols-outlined" style={{ fontSize: "20px", color: "#94a3b8" }}>search</span>
-                  <input type="text" placeholder="Search by name or ID..." />
-                </div>
+          {/* --- THE FIX: Z-Index 50 ensures the dropdown overlays the cards --- */}
+          <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', position: 'relative', zIndex: 50 }}>
+             
+             {/* ROW 1: TABS (50/50 split on mobile) */}
+             <div className="tab-group" style={{ display: 'flex', flex: '1 1 auto', minWidth: '280px', background: '#f8fafc', padding: '4px', borderRadius: '10px' }}>
+                <button 
+                  className={`tab-btn ${activeTab === "pending" ? "active" : ""}`} 
+                  onClick={() => setActiveTab("pending")}
+                  style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: 0, borderRadius: '8px' }}
+                >
+                  Pending {pendingCount > 0 && <span className="tab-badge" style={{ marginLeft: "8px" }}>{pendingCount}</span>}
+                </button>
+                <button 
+                  className={`tab-btn ${activeTab === "history" ? "active" : ""}`} 
+                  onClick={() => setActiveTab("history")}
+                  style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: 0, borderRadius: '8px' }}
+                >
+                  History <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: "6px" }}>{historyCount}</span>
+                </button>
              </div>
-             <div className="controls-right" ref={filterRef}>
-                {/* --- NEW: EXPORT PDF BUTTON (Only shows on History Tab) --- */}
+
+             {/* ROW 2: SEARCH & ACTIONS */}
+             <div style={{ display: 'flex', flex: '1 1 auto', gap: '12px', minWidth: '280px', alignItems: 'center' }}>
+                
+                {/* --- THE FIX: FLEXBOX SEARCH WRAPPER --- */}
+                {/* Notice how the container looks like an input box, and the input/buttons live cleanly inside it! */}
+                <div style={{ display: 'flex', flex: 1, alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', padding: '4px 4px 4px 12px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#94a3b8', marginRight: '8px' }}>search</span>
+                  
+                  <input 
+                    type="text" 
+                    placeholder="Search by name or ID..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', minWidth: '50px', height: '34px' }} 
+                  />
+                  
+                  {/* Filter Wrapper (Lives inside the Search Bar container) */}
+                  <div style={{ position: 'relative' }} ref={filterRef}>
+                    <button 
+                      onClick={() => setIsFilterOpen(!isFilterOpen)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 12px', background: isFilterOpen ? '#f1f5f9' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#475569', fontSize: '13px', fontWeight: '600', transition: 'background 0.2s', height: '100%' }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
+                      <span className="hide-on-mobile">Filter</span>
+                    </button>
+
+                    {/* Dropdown Menu (Z-index 9999 ensures it pops over everything) */}
+                    {isFilterOpen && (
+                      <div className="filter-dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, zIndex: 9999, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', padding: '8px', minWidth: '180px' }}>
+                        <button className="filter-option" onClick={() => handleSort("surname")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>sort_by_alpha</span> Via Surname</button>
+                        <button className="filter-option" onClick={() => handleSort("date")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span> Via Date</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* RESPONSIVE PDF BUTTON */}
                 {activeTab === "history" && (
                   <button 
                     className="btn-outline" 
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '12px' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '44px', padding: '0 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
+                    onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'white'}
                     onClick={() => exportHistoryToPDF()}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>picture_as_pdf</span>
-                    Export PDF
+                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>picture_as_pdf</span>
+                    <span className="hide-on-mobile" style={{ fontWeight: 600, fontSize: '14px' }}>Export PDF</span>
                   </button>
                 )}
-
-                <div className="filter-wrapper">
-                  <button className={`btn-filter ${isFilterOpen ? "active" : ""}`} onClick={() => setIsFilterOpen(!isFilterOpen)}>
-                    <span className="material-symbols-outlined">filter_list</span> Filter
-                  </button>
-                  {isFilterOpen && (
-                    <div className="filter-dropdown-menu">
-                      <button className="filter-option" onClick={() => handleSort("surname")}><span className="material-symbols-outlined">sort_by_alpha</span> Via Surname</button>
-                      <button className="filter-option" onClick={() => handleSort("date")}><span className="material-symbols-outlined">calendar_month</span> Via Date</button>
-                    </div>
-                  )}
-                </div>
              </div>
           </div>
 
-          {/* 3. GRID AREA */}
           <div className="requests-grid">
             
             {loading ? (
               <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
                  Fetching pending requests...
               </div>
-            ) : activeTab === "pending" && requests.length === 0 ? (
+            ) : activeTab === "pending" && filteredPending.length === 0 ? (
               <div className="empty-queue">
                 <span className="material-symbols-outlined empty-queue-icon">inbox_customize</span>
-                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>All Caught Up!</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px" }}>There are no pending account requests at the moment.</p>
+                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>
+                  {searchQuery ? "No matches found." : "All Caught Up!"}
+                </h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+                  {searchQuery ? "Try a different search term." : "There are no pending account requests at the moment."}
+                </p>
               </div>
             ) : null}
 
-            {/* --- MAP REAL REQUEST CARDS --- */}
             {activeTab === "pending" && !loading &&
-              requests.map((req) => (
+              filteredPending.map((req) => (
                 <div className="request-card" key={req._id}>
                   
-                  {/* TOP ROW: Split Header */}
                   <div className="card-split-header">
                     
-                    {/* LEFT: Parent Info (Populated from User DB) */}
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
                       <div className="person-group">
@@ -307,11 +327,9 @@ export default function ManageApprovals() {
                       </div>
                     </div>
 
-                    {/* RIGHT: Guardian Info (From guardianDetails object) */}
                     <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
                       <span className="info-label">Requested Guardian</span>
                       <div className="person-group">
-                        {/* ID Photo mapped here for quick visual */}
                         <img src={getImageUrl(req.guardianDetails.idPhotoPath)} alt="Guardian ID" className="header-avatar" />
                         <div className="name-stack">
                           <span className="info-value">{req.guardianDetails.firstName} {req.guardianDetails.lastName}</span>
@@ -326,21 +344,16 @@ export default function ManageApprovals() {
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW 1: Linked Child */}
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
-                      
-                      {/* --- THE FIX: HANDLE THE ARRAY --- */}
                       {req.students && req.students.length > 0 
                         ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
-                        
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW 2: Requested On */}
                   <div className="card-row">
                     <span className="info-label">Requested On</span>
                     <span className="info-value" style={{fontWeight: 500, fontSize: '13px'}}>
@@ -348,27 +361,28 @@ export default function ManageApprovals() {
                     </span>
                   </div>
 
-                  {/* BOTTOM ROW: Actions */}
                   <div className="card-actions">
                     <button className="btn-card btn-reject" onClick={(e) => handleRejectClick(e, req._id)}>Reject</button>
-                    <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Approve</button>
+                    <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Verify</button>
                   </div>
 
                 </div>
               ))}
 
-            {/* --- MAP REAL HISTORY CARDS --- */}
-            {activeTab === "history" && !loading && historyRequests.length === 0 ? (
+            {activeTab === "history" && !loading && filteredHistory.length === 0 ? (
               <div className="empty-queue">
                 <span className="material-symbols-outlined empty-queue-icon">history</span>
-                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>No History Yet</h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px" }}>Approved and rejected applications will appear here.</p>
+                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>
+                  {searchQuery ? "No matches found." : "No History Yet"}
+                </h3>
+                <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+                  {searchQuery ? "Try a different search term." : "Approved and rejected applications will appear here."}
+                </p>
               </div>
             ) : activeTab === "history" && !loading && (
-              historyRequests.map((req) => (
+              filteredHistory.map((req) => (
                 <div className="request-card" key={req._id} style={{ opacity: 0.9 }}> 
                   
-                  {/* TOP ROW: Split Header (Same as pending) */}
                   <div className="card-split-header">
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
@@ -395,29 +409,35 @@ export default function ManageApprovals() {
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW 1: Linked Child */}
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
-                      
-                      {/* --- THE FIX: HANDLE THE ARRAY --- */}
                       {req.students && req.students.length > 0 
                         ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
-                        
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW: History Status Badge */}
                   <div className="card-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', padding: '16px' }}>
-                    {req.status === 'approved' ? (
+                    {req.status === 'teacher_approved' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
+                        <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
+                      </span>
+                    )}
+                    {req.status === 'approved' && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
                         <span className="material-symbols-outlined">check_circle</span> Application Approved
                       </span>
-                    ) : (
+                    )}
+                    {req.status === 'rejected' && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
                         <span className="material-symbols-outlined">cancel</span> Application Rejected
+                      </span>
+                    )}
+                    {req.status === 'revoked' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '15px' }}>
+                        <span className="material-symbols-outlined">block</span> Access Revoked
                       </span>
                     )}
                   </div>
@@ -429,12 +449,11 @@ export default function ManageApprovals() {
         </div>
       </main>
 
-      {/* --- UNIFIED DETAILS MODAL (MOBILE-FRIENDLY + SMART FOOTER) --- */}
+      {/* --- UNIFIED DETAILS MODAL --- */}
       {selectedRequest && (
         <div className="approval-modal-overlay" onClick={() => setSelectedRequest(null)}>
           <div className="approval-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
             
-            {/* Modal Header */}
             <div className="modal-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
               <div>
                 <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px'}}>Guardian Application</h2>
@@ -447,10 +466,8 @@ export default function ManageApprovals() {
               </button>
             </div>
 
-            {/* Modal Body (1 Column Stack) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px' }}>
               
-              {/* TOP SECTION: Data */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Applicant Details
@@ -486,7 +503,6 @@ export default function ManageApprovals() {
                 </div>
               </div>
 
-              {/* BOTTOM SECTION: ID Photo */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Valid ID Verification
@@ -494,16 +510,9 @@ export default function ManageApprovals() {
                 <div 
                   onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath))}
                   style={{ 
-                    background: '#f8fafc', 
-                    border: '2px dashed #cbd5e1', 
-                    borderRadius: '12px', 
-                    padding: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'zoom-in',
-                    position: 'relative',
-                    transition: 'border-color 0.2s'
+                    background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', 
+                    padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'zoom-in', position: 'relative', transition: 'border-color 0.2s'
                   }}
                   onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
                   onMouseOut={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
@@ -521,33 +530,36 @@ export default function ManageApprovals() {
 
             </div>
             
-            {/* Modal Footer Actions (SMART FOOTER) */}
+            {/* Modal Footer Actions */}
             {selectedRequest.status === 'pending' ? (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
-                <button 
-                  className="btn-card btn-reject" 
-                  style={{ flex: 1, padding: '12px 0' }} 
-                  onClick={(e) => handleRejectClick(e, selectedRequest._id)}
-                >
+                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleRejectClick(e, selectedRequest._id)}>
                   Reject
                 </button>
-                <button 
-                  className="btn-card btn-approve" 
-                  style={{ flex: 1, padding: '12px 0' }} 
-                  onClick={(e) => handleApproveClick(e, selectedRequest._id)}
-                >
-                  Approve
+                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApproveClick(e, selectedRequest._id)}>
+                  Verify
                 </button>
               </div>
             ) : (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
-                {selectedRequest.status === 'approved' ? (
+                {selectedRequest.status === 'teacher_approved' && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
+                    <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
+                  </span>
+                )}
+                {selectedRequest.status === 'approved' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
                     <span className="material-symbols-outlined">check_circle</span> Application Approved
                   </span>
-                ) : (
+                )}
+                {selectedRequest.status === 'rejected' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
                     <span className="material-symbols-outlined">cancel</span> Application Rejected
+                  </span>
+                )}
+                {selectedRequest.status === 'revoked' && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '15px' }}>
+                    <span className="material-symbols-outlined">block</span> Access Revoked
                   </span>
                 )}
               </div>
@@ -557,7 +569,6 @@ export default function ManageApprovals() {
         </div>
       )}
 
-      {/* --- NEW: FULL SCREEN IMAGE LIGHTBOX --- */}
       {expandedImage && (
         <div 
           style={{
@@ -584,11 +595,11 @@ export default function ManageApprovals() {
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleConfirmAction}
-        title={modalType === "approve" ? "Approve Guardian?" : "Reject Application?"}
+        title={modalType === "approve" ? "Verify Application?" : "Reject Application?"}
         message={modalType === "approve" 
-          ? "Are you sure? This will create a new system account for this guardian." 
+          ? "Are you sure? This will verify the request and forward it to the Superadmin for final approval." 
           : "Are you sure you want to reject this request? This action cannot be undone."}
-        confirmText={modalType === "approve" ? "Yes, Approve" : "Yes, Reject"}
+        confirmText={modalType === "approve" ? "Yes, Verify" : "Yes, Reject"}
         type={modalType === "approve" ? "info" : "danger"}
       />
 

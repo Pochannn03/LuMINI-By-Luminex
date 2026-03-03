@@ -17,11 +17,9 @@ export default function SuperAdminGuardianRegistration() {
   const [activeTab, setActiveTab] = useState("pending");
   const [searchQuery, setSearchQuery] = useState("");
   
-  // Real data states
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Modal States
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,9 +31,6 @@ export default function SuperAdminGuardianRegistration() {
     return () => document.body.classList.remove("dashboard-mode");
   }, []);
 
-  // ==========================================
-  // REAL FETCH LOGIC (Connected to your Backend)
-  // ==========================================
   const fetchRequests = async () => {
     setLoading(true);
     try {
@@ -52,12 +47,10 @@ export default function SuperAdminGuardianRegistration() {
     }
   };
 
-  // Fetch data whenever the tab changes!
   useEffect(() => {
     fetchRequests();
   }, [activeTab]);
 
-  // --- FILTER LOGIC ---
   const filteredRequests = useMemo(() => {
     return requests.filter(req => {
       const gName = `${req.guardianDetails?.firstName || ''} ${req.guardianDetails?.lastName || ''}`.toLowerCase();
@@ -67,13 +60,11 @@ export default function SuperAdminGuardianRegistration() {
     });
   }, [requests, searchQuery]);
 
-  // --- ACTION HANDLERS ---
   const handleFinalAction = async (actionType) => {
     setIsProcessing(true);
     try {
       const endpoint = actionType === 'approve' ? 'final-approve' : 'final-reject';
       
-      // Hit the backend
       await axios.put(`${BACKEND_URL}/api/superadmin/guardian-requests/${selectedRequest._id}/${endpoint}`, {}, { withCredentials: true });
 
       const message = actionType === 'approve' 
@@ -82,7 +73,6 @@ export default function SuperAdminGuardianRegistration() {
       
       setSuccessConfig({ isOpen: true, message });
       
-      // Remove from the current UI list immediately
       setRequests(prev => prev.filter(r => r._id !== selectedRequest._id));
       setSelectedRequest(null);
     } catch (error) {
@@ -157,7 +147,6 @@ export default function SuperAdminGuardianRegistration() {
               </div>
             ) : filteredRequests.length === 0 ? (
               
-              /* DYNAMIC EMPTY STATES */
               <div className="flex flex-col items-center justify-center py-20 animate-[fadeIn_0.3s_ease-out]">
                 <div className="w-20 h-20 bg-white rounded-full shadow-sm border border-gray-100 flex items-center justify-center mb-4">
                     <span className="material-symbols-outlined text-[40px] text-gray-300">
@@ -175,7 +164,6 @@ export default function SuperAdminGuardianRegistration() {
               </div>
 
             ) : (
-              /* DATA GRID */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-[fadeIn_0.3s_ease-out]">
                 {filteredRequests.map(req => (
                   <div 
@@ -212,12 +200,16 @@ export default function SuperAdminGuardianRegistration() {
 
                     <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-gray-50">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400 font-bold">Child:</span>
-                        <span className="text-slate-700 font-extrabold">{req.student?.first_name} {req.student?.last_name}</span>
+                        <span className="text-slate-400 font-bold">Child(ren):</span>
+                        <span className="text-slate-700 font-extrabold truncate max-w-[60%]">
+                          {req.students && req.students.length > 0 
+                            ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
+                            : "Unknown Student"}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-slate-400 font-bold">Parent:</span>
-                        <span className="text-slate-700 font-extrabold">{req.parent?.first_name} {req.parent?.last_name}</span>
+                        <span className="text-slate-700 font-extrabold truncate max-w-[60%]">{req.parent?.first_name} {req.parent?.last_name}</span>
                       </div>
                     </div>
                   </div>
@@ -228,7 +220,6 @@ export default function SuperAdminGuardianRegistration() {
         </div>
       </main>
 
-      {/* FINAL REVIEW MODAL */}
       {selectedRequest && (
         <div className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]" onClick={() => !isProcessing && setSelectedRequest(null)}>
           <div className="bg-white rounded-3xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col transform scale-100 transition-transform" onClick={e => e.stopPropagation()}>
@@ -257,13 +248,17 @@ export default function SuperAdminGuardianRegistration() {
               </div>
               <div className="bg-[#f8fafc] border border-slate-200 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Linked Student</span>
-                  <span className="text-[14px] font-bold text-slate-800">{selectedRequest.student?.first_name} {selectedRequest.student?.last_name}</span>
+                  <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Linked Child(ren)</span>
+                  <span className="text-[14px] font-bold text-slate-800 text-right max-w-[60%]">
+                    {selectedRequest.students && selectedRequest.students.length > 0 
+                      ? selectedRequest.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
+                      : "Unknown Student"}
+                  </span>
                 </div>
                 <div className="h-px bg-slate-200 w-full"></div>
                 <div className="flex items-center justify-between">
                   <span className="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Requesting Parent</span>
-                  <span className="text-[14px] font-bold text-slate-800">{selectedRequest.parent?.first_name} {selectedRequest.parent?.last_name}</span>
+                  <span className="text-[14px] font-bold text-slate-800 text-right max-w-[60%]">{selectedRequest.parent?.first_name} {selectedRequest.parent?.last_name}</span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
