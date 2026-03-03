@@ -55,6 +55,7 @@ const getImageUrl = (path, fallbackName) => {
 export default function AdminAttendance() {
   // --- STATE ---
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [activeRemarkId, setActiveRemarkId] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [teacherSections, setTeacherSections] = useState([]);
@@ -124,6 +125,12 @@ export default function AdminAttendance() {
     
     setStats({ present, late, absent });
   }, [filteredRecords]);
+
+  useEffect(() => {
+    const handleTapOutside = () => setActiveRemarkId(null);
+    document.addEventListener("click", handleTapOutside);
+    return () => document.removeEventListener("click", handleTapOutside);
+  }, []);
 
   const handleLocalChange = (recordId, field, value) => {
     setPendingChanges(prev => {
@@ -503,33 +510,58 @@ export default function AdminAttendance() {
                           {/* 4. REMARKS COLUMN */}
                           <td className="py-3 px-2 text-center relative overflow-visible">
                             {record.details ? (
-                              <div className="inline-flex items-center justify-center relative group/note">
-                                {/* The Info Icon */}
-                                <span className="material-symbols-outlined text-blue-500 cursor-help text-[22px] transition-all duration-200 group-hover/note:scale-110">
+                              <div className="inline-flex items-center justify-center relative">
+                                {/* The Info Icon - Now a Button */}
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation(); // Prevent closing immediately from the useEffect listener
+                                    setActiveRemarkId(activeRemarkId === record._id ? null : record._id);
+                                  }}
+                                  className={`material-symbols-outlined cursor-pointer text-[22px] transition-all duration-200 outline-none
+                                    ${activeRemarkId === record._id ? 'text-blue-700 scale-110' : 'text-blue-500'}`}
+                                >
                                   info
-                                </span>
+                                </button>
 
                                 {/* The Expanding Bubble */}
-                                <div className="invisible opacity-0 scale-95 group-hover/note:visible group-hover/note:opacity-100 group-hover/note:scale-100
-                                                absolute z-[9999] bottom-[130%] left-1/2 -translate-x-1/2 mb-2
-                                                w-[260px] h-auto pointer-events-none transition-all duration-200 ease-out origin-bottom">
-                                  
-                                  <div className="bg-[#39A8ED] text-white p-4 rounded-2xl shadow-[0_10px_30px_-5px_rgba(57,168,237,0.4)] border border-blue-300/30 relative">
-                                    <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/20">
-                                      <span className="material-symbols-outlined text-white text-[16px]">chat_bubble</span>
-                                      <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white">Absence Note</span>
+                                <div 
+                                  className={`
+                                    absolute z-[9999] bottom-[130%] left-1/2 -translate-x-1/2 mb-2
+                                    w-[260px] h-auto transition-all duration-200 ease-out origin-bottom
+                                    ${activeRemarkId === record._id 
+                                      ? 'visible opacity-100 scale-100' 
+                                      : 'invisible opacity-0 scale-95 lg:group-hover:visible lg:group-hover:opacity-100 lg:group-hover:scale-100'}
+                                  `}
+                                >
+                                  {/* Added onClick to stop propagation so clicking inside bubble doesn't close it */}
+                                  <div 
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="bg-[#39A8ED] text-white p-4 rounded-2xl shadow-[0_10px_30px_-5px_rgba(57,168,237,0.4)] border border-blue-300/30 relative"
+                                  >
+                                    <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/20">
+                                      <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-white text-[16px]">chat_bubble</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white">Absence Note</span>
+                                      </div>
+                                      {/* Close button for mobile clarity */}
+                                      <button 
+                                        onClick={() => setActiveRemarkId(null)}
+                                        className="lg:hidden material-symbols-outlined text-[16px] text-white/70"
+                                      >
+                                        close
+                                      </button>
                                     </div>
 
                                     <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
-                                      <p className="text-[11px]! leading-normal text-white! font-medium italic text-left whitespace-normal wrap-break-word">
+                                      <p className="text-[11px]! leading-normal text-white! font-medium italic text-left whitespace-normal break-words">
                                         "{record.details}"
                                       </p>
                                     </div>
 
                                     <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 
-                                                    border-l-10 border-l-transparent 
-                                                    border-r-10 border-r-transparent 
-                                                    border-t-10 border-t-[#39A8ED]">
+                                                    border-l-[10px] border-l-transparent 
+                                                    border-r-[10px] border-r-transparent 
+                                                    border-t-[10px] border-t-[#39A8ED]">
                                     </div>
                                   </div>
                                 </div>
