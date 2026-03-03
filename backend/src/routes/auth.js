@@ -1,7 +1,8 @@
 import { Router } from "express";
 import passport from "../config/passport.js";
-import { User } from "../models/users.js"; // <-- NEW: Import the User model!
 import crypto from 'crypto';
+import { User } from "../models/users.js";
+import { Audit } from "../models/audits.js"
 import { sendPasswordUpdateOTP } from '../utils/emailService.js';
 import { hashPassword } from '../utils/passwordUtils.js';
 
@@ -17,17 +18,36 @@ const euclideanDistance = (desc1, desc2) => {
 const router = Router();
 
 router.post("/api/auth", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
+  passport.authenticate("local", async(err, user, info) => {
     if (err) {
       console.error("Passport Error:", err);
       return res.status(500).json({ message: "Server error" });
     }
 
     if (!user) {
+      const failedAudit = new Audit({
+        user_id: 0, // 0 or null represents an unauthenticated/unknown user
+        full_name: "Unauthenticated System Attempt",
+        role: "user",
+        action: "Login Failed",
+        target: `Failed login attempt for username: ${req.body.username || 'Unknown'}`
+      });
+
+      await failedAudit.save().catch(e => console.error("Audit Save Error:", e));
+
       return res.status(401).json({ message: "Invalid Credentials" });
     }
 
     if (user.is_archive === true) {
+      const archiveAudit = new Audit({
+        user_id: user.user_id,
+        full_name: `${user.first_name} ${user.last_name}`,
+        role: user.role,
+        action: "Login Blocked",
+        target: `Archived user tried to log in.`
+      });
+      await archiveAudit.save().catch(e => console.error("Audit Save Error:", e));
+
       return res.status(403).json({ message: "This account has been revoked or archived. Access denied." });
     }
 
@@ -46,10 +66,20 @@ router.post("/api/auth", (req, res, next) => {
       }
 
       // 3. Force Session Save (The fix we discussed)
-      req.session.save((err) => {
+      req.session.save(async (err) => {
         if (err) {
           return res.status(500).json({ message: "Session save failed" });
         }
+
+        const successAudit = new Audit({
+          user_id: user.user_id,
+          full_name: `${user.first_name} ${user.last_name}`,
+          role: user.role,
+          action: "Login Success",
+          target: `User logged in successfully. RememberMe: ${!!rememberMe}`
+        });
+
+        await successAudit.save().catch(e => console.error("Audit Save Error:", e));
 
         const safeUser = {
           id: user._id || req.user._id,
@@ -110,15 +140,34 @@ router.get("/api/auth/session", async (req, res) => {
 });
 
 router.post("/api/auth/logout", (req, res) => {
+  const user = req.user;
   req.logout((err) => {
     if (err) {
       return res.status(500).json({ message: "Logout failed" });
     }
 
-    req.session.destroy((err) => {
+    req.session.destroy(async (err) => {
       if (err) {
         return res.status(500).json({ message: "Could not destroy session" });
       }
+
+      if (user) {
+      try {
+        const auditLog = new Audit({
+          user_id: user.user_id,
+          full_name: `${user.first_name} ${user.last_name}`,
+          role: user.role,
+          action: "Logout Success",
+          target: `User logged out successfully. Session ended.`
+        });
+        await auditLog.save();
+      } catch (auditErr) {
+        console.error("Logout Audit Error:", auditErr);
+        // We don't return an error to the user here; 
+        // we want the logout to proceed regardless.
+      }
+    }
+
       res.clearCookie("connect.sid");
       return res.status(200).json({ message: "Logout successful" });
     });
@@ -141,6 +190,15 @@ router.post('/api/auth/forgot-password/search', async (req, res) => {
         });
 
         if (!user) {
+            const failedAudit = new Audit({
+                user_id: 0, 
+                full_name: "Anonymous System User",
+                role: "user",
+                action: "Forgot Password Search Fail",
+                target: `Search attempt failed for email: ${email}`
+            });
+            await failedAudit.save().catch(e => console.error("Audit Error:", e));
+
             return res.status(404).json({ message: "No account found matching those details." });
         }
 
@@ -164,12 +222,29 @@ router.post('/api/auth/forgot-password/verify-face', async (req, res) => {
 
         // Compare the camera descriptor to the database descriptor
         const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
-        
-        // 0.50 to 0.55 is the standard strict threshold for face-api.js
+
         if (distance > 0.55) {
+            const failedAudit = new Audit({
+                user_id: user.user_id,
+                full_name: `${user.first_name} ${user.last_name}`,
+                role: user.role,
+                action: "Face Verify Failed",
+                target: `Biometric mismatch (Distance: ${distance.toFixed(4)})`
+            });
+            await failedAudit.save().catch(e => console.error(e));
+
             return res.status(401).json({ message: "Face does not match the registered user." });
         }
 
+        const successAudit = new Audit({
+            user_id: user.user_id,
+            full_name: `${user.first_name} ${user.last_name}`,
+            role: user.role,
+            action: "Face Verify Success",
+            target: "Identity verified via facial recognition."
+        });
+        await successAudit.save().catch(e => console.error(e));
+        
         return res.status(200).json({ message: "Identity verified successfully." });
     } catch (error) {
         console.error("Face Verify Error:", error);
@@ -193,6 +268,15 @@ router.post('/api/auth/forgot-password/send-otp', async (req, res) => {
         const emailSent = await sendPasswordUpdateOTP(user.email, otp, user.first_name);
 
         if (emailSent) {
+            const auditLog = new Audit({
+                user_id: user.user_id,
+                full_name: `${user.first_name} ${user.last_name}`,
+                role: user.role,
+                action: "OTP Request",
+                target: `Security OTP sent to email: ${user.email}`
+            });
+            await auditLog.save().catch(e => console.error("Audit Error:", e));
+
             return res.status(200).json({ message: "OTP sent successfully!" });
         } else {
             return res.status(500).json({ message: "Failed to send email." });
@@ -227,6 +311,15 @@ router.post('/api/auth/forgot-password/reset', async (req, res) => {
         user.reset_otp = null;
         user.reset_otp_expires = null;
         await user.save();
+
+        const auditLog = new Audit({
+            user_id: user.user_id,
+            full_name: `${user.first_name} ${user.last_name}`,
+            role: user.role,
+            action: "Password Reset",
+            target: `Password successfully updated via forgot-password flow.`
+        });
+        await auditLog.save().catch(e => console.error("Audit Save Error:", e));
 
         return res.status(200).json({ message: "Password reset successful!" });
     } catch (error) {

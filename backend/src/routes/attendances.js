@@ -292,7 +292,6 @@ router.post('/api/attendance',
             newStatus: "Learning",
             purpose: "Drop off" 
         });
-            
 
         const studentFullName = `${student.first_name} ${student.last_name}`;
         const auditLog = new Audit({

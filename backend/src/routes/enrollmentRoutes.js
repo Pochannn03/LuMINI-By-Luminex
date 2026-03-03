@@ -65,7 +65,15 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
     });
 
     await newRequest.save();
-    console.log("✅ Successfully saved Enrollment Request to DB!");
+
+    const auditLog = new Audit({
+      user_id: req.user ? req.user.user_id : 0,
+      full_name: req.user ? `${req.user.first_name} ${req.user.last_name}` : "Guest/Applicant",
+      role: req.user ? req.user.role : 'user',
+      action: "Enrollment Submit",
+      target: `New enrollment for ${studentFirstName} ${studentLastName} (Parent: ${parentFirstName} ${parentLastName})`
+    });
+    await auditLog.save().catch(e => console.error("Audit Save Error:", e));
 
     return res.status(201).json({ success: true, msg: "Application submitted successfully." });
 
@@ -182,9 +190,17 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
       }
     }
 
-    // Update status in DB
     reqData.status = status;
     await reqData.save();
+
+    const auditLog = new Audit({
+      user_id: req.user.user_id,
+      full_name: `${req.user.first_name} ${req.user.last_name}`,
+      role: req.user.role,
+      action: "Enrollment Update",
+      target: `Updated status to ${status} for student: ${reqData.student_first_name} ${reqData.student_last_name}`
+    });
+    await auditLog.save().catch(e => console.error("Audit Save Error:", e));
 
     res.status(200).json({ 
       success: true, 
@@ -227,6 +243,15 @@ router.post('/api/teacher/bulk-invite-section', isAuthenticated, async (req, res
         );
       }
     });
+
+    const auditLog = new Audit({
+      user_id: req.user.user_id,
+      full_name: teacherName,
+      role: req.user.role,
+      action: "Bulk Invite",
+      target: `Sent ${recipients.length} invitations for section: ${sectionName} (${sectionCode})`
+    });
+    await auditLog.save().catch(e => console.error("Audit Save Error:", e));
 
     res.status(200).json({ success: true, msg: `Sending ${recipients.length} invitations.` });
   } catch (error) {
