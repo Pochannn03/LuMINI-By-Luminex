@@ -81,12 +81,22 @@ export default function SuperAdminAccounts() {
   }, [searchQuery, roleFilter]);
 
   // HANDLERS
+  const isProtectedAccount = (account) => {
+    const protectedIds = [0, 1, "0", "1"];
+    return protectedIds.includes(account?.user_id);
+  };
+
   const handleEdit = (account) => {
+    if (isProtectedAccount(account)) return; 
     setSelectedAccount(account);
     setIsEditAccountModalOpen(true);
   };
 
   const handleDelete = (account) => {
+    if (isProtectedAccount(account)) {
+        alert("This root account cannot be deleted.");
+        return;
+    }
     setSelectedAccount(account);
     setIsDeleteAccountModalOpen(true);
   };

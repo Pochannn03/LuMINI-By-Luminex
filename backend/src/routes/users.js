@@ -39,14 +39,19 @@ router.get('/api/users',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
-    try{
-      const users = await User.find({ role: { $ne: 'superadmin' } });
-      res.status(200).json({ success: true, users: users || [], });
+    try {
+      // Exclude ONLY the primary superadmin by ID
+      // This allows other 'superadmin' role users to show up in the list
+      const users = await User.find({ 
+        user_id: { $nin: [0, 1, "0", "1"] } 
+      });
+
+      res.status(200).json({ success: true, users: users || [] });
     } catch(err) {
-      console.error("Error fetching students:", err);
-      res.status(500).json({ msg: "Server error while fetching students" });
+      console.error("Error fetching accounts:", err);
+      res.status(500).json({ msg: "Server error while fetching accounts" });
     }
-})
+});
 
 // NUMBER OF STUDENTS/TEACHERS/PARENTS ON DASHBOARD
 router.get('/api/users/cards', 

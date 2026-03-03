@@ -16,7 +16,8 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
     username: '',
-    password: ''
+    password: '',
+    rememberMe: false
   });
 
   // --- SLIDER STATE & LOGIC ---
@@ -70,7 +71,11 @@ export default function Login() {
   }, [user, loading, navigate]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
+    const { id, value, type, checked } = e.target;
+    setFormData({ 
+      ...formData, 
+      [id]: type === 'checkbox' ? checked : value 
+    });
     if(error) setError('');
   };
 
@@ -256,10 +261,16 @@ export default function Login() {
               {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
-                  <input type="checkbox" id="remember-me" className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"/>
-                  <label htmlFor="remember-me" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
+                  <input 
+                    type="checkbox" 
+                    id="rememberMe" // Changed to match the state property exactly
+                    checked={formData.rememberMe} // Bound to state
+                    onChange={handleChange} // Added handler
+                    className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"
+                  />
+                  <label htmlFor="rememberMe" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
                 </div>
-                <Link to="/forgot-password" className="text-sm lg:text-base font-semibold text-[var(--brand-blue)] hover:text-blue-600 transition-colors">
+                <Link to="/forgot-password" className="text-sm lg:text-base font-semibold text-(--brand-blue) hover:text-blue-600 transition-colors">
                   Forgot Password?
                 </Link>
               </div>

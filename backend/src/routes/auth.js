@@ -27,11 +27,17 @@ router.post("/api/auth", (req, res, next) => {
       return res.status(401).json({ message: "Invalid Credentials" });
     }
 
-    // --- THE NEW FIX: CHECK IF ACCOUNT IS REVOKED/ARCHIVED ---
     if (user.is_archive === true) {
       return res.status(403).json({ message: "This account has been revoked or archived. Access denied." });
     }
-    // ---------------------------------------------------------
+
+    const { rememberMe } = req.body; 
+
+      if (rememberMe) {
+        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; 
+      } else {
+        req.session.cookie.expires = false; 
+      }
 
     req.logIn(user, (err) => {
       if (err) {

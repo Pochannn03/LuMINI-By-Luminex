@@ -130,18 +130,19 @@ export default function Header({ onToggle }) {
           </button>
 
           {isNotifOpen && (
-            <div className="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-1000 overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+            <div className="absolute -right-[65px] sm:right-0 mt-4 w-[350px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-slate-100 z-[1000] overflow-hidden animate-[fadeIn_0.2s_ease-out]">
+              
               <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
                 <span className="font-bold text-slate-800 text-[16px]">Notifications</span>
                 <button 
                   onClick={handleClearAll}
-                  className="text-[12px] text-blue-500 font-semibold hover:text-blue-700">
+                  className="text-[12px] text-blue-500 font-semibold hover:text-blue-700 transition-colors">
                     Clear All
                   </button>
               </div>
 
               {/* Scrollable Container */}
-              <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+              <div className="max-h-[60vh] sm:max-h-[400px] overflow-y-auto custom-scrollbar">
                 {notifications.length > 0 ? (
                   notifications.map((notif) => (
                     <NotificationCard 
@@ -157,6 +158,7 @@ export default function Header({ onToggle }) {
                   </div>
                 )}
               </div>
+
             </div>
           )}
         </div>
