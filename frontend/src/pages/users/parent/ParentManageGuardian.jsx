@@ -21,11 +21,11 @@ export default function ManageGuardians() {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [expandedImage, setExpandedImage] = useState(null);
 
-  // --- States for the Cancel Success Modal ---
+  // --- States for the Cancel/Success Feedback ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // --- States for Confirmation Modal ---
+  // --- States for Confirmation Modal (Cancel) ---
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [requestToCancel, setRequestToCancel] = useState(null);
 
@@ -34,14 +34,16 @@ export default function ManageGuardians() {
   const [requestToRevoke, setRequestToRevoke] = useState(null);
   const [revokeConfirmationText, setRevokeConfirmationText] = useState("");
 
-  // Helper for Images
-  const getImageUrl = (path) => {
-    if (!path) return "https://via.placeholder.com/150";
+  // --- THE FIX: Smart Image URL Generator with Fallback Initials ---
+  const getImageUrl = (path, fallbackName = "User") => {
+    if (!path || path === "" || path === "null") {
+      return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fallbackName)}&backgroundColor=e2e8f0&textColor=475569`;
+    }
     if (path.startsWith("http")) return path;
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // --- EXTRACTED FETCH LOGIC ---
+  // --- REFRESH DATA LOGIC ---
   const refreshData = async () => {
     try {
       const [guardiansRes, pendingRes, historyRes] = await Promise.all([
@@ -64,29 +66,23 @@ export default function ManageGuardians() {
     refreshData();
   }, []);
 
-  // --- PART 1: Opens the modal and remembers the ID ---
+  // --- CANCEL FLOW ---
   const triggerCancelConfirm = (id) => {
     setRequestToCancel(id);
     setShowConfirmModal(true);
   };
 
-  // --- PART 2: Executes the backend deletion if they click Yes ---
   const executeCancelRequest = async () => {
     if (!requestToCancel) return;
-
     try {
       const response = await axios.delete(
         `${BACKEND_URL}/api/parent/guardian-requests/${requestToCancel}`,
         { withCredentials: true }
       );
-
       setPendingRequests(pendingRequests.filter(req => req._id !== requestToCancel));
       setSelectedRequest(null);
-
-      // Trigger success modal!
       setSuccessMessage(response.data.message || "Guardian application successfully cancelled.");
       setShowSuccessModal(true);
-
     } catch (error) {
       console.error("Error cancelling request:", error);
       alert(error.response?.data?.message || "Failed to cancel request.");
@@ -95,22 +91,25 @@ export default function ManageGuardians() {
     }
   };
 
-  // --- PART 3: Executes the backend revocation ---
+  // --- REVOKE FLOW ---
+  const triggerRevokeConfirm = (req) => {
+    setRequestToRevoke(req);
+    setRevokeConfirmationText(""); 
+    setShowRevokeModal(true);
+  };
+
   const executeRevokeRequest = async () => {
     if (!requestToRevoke) return;
-
     try {
       const response = await axios.put(
         `${BACKEND_URL}/api/parent/guardian-requests/${requestToRevoke._id}/revoke`,
         {},
         { withCredentials: true }
       );
-
       setShowRevokeModal(false);
       refreshData();
       setSuccessMessage(response.data.message || "Guardian access permanently revoked.");
       setShowSuccessModal(true);
-
     } catch (error) {
       console.error("Error revoking access:", error);
       alert(error.response?.data?.message || "Failed to revoke access.");
@@ -120,13 +119,6 @@ export default function ManageGuardians() {
     }
   };
 
-  const triggerRevokeConfirm = (req) => {
-    setRequestToRevoke(req);
-    setRevokeConfirmationText(""); 
-    setShowRevokeModal(true);
-  };
-
-  // Wrapped everything in a strict Fragment <> to guarantee a single parent element!
   return (
     <>
       <div className="dashboard-wrapper">
@@ -138,43 +130,55 @@ export default function ManageGuardians() {
           onSuccess={refreshData} 
         />
 
-        <main className="main-content">
-          <div className="guardians-container">
+        <main className="main-content" style={{ display: 'flex', justifyContent: 'center', padding: '24px' }}>
+          <div className="guardians-container" style={{ width: '100%', maxWidth: '1200px' }}>
             
-            {/* 1. BLUE HEADER BANNER */}
-            <div className="header-banner">
+            {/* 1. HEADER BANNER */}
+            <div className="header-banner" style={{ marginBottom: '24px' }}>
               <div className="header-title">
                 <h1>Manage Guardians</h1>
                 <p>Authorize others to pick up your children.</p>
               </div>
             </div>
 
-            {/* 2. FILTER BAR */}
-            <div className="filter-bar">
-              <button
-                className="btn-add-guardian-filter"
-                onClick={() => setIsAddModalOpen(true)}
-              >
-                <span className="material-symbols-outlined">add</span>
-                <span className="hide-on-mobile">Add Guardian</span>
-              </button>
+            {/* FILTER BAR HAS BEEN REMOVED */}
 
-              <button className="filter-btn">
-                Status: All
-                <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>
-                  expand_more
-                </span>
-              </button>
-            </div>
+            {/* 3. CARD GRID CONTAINER (NOW WITH WHITE BACKGROUND AND STYLING) */}
+            <div className="table-card" style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', width: '100%' }}>
+              
+              {/* --- NEW HEADER INJECTED INTO THE CONTAINER --- */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>Authorized Personnel List</h3>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', backgroundColor: '#f1f5f9', padding: '4px 10px', borderRadius: '20px' }}>
+                    {guardians.length + pendingRequests.length + approvedRequests.length} / 3 Registered
+                  </span>
+                </div>
+                
+                <button 
+                  onClick={() => setIsAddModalOpen(true)}
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', 
+                    color: '#ffffff', border: 'none', borderRadius: '8px', padding: '8px 16px', 
+                    fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                    boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)', transition: 'background-color 0.2s, transform 0.1s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>add</span>
+                  <span className="hide-on-mobile">Add Guardian</span>
+                </button>
+              </div>
 
-            {/* 3. TICKET-STYLE CARD GRID */}
-            <div className="table-card" style={{ border: 'none', boxShadow: 'none', background: 'transparent' }}>
               {loading ? (
                 <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
                   Loading guardians...
                 </div>
               ) : guardians.length === 0 && pendingRequests.length === 0 && approvedRequests.length === 0 ? (
-                <div className="empty-state" style={{ background: 'white', borderRadius: '20px', border: '1px solid #e2e8f0' }}>
+                <div className="empty-state" style={{ background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
                   <span className="material-symbols-outlined empty-icon">diversity_3</span>
                   <h3 className="empty-text">No Guardians Found</h3>
                   <p className="empty-subtext">
@@ -182,29 +186,34 @@ export default function ManageGuardians() {
                   </p>
                 </div>
               ) : (
-                <div className="guardian-cards-grid">
+                
+                /* --- GRID LAYOUT FIX --- */
+                <div className="guardian-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                   
-                  {/* --- 1. MAP ACTIVE GUARDIANS (Green Border) --- */}
+                  {/* --- ACTIVE GUARDIANS (Fetched from User Model) --- */}
                   {guardians.map((guardian) => (
                     <div className="guardian-card border-active" key={guardian._id}>
-                      {/* Top Row */}
                       <div className="card-header-row">
                         <div className="card-user-info">
-                          <img src={getImageUrl(guardian.profile_picture)} className="card-avatar" alt="Avatar" />
+                          <img 
+                            src={getImageUrl(guardian.profile_picture, guardian.first_name)} 
+                            className="card-avatar" 
+                            alt="Avatar" 
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(guardian.first_name || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                            }}
+                          />
                           <div className="card-name-stack">
                             <span className="card-user-name">{guardian.first_name} {guardian.last_name}</span>
                           </div>
                         </div>
                         <span className="role-badge">{guardian.relationship || "Guardian"}</span>
                       </div>
-
-                      {/* Middle Row */}
                       <div className="card-middle-row">
                         <div className="detail-line"><span className="detail-label">USERNAME:</span> {guardian.username || "N/A"}</div>
                         <div className="detail-line"><span className="detail-label">CONTACT#:</span> {guardian.phone_number || "N/A"}</div>
                       </div>
-
-                      {/* Bottom Row */}
                       <div className="card-actions-row">
                         <button className="btn-action view-btn" style={{flex: 1}}>
                           <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>more_horiz</span>
@@ -213,13 +222,20 @@ export default function ManageGuardians() {
                     </div>
                   ))}
 
-                  {/* --- 2. MAP PENDING REQUESTS (Yellow/Orange Border) --- */}
+                  {/* --- PENDING REQUESTS --- */}
                   {pendingRequests.map((req) => (
                     <div className="guardian-card border-pending" key={req._id}>
-                      {/* Top Row */}
                       <div className="card-header-row">
                         <div className="card-user-info">
-                          <img src={getImageUrl(req.guardianDetails.idPhotoPath)} className="card-avatar grayscale" alt="ID" />
+                          <img 
+                            src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
+                            className="card-avatar grayscale" 
+                            alt="ID" 
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=fef3c7&textColor=d97706`;
+                            }}
+                          />
                           <div className="card-name-stack">
                             <span className="card-user-name text-muted">
                               {req.guardianDetails.firstName} {req.guardianDetails.lastName}
@@ -228,14 +244,10 @@ export default function ManageGuardians() {
                         </div>
                         <span className="role-badge muted-badge">{req.guardianDetails.role}</span>
                       </div>
-
-                      {/* Middle Row */}
                       <div className="card-middle-row">
                         <div className="detail-line"><span className="detail-label">USERNAME:</span> {req.guardianDetails.tempUsername}</div>
                         <div className="detail-line"><span className="detail-label">CONTACT#:</span> {req.guardianDetails.phone}</div>
                       </div>
-
-                      {/* Bottom Row */}
                       <div className="card-actions-row">
                         <button className="btn-action view-btn" onClick={() => setSelectedRequest(req)}>
                           VIEW
@@ -247,13 +259,20 @@ export default function ManageGuardians() {
                     </div>
                   ))}
 
-                  {/* --- 3. MAP APPROVED REQUESTS (Green Border) --- */}
+                  {/* --- APPROVED HISTORY --- */}
                   {approvedRequests.map((req) => (
                     <div className="guardian-card border-approved" key={req._id}>
-                      {/* Top Row */}
                       <div className="card-header-row">
                         <div className="card-user-info">
-                          <img src={getImageUrl(req.guardianDetails.idPhotoPath)} className="card-avatar" alt="ID" />
+                          <img 
+                            src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
+                            className="card-avatar" 
+                            alt="ID" 
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                            }}
+                          />
                           <div className="card-name-stack">
                             <span className="card-user-name">
                               {req.guardianDetails.firstName} {req.guardianDetails.lastName}
@@ -262,14 +281,10 @@ export default function ManageGuardians() {
                         </div>
                         <span className="role-badge muted-badge">{req.guardianDetails.role}</span>
                       </div>
-
-                      {/* Middle Row */}
                       <div className="card-middle-row">
                         <div className="detail-line"><span className="detail-label">USERNAME:</span> {req.guardianDetails.tempUsername}</div>
                         <div className="detail-line"><span className="detail-label">CONTACT#:</span> {req.guardianDetails.phone}</div>
                       </div>
-
-                      {/* Bottom Row */}
                       <div className="card-actions-row">
                         <button className="btn-action view-btn" onClick={() => setSelectedRequest(req)}>
                           VIEW
@@ -287,14 +302,11 @@ export default function ManageGuardians() {
           </div>
         </main>
 
-        {/* ========================================================================= */}
-        {/* --- DETAILS MODAL FOR PARENT --- */}
-        {/* ========================================================================= */}
+        {/* --- DETAILS MODAL --- */}
         {selectedRequest && (
           <div className="modal-overlay active" onClick={() => setSelectedRequest(null)} style={{ zIndex: 9000 }}>
             <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%', padding: 0, overflow: 'hidden' }}>
               
-              {/* Header (Fixed justifyContent syntax here!) */}
               <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px', marginTop: 0}}>Guardian Details</h2>
@@ -305,9 +317,7 @@ export default function ManageGuardians() {
                 </button>
               </div>
 
-              {/* Body */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
-                
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                   <div>
                     <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Name</label>
@@ -338,23 +348,26 @@ export default function ManageGuardians() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Submitted ID</label>
                   <div 
-                    onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath))}
+                    onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName))}
                     style={{ 
                       background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '8px',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', position: 'relative'
                     }}
                   >
                     <img 
-                      src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath)} 
+                      src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName)} 
                       alt="ID Document" 
                       style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px' }}
+                      onError={(e) => {
+                        e.target.onerror = null; 
+                        e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedRequest.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
+                      }}
                     />
                     <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
                     </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </div>
@@ -392,8 +405,8 @@ export default function ManageGuardians() {
               </div>
               
               <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
-                You are about to permanently revoke access for <strong style={{color: '#1e293b'}}>{requestToRevoke?.guardianDetails?.firstName} {requestToRevoke?.guardianDetails?.lastName}</strong>. 
-                They will be removed from your active guardians, their account will be disabled, and they will no longer be able to pick up your child. <br/><br/>This action cannot be undone.
+                You are about to permanently revoke access for <strong style={{color: '#1e293b'}}>{requestToRevoke?.guardianDetails?.firstName || requestToRevoke?.first_name} {requestToRevoke?.guardianDetails?.lastName || requestToRevoke?.last_name}</strong>. 
+                <br/><br/>They will be removed from your active guardians and will no longer be able to pick up your child. This action cannot be undone.
               </p>
 
               <div style={{ marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -413,21 +426,17 @@ export default function ManageGuardians() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                 <button 
                   onClick={() => setShowRevokeModal(false)}
-                  style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
-                  onMouseOver={(e) => e.target.style.background = '#f1f5f9'}
-                  onMouseOut={(e) => e.target.style.background = 'white'}
+                  style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
                 >
                   Cancel
                 </button>
-                
                 <button 
                   disabled={revokeConfirmationText !== "I understand"}
                   onClick={executeRevokeRequest} 
                   style={{ 
                     background: revokeConfirmationText === "I understand" ? '#ef4444' : '#fca5a5', 
                     color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, 
-                    cursor: revokeConfirmationText === "I understand" ? 'pointer' : 'not-allowed',
-                    transition: 'background 0.2s'
+                    cursor: revokeConfirmationText === "I understand" ? 'pointer' : 'not-allowed'
                   }}
                 >
                   Revoke Access
@@ -437,7 +446,6 @@ export default function ManageGuardians() {
           </div>
         )}
 
-        {/* --- CONFIRMATION MODAL --- */}
         <ConfirmModal
           isOpen={showConfirmModal}
           onClose={() => setShowConfirmModal(false)}
