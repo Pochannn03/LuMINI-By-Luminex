@@ -6,6 +6,7 @@ import { isAuthenticated } from '../middleware/authMiddleware.js';
 import { EnrollmentRequest } from "../models/EnrollmentRequest.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js";
+import { User } from "../models/users.js";
 
 import { sendInvitationEmail, sendBulkSectionInvite } from '../utils/emailService.js';
 
@@ -41,13 +42,50 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
     } = req.body;
 
     if (!sectionId) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       return res.status(400).json({ success: false, msg: "Missing Section ID" });
     }
 
     const section = await Section.findOne({ section_id: Number(sectionId) });
     if (!section) {
+      if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
       return res.status(404).json({ success: false, msg: "Target section not found." });
     }
+
+    // =================================================================
+    // 🛡️ THE FIX: STRICT COMPOSITE ANTI-SPAM / DUPLICATE CHECK
+    // Matches Name + DOB + Parent Email + Section to prevent blocking twins
+    // =================================================================
+    const existingApplication = await EnrollmentRequest.findOne({
+      student_first_name: studentFirstName,
+      student_last_name: studentLastName,
+      student_dob: studentBirthdate, // Mongoose handles date casting automatically
+      parent_email: parentEmail,
+      section_id: section.section_id,
+      status: { $in: ['Pending', 'Registered'] } // Allow retries if previously 'Rejected'
+    });
+
+    if (existingApplication) {
+      // 🧹 Clean up the uploaded file so spam doesn't fill up the server storage
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+
+      // Generate a specific, helpful error message for the frontend
+      const statusMsg = existingApplication.status === 'Pending'
+        ? "An enrollment application for this specific student is already pending review by the teacher."
+        : "This student is already officially registered in this section.";
+
+      console.log(`🚫 Blocked duplicate submission for ${studentFirstName} ${studentLastName}`);
+      
+      // Return 409 Conflict with the specific errorDetails your frontend expects
+      return res.status(409).json({ 
+        success: false, 
+        msg: "Duplicate application detected.", 
+        errorDetails: statusMsg 
+      });
+    }
+    // =================================================================
 
     const newRequest = new EnrollmentRequest({
       student_first_name: studentFirstName,
@@ -79,6 +117,10 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
 
   } catch (error) {
     console.error("❌ SUBMISSION ERROR CRASH:", error);
+    // Cleanup file if the database crashes
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
     res.status(500).json({ success: false, msg: "Failed to submit application.", errorDetails: error.message });
   }
 });
@@ -88,7 +130,6 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
 // ==================================================
 router.get('/api/teacher/enrollments/pending', isAuthenticated, async (req, res) => {
   try {
-    // THE FIX: Check if role is 'admin' (Teacher), not relationship
     if (req.user.role !== 'admin') {
        return res.status(403).json({ success: false, msg: "Access denied. Only teachers can view this queue." });
     }
@@ -119,7 +160,6 @@ router.get('/api/teacher/enrollments/pending', isAuthenticated, async (req, res)
 // ==================================================
 router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, res) => {
   try {
-    // THE FIX: Check if role is 'admin' (Teacher)
     if (req.user.role !== 'admin') {
        return res.status(403).json({ success: false, msg: "Access denied." });
     }
@@ -136,7 +176,6 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
       return res.status(404).json({ success: false, msg: "Request not found." });
     }
 
-    // If teacher approves, instantly register the student!
     if (status === 'Registered') {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ123456789';
       let invCode = '';
@@ -179,7 +218,6 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
         { $push: { student_id: savedStudent.student_id } } 
       );
 
-      // Send the final parent invitation email directly
       if (reqData.parent_email) {
         sendInvitationEmail(
           reqData.parent_email,
@@ -218,7 +256,6 @@ router.put('/api/teacher/enrollments/:id/status', isAuthenticated, async (req, r
 // ==================================================
 router.post('/api/teacher/bulk-invite-section', isAuthenticated, async (req, res) => {
   try {
-    // THE FIX: Check if role is 'admin' (Teacher)
     if (req.user.role !== 'admin') {
       return res.status(403).json({ success: false, msg: "Access denied." });
     }

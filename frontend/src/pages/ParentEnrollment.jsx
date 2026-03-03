@@ -1,13 +1,16 @@
+// frontend/src/pages/ParentEnrollment.jsx
+
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AvatarEditor from "react-avatar-editor";
-import axios from 'axios'; // <-- NEW: Import Axios
+import axios from 'axios'; 
 import ConfirmModal from '../components/ConfirmModal'; 
 import SuccessModal from '../components/SuccessModal'; 
+import WarningModal from '../components/WarningModal'; // <-- NEW: Import WarningModal
 
 export default function ParentEnrollment() {
   const navigate = useNavigate(); 
-  const BACKEND_URL = "http://localhost:3000"; // Define your backend URL
+  const BACKEND_URL = "http://localhost:3000"; 
 
   // --- CAROUSEL STATES ---
   const [step, setStep] = useState(0); 
@@ -18,9 +21,9 @@ export default function ParentEnrollment() {
   // --- STEP 0: VERIFICATION STATES ---
   const [code, setCode] = useState(new Array(6).fill(""));
   const inputRefs = useRef([]);
-  const [isVerifying, setIsVerifying] = useState(false); // Loading state
-  const [codeError, setCodeError] = useState(""); // Error state
-  const [verifiedClass, setVerifiedClass] = useState(null); // Stores the retrieved class info
+  const [isVerifying, setIsVerifying] = useState(false); 
+  const [codeError, setCodeError] = useState(""); 
+  const [verifiedClass, setVerifiedClass] = useState(null); 
 
   // --- STEP 1: T&C STATES ---
   const [agreed, setAgreed] = useState(false);
@@ -34,7 +37,6 @@ export default function ParentEnrollment() {
     gender: ''
   });
 
-  // Cropper, Image, & Photo Guideline States
   const studentEditorRef = useRef(null);
   const [studentImageFile, setStudentImageFile] = useState(null); 
   const [studentPreviewUrl, setStudentPreviewUrl] = useState(null); 
@@ -51,14 +53,18 @@ export default function ParentEnrollment() {
     email: ''
   });
 
-  // --- SUCCESS MODAL STATE ---
+  // --- MODAL STATES ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // <-- NEW: State for Duplicate Warning Modal -->
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
 
   // ==========================================
   // HANDLERS FOR STEP 0 (VERIFICATION)
   // ==========================================
   const handleCodeChange = (e, index) => {
-    setCodeError(""); // Clear error on typing
+    setCodeError(""); 
     const value = e.target.value.toUpperCase();
     if (/[^A-Z0-9]/.test(value)) return;
 
@@ -95,7 +101,6 @@ export default function ParentEnrollment() {
 
   const isCodeComplete = code.every(char => char !== "");
 
-  // --- NEW: THE ACTUAL API VERIFICATION ---
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     if (!isCodeComplete) return;
@@ -105,20 +110,20 @@ export default function ParentEnrollment() {
     setCodeError("");
 
     try {
-      // Hit the new public verify route we created
       const response = await axios.get(`${BACKEND_URL}/api/sections/verify-code/${fullCode}`);
       
       if (response.data.success) {
-        setVerifiedClass(response.data.data); // Save teacher/section name
-        setStep(1); // Proceed to T&C
+        setVerifiedClass(response.data.data); 
+        setStep(1); 
       }
     } catch (error) {
       console.error("Submission Failed:", error);
-      // 👇 NEW: This will now pop up an alert telling you EXACTLY what MongoDB rejected!
       const errorMessage = error.response?.data?.errorDetails || error.response?.data?.msg || "Failed to submit.";
+      // Still using an alert here because it's Step 0 and we haven't imported the Warning Modal structure to wrap the whole app, 
+      // but if you want this to also be a modal, we can change it!
       alert(`Error: ${errorMessage}`);
     } finally {
-      setIsSubmitting(false);
+      setIsVerifying(false);
     }
   };
 
@@ -192,27 +197,21 @@ export default function ParentEnrollment() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Because we are sending a file (the image), we MUST use FormData
     const formData = new FormData();
     
-    // Append Student Data
     formData.append('studentFirstName', studentData.firstName);
     formData.append('studentLastName', studentData.lastName);
     formData.append('studentSuffix', studentData.suffix);
     formData.append('studentBirthdate', studentData.birthdate);
     formData.append('studentGender', studentData.gender);
     
-    // Append Parent Data
     formData.append('parentFirstName', parentData.firstName);
     formData.append('parentLastName', parentData.lastName);
     formData.append('parentPhone', parentData.phone);
     formData.append('parentEmail', parentData.email);
     
-    // Append Routing Data
-    // Note: Make sure the verify-code route returned 'section_id' as the custom numeric ID
     formData.append('sectionId', verifiedClass.section_id); 
     
-    // Append Image if it exists
     if (studentImageFile) {
       formData.append('studentPhoto', studentImageFile);
     }
@@ -223,11 +222,20 @@ export default function ParentEnrollment() {
       });
       
       if (response.data.success) {
-        setShowSuccessModal(true); // Pop the success modal!
+        setShowSuccessModal(true); 
       }
     } catch (error) {
       console.error("Submission Failed:", error);
-      alert(error.response?.data?.msg || "Failed to submit. Please try again.");
+      
+      // <-- THE FIX: INTERCEPT THE 409 CONFLICT AND SHOW THE WARNING MODAL -->
+      if (error.response && error.response.status === 409) {
+        setWarningMessage("You have already submitted an enrollment application for this student. If you believe this is a mistake, please immediately contact the class adviser to resolve this issue.");
+        setShowWarningModal(true);
+      } else {
+        // Fallback for other errors
+        alert(error.response?.data?.msg || "Failed to submit. Please try again.");
+      }
+
     } finally {
       setIsSubmitting(false);
     }
@@ -249,7 +257,15 @@ export default function ParentEnrollment() {
         message="Your application has been successfully submitted! Please wait for the class adviser's approval. An email notification will be sent to you shortly."
       />
 
-      {/* --- CROPPER & GUIDELINES MODALS (Unchanged) --- */}
+      {/* --- NEW: DUPLICATE WARNING MODAL --- */}
+      <WarningModal 
+        isOpen={showWarningModal}
+        onClose={() => setShowWarningModal(false)}
+        title="Duplicate Application"
+        message={warningMessage}
+      />
+
+      {/* --- CROPPER & GUIDELINES MODALS --- */}
       <ConfirmModal 
         isOpen={showPhotoGuidelines}
         onClose={() => setShowPhotoGuidelines(false)}
@@ -340,7 +356,6 @@ export default function ParentEnrollment() {
                     />
                   ))}
                 </div>
-                {/* --- NEW: ERROR MESSAGE DISPLAY --- */}
                 {codeError && (
                   <p className="text-red-500 font-semibold text-[13px] animate-enter flex justify-center items-center gap-1 mt-2">
                     <span className="material-symbols-outlined text-[16px]">error</span> {codeError}
@@ -372,7 +387,6 @@ export default function ParentEnrollment() {
             ========================================== */}
         {step === 1 && (
           <div className="animate-enter">
-            {/* --- NEW: CLASS GREETING BANNER --- */}
             {verifiedClass && (
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 mb-8 text-left flex items-start gap-3">
                 <span className="material-symbols-outlined text-blue-500 mt-0.5">verified</span>
@@ -410,7 +424,7 @@ export default function ParentEnrollment() {
         )}
 
         {/* ==========================================
-            STEP 2: STUDENT DETAILS (Unchanged)
+            STEP 2: STUDENT DETAILS
             ========================================== */}
         {step === 2 && (
           <div className="animate-enter text-left">
@@ -471,7 +485,7 @@ export default function ParentEnrollment() {
         )}
 
         {/* ==========================================
-            STEP 3: PARENT DETAILS (Unchanged)
+            STEP 3: PARENT DETAILS
             ========================================== */}
         {step === 3 && (
           <div className="animate-enter text-left">
@@ -517,7 +531,7 @@ export default function ParentEnrollment() {
         )}
 
         {/* ==========================================
-            STEP 4: REVIEW (Unchanged)
+            STEP 4: REVIEW
             ========================================== */}
         {step === 4 && (
           <div className="animate-enter text-left">
