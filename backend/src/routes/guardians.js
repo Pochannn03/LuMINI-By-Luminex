@@ -117,7 +117,6 @@ router.post(
         const parentObjectId = req.user._id; 
         const parentCustomId = req.user.user_id; 
 
-        // 1. Parse the JSON array of student IDs
         let studentIdsArray = [];
         try {
             studentIdsArray = JSON.parse(req.body.student_ids);
@@ -131,9 +130,6 @@ router.post(
             return res.status(400).json({ message: "Please select at least one student." });
         }
 
-        // =======================================================
-        // 🛑 RULE 1: STRICT 3 GUARDIAN LIMIT ENFORCEMENT
-        // =======================================================
         const allParentStudents = await Student.find({ user_id: parentCustomId });
         const allLinkedUserIds = allParentStudents.flatMap(s => s.user_id);
         const uniqueGuardianIds = [...new Set(allLinkedUserIds)].filter(id => id !== parentCustomId);
@@ -149,25 +145,20 @@ router.post(
             status: { $in: ['pending', 'teacher_approved'] }
         });
 
-        // THE FIX: We no longer count 'approvedRequestsCount' because approved 
-        // guardians are already counted in 'activeGuardiansCount'. Double counting resolved!
         const totalGuardianCount = activeGuardiansCount + pendingRequestsCount;
 
-        // Backend acts as the Vault: Reject and delete image if limit is hit
         if (totalGuardianCount >= 3) {
             if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
             return res.status(403).json({ 
                 message: "Guardian limit reached. You can only have a maximum of 3 authorized guardians. Please revoke access or cancel a pending request to add a new one." 
             });
         }
-        // =======================================================
 
         const idPhotoPath = req.file ? req.file.path : null;
         if (!idPhotoPath) return res.status(400).json({ message: "ID photo is required." });
 
         const hashedPassword = await hashPassword(password);
 
-        // 2. Find all selected students
         const linkedStudents = await Student.find({ 
             student_id: { $in: studentIdsArray },
             user_id: parentCustomId 
@@ -178,11 +169,9 @@ router.post(
             return res.status(404).json({ message: "Selected students not found or not linked." });
         }
 
-        // 3. Extract the ObjectIds and Names into arrays
         const studentObjectIds = linkedStudents.map(student => student._id);
         const requestedChildNames = linkedStudents.map(student => student.first_name);
 
-        // 4. Find the primary teacher to notify
         let primaryTeacherId = null;
         for (const student of linkedStudents) {
             if (student.section_id && !primaryTeacherId) {
@@ -194,7 +183,6 @@ router.post(
             }
         }
 
-        // 5. CREATE ONE SINGLE REQUEST WITH ALL STUDENTS
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
             students: studentObjectIds, 
@@ -209,7 +197,6 @@ router.post(
 
         await newRequest.save();
 
-        // 6. Save a single Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
@@ -253,6 +240,9 @@ router.get(
     }
 });
 
+// ==========================================
+// TIER 1: TEACHER VERIFIES REQUEST (NO ACCOUNT CREATION)
+// ==========================================
 router.put('/api/teacher/guardian-requests/:id/approve', 
   isAuthenticated,
   hasRole('admin'),
@@ -267,43 +257,18 @@ router.put('/api/teacher/guardian-requests/:id/approve',
             return res.status(404).json({ message: "Request not found or already processed." });
         }
 
-        // 1. Create the new Guardian account
-        const newGuardian = new User({
-            first_name: requestDoc.guardianDetails.firstName,
-            last_name: requestDoc.guardianDetails.lastName,
-            username: requestDoc.guardianDetails.tempUsername,
-            password: requestDoc.guardianDetails.tempPassword, 
-            phone_number: requestDoc.guardianDetails.phone,
-            relationship: "Guardian", 
-            email: `${requestDoc.guardianDetails.tempUsername}@placeholder.com`, 
-            address: "Not Provided", 
-            role: "user", 
-            is_archive: false,
-        });
-
-        const savedGuardian = await newGuardian.save();
-
-        // 2. Link the Guardian to ALL requested students
-        if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
-            await Student.updateMany(
-                { _id: { $in: requestDoc.students } }, 
-                { $push: { user_id: savedGuardian.user_id } } 
-            );
-        }
-
-        // 3. Mark the request as approved
-        requestDoc.status = 'approved';
-        requestDoc.guardianDetails.createdUserId = savedGuardian._id; 
+        // 1. ONLY update status to teacher_approved. No user creation.
+        requestDoc.status = 'teacher_approved';
         await requestDoc.save();
 
-        // 4. Send Notification to Parent
+        // 2. Notify Parent it's forwarded to Admin
         if (requestDoc.parent && requestDoc.parent.user_id) {
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
                 type: 'System', 
-                title: 'Guardian Request Approved',
-                message: `Teacher ${teacherName} has approved your request. The guardian account for ${savedGuardian.first_name} ${savedGuardian.last_name} is now active and linked to the selected student(s).`,
+                title: 'Guardian Request Verified',
+                message: `Teacher ${teacherName} has verified your request. It is now pending final approval from the Superadmin.`,
                 is_read: false
             });
 
@@ -311,17 +276,17 @@ router.put('/api/teacher/guardian-requests/:id/approve',
             req.app.get('socketio').emit('new_notification', savedNotif);
         }
 
-        // 3. LOG THE ACTION
+        // 3. Audit Log
         const auditLog = new Audit({
           user_id: req.user.user_id,
           full_name: `${req.user.first_name} ${req.user.last_name}`,
           role: req.user.role,
-          action: "Approve Guardian Request",
-          target: `Approved account for ${savedGuardian.first_name} ${savedGuardian.last_name} & linked to ${requestDoc.students.length} student(s)`
+          action: "Verify Guardian Request",
+          target: `Forwarded application for ${requestDoc.guardianDetails.firstName} ${requestDoc.guardianDetails.lastName} to Superadmin`
         });
         await auditLog.save();
 
-        return res.status(200).json({ message: "Guardian successfully approved and linked to student(s)!" });
+        return res.status(200).json({ message: "Request verified and forwarded to Superadmin!" });
 
     } catch (error) {
         console.error("Pre-Approval Error:", error);
@@ -394,7 +359,7 @@ router.get(
         const teacherMongoId = req.user._id;
 
         const history = await GuardianRequest.find({ 
-              status: { $in: ['approved', 'rejected', 'revoked'] },
+              status: { $in: ['teacher_approved', 'approved', 'rejected', 'revoked'] },
               teacher: teacherMongoId 
             })
             .populate('parent', 'first_name last_name profile_picture')
@@ -418,7 +383,7 @@ router.get(
 
         const pendingRequests = await GuardianRequest.find({ 
             parent: parentId, 
-            status: 'pending' 
+            status: { $in: ['pending', 'teacher_approved'] } 
         }).sort({ createdAt: -1 });
 
         return res.status(200).json(pendingRequests);
@@ -441,7 +406,7 @@ router.delete(
         const requestDoc = await GuardianRequest.findOne({
             _id: requestId,
             parent: parentId,
-            status: 'pending'
+            status: { $in: ['pending', 'teacher_approved'] }
         });
 
         if (!requestDoc) {
@@ -631,7 +596,6 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
         }
 
         if (guardianUser) {
-            // THE FIX: Unlink the guardian from ALL students associated with the request
             if (requestDoc.students && requestDoc.students.length > 0) {
                 await Student.updateMany(
                     { _id: { $in: requestDoc.students } },
@@ -663,7 +627,7 @@ router.put('/api/parent/guardian-requests/:id/revoke', isAuthenticated, async (r
 });
 
 // =========================================================================
-// SUPERADMIN ROUTES: FINAL GUARDIAN REGISTRATION
+// TIER 2: SUPERADMIN ROUTES: FINAL GUARDIAN REGISTRATION
 // =========================================================================
 
 // 1. GET PENDING FINAL APPROVALS
@@ -671,7 +635,7 @@ router.get('/api/superadmin/guardian-requests/pending-final', isAuthenticated, h
     try {
         const requests = await GuardianRequest.find({ status: 'teacher_approved' })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name student_id') 
+            .populate('students', 'first_name last_name student_id') // <-- FIXED BUG HERE
             .populate('teacher', 'first_name last_name') 
             .sort({ updatedAt: -1 }); 
 
@@ -689,7 +653,7 @@ router.get('/api/superadmin/guardian-requests/history', isAuthenticated, hasRole
               status: { $in: ['approved', 'rejected', 'revoked'] } 
             })
             .populate('parent', 'first_name last_name profile_picture')
-            .populate('student', 'first_name last_name student_id')
+            .populate('students', 'first_name last_name student_id') // <-- FIXED BUG HERE
             .populate('teacher', 'first_name last_name')
             .sort({ updatedAt: -1 }); 
 
@@ -727,11 +691,12 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
 
         const savedGuardian = await newGuardian.save();
 
-        // LINK TO STUDENT
-        if (savedGuardian.user_id) {
-            await Student.findByIdAndUpdate(requestDoc.student, {
-                $push: { user_id: savedGuardian.user_id } 
-            });
+        // LINK TO ALL SELECTED STUDENTS (FIXED HIDDEN BUG HERE)
+        if (savedGuardian.user_id && requestDoc.students && requestDoc.students.length > 0) {
+            await Student.updateMany(
+                { _id: { $in: requestDoc.students } }, 
+                { $push: { user_id: savedGuardian.user_id } } 
+            );
         }
 
         // UPDATE REQUEST STATUS

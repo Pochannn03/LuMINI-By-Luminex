@@ -145,7 +145,6 @@ export default function ManageGuardians() {
 
             <div className="table-card" style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', width: '100%' }}>
               
-              {/* --- HEADER FIX: Pinned Button & Responsive Title Stack --- */}
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
                 
                 <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '12px', flexWrap: 'wrap', flex: 1 }}>
@@ -190,7 +189,7 @@ export default function ManageGuardians() {
                 
                 <div className="guardian-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                   
-                  {/* --- 1. ACTIVE GUARDIANS (Green Gradient) --- */}
+                  {/* --- 1. ACTIVE GUARDIANS --- */}
                   {guardians.map((guardian) => (
                     <div className="guardian-card" key={guardian._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                       
@@ -236,53 +235,64 @@ export default function ManageGuardians() {
                     </div>
                   ))}
 
-                  {/* --- 2. PENDING REQUESTS (Orange Gradient) --- */}
-                  {pendingRequests.map((req) => (
-                    <div className="guardian-card border-pending" key={req._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #fffbeb 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                        <img 
-                          src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
-                          alt="ID" 
-                          style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: '0 2px 6px rgba(245, 158, 11, 0.2)', filter: 'grayscale(100%)' }} 
-                          onError={(e) => {
-                            e.target.onerror = null; 
-                            e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=fef3c7&textColor=d97706`;
-                          }}
-                        />
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
-                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
-                            {req.guardianDetails.firstName} {req.guardianDetails.lastName}
-                          </span>
-                          <span style={{ backgroundColor: '#fef3c7', color: '#d97706', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: '4px' }}>
-                            {req.guardianDetails.role}
-                          </span>
+                  {/* --- 2. PENDING REQUESTS (Tier 1 & Tier 2) --- */}
+                  {pendingRequests.map((req) => {
+                    const isTier2 = req.status === 'teacher_approved';
+                    
+                    return (
+                      <div className="guardian-card border-pending" key={req._id} style={{ border: `1px solid ${isTier2 ? '#bfdbfe' : '#e2e8f0'}`, background: `linear-gradient(180deg, ${isTier2 ? '#eff6ff' : '#fffbeb'} 0%, #ffffff 40%)`, borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                          <img 
+                            src={getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName)} 
+                            alt="ID" 
+                            style={{ width: '56px', height: '56px', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #ffffff', boxShadow: `0 2px 6px ${isTier2 ? 'rgba(59, 130, 246, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`, filter: 'grayscale(100%)' }} 
+                            onError={(e) => {
+                              e.target.onerror = null; 
+                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=fef3c7&textColor=d97706`;
+                            }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden' }}>
+                            <span style={{ fontSize: '16px', fontWeight: '800', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                              {req.guardianDetails.firstName} {req.guardianDetails.lastName}
+                            </span>
+                            <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                              <span style={{ backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                {req.guardianDetails.role}
+                              </span>
+                              
+                              {/* DYNAMIC BADGE BASED ON VERIFICATION TIER */}
+                              <span style={{ backgroundColor: isTier2 ? '#dbeafe' : '#fef3c7', color: isTier2 ? '#1d4ed8' : '#d97706', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                {isTier2 ? "Pending Admin" : "Pending Teacher"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>{req.guardianDetails.tempUsername}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
+                            <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>{req.guardianDetails.phone}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
+                          <button onClick={() => setSelectedRequest(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                            VIEW
+                          </button>
+                          <button onClick={() => triggerCancelConfirm(req._id)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                            CANCEL
+                          </button>
                         </div>
                       </div>
+                    );
+                  })}
 
-                      <div style={{ borderTop: '1px dashed #e2e8f0', borderBottom: '1px dashed #e2e8f0', padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>USERNAME:</span>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>{req.guardianDetails.tempUsername}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center' }}>
-                          <span style={{ fontSize: '11px', fontWeight: '800', color: '#94a3b8', width: '80px', letterSpacing: '0.5px' }}>CONTACT#:</span>
-                          <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b' }}>{req.guardianDetails.phone}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '10px', marginTop: 'auto' }}>
-                        <button onClick={() => setSelectedRequest(req)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: '#fff', color: '#475569', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                          VIEW
-                        </button>
-                        <button onClick={() => triggerCancelConfirm(req._id)} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', backgroundColor: '#fee2e2', color: '#ef4444', fontWeight: '700', fontSize: '12px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                          CANCEL
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* --- 3. APPROVED HISTORY (Green Gradient) --- */}
+                  {/* --- 3. APPROVED HISTORY --- */}
                   {approvedRequests.map((req) => (
                     <div className="guardian-card border-approved" key={req._id} style={{ border: '1px solid #e2e8f0', background: 'linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                       

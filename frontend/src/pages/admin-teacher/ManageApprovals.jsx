@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import jsPDF from "jspdf"; // <- FOR PDF
-import autoTable from "jspdf-autotable"; // <- FOR PDF
+import jsPDF from "jspdf"; 
+import autoTable from "jspdf-autotable"; 
 import "../../styles/admin-teacher/admin-manage-approvals.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
@@ -18,9 +18,8 @@ export default function ManageApprovals() {
   const filterRef = useRef(null);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
- // --- REAL DATA STATE ---
-  const [requests, setRequests] = useState([]); // Pending requests
-  const [historyRequests, setHistoryRequests] = useState([]); // History requests
+  const [requests, setRequests] = useState([]); 
+  const [historyRequests, setHistoryRequests] = useState([]); 
   const [loading, setLoading] = useState(true);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -28,12 +27,10 @@ export default function ManageApprovals() {
 
   const [expandedImage, setExpandedImage] = useState(null);
 
-  // CONFIRMATION STATE
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [pendingActionId, setPendingActionId] = useState(null);
   const [modalType, setModalType] = useState("approve");
 
-  // Fetch both pending and history requests on load
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -53,24 +50,20 @@ export default function ManageApprovals() {
     fetchData();
   }, []);
 
-  // Helper for formatting Dates beautifully
   const formatDateTime = (dateString) => {
     const options = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
     return new Date(dateString).toLocaleDateString('en-US', options).replace(',', ' •');
   };
 
-  // Helper for Images (Avatars)
   const getImageUrl = (path) => {
-    if (!path) return "https://via.placeholder.com/150"; // Fallback image
+    if (!path) return "https://via.placeholder.com/150"; 
     if (path.startsWith("http")) return path;
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
-  // Make the counters dynamic!
   const pendingCount = requests.length;
   const historyCount = historyRequests.length;
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -83,9 +76,7 @@ export default function ManageApprovals() {
 
   const handleSort = (type) => setIsFilterOpen(false);
   const handleCardClick = (req) => setSelectedRequest(req);
-  // ==========================================
-  // --- ACTION: APPROVE ---
-  // ==========================================
+
   const handleApproveClick = (e, id) => {
     e.stopPropagation();
     setPendingActionId(id);
@@ -93,9 +84,6 @@ export default function ManageApprovals() {
     setConfirmModalOpen(true);
   };
 
-  // ==========================================
-  // --- ACTION: REJECT ---
-  // ==========================================
   const handleRejectClick = (e, id) => {
     e.stopPropagation();
     setPendingActionId(id);
@@ -105,7 +93,7 @@ export default function ManageApprovals() {
 
   const handleConfirmAction = async () => {
     const id = pendingActionId;
-    const endpoint = modalType; // 'approve' or 'reject'
+    const endpoint = modalType; 
     setConfirmModalOpen(false); 
     
     try {
@@ -114,15 +102,17 @@ export default function ManageApprovals() {
         {}, { withCredentials: true }
       );
 
+      // TIER 1 SUCCESS MESSAGE FIX
       setSuccessMessage(modalType === "approve" 
-        ? "Guardian account successfully created!" 
+        ? "Request verified and forwarded to Superadmin." 
         : "Application has been rejected.");
       setShowSuccessModal(true);
 
       const actedRequest = requests.find(req => req._id === id);
       if (actedRequest) {
         setRequests(requests.filter(req => req._id !== id));
-        setHistoryRequests([{ ...actedRequest, status: modalType === 'approve' ? 'approved' : 'rejected' }, ...historyRequests]);
+        // Move to history with correct TIER 1 status
+        setHistoryRequests([{ ...actedRequest, status: modalType === 'approve' ? 'teacher_approved' : 'rejected' }, ...historyRequests]);
       }
       setSelectedRequest(null);
     } catch (error) {
@@ -131,9 +121,6 @@ export default function ManageApprovals() {
     }
   };
 
-  // ==========================================
-  // --- PDF EXPORT FUNCTION (BULLETPROOF) ---
-  // ==========================================
   const exportHistoryToPDF = () => {
     try {
       if (!historyRequests || historyRequests.length === 0) {
@@ -143,7 +130,6 @@ export default function ManageApprovals() {
 
       const doc = new jsPDF();
       
-      // 1. Add Title and Date
       doc.setFontSize(18);
       doc.setTextColor(30, 41, 59);
       doc.text("Guardian Approval History", 14, 22);
@@ -152,29 +138,23 @@ export default function ManageApprovals() {
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 30);
 
-      // 2. Define Table Columns
       const tableColumn = ["Date", "Parent", "Guardian", "Role", "Child", "Status"];
       const tableRows = [];
 
-      // 3. Map the data SAFELY
       historyRequests.forEach(req => {
-        // Safe Date
         const date = req.createdAt ? new Date(req.createdAt).toLocaleDateString() : "Unknown";
         
-        // Safe Parent Name
         let parentName = "N/A";
         if (req.parent && req.parent.first_name) {
             parentName = `${req.parent.first_name} ${req.parent.last_name}`;
         } else if (typeof req.parent === 'string') {
-            parentName = "ID: " + req.parent.substring(0, 5) + "..."; // Fallback if not populated
+            parentName = "ID: " + req.parent.substring(0, 5) + "..."; 
         }
 
-        // Safe Guardian Name
         const gDetails = req.guardianDetails || {};
         const guardianName = `${gDetails.firstName || 'Unknown'} ${gDetails.lastName || ''}`.trim();
         const role = gDetails.role || "N/A";
         
-        // Safe Child Name
         let childName = "N/A";
           if (req.students && req.students.length > 0) {
             childName = req.students.map(s => {
@@ -182,14 +162,11 @@ export default function ManageApprovals() {
             }).join(", ");
           }
 
-        // Safe Status
         const status = (req.status || "Unknown").toUpperCase();
 
-        // Push the clean row
         tableRows.push([date, parentName, guardianName, role, childName, status]);
       });
 
-      // 4. Generate the Table (Safely passing the doc in)
       autoTable(doc, {
         startY: 36,
         head: [tableColumn],
@@ -200,7 +177,6 @@ export default function ManageApprovals() {
         alternateRowStyles: { fillColor: [248, 250, 252] }
       });
 
-      // 5. Download the file
       doc.save("Guardian_Approval_History.pdf");
 
     } catch (error) {
@@ -217,7 +193,6 @@ export default function ManageApprovals() {
       <main className="main-content">
         <div className="approvals-container">
           
-          {/* 1. HEADER BANNER */}
           <div className="header-banner">
              <div className="header-title">
               <h1>Account Approvals</h1>
@@ -226,7 +201,6 @@ export default function ManageApprovals() {
             <span className="material-symbols-outlined" style={{ fontSize: "48px", opacity: 0.8 }}>verified_user</span>
           </div>
 
-          {/* 2. CONTROLS BAR */}
           <div className="controls-bar">
              <div className="controls-left">
                 <div className="tab-group">
@@ -243,7 +217,6 @@ export default function ManageApprovals() {
                 </div>
              </div>
              <div className="controls-right" ref={filterRef}>
-                {/* --- NEW: EXPORT PDF BUTTON (Only shows on History Tab) --- */}
                 {activeTab === "history" && (
                   <button 
                     className="btn-outline" 
@@ -269,7 +242,6 @@ export default function ManageApprovals() {
              </div>
           </div>
 
-          {/* 3. GRID AREA */}
           <div className="requests-grid">
             
             {loading ? (
@@ -284,15 +256,12 @@ export default function ManageApprovals() {
               </div>
             ) : null}
 
-            {/* --- MAP REAL REQUEST CARDS --- */}
             {activeTab === "pending" && !loading &&
               requests.map((req) => (
                 <div className="request-card" key={req._id}>
                   
-                  {/* TOP ROW: Split Header */}
                   <div className="card-split-header">
                     
-                    {/* LEFT: Parent Info (Populated from User DB) */}
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
                       <div className="person-group">
@@ -307,11 +276,9 @@ export default function ManageApprovals() {
                       </div>
                     </div>
 
-                    {/* RIGHT: Guardian Info (From guardianDetails object) */}
                     <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
                       <span className="info-label">Requested Guardian</span>
                       <div className="person-group">
-                        {/* ID Photo mapped here for quick visual */}
                         <img src={getImageUrl(req.guardianDetails.idPhotoPath)} alt="Guardian ID" className="header-avatar" />
                         <div className="name-stack">
                           <span className="info-value">{req.guardianDetails.firstName} {req.guardianDetails.lastName}</span>
@@ -326,21 +293,16 @@ export default function ManageApprovals() {
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW 1: Linked Child */}
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
-                      
-                      {/* --- THE FIX: HANDLE THE ARRAY --- */}
                       {req.students && req.students.length > 0 
                         ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
-                        
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW 2: Requested On */}
                   <div className="card-row">
                     <span className="info-label">Requested On</span>
                     <span className="info-value" style={{fontWeight: 500, fontSize: '13px'}}>
@@ -348,16 +310,14 @@ export default function ManageApprovals() {
                     </span>
                   </div>
 
-                  {/* BOTTOM ROW: Actions */}
                   <div className="card-actions">
                     <button className="btn-card btn-reject" onClick={(e) => handleRejectClick(e, req._id)}>Reject</button>
-                    <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Approve</button>
+                    <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Verify</button>
                   </div>
 
                 </div>
               ))}
 
-            {/* --- MAP REAL HISTORY CARDS --- */}
             {activeTab === "history" && !loading && historyRequests.length === 0 ? (
               <div className="empty-queue">
                 <span className="material-symbols-outlined empty-queue-icon">history</span>
@@ -368,7 +328,6 @@ export default function ManageApprovals() {
               historyRequests.map((req) => (
                 <div className="request-card" key={req._id} style={{ opacity: 0.9 }}> 
                   
-                  {/* TOP ROW: Split Header (Same as pending) */}
                   <div className="card-split-header">
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
@@ -395,29 +354,36 @@ export default function ManageApprovals() {
                     </div>
                   </div>
 
-                  {/* MIDDLE ROW 1: Linked Child */}
                   <div className="card-row">
                     <span className="info-label">Linked Child</span>
                     <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
                       <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
-                      
-                      {/* --- THE FIX: HANDLE THE ARRAY --- */}
                       {req.students && req.students.length > 0 
                         ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
-                        
                     </div>
                   </div>
 
-                  {/* BOTTOM ROW: History Status Badge */}
+                  {/* TIER 1 SMART HISTORY BADGES */}
                   <div className="card-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', padding: '16px' }}>
-                    {req.status === 'approved' ? (
+                    {req.status === 'teacher_approved' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
+                        <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
+                      </span>
+                    )}
+                    {req.status === 'approved' && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
                         <span className="material-symbols-outlined">check_circle</span> Application Approved
                       </span>
-                    ) : (
+                    )}
+                    {req.status === 'rejected' && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
                         <span className="material-symbols-outlined">cancel</span> Application Rejected
+                      </span>
+                    )}
+                    {req.status === 'revoked' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '15px' }}>
+                        <span className="material-symbols-outlined">block</span> Access Revoked
                       </span>
                     )}
                   </div>
@@ -429,12 +395,10 @@ export default function ManageApprovals() {
         </div>
       </main>
 
-      {/* --- UNIFIED DETAILS MODAL (MOBILE-FRIENDLY + SMART FOOTER) --- */}
       {selectedRequest && (
         <div className="approval-modal-overlay" onClick={() => setSelectedRequest(null)}>
           <div className="approval-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
             
-            {/* Modal Header */}
             <div className="modal-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
               <div>
                 <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px'}}>Guardian Application</h2>
@@ -447,10 +411,8 @@ export default function ManageApprovals() {
               </button>
             </div>
 
-            {/* Modal Body (1 Column Stack) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px' }}>
               
-              {/* TOP SECTION: Data */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Applicant Details
@@ -486,7 +448,6 @@ export default function ManageApprovals() {
                 </div>
               </div>
 
-              {/* BOTTOM SECTION: ID Photo */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
                   Valid ID Verification
@@ -494,16 +455,9 @@ export default function ManageApprovals() {
                 <div 
                   onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath))}
                   style={{ 
-                    background: '#f8fafc', 
-                    border: '2px dashed #cbd5e1', 
-                    borderRadius: '12px', 
-                    padding: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'zoom-in',
-                    position: 'relative',
-                    transition: 'border-color 0.2s'
+                    background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', 
+                    padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'zoom-in', position: 'relative', transition: 'border-color 0.2s'
                   }}
                   onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
                   onMouseOut={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
@@ -521,33 +475,36 @@ export default function ManageApprovals() {
 
             </div>
             
-            {/* Modal Footer Actions (SMART FOOTER) */}
+            {/* Modal Footer Actions */}
             {selectedRequest.status === 'pending' ? (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
-                <button 
-                  className="btn-card btn-reject" 
-                  style={{ flex: 1, padding: '12px 0' }} 
-                  onClick={(e) => handleRejectClick(e, selectedRequest._id)}
-                >
+                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleRejectClick(e, selectedRequest._id)}>
                   Reject
                 </button>
-                <button 
-                  className="btn-card btn-approve" 
-                  style={{ flex: 1, padding: '12px 0' }} 
-                  onClick={(e) => handleApproveClick(e, selectedRequest._id)}
-                >
-                  Approve
+                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApproveClick(e, selectedRequest._id)}>
+                  Verify
                 </button>
               </div>
             ) : (
               <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
-                {selectedRequest.status === 'approved' ? (
+                {selectedRequest.status === 'teacher_approved' && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
+                    <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
+                  </span>
+                )}
+                {selectedRequest.status === 'approved' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
                     <span className="material-symbols-outlined">check_circle</span> Application Approved
                   </span>
-                ) : (
+                )}
+                {selectedRequest.status === 'rejected' && (
                   <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
                     <span className="material-symbols-outlined">cancel</span> Application Rejected
+                  </span>
+                )}
+                {selectedRequest.status === 'revoked' && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '15px' }}>
+                    <span className="material-symbols-outlined">block</span> Access Revoked
                   </span>
                 )}
               </div>
@@ -557,7 +514,6 @@ export default function ManageApprovals() {
         </div>
       )}
 
-      {/* --- NEW: FULL SCREEN IMAGE LIGHTBOX --- */}
       {expandedImage && (
         <div 
           style={{
@@ -580,15 +536,16 @@ export default function ManageApprovals() {
         </div>
       )}
 
+      {/* TIER 1 CONFIRMATION MODAL FIX */}
       <TeacherConfirmationModal
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleConfirmAction}
-        title={modalType === "approve" ? "Approve Guardian?" : "Reject Application?"}
+        title={modalType === "approve" ? "Verify Application?" : "Reject Application?"}
         message={modalType === "approve" 
-          ? "Are you sure? This will create a new system account for this guardian." 
+          ? "Are you sure? This will verify the request and forward it to the Superadmin for final approval." 
           : "Are you sure you want to reject this request? This action cannot be undone."}
-        confirmText={modalType === "approve" ? "Yes, Approve" : "Yes, Reject"}
+        confirmText={modalType === "approve" ? "Yes, Verify" : "Yes, Reject"}
         type={modalType === "approve" ? "info" : "danger"}
       />
 
