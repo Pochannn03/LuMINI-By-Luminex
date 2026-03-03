@@ -513,9 +513,18 @@ router.post('/api/students/send-invitation',
     const emailSent = await sendInvitationEmail(parentEmail, student.invitation_code, parentName, studentName);
 
     if (emailSent) {
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Send Invitation",
+        target: `Manual invitation sent to ${parentEmail} for student ${studentName} (ID: ${student_id})`
+      });
+      await auditLog.save().catch(e => console.error("Audit Save Error:", e));
+
       return res.status(200).json({ success: true, msg: `Invitation successfully sent to ${parentEmail}` });
     } else {
-      return res.status(500).json({ success: false, msg: "Failed to send email. Check server logs." });
+      return res.status(500).json({ success: false, msg: "Failed to send email." });
     }
 
   } catch (error) {
