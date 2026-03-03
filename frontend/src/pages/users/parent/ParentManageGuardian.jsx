@@ -41,8 +41,6 @@ export default function ManageGuardians() {
 
   const refreshData = async () => {
     try {
-      // THE FIX: Removed the redundant 'guardians' endpoint. 
-      // We now fetch everything we need from the requests pipeline!
       const [pendingRes, historyRes] = await Promise.all([
         axios.get(`${BACKEND_URL}/api/parent/guardian-requests/pending`, { withCredentials: true }),
         axios.get(`${BACKEND_URL}/api/parent/guardian-requests/history`, { withCredentials: true })
@@ -244,14 +242,11 @@ export default function ManageGuardians() {
                     );
                   })}
 
-                  {/* --- 2. APPROVED GUARDIANS (Smart Logic for Setup Status) --- */}
+                  {/* --- 2. APPROVED GUARDIANS --- */}
                   {approvedRequests.map((req) => {
-                    // Pull the embedded live User data that the backend populated
                     const liveUser = req.guardianDetails?.createdUserId;
-                    // Check if they've finished logging in/setting up
                     const isSetupComplete = liveUser && liveUser.is_first_login === false;
 
-                    // SMART DATA ROUTING
                     const avatarSrc = isSetupComplete 
                       ? getImageUrl(liveUser.profile_picture, liveUser.first_name)
                       : getImageUrl(req.guardianDetails.idPhotoPath, req.guardianDetails.firstName);
@@ -289,7 +284,6 @@ export default function ManageGuardians() {
                               <span style={{ backgroundColor: '#dcfce7', color: '#166534', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                 {req.guardianDetails.role}
                               </span>
-                              {/* Warning Badge if they haven't finished setup */}
                               {!isSetupComplete && (
                                 <span style={{ backgroundColor: '#fef3c7', color: '#d97706', fontSize: '10px', fontWeight: '800', padding: '2px 8px', borderRadius: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                   Awaiting Setup
@@ -328,9 +322,7 @@ export default function ManageGuardians() {
           </div>
         </main>
 
-        {/* --- DETAILS MODAL --- */}
         {selectedRequest && (() => {
-          // Re-calculate the live user data for the details modal
           const liveUser = selectedRequest.guardianDetails?.createdUserId;
           const isSetupComplete = liveUser && liveUser.is_first_login === false;
 
@@ -349,7 +341,6 @@ export default function ManageGuardians() {
           return (
             <div className="modal-overlay active" onClick={() => setSelectedRequest(null)} style={{ zIndex: 9000 }}>
               <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%', padding: 0, overflow: 'hidden' }}>
-                
                 <div style={{ padding: '24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px', marginTop: 0}}>Guardian Details</h2>
@@ -359,54 +350,29 @@ export default function ManageGuardians() {
                     <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#64748b' }}>close</span>
                   </button>
                 </div>
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div>
                       <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Name</label>
-                      <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>
-                        {modalName}
-                      </div>
+                      <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{modalName}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px' }}>
                       <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', margin: 0 }}>Relationship</label>
-                      <div className="role-tag" style={{ background: '#e2e8f0', color: '#64748b', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>
-                        {selectedRequest.guardianDetails.role}
-                      </div>
+                      <div className="role-tag" style={{ background: '#e2e8f0', color: '#64748b', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>{selectedRequest.guardianDetails.role}</div>
                     </div>
                   </div>
-
                   <div>
                     <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Phone Number</label>
                     <div style={{ fontSize: '15px', color: '#1e293b', fontWeight: 600 }}>{modalPhone}</div>
                   </div>
-
                   <div style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                     <label style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
-                    <div style={{ fontSize: '16px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
-                      {modalUsername}
-                    </div>
+                    <div style={{ fontSize: '16px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>{modalUsername}</div>
                   </div>
-
-                  {/* Always show the original submitted ID document here for their reference */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label style={{ fontSize: '11px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Submitted ID</label>
-                    <div 
-                      onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName))}
-                      style={{ 
-                        background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '8px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', position: 'relative'
-                      }}
-                    >
-                      <img 
-                        src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName)} 
-                        alt="ID Document" 
-                        style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px' }}
-                        onError={(e) => {
-                          e.target.onerror = null; 
-                          e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(selectedRequest.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
-                        }}
-                      />
+                    <div onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName))} style={{ background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-in', position: 'relative' }}>
+                      <img src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath, selectedRequest.guardianDetails.firstName)} alt="ID Document" style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px' }} />
                       <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
                         <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
                       </div>
@@ -418,29 +384,15 @@ export default function ManageGuardians() {
           );
         })()}
 
-        {/* --- LIGHTBOX MODAL --- */}
         {expandedImage && (
-          <div 
-            style={{
-              position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)',
-              display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out'
-            }}
-            onClick={() => setExpandedImage(null)}
-          >
-            <img 
-              src={expandedImage} alt="Expanded ID" 
-              style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} 
-            />
-            <button 
-              style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onClick={() => setExpandedImage(null)}
-            >
+          <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }} onClick={() => setExpandedImage(null)}>
+            <img src={expandedImage} alt="Expanded ID" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
+            <button style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setExpandedImage(null)}>
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
         )}
 
-        {/* --- REVOKE ACCESS MODAL --- */}
         {showRevokeModal && (
           <div className="modal-overlay active" style={{ zIndex: 9999 }}>
             <div className="modal-card" style={{ maxWidth: '420px', padding: '24px' }}>
@@ -448,72 +400,25 @@ export default function ManageGuardians() {
                 <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>warning</span>
                 <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Revoke Guardian Access</h2>
               </div>
-              
               <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
                 You are about to permanently revoke access for <strong style={{color: '#1e293b'}}>{requestToRevoke?.guardianDetails?.firstName || requestToRevoke?.first_name} {requestToRevoke?.guardianDetails?.lastName || requestToRevoke?.last_name}</strong>. 
                 <br/><br/>They will be removed from your active guardians and will no longer be able to pick up your child. This action cannot be undone.
               </p>
-
               <div style={{ marginBottom: '24px', background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
-                  Please type <strong style={{ color: '#ef4444' }}>I understand</strong> to confirm:
-                </label>
-                <input 
-                  type="text" 
-                  value={revokeConfirmationText}
-                  onChange={(e) => setRevokeConfirmationText(e.target.value)}
-                  placeholder="I understand"
-                  style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', fontFamily: 'monospace' }}
-                  autoComplete="off"
-                />
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Please type <strong style={{ color: '#ef4444' }}>I understand</strong> to confirm:</label>
+                <input type="text" value={revokeConfirmationText} onChange={(e) => setRevokeConfirmationText(e.target.value)} placeholder="I understand" style={{ width: '100%', padding: '10px 14px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', fontFamily: 'monospace' }} autoComplete="off" />
               </div>
-
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-                <button 
-                  onClick={() => setShowRevokeModal(false)}
-                  style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  disabled={revokeConfirmationText !== "I understand"}
-                  onClick={executeRevokeRequest} 
-                  style={{ 
-                    background: revokeConfirmationText === "I understand" ? '#ef4444' : '#fca5a5', 
-                    color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, 
-                    cursor: revokeConfirmationText === "I understand" ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  Revoke Access
-                </button>
+                <button onClick={() => setShowRevokeModal(false)} style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+                <button disabled={revokeConfirmationText !== "I understand"} onClick={executeRevokeRequest} style={{ background: revokeConfirmationText === "I understand" ? '#ef4444' : '#fca5a5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: revokeConfirmationText === "I understand" ? 'pointer' : 'not-allowed' }}>Revoke Access</button>
               </div>
             </div>
           </div>
         )}
 
-        <ConfirmModal
-          isOpen={showConfirmModal}
-          onClose={() => setShowConfirmModal(false)}
-          onConfirm={executeCancelRequest}
-          title="Cancel Request?"
-          message="Are you sure you want to cancel this guardian application? This action cannot be undone."
-          confirmText="Yes, Cancel"
-          cancelText="No, Keep it"
-          isDestructive={true} 
-        />
-
-        <SuccessModal
-          isOpen={showSuccessModal}
-          onClose={() => setShowSuccessModal(false)}
-          message={successMessage}
-        />
-
-        <WarningModal
-          isOpen={showWarningModal}
-          onClose={() => setShowWarningModal(false)}
-          title="Guardian Limit Reached"
-          message="You can only have a maximum of 3 authorized guardians. Please revoke access or cancel a pending request to add a new one."
-        />
+        <ConfirmModal isOpen={showConfirmModal} onClose={() => setShowConfirmModal(false)} onConfirm={executeCancelRequest} title="Cancel Request?" message="Are you sure you want to cancel this guardian application? This action cannot be undone." confirmText="Yes, Cancel" cancelText="No, Keep it" isDestructive={true} />
+        <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} message={successMessage} />
+        <WarningModal isOpen={showWarningModal} onClose={() => setShowWarningModal(false)} title="Guardian Limit Reached" message="You can only have a maximum of 3 authorized guardians. Please revoke access or cancel a pending request to add a new one." />
 
       </div>
     </>

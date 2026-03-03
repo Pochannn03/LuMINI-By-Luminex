@@ -436,3 +436,44 @@ export const sendGuardianSetupCompleteEmail = async (toEmail, parentName, guardi
     return false;
   }
 };
+
+/**
+ * REJECTED: Notifies the parent that the guardian request was denied, including the reason.
+ */
+export const sendGuardianRejectedEmail = async (toEmail, parentName, guardianName, rejectedByRole, rejectReason) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Guardian Request Rejected`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 1px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✕</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 22px;">Application Rejected</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Your request to authorize <strong>${guardianName}</strong> as an authorized personnel has been reviewed and <strong>rejected</strong> by the ${rejectedByRole}.
+            </p>
+            <div style="background-color: #f8fafc; border-left: 4px solid #ef4444; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">Reason for Rejection:</h3>
+              <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.5; font-weight: bold;">
+                "${rejectReason}"
+              </p>
+            </div>
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              You may submit a new application with the corrected information through your LuMINI portal. If you believe this is a mistake, please contact the school administration.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("❌ Error sending Guardian Rejected email:", error);
+    return false;
+  }
+};
