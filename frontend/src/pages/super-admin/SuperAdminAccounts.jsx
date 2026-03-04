@@ -5,8 +5,14 @@ import '../../styles/super-admin/class-management.css';
 import NavBar from "../../components/navigation/NavBar";
 import AccountsEditModal from "../../components/modals/super-admin/accounts/AccountsEditModal";
 import AccountsDeleteModal from "../../components/modals/super-admin/accounts/AccountsDeleteModal";
+import SuccessModal from "../../components/SuccessModal";
 
 export default function SuperAdminAccounts() {
+  const [successConfig, setSuccessConfig] = useState({
+    isOpen: false,
+    message: ""
+  });
+
   // MODAL STATES
   const [isEditAccountModalOpen, setIsEditAccountModalOpen] = useState(false);
   const [isDeleteAccountModalOpen, setIsDeleteAccountModalOpen] = useState(false);
@@ -23,22 +29,30 @@ export default function SuperAdminAccounts() {
   // FILTER STATES
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("All"); 
+  const [statusFilter, setStatusFilter] = useState("All");
 
-  // PAGINATION STATES
+  // PAGINATION STATES - Main Accounts
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10; 
 
-  // --- FETCH MAIN ACCOUNTS LIST ---
+  // PAGINATION STATES - Pending Accounts
+  const [pendingCurrentPage, setPendingCurrentPage] = useState(1);
+  const pendingItemsPerPage = 5;
+
+  // --- FETCH MAIN ACCOUNTS LIST (FRONTEND LOGIC) ---
   const fetchAccounts = useCallback(async () => {
     setLoading(true); 
     try {
+      // FIX 1: Removed the params so we fetch all approved users, allowing the frontend to sort and paginate perfectly.
       const response = await axios.get('http://localhost:3000/api/users', { 
         withCredentials: true 
       });
 
       if (response.data.success) {
-        const usersData = Array.isArray(response.data.users) ? response.data.users : [];
-        setAccounts(usersData); 
+        const allUsers = Array.isArray(response.data.users) ? response.data.users : [];
+        const approvedUsers = allUsers.filter(user => user.is_approved !== false);
+        
+        setAccounts(approvedUsers); 
       }
     } catch (error) {
       console.error("Error fetching accounts:", error);
@@ -57,10 +71,7 @@ export default function SuperAdminAccounts() {
       });
 
       if (response.data.success) {
-        // Merge teachers and guardians into one list
-        const teachers = response.data.pending_teachers || [];
-        const guardians = response.data.pending_users || [];
-        setPendingAccounts([...teachers, ...guardians]);
+        setPendingAccounts(response.data.pending_accounts || []);
       }
     } catch (error) {
       console.error("Error fetching pending stats:", error);
@@ -75,10 +86,10 @@ export default function SuperAdminAccounts() {
     fetchPendingAccounts();
   }, [fetchAccounts, fetchPendingAccounts]);
 
-  // Reset page to 1 whenever search or filter changes
+  // Reset pages when searching or filtering
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, roleFilter]);
+  }, [searchQuery, roleFilter, statusFilter]);
 
   // HANDLERS
   const isProtectedAccount = (account) => {
@@ -100,6 +111,17 @@ export default function SuperAdminAccounts() {
     setSelectedAccount(account);
     setIsDeleteAccountModalOpen(true);
   };
+  
+  const handleActionSuccess = (msg) => {
+    fetchAccounts();
+    fetchPendingAccounts();
+    
+    // Open the success modal with the message provided by the child component
+    setSuccessConfig({
+      isOpen: true,
+      message: typeof msg === 'string' ? msg : "Operation completed successfully!"
+    });
+  };
 
   const handlePendingActionComplete = () => {
     fetchPendingAccounts(); 
@@ -108,49 +130,85 @@ export default function SuperAdminAccounts() {
 
   const getInitials = (name) => {
     if (!name) return "??";
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .slice(0, 2)
-      .join('')
-      .toUpperCase();
+    return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
   };
 
   const getRoleBadgeStyle = (role) => {
     if (!role) return 'bg-gray-100 text-gray-700 border-gray-200';
     switch(role) {
-      case 'superadmin': 
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'admin': 
-        return 'bg-orange-100 text-orange-700 border-orange-200';
-      case 'user': 
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      default: 
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+      case 'superadmin': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'admin': return 'bg-orange-100 text-orange-700 border-orange-200';
+      case 'user': return 'bg-blue-100 text-blue-700 border-blue-200';
+      default: return 'bg-gray-100 text-gray-700 border-gray-200';
     }
   };
 
-  // --- FILTERING LOGIC ---
+  // --- FILTERING & SORTING LOGIC (Main Accounts) ---
   const filteredAccounts = accounts.filter((acc) => {
-      const fullName = acc.full_name || `${acc.first_name || ''} ${acc.last_name || ''}`;
-      const roleString = acc.role ? String(acc.role).toLowerCase() : "";
-      const matchesRole = roleFilter === "All" || roleString === roleFilter.toLowerCase();
-      const usernameString = acc.username ? String(acc.username).toLowerCase() : "";
+    const fullName = acc.full_name || `${acc.first_name || ''} ${acc.last_name || ''}`;
+    const roleString = acc.role ? String(acc.role).toLowerCase() : "";
+    const usernameString = acc.username ? String(acc.username).toLowerCase() : "";
+    
+    const matchesRole = roleFilter === "All" || roleString === roleFilter.toLowerCase();
+    const matchesSearch = usernameString.includes(searchQuery.toLowerCase()) || fullName.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status Filter Logic
+    const matchesStatus = statusFilter === "All" 
+      ? true 
+      : statusFilter === "Active" 
+        ? acc.is_archive === false 
+        : acc.is_archive === true;
       
-      const matchesSearch = 
-        usernameString.includes(searchQuery.toLowerCase()) || 
-        fullName.toLowerCase().includes(searchQuery.toLowerCase());
-        
-      return matchesRole && matchesSearch;
+    return matchesRole && matchesSearch && matchesStatus; 
+  }).sort((a, b) => {
+    // 1. Define the priority of roles
+    const rolePriority = {
+        'superadmin': 1,
+        'admin': 2,
+        'user': 3
+    };
+
+    // Get the priority number for a and b (default to 4 if role is missing)
+    const priorityA = rolePriority[a.role?.toLowerCase()] || 4;
+    const priorityB = rolePriority[b.role?.toLowerCase()] || 4;
+
+    // 2. PRIMARY SORT: Compare by Role Priority
+    if (priorityA !== priorityB) {
+        return priorityA - priorityB; // Lower number goes first
+    }
+
+    // 3. SECONDARY SORT: If roles are exactly the same, sort Oldest to Newest
+    return new Date(a.created_at) - new Date(b.created_at);
   });
 
-  // --- PAGINATION LOGIC ---
+  // --- PAGINATION LOGIC (Main Accounts) ---
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredAccounts.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredAccounts.length / itemsPerPage);
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  // --- PAGINATION LOGIC (Pending Accounts) ---
+  const indexOfLastPending = pendingCurrentPage * pendingItemsPerPage;
+  const indexOfFirstPending = indexOfLastPending - pendingItemsPerPage;
+  const currentPendingItems = pendingAccounts.slice(indexOfFirstPending, indexOfLastPending);
+  const totalPendingPages = Math.ceil(pendingAccounts.length / pendingItemsPerPage);
+
+  // --- HELPER FUNCTION: SLIDING PAGE NUMBERS ---
+  const generatePageNumbers = (current, total) => {
+    const maxVisible = 5;
+    let start = Math.max(1, current - Math.floor(maxVisible / 2));
+    let end = Math.min(total, start + maxVisible - 1);
+
+    if (end - start < maxVisible - 1) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    const pages = [];
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -181,25 +239,41 @@ export default function SuperAdminAccounts() {
                 />
               </div>
 
-              <div className="relative w-full md:w-auto">
-                <select 
-                  className="appearance-none w-full md:w-auto bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:border-blue-500 block pl-3 pr-10 py-2.5 outline-none cursor-pointer hover:bg-gray-50 transition-colors"
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                >
-                  <option value="All">All Roles</option>
-                  <option value="admin">Teachers</option>
-                  <option value="user">Parents & Guardian</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                  <span className="material-symbols-outlined text-[20px]">expand_more</span>
+              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                <div className="relative w-full md:w-auto">
+                  <select 
+                    className="appearance-none w-full md:w-auto bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:border-blue-500 block pl-3 pr-10 py-2.5 outline-none cursor-pointer hover:bg-gray-50 transition-colors"
+                    value={roleFilter}
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                  >
+                    <option value="All">All Roles</option>
+                    <option value="admin">Teachers</option>
+                    <option value="user">Parents & Guardian</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                  </div>
+                </div>
+
+                <div className="relative w-full md:w-auto">
+                  <select 
+                    className="appearance-none w-full md:w-auto bg-white border border-gray-200 text-gray-700 text-sm rounded-lg focus:border-blue-500 block pl-3 pr-10 py-2.5 outline-none cursor-pointer hover:bg-gray-50 transition-colors"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="All">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Archived">Archived</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <span className="material-symbols-outlined text-[20px]">expand_more</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* 2. CONTENT AREA */}
             
-            {/* A. LOADING STATE */}
             {loading && (
               <div className="p-12 text-center text-cgray">
                 <span className="material-symbols-outlined animate-spin text-3xl mb-2">sync</span>
@@ -207,7 +281,6 @@ export default function SuperAdminAccounts() {
               </div>
             )}
 
-            {/* B. EMPTY STATE */}
             {!loading && filteredAccounts.length === 0 && (
               <div className="p-12 text-center text-cgray">
                  <span className="material-symbols-outlined text-4xl mb-2 opacity-50">person_off</span>
@@ -215,10 +288,8 @@ export default function SuperAdminAccounts() {
               </div>
             )}
 
-            {/* C. DATA LIST */}
             {!loading && filteredAccounts.length > 0 && (
               <>
-                {/* DESKTOP TABLE VIEW */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50 border-b border-gray-200">
@@ -293,7 +364,6 @@ export default function SuperAdminAccounts() {
                   </table>
                 </div>
 
-                {/* MOBILE LIST VIEW (UNIFIED) */}
                 <div className="md:hidden divide-y divide-gray-100">
                   {currentItems.map((acc) => {
                     const displayName = acc.full_name || `${acc.first_name || ''} ${acc.last_name || ''}`;
@@ -348,53 +418,72 @@ export default function SuperAdminAccounts() {
               </>
             )}
 
-            {/* 3. FOOTER: PAGINATION (SHARED) */}
+            {/* 3. FOOTER: MAIN ACCOUNTS ADVANCED PAGINATION */}
             {!loading && filteredAccounts.length > 0 && (
               <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
                 <span className="text-xs font-medium text-gray-500">
-                  {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredAccounts.length)} of {filteredAccounts.length}
+                  Showing page <b>{currentPage}</b> of <b>{totalPages || 1}</b>
                 </span>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
+                <div className="flex gap-1">
+                  <button 
+                    className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50 flex items-center justify-center rounded-md border border-gray-200" 
                     disabled={currentPage === 1}
-                    className={`p-1.5 rounded-md border transition-colors flex items-center justify-center
-                      ${currentPage === 1 
-                        ? 'bg-transparent text-gray-300 border-gray-200 cursor-not-allowed' 
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-white hover:text-blue-600 shadow-sm'}`}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
                   >
-                    <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                    <span className="material-symbols-outlined text-[16px]">chevron_left</span>
                   </button>
 
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`p-1.5 rounded-md border transition-colors flex items-center justify-center
-                      ${currentPage === totalPages 
-                        ? 'bg-transparent text-gray-300 border-gray-200 cursor-not-allowed' 
-                        : 'bg-white text-gray-600 border-gray-300 hover:bg-white hover:text-blue-600 shadow-sm'}`}
+                  {generatePageNumbers(currentPage, totalPages)[0] > 1 && (
+                    <>
+                      <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-md border border-gray-200" onClick={() => setCurrentPage(1)}>1</button>
+                      <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                    </>
+                  )}
+
+                  {generatePageNumbers(currentPage, totalPages).map(pageNum => (
+                    <button 
+                      key={pageNum}
+                      className={`btn btn-outline h-8 w-8 p-0! transition-colors flex items-center justify-center rounded-md font-medium text-sm ${ currentPage === pageNum  
+                          ? 'bg-[#3ab0f9]! text-white! border-[#3ab0f9]! shadow-sm' 
+                          : 'hover:bg-blue-50 text-gray-600 border-gray-200'
+                      }`}
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
+
+                  {generatePageNumbers(currentPage, totalPages).slice(-1)[0] < totalPages && (
+                    <>
+                      <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                      <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-md border border-gray-200" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                    </>
+                  )}
+
+                  <button 
+                    className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50 flex items-center justify-center rounded-md border border-gray-200"
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
                   >
-                    <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                    <span className="material-symbols-outlined text-[16px]">chevron_right</span>
                   </button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* --- PENDING APPROVALS SECTION (UNIFIED) --- */}
+          {/* --- PENDING APPROVALS SECTION WITH ADVANCED PAGINATION --- */}
           <div>
-            {/* ADDED 'bg-white' TO MAKE IT SOLID! */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 ">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               
-              {/* HEADER WITH ICON */}
-              <div className="mb-6 flex items-center gap-3">
+              <div className="mb-4 flex items-center gap-3">
                 <h2 className="text-cdark text-[18px] font-bold">Pending Account Approvals</h2>
               </div>
  
-              <div className="flex flex-col gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="flex flex-col gap-4">
                 {loadingPending && (
-                  <p className="text-cgray text-sm p-4">Loading Pending Accounts...</p>
+                  <p className="text-cgray text-sm p-4 text-center">Loading Pending Accounts...</p>
                 )}
  
                 {!loadingPending && pendingAccounts.length === 0 && (
@@ -404,14 +493,69 @@ export default function SuperAdminAccounts() {
                   </div>
                 )}
  
-                {!loadingPending && pendingAccounts.map((acc) => (
+                {!loadingPending && currentPendingItems.map((acc) => (
                   <DashboardPendingAccCard 
                     key={acc._id || acc.user_id} 
                     tch={acc} 
-                    onActionComplete={handlePendingActionComplete} 
+                    onSuccess={handlePendingActionComplete}
                   />
                 ))}
               </div>
+
+              {/* PENDING ACCOUNTS ADVANCED PAGINATION */}
+              {!loadingPending && pendingAccounts.length > 0 && (
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+                  <span className="text-xs font-medium text-gray-500">
+                    Showing page <b>{pendingCurrentPage}</b> of <b>{totalPendingPages || 1}</b>
+                  </span>
+                  
+                  <div className="flex gap-1">
+                    <button 
+                      className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50 flex items-center justify-center rounded-md border border-gray-200" 
+                      disabled={pendingCurrentPage === 1}
+                      onClick={() => setPendingCurrentPage(prev => prev - 1)}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">chevron_left</span>
+                    </button>
+
+                    {generatePageNumbers(pendingCurrentPage, totalPendingPages)[0] > 1 && (
+                      <>
+                        <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-md border border-gray-200" onClick={() => setPendingCurrentPage(1)}>1</button>
+                        <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                      </>
+                    )}
+
+                    {generatePageNumbers(pendingCurrentPage, totalPendingPages).map(pageNum => (
+                      <button 
+                        key={pageNum}
+                        className={`btn btn-outline h-8 w-8 p-0! transition-colors flex items-center justify-center rounded-md font-medium text-sm ${ pendingCurrentPage === pageNum  
+                            ? 'bg-[#3ab0f9]! text-white! border-[#3ab0f9]! shadow-sm' 
+                            : 'hover:bg-blue-50 text-gray-600 border-gray-200'
+                        }`}
+                        onClick={() => setPendingCurrentPage(pageNum)}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+
+                    {generatePageNumbers(pendingCurrentPage, totalPendingPages).slice(-1)[0] < totalPendingPages && (
+                      <>
+                        <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                        <button className="btn btn-outline h-8 w-8 p-0! flex items-center justify-center rounded-md border border-gray-200" onClick={() => setPendingCurrentPage(totalPendingPages)}>{totalPendingPages}</button>
+                      </>
+                    )}
+
+                    <button 
+                      className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50 flex items-center justify-center rounded-md border border-gray-200"
+                      disabled={pendingCurrentPage === totalPendingPages || totalPendingPages === 0}
+                      onClick={() => setPendingCurrentPage(prev => prev + 1)}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">chevron_right</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
 
@@ -425,7 +569,7 @@ export default function SuperAdminAccounts() {
           setSelectedAccount(null);
         }}
         account={selectedAccount}
-        onSuccess={fetchAccounts} 
+        onSuccess={handleActionSuccess} 
       />
 
       <AccountsDeleteModal 
@@ -435,7 +579,13 @@ export default function SuperAdminAccounts() {
           setSelectedAccount(null);
         }}
         account={selectedAccount}
-        onSuccess={fetchAccounts}
+        onSuccess={handleActionSuccess}
+      />
+
+      <SuccessModal 
+        isOpen={successConfig.isOpen}
+        onClose={() => setSuccessConfig(prev => ({ ...prev, isOpen: false }))}
+        message={successConfig.message}
       />
     </div>
   );

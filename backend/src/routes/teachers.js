@@ -89,7 +89,8 @@ router.post('/api/teachers',
 
     data.password = await hashPassword(data.password);
     data.role = "admin";
-    data.is_archive = true; 
+    data.is_archive = false;
+    data.is_approved = false;
 
     if (req.files) {
       if (req.files['profile_photo'] && req.files['profile_photo'].length > 0) {
@@ -175,7 +176,12 @@ router.post('/api/teachers/modal', isAuthenticated, hasRole('superadmin'), uploa
     data.password = await hashPassword(data.password);
     data.role = "admin";
     data.is_archive = false;
-    if (req.file) { data.profile_picture = req.file.path; }
+    data.is_approved = false;
+
+    if (req.file) {
+      data.profile_picture = req.file.path; 
+    }
+
     const newUser = new User(data);
     try{
       const savedUser = await newUser.save();
@@ -337,8 +343,15 @@ router.put('/api/teacher/archive/:id', isAuthenticated, hasRole('superadmin'), a
 router.patch('/api/teacher/approval/:id', isAuthenticated, hasRole('superadmin'), async (req, res) => {
     try {
       const teacherId = req.params.id;
-      const updatedTeacher = await User.findByIdAndUpdate(teacherId, { is_archive: false });
-      if (!updatedTeacher) { return res.status(404).json({ success: false, msg: "Teacher not found" }); }
+      const updatedTeacher = await User.findByIdAndUpdate(
+        teacherId, 
+        { $set: { is_approved: true, is_archive: false } }, 
+        { new: true } 
+      );
+
+      if (!updatedTeacher) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
 
       const auditLog = new Audit({
         user_id: req.user.user_id,
