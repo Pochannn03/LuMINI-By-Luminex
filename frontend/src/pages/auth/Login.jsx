@@ -14,11 +14,15 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState({
     username: '',
     password: '',
     rememberMe: false
   });
+
+  // --- NEW: 3-STRIKE TRACKING STATES ---
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [attemptedUsername, setAttemptedUsername] = useState("");
 
   // --- SLIDER STATE & LOGIC ---
   const [featureIndex, setFeatureIndex] = useState(0);
@@ -60,7 +64,6 @@ export default function Login() {
       } else if (user.role === "user" && user.relationship === "Parent") {
         navigate('/parent/dashboard', { replace: true });
       } else if (user.role === "user" && user.relationship !== "Parent") {
-        // --- NEW: GUARDIAN INTERCEPTION ---
         if (user.is_first_login) {
           navigate('/guardian/setup', { replace: true });
         } else {
@@ -96,11 +99,12 @@ export default function Login() {
         withCredentials: true 
       });
 
-      // --- THE MISSING LINES: Define data and update AuthContext ---
+      // Reset attempts on successful login
+      setFailedAttempts(0);
+
       const data = response.data;
       login(data.user);
 
-      // --- UNIFIED ROUTING LOGIC ---
       if (data.user.role === "superadmin") {
         navigate('/superadmin/dashboard');
       } else if (data.user.role === "admin") {
@@ -108,7 +112,6 @@ export default function Login() {
       } else if (data.user.role === "user" && data.user.relationship === "Parent") {
         navigate('/parent/dashboard');
       } else {
-        // It's a Guardian
         if (data.user.is_first_login) {
           navigate('/guardian/setup');
         } else {
@@ -118,14 +121,38 @@ export default function Login() {
 
     } catch (err) {
       console.error("Login Error:", err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message); 
+      
+      // --- NEW: 3-STRIKE LOGIC INTERCEPTION ---
+      if (err.response && err.response.status === 401) {
+        const { role, isUserFound } = err.response.data;
+
+        // If the username exists AND they are a Parent/Guardian (role 'user')
+        if (isUserFound && role === 'user') {
+          const currentUsername = formData.username.trim();
+          let newAttempts = failedAttempts + 1;
+
+          // Reset counter if they change the username they are typing
+          if (currentUsername !== attemptedUsername) {
+            newAttempts = 1;
+            setAttemptedUsername(currentUsername);
+          }
+          
+          if (newAttempts >= 3) {
+            // 3 Strikes = Redirect to Account Recovery
+            setFailedAttempts(0);
+            navigate('/forgot-password');
+          } else {
+            setFailedAttempts(newAttempts);
+            setError(`Incorrect password. Attempt ${newAttempts}/3 before automatic recovery.`);
+          }
+        } else {
+          // Normal Error for Admins, Teachers, or invalid usernames
+          setError("Invalid Credentials");
+        }
       } else {
-        setError("An unexpected error occurred during login.");
+        setError(err.response?.data?.message || "An unexpected error occurred during login.");
       }
     } finally {
-      // --- BULLETPROOF FIX ---
-      // The finally block ensures the spinner ALWAYS turns off, even if a crash happens
       setIsLoading(false);
     }
   };
@@ -146,7 +173,6 @@ export default function Login() {
           backgroundPosition: 'center'
         }}
       >
-        {/* Content Wrapper */}
         <div className="
             relative z-10 w-full max-w-xl pb-12 
             pl-10 pr-8 text-left 
@@ -194,26 +220,21 @@ export default function Login() {
         overflow-y-auto lg:overflow-hidden
       ">
         
-        {/* Inner Content */}
         <div className="w-full max-w-md lg:max-w-xl mx-auto px-8 pt-10 pb-12 lg:p-16 lg:flex lg:flex-col lg:justify-center min-h-full">
             
-            {/* Header */}
             <div className="mb-8 lg:mb-12 text-left">
               <h2 className="text-3xl lg:text-5xl font-extrabold text-[#2c3e50] mb-2 lg:mb-4 tracking-tight">Sign In</h2>
               <p className="text-gray-500 text-base lg:text-xl">Welcome back! Please enter your details.</p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2 animate-shake">
                 <span className="font-bold">!</span> {error}
               </div>
             )}
 
-            {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-8 flex-col justify-start">
               
-              {/* Username */}
               <div className="space-y-2 mt-12 lg:mt-2">
                 <label htmlFor="username" className="text-sm lg:text-base font-semibold text-gray-700 ml-1">Username</label>
                 <div className="relative group">
@@ -231,13 +252,12 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center ml-1">
                   <label htmlFor="password" className="text-sm lg:text-base font-semibold text-gray-700">Password</label>
                 </div>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text---brand-blue) transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-(--brand-blue) transition-colors">
                     <Lock size={22} />
                   </div>
                   <input 
@@ -258,14 +278,13 @@ export default function Login() {
                 </div>
               </div>
 
-              {/* Remember Me & Forgot Password */}
               <div className="flex items-center justify-between mt-2">
                 <div className="flex items-center gap-2">
                   <input 
                     type="checkbox" 
-                    id="rememberMe" // Changed to match the state property exactly
-                    checked={formData.rememberMe} // Bound to state
-                    onChange={handleChange} // Added handler
+                    id="rememberMe" 
+                    checked={formData.rememberMe} 
+                    onChange={handleChange} 
                     className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"
                   />
                   <label htmlFor="rememberMe" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
@@ -275,7 +294,6 @@ export default function Login() {
                 </Link>
               </div>
 
-              {/* Submit Button */}
               <button 
                 type="submit" 
                 disabled={isLoading}
@@ -289,7 +307,6 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Register Link */}
             <p className="mt-8 lg:mt-10 text-center text-sm lg:text-lg text-gray-500">
               New to LuMINI?{" "}
               <Link to="/register" className="font-semibold text-(--brand-blue) hover:text-blue-700 transition-colors">
