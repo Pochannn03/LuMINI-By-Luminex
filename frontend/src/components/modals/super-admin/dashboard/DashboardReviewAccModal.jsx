@@ -14,12 +14,12 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
     onConfirm: () => {}
   });
 
-  // --- NEW: Lightbox State for zooming IDs ---
+  // Lightbox State for zooming IDs
   const [viewImage, setViewImage] = useState(null);
 
   if (!onView) return null;
 
-  // --- NEW: Safe URL Helper (handles missing images and Windows slashes) ---
+  // Safe URL Helper (handles missing images and Windows slashes)
   const getImageUrl = (path) => {
     if (!path) return null;
     return `http://localhost:3000/${path.replace(/\\/g, "/")}`;
@@ -28,6 +28,9 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
   const photoUrl = getImageUrl(tch.profile_picture) || "https://via.placeholder.com/150";
   const schoolIdUrl = getImageUrl(tch.school_id_photo);
   const validIdUrl = getImageUrl(tch.valid_id_photo);
+  
+  // --- NEW: Fetch the Biometric Capture URL ---
+  const facialCaptureUrl = getImageUrl(tch.facial_capture_image);
 
   const joinedDate = new Date(tch.created_at).toLocaleDateString();
 
@@ -85,7 +88,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
 
   return createPortal(
     <>
-      {/* --- NEW: IMAGE LIGHTBOX OVERLAY --- */}
+      {/* IMAGE LIGHTBOX OVERLAY */}
       {viewImage && (
         <div 
           className="fixed inset-0 z-999999 bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-6 cursor-zoom-out transition-all"
@@ -107,7 +110,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
       )}
 
       <div className="modal-overlay active">
-        <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-container w-[95%] max-w-[650px]" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <div className="flex items-center gap-2.5">
               <span className="material-symbols-outlined purple-icon text-[24px]">verified_user</span>
@@ -162,7 +165,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
               />
             </div>
 
-            {/* --- NEW: VERIFICATION DOCUMENTS DISPLAY --- */}
+            {/* VERIFICATION DOCUMENTS DISPLAY */}
             <div className="text-left mb-2">
               <h4 className="text-cprimary-blue text-[12px] mb-3 font-bold uppercase tracking-wider">Verification Documents</h4>
               <div className="flex gap-4">
@@ -205,6 +208,27 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
                     <div className="w-full h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
                       <span className="material-symbols-outlined mb-1 text-slate-300 text-[24px]">image_not_supported</span>
                       No ID Provided
+                    </div>
+                  )}
+                </div>
+
+                {/* --- NEW: Biometric Capture Box --- */}
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <span className="text-[11px] font-semibold text-slate-500">Biometric Scan</span>
+                  {facialCaptureUrl ? (
+                    <div 
+                      className="w-full h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
+                      onClick={() => setViewImage(facialCaptureUrl)}
+                    >
+                      <img src={facialCaptureUrl} alt="Biometric Capture" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="material-symbols-outlined text-white text-[24px]">zoom_in</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
+                      <span className="material-symbols-outlined mb-1 text-slate-300 text-[24px]">face_retouching_natural</span>
+                      No Scan Provided
                     </div>
                   )}
                 </div>

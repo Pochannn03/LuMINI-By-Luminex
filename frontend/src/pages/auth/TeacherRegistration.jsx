@@ -1,15 +1,41 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import * as faceapi from "face-api.js"; // <-- NEW: Added Face API
 import '../../styles/auth/registration.css';
 import FormInputRegistration from '../../components/FormInputRegistration';
 import { validateRegistrationStep } from '../../utils/validation';
 import AvatarEditor from "react-avatar-editor";
 import SuccessModal from '../../components/SuccessModal';
 
+// ==========================================
+// ANTI-SPOOFING MATH HELPERS
+// ==========================================
+const calculateEAR = (eye) => {
+  const MathSqrt = Math.sqrt;
+  const MathPow = Math.pow;
+  const euclideanDistance = (point1, point2) => {
+    return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
+  };
+  const v1 = euclideanDistance(eye[1], eye[5]);
+  const v2 = euclideanDistance(eye[2], eye[4]);
+  const h = euclideanDistance(eye[0], eye[3]);
+  return (v1 + v2) / (2.0 * h);
+};
+
+const calculateYawRatio = (landmarks) => {
+  const jaw = landmarks.getJawOutline();
+  const nose = landmarks.getNose();
+  const imageLeftCheek = jaw[0];   
+  const imageRightCheek = jaw[16]; 
+  const noseTip = nose[3];         
+  const distLeft = noseTip.x - imageLeftCheek.x;
+  const distRight = imageRightCheek.x - noseTip.x;
+  return distLeft / distRight;
+};
+
 export default function TeacherRegistration() {
   const navigate = useNavigate();
-  // We removed the 'phase' state entirely because Teachers don't use invitation codes!
   const [currentStep, setCurrentStep] = useState(0);
   
   const [errors, setErrors] = useState({});
@@ -45,6 +71,26 @@ export default function TeacherRegistration() {
   const [tempImage, setTempImage] = useState(null);
   const [zoom, setZoom] = useState(1);
 
+  // ==========================================
+  // FACIAL VERIFICATION STATES & REFS (NEW)
+  // ==========================================
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [scanStatus, setScanStatus] = useState("Initializing camera...");
+  const [ovalClass, setOvalClass] = useState("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
+  const [countdownValue, setCountdownValue] = useState(null);
+  
+  const [faceDescriptor, setFaceDescriptor] = useState(null); 
+  const [capturedImage, setCapturedImage] = useState(null); 
+  const [showCaptureModal, setShowCaptureModal] = useState(false);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null); 
+  const streamRef = useRef(null);
+  const stopDetectionRef = useRef(null); 
+
   // Form Inputs Placeholder //
   const [formData, setFormData] = useState({
     username: '',
@@ -62,8 +108,190 @@ export default function TeacherRegistration() {
     zipCode: '',
   });
 
+  // ==========================================
+  // LOAD AI MODELS
+  // ==========================================
+  useEffect(() => {
+    const loadModels = async () => {
+      const MODEL_URL = "/models"; 
+      try {
+        await Promise.all([
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ]);
+        setModelsLoaded(true);
+      } catch (err) {
+        console.error("❌ Failed to load models:", err);
+      }
+    };
+    loadModels();
+  }, []);
+
+  // ==========================================
+  // CAMERA & LIVENESS LOGIC
+  // ==========================================
+  useEffect(() => {
+    // Current Step 4 is now the Biometric Scan step
+    if (isCameraActive && currentStep === 4) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [isCameraActive, currentStep]);
+
+  const startCamera = async () => {
+    setCameraError(null);
+    setIsVideoPlaying(false);
+    setScanStatus("Requesting camera access...");
+    setOvalClass("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
+    setCountdownValue(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false
+      });
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play();
+          setIsVideoPlaying(true);
+          startDetectionSequence(); 
+        };
+      }
+    } catch (err) {
+      setCameraError("Camera access denied.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (stopDetectionRef.current) stopDetectionRef.current();
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsVideoPlaying(false);
+  };
+
+  const takeSnapshot = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(videoRef.current, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.9);
+  };
+
+  const startDetectionSequence = () => {
+    let isDetecting = true;
+    let phase = 0; let framesHeld = 0; let blinkClosed = false; let blinkCount = 0; 
+    let countdownSecs = 3; let countdownFrames = 0; let lostFaceFrames = 0; 
+
+    stopDetectionRef.current = () => { isDetecting = false; };
+
+    const runDetection = async () => {
+      if (!isDetecting || !videoRef.current || !canvasRef.current) return;
+      if (videoRef.current.videoWidth === 0) { setTimeout(runDetection, 100); return; }
+
+      if (canvasRef.current.width !== videoRef.current.videoWidth) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+      }
+      const displaySize = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
+      faceapi.matchDimensions(canvasRef.current, displaySize);
+
+      const detection = await faceapi.detectSingleFace(
+        videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.55 })
+      ).withFaceLandmarks().withFaceDescriptor();
+
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      if (!detection) {
+        lostFaceFrames++;
+        if (lostFaceFrames > 8) { 
+          phase = 0; framesHeld = 0; blinkClosed = false; blinkCount = 0; countdownSecs = 3; countdownFrames = 0;
+          setCountdownValue(null);
+          setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
+          setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
+        } else if (phase === 8) {
+          countdownFrames++;
+          if (countdownFrames >= 8) {
+            countdownFrames = 0;
+            if (countdownSecs > 1) { countdownSecs--; setCountdownValue(countdownSecs); }
+          }
+        }
+      } else {
+        lostFaceFrames = 0; 
+
+        if (phase < 8) {
+          const resizedDetections = faceapi.resizeResults(detection, displaySize);
+          faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections, { drawLines: true, color: '#00ffff', lineWidth: 1.5 });
+        }
+
+        if (phase === 0) {
+          setOvalClass("border-green-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.7)] border-[4px] shadow-[inset_0_0_20px_rgba(74,222,128,0.3)] transition-all duration-300");
+          setScanStatus("Face detected! Hold still..."); phase = 1;
+        } else if (phase === 1) {
+          framesHeld++;
+          if (framesHeld > 10) { phase = 2; framesHeld = 0; setScanStatus("Task 1: Please blink your eyes 3 times (0/3)"); }
+        } else if (phase === 2) {
+          const leftEye = detection.landmarks.getLeftEye();
+          const rightEye = detection.landmarks.getRightEye();
+          const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2;
+          if (avgEAR < 0.25) { blinkClosed = true; } 
+          else if (blinkClosed && avgEAR >= 0.25) { 
+            blinkCount++; blinkClosed = false; 
+            if (blinkCount >= 3) { phase = 3; setScanStatus("✅ Blinks verified! Please hold..."); } 
+            else { setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`); }
+          }
+        } else if (phase === 3) {
+          framesHeld++;
+          if (framesHeld > 15) { phase = 4; framesHeld = 0; setScanStatus("Task 2: Slowly turn your head to your LEFT."); }
+        } else if (phase === 4) {
+          const yaw = calculateYawRatio(detection.landmarks);
+          if (yaw > 1.6) { phase = 5; framesHeld = 0; setScanStatus("✅ Left turn verified! Please hold..."); }
+        } else if (phase === 5) {
+          framesHeld++;
+          if (framesHeld > 15) { phase = 6; framesHeld = 0; setScanStatus("Task 3: Slowly turn your head to your RIGHT."); }
+        } else if (phase === 6) {
+          const yaw = calculateYawRatio(detection.landmarks);
+          if (yaw < 0.6) { phase = 7; framesHeld = 0; setScanStatus("✅ Right turn verified! Please hold..."); }
+        } else if (phase === 7) {
+          framesHeld++;
+          if (framesHeld > 15) { phase = 8; countdownSecs = 3; countdownFrames = 0; setScanStatus("Excellent! Look directly at the camera. Capturing..."); setCountdownValue(3); }
+        } else if (phase === 8) {
+          countdownFrames++;
+          if (countdownFrames >= 8) { 
+            countdownFrames = 0; countdownSecs--;
+            if (countdownSecs > 0) { setCountdownValue(countdownSecs); } 
+            else {
+              setCountdownValue(null); setScanStatus("Processing...");
+              const imgData = takeSnapshot();
+              const descriptorArray = Array.from(detection.descriptor);
+              
+              setCapturedImage(imgData);
+              setFaceDescriptor(descriptorArray);
+              
+              isDetecting = false; stopCamera(); setIsCameraActive(false); setShowCaptureModal(true); return; 
+            }
+          }
+        }
+      }
+
+      if (isDetecting) { setTimeout(runDetection, 100); }
+    };
+    runDetection(); 
+  };
+
   const validateStep = (step) => {
-    if (step === 3 || step === 4) return true; 
+    // We now have 6 steps (0-5). 3, 4, and 5 have custom validation in handleNext.
+    if (step >= 3) return true; 
 
     const newErrors = validateRegistrationStep(step, formData, profileImage, 'admin');
     setErrors(newErrors);
@@ -170,6 +398,18 @@ export default function TeacherRegistration() {
     if (schoolIdFile) data.append('school_id_photo', schoolIdFile);
     if (validIdFile) data.append('valid_id_photo', validIdFile);
 
+    // --- NEW: Attach Facial Biometrics ---
+    if (capturedImage) {
+      const res = await fetch(capturedImage);
+      const blob = await res.blob();
+      const faceFile = new File([blob], "facial_capture.jpg", { type: "image/jpeg" });
+      data.append('facialCapture', faceFile);
+    }
+
+    if (faceDescriptor) {
+      data.append('facialDescriptor', JSON.stringify(faceDescriptor));
+    }
+
     try {
       await axios.post('http://localhost:3000/api/teachers', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -179,16 +419,14 @@ export default function TeacherRegistration() {
       setIsSuccessModalOpen(true);
     } catch (error) {
       console.error('Registration API Error:', error);
-      // This will now clearly tell you WHICH field the backend rejected!
       if (error.response && error.response.data && error.response.data.errors) {
         const errorMessages = error.response.data.errors.map(err => err.msg).join('\n');
         alert(`Validation Failed:\n${errorMessages}`);
       } else {
         alert(error.response?.data?.msg || "Registration failed. Please try again.");
       }
-      // --- NEW: THIS WILL ALERT THE EXACT MONGODB ERROR ---
         const dbError = error.response?.data?.error;
-        alert(`Failed: ${dbError ? dbError : "Unknown error occurred."}`);
+        if (dbError) alert(`Failed: ${dbError}`);
     }
   };
 
@@ -212,9 +450,17 @@ export default function TeacherRegistration() {
           setErrors(prev => ({ ...prev, ...stepErrors }));
           return; 
         }
-        setCurrentStep((prev) => prev + 1);
+        setCurrentStep((prev) => prev + 1); // Move to Step 4 (Biometrics)
 
       } else if (currentStep === 4) {
+        // Enforce Biometric Capture
+        if (!faceDescriptor) {
+          alert("Please complete the facial scan before proceeding.");
+          return;
+        }
+        setCurrentStep((prev) => prev + 1); // Move to Step 5 (T&C)
+
+      } else if (currentStep === 5) {
         if (!hasAgreed) {
           setErrors(prev => ({ ...prev, agreement: "You must agree to the Terms and Conditions to register." }));
           return;
@@ -225,6 +471,7 @@ export default function TeacherRegistration() {
   };
 
   const handleBack = () => {
+    if (currentStep === 4) setIsCameraActive(false); // Turn off camera if they go back
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
     }
@@ -240,6 +487,32 @@ export default function TeacherRegistration() {
 
   return (
     <div className="wave min-h-screen w-full flex justify-center items-center p-5" style={{ backgroundAttachment: 'fixed' }}>
+
+      {/* --- CAPTURE REVIEW MODAL (NEW) --- */}
+      {showCaptureModal && capturedImage && (
+        <div className="fixed inset-0 z-[999999] bg-slate-900/80 backdrop-blur-md flex justify-center items-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-500 mb-4">
+              <span className="material-symbols-outlined text-[32px]">verified_user</span>
+            </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Scan Successful!</h3>
+            <p className="text-slate-500 text-[13px] text-center mb-6">Your facial template has been securely mapped and saved.</p>
+            
+            <div className="w-[180px] h-[240px] rounded-2xl overflow-hidden mb-6 border-4 border-slate-100 shadow-md">
+              <img src={capturedImage} alt="Captured face" className="w-full h-full object-cover" />
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button type="button" className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" onClick={() => { setShowCaptureModal(false); setFaceDescriptor(null); setIsCameraActive(true); }}>
+                Retake
+              </button>
+              <button type="button" className="flex-1 py-3 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-md transition-colors" onClick={() => setShowCaptureModal(false)}>
+                Looks Good
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* LIGHTBOX OVERLAY */}
       {viewImage && (
@@ -286,9 +559,9 @@ export default function TeacherRegistration() {
         <h1 className='text-left w-full mb-2'>Create Account</h1>
         <p className='w-full mb-4 font-normal text-left text-[14px] text-slate-500'>Please fill out the form to create your teacher account.</p>
 
-        {/* PROGRESS DOTS */}
+        {/* PROGRESS DOTS (Updated to 6 steps) */}
         <div className="flex justify-center gap-2 mb-6 w-full"> 
-          {[...Array(5)].map((_, i) => ( 
+          {[...Array(6)].map((_, i) => ( 
             <div key={i} className={`h-2 rounded-full transition-all duration-500 ease-out ${currentStep === i ? 'w-8 bg-[#39a8ed]' : i < currentStep ? 'w-2 bg-[#bde0fe]' : 'w-2 bg-slate-200'}`} />
           ))}
         </div>
@@ -390,7 +663,76 @@ export default function TeacherRegistration() {
             </div>
           )}
 
+          {/* ========================================================= */}
+          {/* --- NEW: STEP 4 - FACIAL BIOMETRICS --- */}
+          {/* ========================================================= */}
           {currentStep === 4 && (
+            <div className="text-center py-2 animate-[fadeIn_0.3s_ease-out_forwards]">
+              <p className='border-bottom-custom text-left mb-6'>Facial Biometrics</p>
+              
+              {!isCameraActive && !faceDescriptor ? (
+                <div className="flex flex-col items-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-blue-500 border border-blue-100"><span className="material-symbols-outlined text-[40px]">face_retouching_natural</span></div>
+                  <h2 className="text-[18px] font-bold text-slate-800 mb-2">Biometric Registration</h2>
+                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-left mb-6">
+                    <p className="text-[13px] text-slate-600 leading-relaxed mb-2">To ensure the highest level of security, LuMINI uses facial recognition.</p>
+                    <ul className="text-[12px] text-slate-500 space-y-1.5 list-disc pl-4 marker:text-blue-400">
+                      <li>We will scan your face to create a secure template.</li>
+                      <li>You will be asked to <strong>complete a sequence of tasks</strong> to verify liveness.</li>
+                    </ul>
+                  </div>
+                  <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} className={`w-full text-white font-bold text-[14px] py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all ${modelsLoaded ? 'bg-slate-800 hover:bg-slate-700 cursor-pointer' : 'bg-slate-300 cursor-not-allowed'}`}>
+                    <span className="material-symbols-outlined text-[20px]">{modelsLoaded ? 'photo_camera' : 'sync'}</span> 
+                    {modelsLoaded ? 'Open Camera & Scan' : 'Loading AI Models...'}
+                  </button>
+                </div>
+              ) : faceDescriptor && !isCameraActive ? (
+                <div className="flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
+                   <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500 border border-green-200 shadow-inner">
+                     <span className="material-symbols-outlined text-[40px]">verified</span>
+                   </div>
+                   <h2 className="text-[20px] font-bold text-slate-800 mb-2">Scan Complete!</h2>
+                   <p className="text-[13px] text-slate-500 mb-6">Your facial template has been securely captured.</p>
+                   <button type="button" onClick={() => { setFaceDescriptor(null); setCapturedImage(null); setIsCameraActive(true); }} className="text-blue-600 font-bold text-[13px] hover:underline cursor-pointer">
+                     Retake Scan
+                   </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
+                   <div className="w-full h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center text-white mb-4 relative overflow-hidden border-2 border-slate-200 shadow-xl">
+                      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-0" />
+                      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
+
+                      {!isVideoPlaying && !cameraError && (
+                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing...</span></div>
+                      )}
+                      
+                      {isVideoPlaying && !cameraError && (
+                        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+                          <div className={`w-[190px] h-[250px] rounded-[100%] ${ovalClass}`} style={{borderRadius: '50% / 50%'}}></div>
+                        </div>
+                      )}
+
+                      {countdownValue !== null && (
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/50 backdrop-blur-[2px]">
+                          <span className="text-white text-[100px] font-black drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
+                            {countdownValue}
+                          </span>
+                        </div>
+                      )}
+                   </div>
+
+                   <p className={`text-[14px] font-bold mb-5 px-4 text-center transition-colors duration-300 ${scanStatus.includes("✅") ? "text-green-600" : scanStatus.includes("⚠️") ? "text-red-500" : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? "text-blue-600 animate-pulse" : "text-slate-600"}`}>
+                     {cameraError ? "Check browser settings." : scanStatus}
+                   </p>
+
+                   <button type="button" onClick={() => setIsCameraActive(false)} className="text-[13px] font-bold text-slate-500 hover:text-red-500 transition-colors px-4 py-2 cursor-pointer">Cancel Scan</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {currentStep === 5 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Terms and Conditions</p>
               <p className='text-slate-500 text-[13px] mb-3'>Please read the user agreement carefully before completing your registration.</p>
@@ -399,6 +741,7 @@ export default function TeacherRegistration() {
                 <ol className="list-decimal pl-4 mb-2 space-y-1">
                   <li><strong>Account Approval:</strong> Your account registration will be placed in a queue. You will not have access to the system until a Super Admin verifies your employment.</li>
                   <li><strong>Data Confidentiality:</strong> You agree to keep student data strictly confidential.</li>
+                  <li><strong>Biometric Consent:</strong> You consent to the secure capture and storage of your facial biometric data for identity verification and system access.</li>
                 </ol>
               </div>
               <div className='flex items-center gap-2 mt-2 mb-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100'>
@@ -411,7 +754,9 @@ export default function TeacherRegistration() {
 
           <div className="flex flex-row w-full mt-2.5 gap-[15px]">
             <button type="button" className="btn btn-outline flex-1 h-12 rounded-3xl font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleBack} disabled={currentStep === 0}>Back</button>
-            <button type="button" className={`btn btn-primary flex-1 h-12 rounded-3xl font-semibold text-[15px] transition-all ${currentStep === 4 && !hasAgreed ? 'opacity-70 grayscale-[20%]' : ''}`} onClick={handleNext}>{currentStep === 4 ? 'Complete Registration' : 'Next'} </button>
+            <button type="button" className={`btn btn-primary flex-1 h-12 rounded-3xl font-semibold text-[15px] transition-all ${currentStep === 5 && !hasAgreed ? 'opacity-70 grayscale-[20%]' : ''}`} onClick={handleNext} disabled={currentStep === 4 && isCameraActive}>
+              {currentStep === 5 ? 'Complete Registration' : 'Next'} 
+            </button>
           </div>
         </form>
       </div>
