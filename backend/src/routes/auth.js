@@ -18,7 +18,7 @@ const euclideanDistance = (desc1, desc2) => {
 const router = Router();
 
 router.post("/api/auth", (req, res, next) => {
-  passport.authenticate("local", async(err, user, info) => {
+  passport.authenticate("local", async (err, user, info) => {
     if (err) {
       console.error("Passport Error:", err);
       return res.status(500).json({ message: "Server error" });
@@ -26,15 +26,13 @@ router.post("/api/auth", (req, res, next) => {
 
     if (!user) {
       const failedAudit = new Audit({
-        user_id: 0, // 0 or null represents an unauthenticated/unknown user
+        user_id: 0, 
         full_name: "Unauthenticated System Attempt",
         role: "user",
         action: "Login Failed",
         target: `Failed login attempt for username: ${req.body.username || 'Unknown'}`
       });
-
       await failedAudit.save().catch(e => console.error("Audit Save Error:", e));
-
       return res.status(401).json({ message: "Invalid Credentials" });
     }
 
@@ -47,25 +45,38 @@ router.post("/api/auth", (req, res, next) => {
         target: `Archived user tried to log in.`
       });
       await archiveAudit.save().catch(e => console.error("Audit Save Error:", e));
-
       return res.status(403).json({ message: "This account has been revoked or archived. Access denied." });
     }
 
     const { rememberMe } = req.body; 
+    if (rememberMe) {
+      req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; 
+    } else {
+      req.session.cookie.expires = false; 
+    }
 
-      if (rememberMe) {
-        req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; 
-      } else {
-        req.session.cookie.expires = false; 
-      }
-
-    req.logIn(user, (err) => {
+    req.logIn(user, async (err) => {
       if (err) {
         console.error("Login Session Error:", err);
         return res.status(500).json({ message: "Session login failed" });
       }
 
-      // 3. Force Session Save (The fix we discussed)
+      // ========================================================
+      // NEW: SINGLE SESSION ENFORCEMENT LOGIC
+      // ========================================================
+      const newSessionId = req.sessionID;
+
+      // 1. If the user already has a session ID, destroy it from MongoStore
+      if (user.current_session_id && user.current_session_id !== newSessionId) {
+        req.sessionStore.destroy(user.current_session_id, (storeErr) => {
+          if (storeErr) console.error("Error destroying old session:", storeErr);
+          else console.log(`Destroyed old session for user ${user.username}`);
+        });
+      }
+
+      user.current_session_id = newSessionId;
+      await user.save();
+
       req.session.save(async (err) => {
         if (err) {
           return res.status(500).json({ message: "Session save failed" });
@@ -139,8 +150,18 @@ router.get("/api/auth/session", async (req, res) => {
   }
 });
 
-router.post("/api/auth/logout", (req, res) => {
+router.post("/api/auth/logout", async (req, res) => {
   const user = req.user;
+  
+  // NEW: Clear the session ID from the database before destroying the session
+  if (user) {
+    try {
+      await User.findByIdAndUpdate(user._id, { $set: { current_session_id: null } });
+    } catch (dbErr) {
+      console.error("Error clearing session ID on logout:", dbErr);
+    }
+  }
+
   req.logout((err) => {
     if (err) {
       return res.status(500).json({ message: "Logout failed" });
@@ -152,21 +173,19 @@ router.post("/api/auth/logout", (req, res) => {
       }
 
       if (user) {
-      try {
-        const auditLog = new Audit({
-          user_id: user.user_id,
-          full_name: `${user.first_name} ${user.last_name}`,
-          role: user.role,
-          action: "Logout Success",
-          target: `User logged out successfully. Session ended.`
-        });
-        await auditLog.save();
-      } catch (auditErr) {
-        console.error("Logout Audit Error:", auditErr);
-        // We don't return an error to the user here; 
-        // we want the logout to proceed regardless.
+        try {
+          const auditLog = new Audit({
+            user_id: user.user_id,
+            full_name: `${user.first_name} ${user.last_name}`,
+            role: user.role,
+            action: "Logout Success",
+            target: `User logged out successfully. Session ended.`
+          });
+          await auditLog.save();
+        } catch (auditErr) {
+          console.error("Logout Audit Error:", auditErr);
+        }
       }
-    }
 
       res.clearCookie("connect.sid");
       return res.status(200).json({ message: "Logout successful" });
