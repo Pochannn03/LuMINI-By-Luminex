@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Counter } from "./counter.js"
 
 const UserSchema = new mongoose.Schema({
+  current_session_id: { type: String, default: null },
   user_id: { type: Number, unique: true },
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true },

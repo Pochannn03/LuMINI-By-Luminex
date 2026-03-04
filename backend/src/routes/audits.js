@@ -16,17 +16,14 @@ router.get('/api/audit',
       let query = {};
       const skipValue = (parseInt(page) - 1) * parseInt(limit);
 
-      // Filter by Role
       if (role && role !== 'All') {
         query.role = role;
       }
 
-      // Filter by Action/Status (if you store status in your Audit model)
       if (action && action !== 'All') {
         query.action = action;
       }
 
-      // Search functionality (Searches name or target)
       if (search) {
         query.$or = [
           { full_name: { $regex: search, $options: 'i' } },
