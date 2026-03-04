@@ -522,12 +522,16 @@ export const sendEnrollmentRejectedEmail = async (toEmail, parentName, studentNa
 /**
  * APPROVED: Notifies the teacher that their account was approved by the Superadmin.
  */
-export const sendTeacherApprovalEmail = async (toEmail, teacherName) => {
+export const sendAccountApprovalEmail = async (toEmail, lastName, relationship) => {
   try {
+    // If it's a teacher, we greet them as "Teacher Smith". If Parent, just "Smith".
+    const greetingName = relationship === 'Teacher' ? `Teacher ${lastName}` : lastName;
+
     const mailOptions = {
       from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
       to: toEmail,
-      subject: `LuMINI - Teacher Account Approved!`,
+      // Dynamic Subject Line
+      subject: `LuMINI - ${relationship} Account Approved!`,
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
           <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
@@ -535,15 +539,15 @@ export const sendTeacherApprovalEmail = async (toEmail, teacherName) => {
             <h1 style="color: #166534; margin: 0; font-size: 22px;">Account Approved!</h1>
           </div>
           <div style="padding: 30px;">
-            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>Teacher ${teacherName}</strong>,</p>
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${greetingName}</strong>,</p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-              Great news! Your account registration has been successfully verified and <strong>approved</strong> by the LuMINI Superadmin.
+              Great news! Your <strong>${relationship.toLowerCase()}</strong> account registration has been successfully verified and <strong>approved</strong> by the LuMINI Superadmin.
             </p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-              Your account is now fully active. You can log in to the portal using the username and password you created during registration to start managing your classrooms and students.
+              Your account is now fully active. You can log in to the portal using the username and password you created during registration to access the system.
             </p>
             <div style="margin-top: 30px; text-align: center;">
-              <p style="color: #94a3b8; font-size: 13px;">Welcome to the team!</p>
+              <p style="color: #94a3b8; font-size: 13px;">Welcome to the LuMINI community!</p>
             </div>
           </div>
         </div>
@@ -552,7 +556,7 @@ export const sendTeacherApprovalEmail = async (toEmail, teacherName) => {
     await transporter.sendMail(mailOptions);
     return true;
   } catch (error) {
-    console.error("❌ Error sending Teacher Approval email:", error);
+    console.error(`❌ Error sending ${relationship} Approval email:`, error);
     return false;
   }
 };

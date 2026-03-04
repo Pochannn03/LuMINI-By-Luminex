@@ -5,7 +5,7 @@ import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal';
 
 export function DashboardPendingAccCard({ tch, onSuccess }) {
   const [viewPendingAccModal, setViewPendingAccModal] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(""); // <-- NEW: Local error state
+  const [errorMsg, setErrorMsg] = useState(""); 
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     title: "",
@@ -15,10 +15,11 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   });
 
   const triggerApprove = () => {
-    setErrorMsg(""); // Clear any previous errors
+    setErrorMsg(""); 
     setConfirmConfig({
       isOpen: true,
-      title: "Approve Teacher",
+      // DYNAMIC: Uses relationship instead of "Teacher"
+      title: `Approve ${tch.relationship}`, 
       message: `Are you sure you want to grant access to ${tch.first_name} ${tch.last_name}?`,
       confirmText: "Yes, Approve",
       type: "info",
@@ -27,10 +28,10 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   };
 
   const triggerReject = () => {
-    setErrorMsg(""); // Clear any previous errors
+    setErrorMsg(""); 
     setConfirmConfig({
       isOpen: true,
-      title: "Reject Request",
+      title: `Reject Request`,
       message: `This will permanently delete the registration request from ${tch.first_name}. This cannot be undone.`,
       confirmText: "Delete Permanently",
       type: "danger",
@@ -44,7 +45,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
       if (data.success && onSuccess) onSuccess(data.msg);
     } catch (err) {
       console.error("Approval error:", err);
-      setErrorMsg(err.response?.data?.msg || "Approval failed. Please try again."); // <-- Replaced alert
+      setErrorMsg(err.response?.data?.msg || "Approval failed. Please try again."); 
     } finally {
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
@@ -56,7 +57,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
       if (data.success && onSuccess) onSuccess(data.msg);
     } catch (err) {
       console.error("Rejection error:", err);
-      setErrorMsg(err.response?.data?.msg || "Rejection failed. Please try again."); // <-- Replaced alert
+      setErrorMsg(err.response?.data?.msg || "Rejection failed. Please try again."); 
     } finally {
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
@@ -73,27 +74,25 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
       <div className="flex flex-col rounded-xl bg-(--white) border border-(--border-color) transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm)">
         
         <div className="flex items-center p-4 gap-4">
-          {/* Teacher Avatar */}
           <img 
             src={photoUrl} 
             className="w-[45px] h-[45px] rounded-[10px] object-cover shrink-0" 
-            alt="Teacher Avatar"
+            alt="Avatar"
           />
 
-          {/* Teacher Info */}
           <div className="flex-1 flex flex-col gap-0.5">
               <span className="text-cdark text-[15px] font-bold">
                 {tch.first_name} {tch.last_name}
               </span>
+              {/* DYNAMIC: Uses relationship instead of "Teacher" */}
               <span className="text-cgray text-[12px] font-medium">
-                Role: Teacher • @{tch.username}
+                Role: {tch.relationship} • @{tch.username}
               </span>
               <span className="text-slate-400 text-[11px]">
                 Joined: {dateString}
               </span>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-2">
               <button 
                 className="btn-icon-tool h-12! w-12!" 
@@ -123,7 +122,6 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
           </div>
         </div>
 
-        {/* NEW: Inline Error Message Display */}
         {errorMsg && (
           <div className="px-4 pb-3">
             <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md flex items-center gap-1 w-fit">

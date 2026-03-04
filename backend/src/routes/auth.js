@@ -81,7 +81,6 @@ router.post("/api/auth", (req, res, next) => {
         return res.status(500).json({ message: "Session login failed" });
       }
 
-      // --- SINGLE SESSION ENFORCEMENT LOGIC ---
       const newSessionId = req.sessionID;
 
       if (user.current_session_id && user.current_session_id !== newSessionId) {
