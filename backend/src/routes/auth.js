@@ -25,28 +25,21 @@ router.post("/api/auth", (req, res, next) => {
     }
 
     if (!user) {
-      // --- NEW: Identify the user's role before rejecting them ---
-      const attemptedUser = await User.findOne({ username: req.body.username });
-      const userRole = attemptedUser ? attemptedUser.role : null;
-
       const failedAudit = new Audit({
-        user_id: attemptedUser ? attemptedUser.user_id : 0, 
-        full_name: attemptedUser ? `${attemptedUser.first_name} ${attemptedUser.last_name}` : "Unauthenticated System Attempt",
-        role: userRole || "user",
+        user_id: 0, 
+        full_name: "Unauthenticated System Attempt",
+        role: "user",
         action: "Login Failed",
         target: `Failed login attempt for username: ${req.body.username || 'Unknown'}`
       });
       await failedAudit.save().catch(e => console.error("Audit Save Error:", e));
-
-      // We send back the role so the frontend knows if it should count the strikes!
-      return res.status(401).json({ 
-          message: "Invalid Credentials",
-          role: userRole,
-          isUserFound: !!attemptedUser
-      });
+      return res.status(401).json({ message: "Invalid Credentials" });
     }
 
-    if (user.is_archive === true) {
+    // =======================================================
+    // 1. IMPROVED ARCHIVE CHECK (Removed strict '=== true')
+    // =======================================================
+    if (user.is_archive) {
       const archiveAudit = new Audit({
         user_id: user.user_id,
         full_name: `${user.first_name} ${user.last_name}`,
@@ -56,6 +49,23 @@ router.post("/api/auth", (req, res, next) => {
       });
       await archiveAudit.save().catch(e => console.error("Audit Save Error:", e));
       return res.status(403).json({ message: "This account has been revoked or archived. Access denied." });
+    }
+
+    // =======================================================
+    // 2. NEW: PENDING APPROVAL CHECK
+    // =======================================================
+    // We strictly check '=== false' so older database accounts
+    // (where is_approved might be undefined) can still log in.
+    if (user.is_approved === false) {
+      const pendingAudit = new Audit({
+        user_id: user.user_id,
+        full_name: `${user.first_name} ${user.last_name}`,
+        role: user.role,
+        action: "Login Blocked",
+        target: `Pending user tried to log in before approval.`
+      });
+      await pendingAudit.save().catch(e => console.error("Audit Save Error:", e));
+      return res.status(403).json({ message: "Your account is still pending admin approval. Please wait to be verified." });
     }
 
     const { rememberMe } = req.body; 
@@ -71,12 +81,9 @@ router.post("/api/auth", (req, res, next) => {
         return res.status(500).json({ message: "Session login failed" });
       }
 
-      // ========================================================
-      // NEW: SINGLE SESSION ENFORCEMENT LOGIC
-      // ========================================================
+      // --- SINGLE SESSION ENFORCEMENT LOGIC ---
       const newSessionId = req.sessionID;
 
-      // 1. If the user already has a session ID, destroy it from MongoStore
       if (user.current_session_id && user.current_session_id !== newSessionId) {
         req.sessionStore.destroy(user.current_session_id, (storeErr) => {
           if (storeErr) console.error("Error destroying old session:", storeErr);
