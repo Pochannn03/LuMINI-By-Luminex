@@ -11,7 +11,6 @@ import NavBar from "../../components/navigation/NavBar";
 import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
 
-
 export default function SuperAdminDashboard() {
   const [pendingOverrides, setPendingOverrides] = useState([]);
   const [loadingOverrides, setLoadingOverrides] = useState(false);
@@ -56,7 +55,7 @@ export default function SuperAdminDashboard() {
             totalParents: response.data.users.length,
             loading: false
           });
-          setPendingTeachers(response.data.pending_teachers || []);
+          setPendingTeachers(response.data.pending_accounts || []); 
           setLoadingTeachers(false);
         }
       } catch (error) {
@@ -78,13 +77,11 @@ export default function SuperAdminDashboard() {
             });
 
             if (response.data.success) {
-                // Update your state with the populated data from the backend
                 setPendingOverrides(response.data.overrides || []);
                 setLoadingOverrides(false);
             }
         } catch (error) {
             console.error("Error fetching pending overrides:", error);
-            // Ensure loading turns off even if the server throws an error
             setLoadingOverrides(false);
         }
     };
@@ -266,7 +263,6 @@ export default function SuperAdminDashboard() {
                 <DashboardPendingAccCard 
                   key={tch._id || tch.user_id} 
                   tch={tch}
-                  // --- NEW: Triggers the dashboard's success modal ---
                   onSuccess={(msg) => setSuccessModalConfig({ isOpen: true, message: msg })}
                 />
               ))}

@@ -91,7 +91,8 @@ router.post('/api/teachers',
 
     data.password = await hashPassword(data.password);
     data.role = "admin";
-    data.is_archive = true; 
+    data.is_archive = false;
+    data.is_approved = false;
 
     if (req.files) {
       if (req.files['profile_photo'] && req.files['profile_photo'].length > 0) {
@@ -192,6 +193,7 @@ router.post('/api/teachers/modal',
     data.password = await hashPassword(data.password);
     data.role = "admin";
     data.is_archive = false;
+    data.is_approved = false;
 
     if (req.file) {
       data.profile_picture = req.file.path; 
@@ -312,7 +314,7 @@ router.put('/api/teacher/:id',
     }
 })
 
-// DELETE (is_archive: true) TEACHER
+// ARCHIVE TEACHER
 router.put('/api/teacher/archive/:id', 
   isAuthenticated,
   hasRole('superadmin'),
@@ -359,7 +361,8 @@ router.patch('/api/teacher/approval/:id',
       const teacherId = req.params.id;
       const updatedTeacher = await User.findByIdAndUpdate(
         teacherId, 
-        { is_archive: false }, 
+        { $set: { is_approved: true, is_archive: false } }, 
+        { new: true } 
       );
 
       if (!updatedTeacher) {

@@ -9,6 +9,7 @@ import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teach
 export default function AccountsEditModal({ isOpen, onClose, account, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState(""); // <-- NEW: API Error state
   
   // Image States
   const [profileImage, setProfileImage] = useState(null);
@@ -41,6 +42,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
       setProfileImage(null);
       setPreviewUrl(account.profile_picture ? `http://localhost:3000/${account.profile_picture}` : null); 
       setErrors({});
+      setApiError(""); // Clear errors on load
     }
   }, [account]);
 
@@ -68,20 +70,19 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
 
   const handleSubmit = async (e) => {
     e.preventDefault(); 
+    setApiError(""); // Clear old errors
 
     const validationErrors = validateAccountsEditModal(formData, profileImage);
 
     if (Object.keys(validationErrors).length > 0) {
         setErrors(validationErrors);
-        return; // Stop execution
+        return; 
     }
 
     setLoading(true);
     try {
-      // 1. Create a FormData object (Required for files)
       const data = new FormData();
 
-      // 2. Append text fields
       data.append('first_name', formData.first_name);
       data.append('last_name', formData.last_name);
       data.append('email', formData.email);
@@ -89,34 +90,26 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
       data.append('role', formData.role);
       data.append('phone_number', formData.phone_number);
       
-      // 3. Handle the Logic fields
-      // Note: FormData converts booleans to strings "true"/"false". 
-      // Mongoose usually handles this, but be aware.
       data.append('is_archive', !formData.is_active); 
 
-      // 4. Handle Password (only if set)
       if (formData.password && formData.password.trim() !== "") {
         data.append('password', formData.password);
       }
 
-      // 5. CRITICAL: Append the File
-      // The name 'profile_photo' MUST match your backend: upload.single('profile_photo')
       if (profileImage) {
         data.append('profile_picture', profileImage);
       }
 
-      // 6. Send the FormData object
-      // Axios automatically sets 'Content-Type: multipart/form-data'
-      await axios.put(`http://localhost:3000/api/users/${account._id}`, data, {
+      const response = await axios.put(`http://localhost:3000/api/users/${account._id}`, data, {
         withCredentials: true
       });
       
-      alert("Account updated successfully!");
-      onSuccess();
+      // Pass the success message up to trigger the SuccessModal
+      onSuccess(response.data.msg || "Account updated successfully!");
       onClose();
     } catch (error) {
       console.error("Update Error:", error);
-      alert("Failed to update account.");
+      setApiError(error.response?.data?.msg || "Failed to update account. Please check your connection."); // <-- Removed alert
     } finally {
       setLoading(false);
     }
@@ -193,7 +186,6 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
                       <option value="superadmin">Admin</option>
                     </select>
                     
-                    {/* 4. CUSTOM ICON (Sibling, not child) */}
                     <div className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-500">
                       <span className="material-symbols-outlined text-[20px]">expand_more</span>
                     </div>
@@ -299,10 +291,17 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
                 />
               </div>
 
+              {/* INLINE API ERROR DISPLAY */}
+              {apiError && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-100 text-red-600 text-[13px] rounded-lg flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[16px]">error</span>
+                  {apiError}
+                </div>
+              )}
+
             </div>
 
             {/* FOOTER */}
-            {/* ✅ Matches index.css exactly (.btn-cancel & .btn-save) */}
             <div className="modal-footer">
               <button 
                 type="button" 

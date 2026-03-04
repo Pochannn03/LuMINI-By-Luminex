@@ -5,6 +5,7 @@ import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal';
 
 export function DashboardPendingAccCard({ tch, onSuccess }) {
   const [viewPendingAccModal, setViewPendingAccModal] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(""); // <-- NEW: Local error state
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     title: "",
@@ -14,6 +15,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   });
 
   const triggerApprove = () => {
+    setErrorMsg(""); // Clear any previous errors
     setConfirmConfig({
       isOpen: true,
       title: "Approve Teacher",
@@ -25,6 +27,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   };
 
   const triggerReject = () => {
+    setErrorMsg(""); // Clear any previous errors
     setConfirmConfig({
       isOpen: true,
       title: "Reject Request",
@@ -40,7 +43,8 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
       const { data } = await axios.patch(`http://localhost:3000/api/teacher/approval/${tch._id}`, {}, { withCredentials: true });
       if (data.success && onSuccess) onSuccess(data.msg);
     } catch (err) {
-      alert(err.response?.data?.msg || "Approval failed");
+      console.error("Approval error:", err);
+      setErrorMsg(err.response?.data?.msg || "Approval failed. Please try again."); // <-- Replaced alert
     } finally {
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
@@ -51,7 +55,8 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
       const { data } = await axios.delete(`http://localhost:3000/api/teacher/rejection/${tch._id}`, { withCredentials: true });
       if (data.success && onSuccess) onSuccess(data.msg);
     } catch (err) {
-      alert(err.response?.data?.msg || "Rejection failed");
+      console.error("Rejection error:", err);
+      setErrorMsg(err.response?.data?.msg || "Rejection failed. Please try again."); // <-- Replaced alert
     } finally {
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
@@ -65,56 +70,68 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
 
   return (
     <>
-      <div className="flex items-center p-4 rounded-xl bg-(--white) border border-(--border-color) gap-4 transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm)">
-    
-        {/* Teacher Avatar */}
-        <img 
-          src={photoUrl} 
-          className="w-[45px] h-[45px] rounded-[10px] object-cover shrink-0" 
-          alt="Teacher Avatar"
-        />
+      <div className="flex flex-col rounded-xl bg-(--white) border border-(--border-color) transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm)">
+        
+        <div className="flex items-center p-4 gap-4">
+          {/* Teacher Avatar */}
+          <img 
+            src={photoUrl} 
+            className="w-[45px] h-[45px] rounded-[10px] object-cover shrink-0" 
+            alt="Teacher Avatar"
+          />
 
-        {/* Teacher Info (queue-info) */}
-        <div className="flex-1 flex flex-col gap-0.5">
-            <span className="text-cdark text-[15px] font-bold">
-              {tch.first_name} {tch.last_name}
-            </span>
-            <span className="text-cgray text-[12px] font-medium">
-              Role: Teacher • @{tch.username}
-            </span>
-            <span className="text-slate-400 text-[11px]">
-              Joined: {dateString}
-            </span>
-        </div>
-
-        {/* Action Buttons (action-buttons-small) */}
-        <div className="flex items-center gap-2">
-            <button 
-              className="btn-icon-tool h-12! w-12!" 
-              title="Review Details"
-              onClick={() => setViewPendingAccModal(true)}
-            >
-                <span className="material-symbols-outlined text-[24px]!">visibility</span>
-            </button>
-            
-            <button 
-              className="btn-icon-tool h-12! w-12! group hover:bg-green-200!" 
-              title="Approve"
-              onClick={triggerApprove}
-            >
-                <span className="material-symbols-outlined text-[24px]! group-hover:text-green-700">check</span>
-            </button>
-            
-            <button 
-              className="btn-icon-tool h-12! w-12! group hover:bg-red-200!" 
-              title="Reject"
-              onClick={triggerReject}
-            >
-              <span className="material-symbols-outlined text-[24px]! group-hover:text-red-700!">
-                  close
+          {/* Teacher Info */}
+          <div className="flex-1 flex flex-col gap-0.5">
+              <span className="text-cdark text-[15px] font-bold">
+                {tch.first_name} {tch.last_name}
               </span>
-            </button>
+              <span className="text-cgray text-[12px] font-medium">
+                Role: Teacher • @{tch.username}
+              </span>
+              <span className="text-slate-400 text-[11px]">
+                Joined: {dateString}
+              </span>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+              <button 
+                className="btn-icon-tool h-12! w-12!" 
+                title="Review Details"
+                onClick={() => setViewPendingAccModal(true)}
+              >
+                  <span className="material-symbols-outlined text-[24px]!">visibility</span>
+              </button>
+              
+              <button 
+                className="btn-icon-tool h-12! w-12! group hover:bg-green-200!" 
+                title="Approve"
+                onClick={triggerApprove}
+              >
+                  <span className="material-symbols-outlined text-[24px]! group-hover:text-green-700">check</span>
+              </button>
+              
+              <button 
+                className="btn-icon-tool h-12! w-12! group hover:bg-red-200!" 
+                title="Reject"
+                onClick={triggerReject}
+              >
+                <span className="material-symbols-outlined text-[24px]! group-hover:text-red-700!">
+                    close
+                </span>
+              </button>
+          </div>
         </div>
+
+        {/* NEW: Inline Error Message Display */}
+        {errorMsg && (
+          <div className="px-4 pb-3">
+            <span className="text-xs font-medium text-red-500 bg-red-50 px-2 py-1 rounded-md flex items-center gap-1 w-fit">
+              <span className="material-symbols-outlined text-[14px]">error</span>
+              {errorMsg}
+            </span>
+          </div>
+        )}
       </div>
 
       <AdminConfirmModal 
@@ -131,7 +148,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
         onView={viewPendingAccModal}
         isClose={() => setViewPendingAccModal(false)}
         tch={tch} 
-        onSuccess={onSuccess} // <-- NEW: Passes the success function down to the review modal
+        onSuccess={onSuccess} 
       />
     </>
   );
