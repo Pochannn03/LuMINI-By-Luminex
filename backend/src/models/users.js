@@ -44,6 +44,7 @@ const UserSchema = new mongoose.Schema({
   },
   is_first_login: { type: Boolean, default: true },
   is_archive: { type: Boolean, default: false },
+  is_approved: { type: Boolean, default: false },
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
   created_by: { type: String },

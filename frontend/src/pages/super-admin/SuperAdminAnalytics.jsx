@@ -417,7 +417,7 @@ export default function SuperAdminAnalytics() {
 
             {/* Pagination */}
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-              <p className="text-xs text-cgray">
+              <p className="text-xs! text-cgray">
                 Showing page <b>{currentPage}</b> of <b>{totalPages}</b>
               </p>
               

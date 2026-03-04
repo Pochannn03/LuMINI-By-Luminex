@@ -63,22 +63,29 @@ router.get('/api/users/cards',
   isAuthenticated,
   hasRole('superadmin'),
   async (req, res) => {
-    try{
-      const teachers = await User.find({ is_archive: false, relationship: 'Teacher' });
-      const users = await User.find({ is_archive: false, relationship: { $in: ['Parent', 'Guardian'] } });
+    try {
+      // 1. ACTIVE USERS (Approved)
+      const teachers = await User.find({ is_archive: false, is_approved: true, relationship: 'Teacher' });
+      const users = await User.find({ is_archive: false, is_approved: true, relationship: { $in: ['Parent', 'Guardian'] } });
       const students = await Student.find({ is_archive: false });
-      const pendingTeachers = await User.find({ is_archive: true, relationship: 'Teacher' }).sort({ created_at: -1 });
+
+      // 2. PENDING USERS (Not Approved) - Combined Query
+      const pendingAccounts = await User.find({ 
+          is_archive: false, 
+          is_approved: false, 
+          relationship: { $in: ['Teacher', 'Parent', 'Guardian'] } 
+      }).sort({ created_at: -1 });
 
     res.status(200).json({ 
       success: true, 
       teachers: teachers || [], 
       users: users || [], 
       students: students || [],
-      pending_teachers: pendingTeachers || []
+      pending_accounts: pendingAccounts || [] // Sending as one combined array
     });
     } catch(err) {
-      console.error("Error fetching students:", err);
-      res.status(500).json({ msg: "Server error while fetching students" });
+      console.error("Error fetching dashboard data:", err);
+      res.status(500).json({ msg: "Server error while fetching data" });
     }
 })
 
