@@ -96,7 +96,7 @@ export default function ParentProfile() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   
-  // ---> ADD THESE THREE LINES:
+  // Warning Modal State
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
@@ -284,8 +284,31 @@ export default function ParentProfile() {
         } else if (phase === 8) {
           recognitionFrames++;
           if (recognitionFrames >= 15) { 
-            // SUCCESS: INSTANTLY TRANSITION UI 
-            isDetecting = false; stopCamera(); setIsCameraActive(false); setFaceVerified(true); return; 
+            isDetecting = false; 
+            
+            // --- THE REJECTION PROTOCOL ENFORCEMENT ---
+            const descriptorArray = Array.from(detection.descriptor);
+            
+            axios.post(`${BACKEND_URL}/api/user/verify-face-match`, 
+              { facialDescriptor: descriptorArray }, 
+              { withCredentials: true }
+            )
+            .then(() => {
+                // MATCH SUCCESS!
+                stopCamera(); 
+                setIsCameraActive(false); 
+                setFaceVerified(true);
+            })
+            .catch((error) => {
+                // IMPOSTER CAUGHT!
+                stopCamera(); 
+                setIsCameraActive(false); 
+                setShowFaceAuthModal(false);
+                setWarningTitle("Security Alert");
+                setWarningMessage(error.response?.data?.message || "Facial verification failed.");
+                setShowWarningModal(true);
+            });
+            return; 
           }
         }
       }

@@ -6,14 +6,22 @@ import { editUserValidationSchema } from "../validation/editAccountsValidation.j
 import { validationResult, body, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { hashPassword } from '../utils/passwordUtils.js';
-
-// --- ADDED EMAIL SERVICE AND CRYPTO HERE ---
 import { sendPasswordUpdateOTP } from '../utils/emailService.js';
 import crypto from 'crypto'; 
-
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+
+// ==========================================
+// ANTI-SPOOFING MATH HELPER
+// ==========================================
+const euclideanDistance = (desc1, desc2) => {
+    let sum = 0;
+    for (let i = 0; i < desc1.length; i++) {
+        sum += Math.pow(desc1[i] - desc2[i], 2);
+    }
+    return Math.sqrt(sum);
+};
 
 const router = Router();
 
@@ -40,12 +48,9 @@ router.get('/api/users',
   hasRole('superadmin'),
   async (req, res) => {
     try {
-      // Exclude ONLY the primary superadmin by ID
-      // This allows other 'superadmin' role users to show up in the list
       const users = await User.find({ 
         user_id: { $nin: [0, 1, "0", "1"] } 
       });
-
       res.status(200).json({ success: true, users: users || [] });
     } catch(err) {
       console.error("Error fetching accounts:", err);
@@ -258,6 +263,51 @@ router.get('/api/users/demographics',
 });
 
 // =========================================================
+// NEW: Verify Facial Match for Logged-In User
+// =========================================================
+router.post('/api/user/verify-face-match', isAuthenticated, async (req, res) => {
+    try {
+        const { facialDescriptor } = req.body;
+        const user = await User.findById(req.user._id);
+
+        if (!user || !user.facial_descriptor || user.facial_descriptor.length === 0) {
+            return res.status(400).json({ message: "No biometric data registered for this account." });
+        }
+
+        // Mathematical Comparison
+        const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
+
+        // 0.55 is the standard strict threshold for Face-API
+        if (distance > 0.55) {
+            const failedAudit = new Audit({
+                user_id: user.user_id,
+                full_name: `${user.first_name} ${user.last_name}`,
+                role: user.role,
+                action: "Face Verify Failed",
+                target: `Profile password change biometric mismatch (Distance: ${distance.toFixed(4)})`
+            });
+            await failedAudit.save().catch(e => console.error(e));
+
+            return res.status(401).json({ message: "Biometric mismatch. Face does not match the registered user." });
+        }
+
+        const successAudit = new Audit({
+            user_id: user.user_id,
+            full_name: `${user.first_name} ${user.last_name}`,
+            role: user.role,
+            action: "Face Verify Success",
+            target: "Profile identity verified via facial recognition."
+        });
+        await successAudit.save().catch(e => console.error(e));
+        
+        return res.status(200).json({ message: "Identity verified successfully." });
+    } catch (error) {
+        console.error("Face Verify Error:", error);
+        return res.status(500).json({ message: "Server error verifying biometrics." });
+    }
+});
+
+// =========================================================
 // ROUTE 1: Request Password Change OTP (FACIAL BIOMETRICS SUCCESS)
 // =========================================================
 router.post('/api/user/request-password-otp', isAuthenticated, async (req, res) => {
@@ -267,15 +317,12 @@ router.post('/api/user/request-password-otp', isAuthenticated, async (req, res) 
       return res.status(400).json({ message: "User or email not found." });
     }
 
-    // 1. Generate a 6-digit numeric OTP
     const otp = crypto.randomInt(100000, 999999).toString();
 
-    // 2. Save it to the database with a 5-minute expiration
     user.reset_otp = otp;
     user.reset_otp_expires = Date.now() + 5 * 60 * 1000; 
     await user.save();
 
-    // 3. Send the email
     const emailSent = await sendPasswordUpdateOTP(user.email, otp, user.first_name);
 
     if (emailSent) {
@@ -307,7 +354,6 @@ router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) =>
     const { otp, newPassword } = req.body;
     const user = await User.findById(req.user._id);
 
-    // 1. Validate the OTP exists and hasn't expired
     if (!user.reset_otp || !user.reset_otp_expires) {
       return res.status(400).json({ message: "No OTP requested." });
     }
@@ -323,10 +369,8 @@ router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) =>
       return res.status(400).json({ message: "Invalid OTP. Please try again." });
     }
 
-    // 2. OTP is valid! Hash the new password and save it
     user.password = await hashPassword(newPassword);
     
-    // 3. Clear the OTP fields
     user.reset_otp = null;
     user.reset_otp_expires = null;
     await user.save();
