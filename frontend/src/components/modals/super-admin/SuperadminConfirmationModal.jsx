@@ -9,7 +9,8 @@ const AdminConfirmModal = ({
   message = "Are you sure?", 
   confirmText = "Yes, Remove",
   cancelText = "Cancel",
-  type = 'warning' // warning, danger, info
+  type = 'warning', // warning, danger, info
+  loading = false // <-- NEW: Loading prop
 }) => {
   if (!isOpen) return null;
 
@@ -27,10 +28,15 @@ const AdminConfirmModal = ({
         
         {/* Icon */}
         <div 
-          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+          className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 transition-all"
           style={{ backgroundColor: bgColor, color: color }}
         >
-          <span className="material-symbols-outlined text-[48px]">{icon}</span>
+          {/* Change icon to a spinner if loading */}
+          {loading ? (
+            <span className="material-symbols-outlined text-[48px] animate-spin">sync</span>
+          ) : (
+            <span className="material-symbols-outlined text-[48px]">{icon}</span>
+          )}
         </div>
 
         <h2 className="text-[#263238] text-[22px] font-bold mb-2">{title}</h2>
@@ -39,15 +45,20 @@ const AdminConfirmModal = ({
         <div className="flex flex-col gap-3">
           <button 
             onClick={onConfirm}
-            className="w-full h-[54px] rounded-xl text-white font-bold text-[16px] transition-all active:scale-[0.98] shadow-lg cursor-pointer border-none"
+            disabled={loading} // <-- Disable button when loading
+            className={`w-full h-[54px] rounded-xl text-white font-bold text-[16px] transition-all shadow-lg cursor-pointer border-none flex justify-center items-center gap-2
+              ${loading ? 'opacity-70 cursor-not-allowed' : 'active:scale-[0.98]'}`}
             style={{ backgroundColor: color }}
           >
-            {confirmText}
+            {/* Show "Processing..." text if loading */}
+            {loading ? "Processing..." : confirmText}
           </button>
           
           <button 
             onClick={onClose}
-            className="w-full h-[54px] rounded-xl text-[#64748b] font-bold text-[16px] transition-all active:scale-[0.98] cursor-pointer border-none bg-slate-100 hover:bg-slate-200"
+            disabled={loading} // <-- Disable cancel button when loading
+            className={`w-full h-[54px] rounded-xl text-[#64748b] font-bold text-[16px] transition-all cursor-pointer border-none bg-slate-100 hover:bg-slate-200
+              ${loading ? 'opacity-50 cursor-not-allowed' : 'active:scale-[0.98]'}`}
           >
             {cancelText}
           </button>

@@ -9,7 +9,7 @@ import { Student } from "../models/students.js";
 import { Audit } from "../models/audits.js";
 import { Notification } from "../models/notification.js";
 import { sendIprogBulkSMS } from "../utils/smsProvider.js"; 
-import { sendEmergencyEmailAlert, sendTeacherApprovalEmail } from "../utils/emailService.js"; 
+import { sendEmergencyEmailAlert, sendAccountApprovalEmail } from "../utils/emailService.js"; 
 import bcrypt from 'bcrypt';
 import multer from "multer";
 import path from "path";
@@ -363,7 +363,11 @@ router.patch('/api/teacher/approval/:id', isAuthenticated, hasRole('superadmin')
       await auditLog.save();
 
       if (updatedTeacher.email) {
-        await sendTeacherApprovalEmail(updatedTeacher.email, updatedTeacher.last_name);
+        await sendAccountApprovalEmail(
+          updatedTeacher.email, 
+          updatedTeacher.last_name, 
+          updatedTeacher.relationship
+        );
       }
 
       const io = req.app.get('socketio');
