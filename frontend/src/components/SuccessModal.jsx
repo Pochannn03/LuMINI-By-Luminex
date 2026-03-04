@@ -1,7 +1,6 @@
-// frontend/src/components/modals/SuccessModal.jsx
-
 import React from "react";
-import "../styles/success-modal.css"; // We will create this next
+import { createPortal } from "react-dom"; // <-- 1. Import createPortal
+import "../styles/success-modal.css"; 
 
 /**
  * REUSABLE SUCCESS MODAL COMPONENT
@@ -18,10 +17,11 @@ import "../styles/success-modal.css"; // We will create this next
 const SuccessModal = ({ isOpen, onClose, message }) => {
   if (!isOpen) return null;
 
-  return (
-    // Overlay: Covers the whole screen. Clicking it closes the modal (Easy Close).
-    <div className="success-modal-overlay" onClick={onClose}>
-      {/* Modal Content: The actual white box. We stop propagation so clicking inside doesn't close it. */}
+  // 2. Wrap the return statement in createPortal
+  return createPortal(
+    // Overlay: Added inline style for zIndex to guarantee it stays on top of everything else
+    <div className="success-modal-overlay" onClick={onClose} style={{ zIndex: 999999 }}>
+      {/* Modal Content */}
       <div
         className="success-modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -40,7 +40,8 @@ const SuccessModal = ({ isOpen, onClose, message }) => {
           Close
         </button>
       </div>
-    </div>
+    </div>,
+    document.body // <-- 3. Attach it directly to the HTML body
   );
 };
 

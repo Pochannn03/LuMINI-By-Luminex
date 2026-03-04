@@ -6,6 +6,8 @@ import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal';
 export function DashboardPendingAccCard({ tch, onSuccess }) {
   const [viewPendingAccModal, setViewPendingAccModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState(""); 
+  const [loading, setLoading] = useState(false); // <-- NEW: Loading State
+
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
     title: "",
@@ -18,7 +20,6 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
     setErrorMsg(""); 
     setConfirmConfig({
       isOpen: true,
-      // DYNAMIC: Uses relationship instead of "Teacher"
       title: `Approve ${tch.relationship}`, 
       message: `Are you sure you want to grant access to ${tch.first_name} ${tch.last_name}?`,
       confirmText: "Yes, Approve",
@@ -40,26 +41,44 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   };
 
   const handleApproveAction = async () => {
+    setLoading(true); // Start Loading
     try {
       const { data } = await axios.patch(`http://localhost:3000/api/teacher/approval/${tch._id}`, {}, { withCredentials: true });
-      if (data.success && onSuccess) onSuccess(data.msg);
+      
+      // Close the confirm modal first
+      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+      
+      // Then trigger the success modal in the parent component
+      if (data.success && onSuccess) {
+        onSuccess(data.msg || "Account successfully approved!");
+      }
     } catch (err) {
       console.error("Approval error:", err);
       setErrorMsg(err.response?.data?.msg || "Approval failed. Please try again."); 
+      setConfirmConfig(prev => ({ ...prev, isOpen: false })); // Close on error too
     } finally {
-      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+      setLoading(false); // End Loading
     }
   };
 
   const handleRejectAction = async () => {
+    setLoading(true); // Start Loading
     try {
       const { data } = await axios.delete(`http://localhost:3000/api/teacher/rejection/${tch._id}`, { withCredentials: true });
-      if (data.success && onSuccess) onSuccess(data.msg);
+      
+      // Close the confirm modal first
+      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+
+      // Then trigger the success modal in the parent component
+      if (data.success && onSuccess) {
+        onSuccess(data.msg || "Account registration permanently rejected.");
+      }
     } catch (err) {
       console.error("Rejection error:", err);
       setErrorMsg(err.response?.data?.msg || "Rejection failed. Please try again."); 
+      setConfirmConfig(prev => ({ ...prev, isOpen: false })); // Close on error too
     } finally {
-      setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+      setLoading(false); // End Loading
     }
   };
 
@@ -71,7 +90,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
 
   return (
     <>
-      <div className="flex flex-col rounded-xl bg-(--white) border border-(--border-color) transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm)">
+      <div className={`flex flex-col rounded-xl bg-(--white) border border-(--border-color) transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm) ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
         
         <div className="flex items-center p-4 gap-4">
           <img 
@@ -84,7 +103,6 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
               <span className="text-cdark text-[15px] font-bold">
                 {tch.first_name} {tch.last_name}
               </span>
-              {/* DYNAMIC: Uses relationship instead of "Teacher" */}
               <span className="text-cgray text-[12px] font-medium">
                 Role: {tch.relationship} • @{tch.username}
               </span>
@@ -134,12 +152,13 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
 
       <AdminConfirmModal 
         isOpen={confirmConfig.isOpen}
-        onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+        onClose={() => !loading && setConfirmConfig(prev => ({ ...prev, isOpen: false }))} // Prevent closing while loading
         onConfirm={confirmConfig.onConfirm}
         title={confirmConfig.title}
         message={confirmConfig.message}
         confirmText={confirmConfig.confirmText}
         type={confirmConfig.type}
+        loading={loading} // <-- PASS LOADING STATE HERE
       />
 
       <DashboardReviewAccModal

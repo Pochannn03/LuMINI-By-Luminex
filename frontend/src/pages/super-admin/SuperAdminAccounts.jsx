@@ -497,7 +497,7 @@ export default function SuperAdminAccounts() {
                   <DashboardPendingAccCard 
                     key={acc._id || acc.user_id} 
                     tch={acc} 
-                    onSuccess={handlePendingActionComplete}
+                    onSuccess={handleActionSuccess}
                   />
                 ))}
               </div>
