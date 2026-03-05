@@ -9,7 +9,7 @@ import NavBar from "../../../components/navigation/NavBar";
 import Header from "../../../components/navigation/Header";
 import SuccessModal from "../../../components/SuccessModal";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS

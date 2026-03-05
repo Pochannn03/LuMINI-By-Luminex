@@ -14,6 +14,8 @@ import AdminEmergencyBroadcastModal from "../../components/modals/admin/dashboar
 import WarningModal from "../../components/WarningModal";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
@@ -103,7 +105,7 @@ export default function AdminDashboard() {
     const checkBiometrics = async () => {
       if (user?.role === 'admin') {
         try {
-          const res = await axios.get('http://localhost:3000/api/teacher/check-biometrics', { withCredentials: true });
+          const res = await axios.get(`${BACKEND_URL}/api/teacher/check-biometrics`, { withCredentials: true });
           if (res.data.needsBiometrics) {
             setNeedsBiometricSetup(true);
             loadModels(); // Pre-load AI models
@@ -258,7 +260,7 @@ export default function AdminDashboard() {
       }
       if (faceDescriptor) data.append('facialDescriptor', JSON.stringify(faceDescriptor));
 
-      await axios.put('http://localhost:3000/api/teacher/update-biometrics', data, {
+      await axios.put(`${BACKEND_URL}/api/teacher/update-biometrics`, data, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -293,7 +295,7 @@ export default function AdminDashboard() {
           throw new Error("Invalid Parent Pass. Please scan a valid Pickup Token.");
         }
 
-        const response = await axios.get(`http://localhost:3000/api/scan/pass/${rawValue}`, {
+        const response = await axios.get(`${BACKEND_URL}/api/scan/pass/${rawValue}`, {
           withCredentials: true
         });
 
@@ -311,7 +313,7 @@ export default function AdminDashboard() {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
 
-        const response = await axios.post(`http://localhost:3000/api/attendance`, 
+        const response = await axios.post(`${BACKEND_URL}/api/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
         );
@@ -351,7 +353,7 @@ export default function AdminDashboard() {
     try {
       setPosting(true);
       
-      const response = await axios.post("http://localhost:3000/api/announcements", 
+      const response = await axios.post("${BACKEND_URL}/api/announcements", 
         { announcement: announcementData.content,
           category: announcementData.category,
           section_id: selectedSection
@@ -387,7 +389,7 @@ export default function AdminDashboard() {
   const handleConfirmPickup = async () => {
     try {
       setLoadingScan(true);
-      const response = await axios.post(`http://localhost:3000/api/transfer`, {
+      const response = await axios.post(`${BACKEND_URL}/api/transfer`, {
         studentId: scannedData.student.studentId,
         studentName: scannedData.student.name,
         sectionId: scannedData.student.sectionId,
@@ -437,7 +439,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchMySections = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/teacher/sections", {
+        const response = await axios.get(`${BACKEND_URL}/api/teacher/sections`, {
           withCredentials: true
         });
         if (response.data.success) {
@@ -456,7 +458,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchSystemAnnouncements = async () => {
       try {
-        const res = await axios.get(`http://localhost:3000/api/announcement/teacher`, 
+        const res = await axios.get(`${BACKEND_URL}/api/announcement/teacher`, 
           { withCredentials: true });
         setSystemAnnouncements(res.data.announcements);
       } catch (err) {
@@ -469,7 +471,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/announcement/teacher', {
+        const response = await axios.get(`${BACKEND_URL}/api/announcement/teacher`, {
           withCredentials: true
         });
         if (response.data.success) {
@@ -487,7 +489,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchInitialQueue = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/queue", 
+        const response = await axios.get(`${BACKEND_URL}/api/queue`, 
           { withCredentials: true }
         );
 

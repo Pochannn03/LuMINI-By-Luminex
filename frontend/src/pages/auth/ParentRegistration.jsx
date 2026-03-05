@@ -8,6 +8,8 @@ import { validateRegistrationStep } from '../../utils/validation';
 import AvatarEditor from "react-avatar-editor";
 import SuccessModal from '../../components/SuccessModal'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
@@ -369,7 +371,7 @@ export default function ParentRegistration() {
   const invitationCode = code.join("");
     if (invitationCode.length === 6) {
       try {
-        const response = await axios.post('http://localhost:3000/api/invitations/validate', { 
+        const response = await axios.post(`${BACKEND_URL}/api/invitations/validate`, { 
           code: invitationCode 
         });
 
@@ -417,7 +419,7 @@ export default function ParentRegistration() {
     }
 
     try {
-      await axios.post('http://localhost:3000/api/parents', data, {
+      await axios.post(`${BACKEND_URL}/api/parents`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setSuccessMessage("Your account has been successfully created! You are now ready to log in and monitor your child.");

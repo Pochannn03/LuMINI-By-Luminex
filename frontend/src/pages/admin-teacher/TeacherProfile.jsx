@@ -10,6 +10,8 @@ import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
 import ClassListModal from "../../components/modals/admin/ClassListModal";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function TeacherProfile() {
   const navigate = useNavigate();
   const { updateUser } = useAuth();
@@ -106,7 +108,7 @@ export default function TeacherProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/user/profile", {
+        const response = await axios.get(`${BACKEND_URL}/api/user/profile`, {
           withCredentials: true,
         });
         // --- NEW: Tell the Header to update its picture! ---
@@ -128,7 +130,7 @@ export default function TeacherProfile() {
     const fetchStats = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:3000/api/students/teacher/totalStudents",
+          `${BACKEND_URL}/api/students/teacher/totalStudents`,
           { withCredentials: true }
         );
         
@@ -239,7 +241,7 @@ export default function TeacherProfile() {
       }
 
       const response = await axios.put(
-        "http://localhost:3000/api/user/profile",
+        `${BACKEND_URL}/api/user/profile`,
         payload,
         axiosConfig 
       );
@@ -276,7 +278,7 @@ export default function TeacherProfile() {
     if (!path) return "https://via.placeholder.com/150";
     if (path.startsWith("http")) return path;
     const cleanPath = path.replace(/\\/g, "/");
-    return `http://localhost:3000/${cleanPath}`;
+    return `${BACKEND_URL}/${cleanPath}`;
   };
 
   if (loading) return <div className="profile-container" style={{ marginTop: "100px" }}>Loading Profile...</div>;

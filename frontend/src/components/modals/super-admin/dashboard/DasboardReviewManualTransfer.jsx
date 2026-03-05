@@ -4,6 +4,7 @@ import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
 import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal'; 
 
+
 export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }) {
   const [confirmConfig, setConfirmConfig] = useState({
     isOpen: false,
@@ -23,7 +24,8 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
 
   const getImageUrl = (path) => {
     if (!path) return null;
-    return `http://localhost:3000/${path.replace(/\\/g, "/")}`;
+    // Updated to use BACKEND_URL
+    return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
   const evidenceUrl = getImageUrl(ovr.id_photo_evidence);
@@ -32,7 +34,7 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
   const handleApproveAction = async () => {
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/transfer/override/${ovr._id}/approve`, 
+        `${BACKEND_URL}/api/transfer/override/${ovr._id}/approve`, 
         {}, 
         { withCredentials: true }
       );
@@ -51,27 +53,22 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
 
   const handleRejectAction = async () => {
     try {
-      // 1. Calls your updated endpoint
+      // Updated to use BACKEND_URL
       const { data } = await axios.patch(
-        `http://localhost:3000/api/transfer/override/${ovr._id}/reject`, 
+        `${BACKEND_URL}/api/transfer/override/${ovr._id}/reject`, 
         {}, 
         { withCredentials: true }
       );
 
       if (data.success) {
-        // 2. Triggers the SuccessModal in the Dashboard
         if (typeof onSuccess === 'function') onSuccess(data.msg);
-        
-        // 3. Closes this Review Modal
         if (typeof isClose === 'function') isClose();
       }
     } catch (err) {
       console.error("Rejection Error:", err);
-      // Standardizing error message extraction
       const errorMsg = err.response?.data?.error || err.response?.data?.msg || "Rejection failed";
       alert(errorMsg);
     } finally {
-      // 4. Closes the AdminConfirmModal
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
     }
   };
@@ -83,7 +80,7 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
       message: `Are you sure you want to record this ${ovr.purpose} for ${ovr.student_details?.first_name}?`,
       confirmText: "Yes, Approve",
       type: "info",
-      onConfirm: handleApproveAction // Pointing directly to the approve handler
+      onConfirm: handleApproveAction
     });
   };
 
@@ -94,7 +91,7 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
       message: `This will mark the manual transfer for ${ovr.student_details?.first_name} as invalid.`,
       confirmText: "Discard Record",
       type: "danger",
-      onConfirm: handleRejectAction // Pointing directly to the reject handler
+      onConfirm: handleRejectAction
     });
   };
 
@@ -124,7 +121,6 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
           </div>
 
           <div className="p-6 overflow-y-auto max-h-[70vh] custom-scrollbar text-center">
-            {/* Header: Student Name & Purpose (Smiley container removed) */}
             <div className="mb-6">
               <h3 className="text-[22px] font-bold text-cdark">
                 {ovr.student_details?.first_name} {ovr.student_details?.last_name}
@@ -134,7 +130,6 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
               </p>
             </div>
 
-            {/* Guardian & Requestor Information */}
             <div className="text-left mb-5">
               <h4 className="text-cprimary-blue text-[12px] mb-3 font-bold uppercase tracking-wider">Guardian Details</h4>
               <FormInputRegistration 
@@ -158,7 +153,6 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
                 />
               </div>
 
-              {/* NEW: Requesting Teacher Section */}
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <FormInputRegistration 
                   label="Requested By (Staff/Teacher)"
@@ -169,7 +163,6 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
               </div>
             </div>
 
-            {/* Identity Verification Documents */}
             <div className="text-left mb-2">
               <h4 className="text-cprimary-blue text-[12px] mb-3 font-bold uppercase tracking-wider">Verification Evidence</h4>
               <div className="flex gap-4">

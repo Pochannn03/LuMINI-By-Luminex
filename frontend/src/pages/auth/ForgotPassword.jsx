@@ -8,7 +8,7 @@ import fastBgImage from '../../assets/CheckIns.jpg';
 import updatesBgImage from '../../assets/Updates.jpg';
 import '../../styles/auth/login.css'; 
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS

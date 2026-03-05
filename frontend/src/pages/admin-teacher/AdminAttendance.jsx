@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // <-- CHANGED: Proper import for modern React
+import autoTable from 'jspdf-autotable'; 
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // --- HELPERS ---
 const getDateParts = (date) => {
@@ -38,8 +40,6 @@ const convertTo12Hour = (time24h) => {
   return `${hoursInt}:${minutes} ${modifier}`;
 };
 
-// --- IMAGE HELPER ---
-const BACKEND_URL = "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
@@ -77,7 +77,7 @@ export default function AdminAttendance() {
         setLoading(true);
         const dateString = dateToInputString(currentDate);
 
-        const response = await axios.get('http://localhost:3000/api/attendance', {
+        const response = await axios.get(`${BACKEND_URL}/api/attendance`, {
           params: {
             date: dateString
           },
@@ -161,7 +161,7 @@ export default function AdminAttendance() {
             status: pendingChanges[id].status || currentRecord.status,
             time_in: pendingChanges[id].time_in !== undefined ? pendingChanges[id].time_in : currentRecord.time_in
           };
-          return axios.put(`http://localhost:3000/api/attendance/${id}`, payload, { withCredentials: true });
+          return axios.put(`${BACKEND_URL}/api/attendance/${id}`, payload, { withCredentials: true });
         })
       );
 

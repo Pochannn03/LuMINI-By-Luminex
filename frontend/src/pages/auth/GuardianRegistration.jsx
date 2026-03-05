@@ -5,6 +5,7 @@ import '../../styles/auth/registration.css'
 import FormInputRegistration from '../../components/FormInputRegistration';
 import { validateRegistrationStep } from '../../utils/validation';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function GuardianRegistration() {
   const navigate = useNavigate();
@@ -145,7 +146,7 @@ export default function GuardianRegistration() {
     console.log("Sending Form Data..."); 
 
     try {
-      await axios.post('http://localhost:3000/api/guardian-register', data, {
+      await axios.post(`${BACKEND_URL}/api/guardian-register`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       navigate('/login');

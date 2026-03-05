@@ -22,6 +22,8 @@ import ClassManageViewTeacherModal from "../../components/modals/super-admin/cla
 import ClassManageSettingsModal from "../../components/modals/super-admin/class-management/ClassManageSettingsModal";
 import SuccessModal from "../../components/SuccessModal";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function SuperAdminClassManagement() {
   // --- SEARCH & FILTER STATES ---
   const [searchClasses, setSearchClasses] = useState("");
@@ -98,7 +100,7 @@ export default function SuperAdminClassManagement() {
   const fetchClasses = useCallback(async () => {
     try {
       setLoadingClasses(true);
-      const response = await axios.get("http://localhost:3000/api/sections", { withCredentials: true });
+      const response = await axios.get(`${BACKEND_URL}/api/sections`, { withCredentials: true });
       if (response.data && response.data.success) setClasses(response.data.classes || []);
     } catch (error) { console.error("Error fetching classes:", error); } 
     finally { setLoadingClasses(false); }
@@ -107,7 +109,7 @@ export default function SuperAdminClassManagement() {
   const fetchTeachers = useCallback(async () => {
     try {
       setLoadingTeachers(true);
-      const response = await axios.get("http://localhost:3000/api/teachers", { withCredentials: true });
+      const response = await axios.get(`${BACKEND_URL}/api/teachers`, { withCredentials: true });
       if (response.data && response.data.success) setTeachers(response.data.teachers || []);
     } catch (error) { console.error("Error fetching teachers:", error); } 
     finally { setLoadingTeachers(false); }
@@ -116,7 +118,7 @@ export default function SuperAdminClassManagement() {
   const fetchStudents = useCallback(async () => {
     try {
       setLoadingStudents(true);
-      const response = await axios.get("http://localhost:3000/api/students", { withCredentials: true });
+      const response = await axios.get(`${BACKEND_URL}/api/students`, { withCredentials: true });
       if (response.data && response.data.success) setStudents(response.data.students || []);
     } catch (error) { console.error("Error fetching students:", error); } 
     finally { setLoadingStudents(false); }
