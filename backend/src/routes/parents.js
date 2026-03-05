@@ -55,7 +55,7 @@ router.post("/api/invitations/validate", async (req, res) => {
   } catch (err) {
     res.status(500).send({ msg: "Server error" });
   }
-});
+}); 
 
 // PARENT REGISTRATION (PHASE II)
 router.post(
@@ -120,6 +120,7 @@ router.post(
         facial_descriptor: parsedDescriptor,
         
         is_archive: false,
+        is_approved: true,
       });
 
       const savedUser = await newUser.save();
