@@ -2,7 +2,7 @@ import React from "react";
 import { createPortal } from "react-dom";
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function AdminConfirmPickUpAuth({ isOpen, onClose, data, onConfirm }) {
   

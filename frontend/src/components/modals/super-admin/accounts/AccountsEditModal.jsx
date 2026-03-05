@@ -6,6 +6,8 @@ import axios from 'axios';
 import '../../../../styles/super-admin/class-management.css'; 
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AccountsEditModal({ isOpen, onClose, account, onSuccess }) {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -40,7 +42,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
       });
 
       setProfileImage(null);
-      setPreviewUrl(account.profile_picture ? `http://localhost:3000/${account.profile_picture}` : null); 
+      setPreviewUrl(account.profile_picture ? `${BACKEND_URL}/${account.profile_picture}` : null); 
       setErrors({});
       setApiError(""); // Clear errors on load
     }
@@ -100,7 +102,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
         data.append('profile_picture', profileImage);
       }
 
-      const response = await axios.put(`http://localhost:3000/api/users/${account._id}`, data, {
+      const response = await axios.put(`${BACKEND_URL}/api/users/${account._id}`, data, {
         withCredentials: true
       });
       

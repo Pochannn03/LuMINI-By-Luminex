@@ -7,6 +7,8 @@ import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class
 import ClassManageSelectStudentModal from "./ClassManageSelectStudentsModal";
 import WarningModal from '../../../WarningModal'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageEditClassModal({ isOpen, onClose, classData, onSuccess }) {
   // STATES
   const [step, setStep] = useState(1); 
@@ -36,7 +38,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
   // 1. Fetch Teachers List (Run once when modal opens)
   useEffect(() => {
     if (isOpen) {
-      axios.get('http://localhost:3000/api/teachers', { withCredentials: true })
+      axios.get(`${BACKEND_URL}/api/teachers`, { withCredentials: true })
         .then(res => {
           if (res.data && res.data.success) {
             setTeachersList(res.data.teachers); 
@@ -149,7 +151,7 @@ export default function ClassManageEditClassModal({ isOpen, onClose, classData, 
         student_id: selectedStudentIds.filter(id => /^\d{4}-\d{4}$/.test(id)),
       };
 
-      const response = await axios.put(`http://localhost:3000/api/sections/${classData._id}`, payload, {
+      const response = await axios.put(`${BACKEND_URL}/api/sections/${classData._id}`, payload, {
         withCredentials: true
       });
 

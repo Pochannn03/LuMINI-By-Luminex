@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AccountsAddModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     full_name: '',
@@ -25,8 +27,7 @@ export default function AccountsAddModal({ isOpen, onClose, onSuccess }) {
     setError('');
 
     try {
-      // Adjust URL to your actual backend endpoint
-      const response = await axios.post('http://localhost:3000/api/users/register', formData, {
+      const response = await axios.post(`${BACKEND_URL}/api/users/register`, formData, {
         withCredentials: true
       });
 

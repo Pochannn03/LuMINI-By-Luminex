@@ -10,7 +10,7 @@ import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
 import TeacherConfirmationModal from "../../components/modals/admin/TeacherConfirmationModal"
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function ManageApprovals() {
   const [activeTab, setActiveTab] = useState("pending");

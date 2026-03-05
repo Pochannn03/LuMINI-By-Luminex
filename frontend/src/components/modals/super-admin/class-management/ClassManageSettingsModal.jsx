@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from 'axios';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageSettingsModal({ isOpen, onClose, onSuccess }) {
   // STATE TEMPORARY FOR TIMES
   const [morningStart, setMorningStart] = useState("08:00");
@@ -19,7 +21,7 @@ export default function ClassManageSettingsModal({ isOpen, onClose, onSuccess })
     const fetchSettings = async () => {
       setIsLoading(true);
       try {
-        const response = await axios.get("http://localhost:3000/api/settings/schedule", { 
+        const response = await axios.get(`${BACKEND_URL}/api/settings/schedule`, { 
           withCredentials: true 
         });
         
@@ -49,7 +51,7 @@ export default function ClassManageSettingsModal({ isOpen, onClose, onSuccess })
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.patch("http://localhost:3000/api/settings/schedule", {
+      const response = await axios.patch(`${BACKEND_URL}/api/settings/schedule`, {
         morning_start: morningStart,
         morning_end: morningEnd,
         afternoon_start: afternoonStart,

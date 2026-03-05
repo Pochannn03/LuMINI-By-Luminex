@@ -3,6 +3,9 @@ import axios from 'axios';
 
 const AuthContext = createContext(null);
 
+// Added dynamic backend URL support
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,7 +13,8 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     const checkSession = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/auth/session', {
+      // Updated to use BACKEND_URL
+      const response = await axios.get(`${BACKEND_URL}/api/auth/session`, {
           withCredentials: true 
         });
 
@@ -38,7 +42,8 @@ export default function AuthProvider({ children }) {
 
   const logout = async () => {
     try {
-      await axios.post('http://localhost:3000/api/auth/logout', {}, {
+      // Updated to use BACKEND_URL
+      await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, {
         withCredentials: true
       });
       setUser(null);

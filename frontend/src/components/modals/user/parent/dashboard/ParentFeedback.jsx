@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import axios from 'axios';
 import FormInputRegistration from '../../../../FormInputRegistration';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ParentFeedbackModal({ isOpen, onClose, onSuccess }) {
   const [remark, setRemark] = useState("");
   const [satisfaction, setSatisfaction] = useState(null); // 'up' or 'down'
@@ -21,7 +23,7 @@ export default function ParentFeedbackModal({ isOpen, onClose, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation: Require at least a thumb selection or a remark
+    // Validation: Require at least a thumb selection
     if (!satisfaction) {
       setError("Please select a satisfaction rating.");
       return;
@@ -31,7 +33,7 @@ export default function ParentFeedbackModal({ isOpen, onClose, onSuccess }) {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/feedback', 
+      const response = await axios.post(`${BACKEND_URL}/api/feedback`, 
         { 
           remark, 
           rating: satisfaction

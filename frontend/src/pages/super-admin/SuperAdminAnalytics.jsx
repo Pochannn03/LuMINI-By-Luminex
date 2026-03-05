@@ -5,6 +5,8 @@ import autoTable from "jspdf-autotable";
 import NavBar from "../../components/navigation/NavBar";
 import "../../styles/super-admin/super-admin-analytics.css";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function SuperAdminAnalytics() {
   // AUDIT STATE
   const [auditLogs, setAuditLogs] = useState([]);
@@ -165,7 +167,7 @@ export default function SuperAdminAnalytics() {
 
     try {
       // 1. Silently fetch ALL matching logs from the backend
-      const { data } = await axios.get(`http://localhost:3000/api/audit`, {
+      const { data } = await axios.get(`http://${BACKEND_URL}/api/audit`, {
         params: { 
           role: filterRole === "All" ? "" : filterRole, 
           search: searchQuery,

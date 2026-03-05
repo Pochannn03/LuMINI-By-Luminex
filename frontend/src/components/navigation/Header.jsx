@@ -6,7 +6,7 @@ import PlaceHolder from '../../assets/placeholder_image.jpg';
 import NotificationCard from "../NotificationCard";
 import '../../styles/header.css';
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function Header({ onToggle }) {
   const { user } = useAuth();
@@ -72,15 +72,14 @@ export default function Header({ onToggle }) {
   };
 
   useEffect(() => {
-    // 1. Initialize socket connection
-    const socket = io("http://localhost:3000", { withCredentials: true });
+    // 1. Initialize socket connection using dynamic BACKEND_URL
+    const socket = io(BACKEND_URL, { withCredentials: true });
 
     // 2. WAIT FOR CONNECTION before joining
     socket.on("connect", () => {
       console.log("🟢 Socket Connected! ID:", socket.id);
       
       if (user?.user_id) {
-        // Send ONLY the numeric ID, as your backend already adds "user_"
         socket.emit("join", user.user_id); 
         console.log(`🚪 Requested to join room for user: ${user.user_id}`);
       }
@@ -93,21 +92,16 @@ export default function Header({ onToggle }) {
       const notifRecipient = String(newNotif.recipient_id);
       const currentUser = String(user?.user_id);
       
-      // Double check it belongs to this user
       if (notifRecipient === currentUser) {
         setNotifications(prev => {
-          // Prevent duplicates
           const exists = prev.some(n => String(n._id) === String(newNotif._id));
           if (exists) return prev; 
-          
-          // REMOVED setUnreadCount HERE!
-          // Just return the updated array. The red dot handles itself now.
           return [newNotif, ...prev];
         });
       }
     });
 
-    // 4. Clean up the connection if the component unmounts
+    // 4. Clean up
     return () => {
       socket.off('connect');
       socket.off('new_notification');
@@ -150,7 +144,6 @@ export default function Header({ onToggle }) {
                   </button>
               </div>
 
-              {/* Scrollable Container */}
               <div className="max-h-[60vh] sm:max-h-[400px] overflow-y-auto custom-scrollbar">
                 {notifications.length > 0 ? (
                   notifications.map((notif) => (

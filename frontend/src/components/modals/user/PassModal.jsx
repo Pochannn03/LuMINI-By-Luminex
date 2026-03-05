@@ -3,18 +3,19 @@ import { createPortal } from "react-dom";
 import QRCode from "react-qr-code";
 import axios from "axios";
 
-// 1. ADD studentId AS A PROP
+// Added dynamic backend URL support
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function PassModal({ isOpen, onClose, studentId }) {
   const [passData, setPassData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState(300); 
   const [error, setError] = useState(null);
   
-  // 2. MAKE THE STORAGE KEY DYNAMIC PER STUDENT
   const STORAGE_KEY = `lumini_pickup_pass_${studentId}`; 
 
   useEffect(() => {
-    if (!isOpen || !studentId) return; // Ensure studentId exists
+    if (!isOpen || !studentId) return;
 
     const initPass = async () => {
       setLoading(true);
@@ -43,9 +44,10 @@ export default function PassModal({ isOpen, onClose, studentId }) {
 
       // B. GENERATE NEW PASS
       try {
+        // Updated to use BACKEND_URL
         const res = await axios.post(
-          "http://localhost:3000/api/pass/generate",
-          { student_id: studentId }, // 3. SEND THE STUDENT ID TO BACKEND
+          `${BACKEND_URL}/api/pass/generate`,
+          { student_id: studentId },
           { withCredentials: true }
         );
 
@@ -78,7 +80,7 @@ export default function PassModal({ isOpen, onClose, studentId }) {
     };
 
     initPass();
-  }, [isOpen, studentId]); // Added studentId as dependency
+  }, [isOpen, studentId]);
 
   useEffect(() => {
     if (!isOpen || timeLeft <= 0) return;
@@ -134,8 +136,6 @@ export default function PassModal({ isOpen, onClose, studentId }) {
           ) : (
             <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
               
-              {/* THE QR CODE */}
-              {/* Only show QR if time is remaining */}
               <div className={`p-4 border-2 border-dashed rounded-xl mb-4 transition-all duration-300 ${timeLeft > 0 ? 'border-blue-200 bg-blue-50' : 'border-gray-200 bg-gray-50 opacity-50 grayscale'}`}>
                 <QRCode 
                   value={passData} 
@@ -157,7 +157,6 @@ export default function PassModal({ isOpen, onClose, studentId }) {
                 </div>
               ) : (
                 <div className="text-center">
-                   {/* REGENERATE BUTTON REMOVED */}
                    <div className="flex flex-col items-center gap-1 text-red-500 bg-red-50 px-6 py-3 rounded-lg border border-red-100">
                       <span className="material-symbols-outlined">timer_off</span>
                       <p className="font-bold">Pass Expired</p>
@@ -170,7 +169,7 @@ export default function PassModal({ isOpen, onClose, studentId }) {
           )}
 
           <p className="mt-4 text-xs! text-center text-gray-400 max-w-[250px]">
-            This is a temporary Qr. Do not screenshot or share.
+            This is a temporary QR. Do not screenshot or share.
           </p>
 
         </div>

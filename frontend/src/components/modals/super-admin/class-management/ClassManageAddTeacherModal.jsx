@@ -7,6 +7,8 @@ import WarningModal from '../../../WarningModal';
 import axios from 'axios';
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-teacher-modal.css';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageAddTeacherModal({ isOpen, onClose, onSuccess }) {
   // HOOKS/STATES
   const [step, setStep] = useState(1); 
@@ -173,7 +175,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose, onSuccess 
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/teachers/modal', data, {
+      const response = await axios.post(`${BACKEND_URL}/api/teachers/modal`, data, {
         withCredentials: true
       });
 
