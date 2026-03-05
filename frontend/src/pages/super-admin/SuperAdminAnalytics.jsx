@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable"; // <-- THE FIX: Import it directly
 import NavBar from "../../components/navigation/NavBar";
+import ConfirmModal from "../../components/ConfirmModal"; 
 import "../../styles/super-admin/super-admin-analytics.css";
 
 export default function SuperAdminAnalytics() {
@@ -34,6 +37,9 @@ export default function SuperAdminAnalytics() {
 
   // WEEKLY ATTENDANCE STATE
   const [weeklyTraffic, setWeeklyTraffic] = useState([]);
+
+  // EXPORT MODAL STATE
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -141,6 +147,51 @@ export default function SuperAdminAnalytics() {
     fetchWeeklyStats();
   }, []);
 
+  // --- THE FIX: PDF EXPORT FUNCTION ---
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add Document Header
+    doc.setFontSize(18);
+    doc.text("System Audit Trail Report", 14, 22);
+    
+    // Add Metadata
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Filter Applied: ${filterRole} | Search Query: ${searchQuery || 'None'}`, 14, 36);
+
+    // Define Table Columns and Map Data
+    const tableColumn = ["User", "Role", "Action", "Target / Details", "Timestamp"];
+    const tableRows = [];
+
+    auditLogs.forEach(log => {
+      const logData = [
+        log.full_name || "Unknown",
+        log.role || "N/A",
+        log.action || "N/A",
+        log.target || "N/A",
+        log.createdAt || log.created_at || log.timestamp 
+          ? new Date(log.createdAt || log.created_at || log.timestamp).toLocaleString() 
+          : "Date Missing"
+      ];
+      tableRows.push(logData);
+    });
+
+    // THE FIX: Call autoTable explicitly and pass the doc inside it
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 42,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [58, 176, 249] }, // Matches brand blue
+      alternateRowStyles: { fillColor: [248, 250, 252] }, // Light slate for readability
+    });
+
+    // Download the PDF
+    doc.save(`LuMINI_Audit_Trail_${new Date().getTime()}.pdf`);
+  };
+
   // --- Calculations for Donut Chart ---
   const totalUsers = Object.values(userStats).reduce((acc, curr) => acc + curr.count, 0) || 1; 
   
@@ -158,7 +209,6 @@ export default function SuperAdminAnalytics() {
     let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
     let end = Math.min(totalPages, start + maxVisible - 1);
 
-    // Adjust if we are near the end
     if (end - start < maxVisible - 1) {
       start = Math.max(1, end - maxVisible + 1);
     }
@@ -173,6 +223,18 @@ export default function SuperAdminAnalytics() {
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
+
+      {/* --- CONFIRM EXPORT MODAL --- */}
+      <ConfirmModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        onConfirm={handleExportPDF}
+        title="Export Audit Trail"
+        message="Do you want to download a PDF report of the currently loaded audit logs?"
+        confirmText="Download PDF"
+        cancelText="Cancel"
+        isDestructive={false}
+      />
 
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards] pb-20">
         
@@ -228,9 +290,10 @@ export default function SuperAdminAnalytics() {
         </div>
 
         {/* --- Visualizations --- */}
-        <div className="w-full max-w-[1200px] mx-auto analytics-grid">
+        <div className="w-full max-w-[1200px] mx-auto flex flex-col lg:flex-row gap-6">
+          
           {/* Attendance Bar Chart */}
-          <div className="card p-6 flex flex-col justify-between">
+          <div className="card p-6 flex flex-col justify-between w-full lg:w-1/2">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <div className="flex items-center gap-2">
@@ -269,7 +332,7 @@ export default function SuperAdminAnalytics() {
           </div>
 
           {/* Demographics Donut */}
-          <div className="card p-6">
+          <div className="card p-6 w-full lg:w-1/2">
             <div className="mb-6">
                <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-cgray">pie_chart</span>
@@ -316,10 +379,16 @@ export default function SuperAdminAnalytics() {
                   <h2 className="text-cdark text-[18px] font-bold">System Audit Trail</h2>
                 </div>
               </div>
-              <button className="btn btn-outline text-sm h-[38px] px-3">
+              
+              {/* TRIGGER EXPORT MODAL */}
+              <button 
+                className="btn btn-outline text-sm h-[38px] px-3 cursor-pointer"
+                onClick={() => setIsExportModalOpen(true)}
+              >
                 <span className="material-symbols-outlined text-[18px] mr-1">download</span>
                 Export
               </button>
+
             </div>
 
             {/* Filter Bar */}
@@ -431,7 +500,7 @@ export default function SuperAdminAnalytics() {
                   <span className="material-symbols-outlined text-[16px]">chevron_left</span>
                 </button>
 
-                {/* First Page Quick Link (Optional: only if start > 1) */}
+                {/* First Page Quick Link */}
                 {getPageNumbers()[0] > 1 && (
                   <>
                     <button className="btn btn-outline h-8 w-8 p-0!" onClick={() => setCurrentPage(1)}>1</button>
@@ -453,7 +522,7 @@ export default function SuperAdminAnalytics() {
                   </button>
                 ))}
 
-                {/* Last Page Quick Link (Optional: only if end < totalPages) */}
+                {/* Last Page Quick Link */}
                 {getPageNumbers().slice(-1)[0] < totalPages && (
                   <>
                     <span className="px-1 self-center text-gray-400 text-xs">...</span>
