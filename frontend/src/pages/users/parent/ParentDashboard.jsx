@@ -17,6 +17,8 @@ import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal";
 import UserConfirmModal from "../../../components/modals/user/UserConfirmationModal";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function Dashboard() {
   const { user } = useAuth();
   
@@ -51,7 +53,7 @@ export default function Dashboard() {
       try {
         setLoading(true); 
         const response = await axios.get(
-          'http://localhost:3000/api/parent/children',
+          `${BACKEND_URL}/api/parent/children`,
           { withCredentials: true }
         );
 
@@ -90,7 +92,7 @@ export default function Dashboard() {
       if (!rawStudentData?.student_id) return; 
 
       try {
-        const response = await axios.get(`http://localhost:3000/api/queue/check?student_id=${rawStudentData.student_id}`, { 
+        const response = await axios.get(`${BACKEND_URL}/api/queue/check?student_id=${rawStudentData.student_id}`, { 
           withCredentials: true 
         });
         setIsParentOnQueue(response.data.onQueue);
@@ -104,7 +106,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/announcement', {
+        const response = await axios.get(`${BACKEND_URL}/api/announcement`, {
           withCredentials: true
         });
         if (response.data.success) {
@@ -127,7 +129,7 @@ export default function Dashboard() {
       if (idsToFetch && idsToFetch.length > 0) {
         try {
           setLoadingPickers(true);
-          const response = await axios.post('http://localhost:3000/api/users/profiles', {
+          const response = await axios.post(`${BACKEND_URL}/api/users/profiles`, {
             userIds: idsToFetch
           }, { withCredentials: true });
 
@@ -147,7 +149,7 @@ export default function Dashboard() {
   
 
   useEffect(() => {
-    const socket = io("http://localhost:3000", { withCredentials: true });
+    const socket = io(`${BACKEND_URL}`, { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
       if (entry.user_id === user?.user_id && entry.student_id === rawStudentData?.student_id) {
@@ -227,7 +229,7 @@ export default function Dashboard() {
       setLoading(true);
       const transferType = isEarlyPickup ? 'Pick up' : (childData?.status === 'Learning' ? 'Pick up' : 'Drop off');
 
-      const response = await axios.post('http://localhost:3000/api/queue', {
+      const response = await axios.post(`${BACKEND_URL}/api/queue`, {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,
@@ -319,7 +321,6 @@ export default function Dashboard() {
 
   const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
 
-  const BACKEND_URL = "http://localhost:3000";
   const getImageUrl = (path) => {
     if (!path) return "../../../assets/placeholder_image.jpg"; 
     if (path.startsWith("http")) return path;

@@ -7,6 +7,8 @@ import AccountsEditModal from "../../components/modals/super-admin/accounts/Acco
 import AccountsDeleteModal from "../../components/modals/super-admin/accounts/AccountsDeleteModal";
 import SuccessModal from "../../components/SuccessModal";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function SuperAdminAccounts() {
   const [successConfig, setSuccessConfig] = useState({
     isOpen: false,
@@ -44,7 +46,7 @@ export default function SuperAdminAccounts() {
     setLoading(true); 
     try {
       // FIX 1: Removed the params so we fetch all approved users, allowing the frontend to sort and paginate perfectly.
-      const response = await axios.get('http://localhost:3000/api/users', { 
+      const response = await axios.get(`${BACKEND_URL}/api/users`, { 
         withCredentials: true 
       });
 
@@ -66,7 +68,7 @@ export default function SuperAdminAccounts() {
   const fetchPendingAccounts = useCallback(async () => {
     setLoadingPending(true);
     try {
-      const response = await axios.get('http://localhost:3000/api/users/cards', { 
+      const response = await axios.get(`${BACKEND_URL}/api/users/cards`, { 
         withCredentials: true 
       });
 

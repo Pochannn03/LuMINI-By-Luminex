@@ -12,6 +12,8 @@ import ParentNewDayModal from ".././../../components/modals/user/parent/dashboar
 import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function GuardianDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -39,7 +41,7 @@ export default function GuardianDashboard() {
     if (!path) return "https://via.placeholder.com/150";
     if (path.startsWith("http")) return path;
     const cleanPath = path.replace(/\\/g, "/");
-    return `http://localhost:3000/${cleanPath}`;
+    return `${BACKEND_URL}/${cleanPath}`;
   };
 
   // 1. FETCH ASSIGNED CHILD
@@ -48,7 +50,7 @@ export default function GuardianDashboard() {
       try {
         setLoading(true);
         const response = await axios.get(
-          'http://localhost:3000/api/guardian/children',
+          `${BACKEND_URL}/api/guardian/children`,
           { withCredentials: true }
         );
 
@@ -109,7 +111,7 @@ export default function GuardianDashboard() {
 
       try {
         // Pass student_id to ensure we check queue for THIS specific child
-        const response = await axios.get(`http://localhost:3000/api/queue/check?student_id=${rawStudentData.student_id}`, { 
+        const response = await axios.get(`${BACKEND_URL}/api/queue/check?student_id=${rawStudentData.student_id}`, { 
           withCredentials: true 
         });
         setIsParentOnQueue(response.data.onQueue);
@@ -122,7 +124,7 @@ export default function GuardianDashboard() {
 
   // 3. SOCKET.IO LISTENERS
   useEffect(() => {
-    const socket = io("http://localhost:3000", { withCredentials: true });
+    const socket = io(`${BACKEND_URL}`, { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
       // --- IMPORTANT: Check both user_id AND student_id ---
@@ -154,7 +156,7 @@ export default function GuardianDashboard() {
       setLoading(true);
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
 
-      const response = await axios.post('http://localhost:3000/api/queue', {
+      const response = await axios.post(`${BACKEND_URL}/api/queue`, {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
         status: statusLabel,

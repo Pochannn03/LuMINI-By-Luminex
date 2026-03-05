@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export function RejectedTransferHistoryModal({ isOpen, onClose }) {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ export function RejectedTransferHistoryModal({ isOpen, onClose }) {
     const fetchRejected = async () => {
       setLoading(true);
       try {
-        const { data, headers } = await axios.get(`http://localhost:3000/api/transfer/override/rejected`, {
+        const { data, headers } = await axios.get(`${BACKEND_URL}/api/transfer/override/rejected`, {
           params: { page: currentPage, limit },
           withCredentials: true
         });

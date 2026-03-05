@@ -9,7 +9,7 @@ import SuccessModal from "../../../components/SuccessModal";
 import ConfirmModal from "../../../components/ConfirmModal";
 import WarningModal from "../../../components/WarningModal";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function ManageGuardians() {
   const [pendingRequests, setPendingRequests] = useState([]);

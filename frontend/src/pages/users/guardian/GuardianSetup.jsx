@@ -7,6 +7,8 @@ import '../../../styles/auth/registration.css';
 import FormInputRegistration from '../../../components/FormInputRegistration';
 import AvatarEditor from "react-avatar-editor";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
@@ -436,7 +438,7 @@ export default function GuardianSetup() {
 
   const handleTempLogout = async () => {
     try {
-      await axios.post("http://localhost:3000/api/auth/logout", {}, { withCredentials: true });
+      await axios.post(`${BACKEND_URL}/api/auth/logout`, {}, { withCredentials: true });
       if (logout) logout();
       navigate("/login", { replace: true });
     } catch (error) {
@@ -479,7 +481,7 @@ export default function GuardianSetup() {
         submitData.append('facialDescriptor', JSON.stringify(faceDescriptor));
       }
 
-      await axios.put("http://localhost:3000/api/guardian/setup", submitData, {
+      await axios.put(`${BACKEND_URL}/api/guardian/setup`, submitData, {
         headers: { "Content-Type": "multipart/form-data" },
         withCredentials: true
       });

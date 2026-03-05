@@ -5,6 +5,8 @@ import { DashboardReviewOverrideModal } from "./DasboardReviewManualTransfer";
 // You'll likely want a specific modal to view the ID Photo evidence
 // import { DashboardReviewOverrideModal } from './DashboardReviewOverrideModal';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export function DashboardPendingOverrideCard({ ovr, onSuccess, isClose }) {
   const [viewOverrideModal, setViewOverrideModal] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({
@@ -40,7 +42,7 @@ export function DashboardPendingOverrideCard({ ovr, onSuccess, isClose }) {
   const handleApproveAction = async () => {
     try {
       const { data } = await axios.patch(
-        `http://localhost:3000/api/transfer/override/${ovr._id}/approve`, 
+        `${BACKEND_URL}/api/transfer/override/${ovr._id}/approve`, 
         {}, 
         { withCredentials: true }
       );
@@ -65,7 +67,7 @@ export function DashboardPendingOverrideCard({ ovr, onSuccess, isClose }) {
     try {
       // 1. Call the specific reject endpoint you provided
       const { data } = await axios.patch(
-        `http://localhost:3000/api/transfer/override/${ovr._id}/reject`, 
+        `${BACKEND_URL}/api/transfer/override/${ovr._id}/reject`, 
         {}, 
         { withCredentials: true }
       );

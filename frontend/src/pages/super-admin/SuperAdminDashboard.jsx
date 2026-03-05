@@ -11,6 +11,8 @@ import NavBar from "../../components/navigation/NavBar";
 import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function SuperAdminDashboard() {
   const [pendingOverrides, setPendingOverrides] = useState([]);
   const [loadingOverrides, setLoadingOverrides] = useState(false);
@@ -44,7 +46,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/users/cards', { 
+        const response = await axios.get(`${BACKEND_URL}/api/users/cards`, { 
           withCredentials: true 
         });
 
@@ -72,7 +74,7 @@ export default function SuperAdminDashboard() {
     const fetchPendingOverrides = async () => {
         setLoadingOverrides(true);
         try {
-            const response = await axios.get('http://localhost:3000/api/transfer/override', { 
+            const response = await axios.get(`${BACKEND_URL}/api/transfer/override`, { 
                 withCredentials: true 
             });
 
@@ -92,7 +94,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/feedback', { 
+        const response = await axios.get(`${BACKEND_URL}/api/feedback`, { 
           withCredentials: true 
         });
 
@@ -108,7 +110,7 @@ export default function SuperAdminDashboard() {
   }, []);
   
   useEffect(() => {
-    const socket = io("http://localhost:3000", { withCredentials: true });
+    const socket = io(`${BACKEND_URL}`, { withCredentials: true });
 
     socket.on('teacher_processed', (data) => {
       setPendingTeachers(prev => prev.filter(tch => tch._id !== data.id));
@@ -152,7 +154,7 @@ export default function SuperAdminDashboard() {
 
     try {
       setPosting(true);
-      const response = await axios.post("http://localhost:3000/api/announcements", 
+      const response = await axios.post("${BACKEND_URL}/api/announcements", 
         { 
           announcement: announcementData.content,
           category: announcementData.category

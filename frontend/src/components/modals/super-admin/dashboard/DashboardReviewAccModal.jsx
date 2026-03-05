@@ -4,6 +4,8 @@ import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
 import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
   // Modal State for Confirmation
   const [confirmConfig, setConfirmConfig] = useState({
@@ -22,7 +24,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
   // Safe URL Helper (handles missing images and Windows slashes)
   const getImageUrl = (path) => {
     if (!path) return null;
-    return `http://localhost:3000/${path.replace(/\\/g, "/")}`;
+    return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
   };
 
   const photoUrl = getImageUrl(tch.profile_picture) || "https://via.placeholder.com/150";
@@ -60,7 +62,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
   // --- BACKEND ACTIONS ---
   const handleApproveAction = async () => {
     try {
-      const { data } = await axios.patch(`http://localhost:3000/api/teacher/approval/${tch._id}`, {}, { withCredentials: true });
+      const { data } = await axios.patch(`${BACKEND_URL}/api/teacher/approval/${tch._id}`, {}, { withCredentials: true });
       if (data.success) {
         if (onSuccess) onSuccess(data.msg);
         isClose(); 
@@ -74,7 +76,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
 
   const handleRejectAction = async () => {
     try {
-      const { data } = await axios.delete(`http://localhost:3000/api/teacher/rejection/${tch._id}`, { withCredentials: true });
+      const { data } = await axios.delete(`${BACKEND_URL}/api/teacher/rejection/${tch._id}`, { withCredentials: true });
       if (data.success) {
         if (onSuccess) onSuccess(data.msg);
         isClose(); 

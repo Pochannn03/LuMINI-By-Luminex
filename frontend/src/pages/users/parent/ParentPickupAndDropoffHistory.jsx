@@ -3,6 +3,8 @@ import axios from 'axios';
 import NavBar from "../../../components/navigation/NavBar";
 
 // --- HELPERS ---
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 const getDateParts = (date) => {
   const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
   const weekday = date.toLocaleDateString("en-US", { weekday: "long" });
@@ -16,7 +18,6 @@ const dateToInputString = (date) => {
 };
 
 // --- ADDED IMAGE HELPER ---
-const BACKEND_URL = "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
@@ -38,7 +39,7 @@ export default function AdminDropAndPickHistory() {
       try {
         setLoading(true);
         const dateString = dateToInputString(currentDate);
-        const response = await axios.get('http://localhost:3000/api/transfer/parent', { 
+        const response = await axios.get(`${BACKEND_URL}/api/transfer/parent`, { 
           params: {
             date: dateString,
             purpose: filterType !== "all" ? filterType : undefined

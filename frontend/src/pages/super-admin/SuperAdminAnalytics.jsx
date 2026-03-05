@@ -5,6 +5,8 @@ import autoTable from "jspdf-autotable";
 import NavBar from "../../components/navigation/NavBar";
 import "../../styles/super-admin/super-admin-analytics.css";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function SuperAdminAnalytics() {
   // AUDIT STATE
   const [auditLogs, setAuditLogs] = useState([]);
@@ -47,7 +49,7 @@ export default function SuperAdminAnalytics() {
       const fetchLogs = async () => {
         setLoading(true);
         try {
-          const { data, headers } = await axios.get(`http://localhost:3000/api/audit`, {
+          const { data, headers } = await axios.get(`${BACKEND_URL}/api/audit`, {
             params: { 
               role: filterRole === "All" ? "" : filterRole, 
               search: searchQuery,
@@ -77,7 +79,7 @@ export default function SuperAdminAnalytics() {
   useEffect(() => {
     const fetchDemographics = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/users/demographics', { 
+        const response = await axios.get(`${BACKEND_URL}/api/users/demographics`, { 
           withCredentials: true 
         });
         
@@ -95,7 +97,7 @@ export default function SuperAdminAnalytics() {
   useEffect(() => {
     const fetchFeedbackStats = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/feedback/stats', { 
+        const response = await axios.get(`${BACKEND_URL}/api/feedback/stats`, { 
           withCredentials: true 
         });
         
@@ -118,7 +120,7 @@ export default function SuperAdminAnalytics() {
   useEffect(() => {
     const fetchTodayTransfers = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/transfers/today-count', { 
+        const response = await axios.get(`${BACKEND_URL}/api/transfers/today-count`, { 
           withCredentials: true 
         });
         if (response.data.success) {
@@ -135,7 +137,7 @@ export default function SuperAdminAnalytics() {
   useEffect(() => {
     const fetchWeeklyStats = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/attendance/weekly-stats', { 
+        const response = await axios.get(`${BACKEND_URL}/api/attendance/weekly-stats`, { 
           withCredentials: true 
         });
         if (response.data.success) {

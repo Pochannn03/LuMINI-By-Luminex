@@ -12,7 +12,7 @@ import SuccessModal from "../../components/SuccessModal";
 import WarningModal from "../../components/WarningModal"; 
 import ClassListModal from "../../components/modals/admin/ClassListModal";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS

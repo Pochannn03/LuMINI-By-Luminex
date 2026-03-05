@@ -10,7 +10,7 @@ import SuccessModal from "../../components/SuccessModal";
 import WarningModal from "../../components/WarningModal"; 
 import "../../styles/admin-teacher/admin-manage-approvals.css"; 
 
-const BACKEND_URL = "http://localhost:3000"; // Ensure this matches your backend
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function EnrollmentApproval() {
   const [activeTab, setActiveTab] = useState("pending");

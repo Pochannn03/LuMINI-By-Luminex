@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // --- HELPERS ---
 const getDateParts = (date) => {
   const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
@@ -16,7 +18,6 @@ const dateToInputString = (date) => {
 };
 
 // --- ADDED IMAGE HELPER ---
-const BACKEND_URL = "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
@@ -43,7 +44,7 @@ export default function AdminDropAndPickHistory() {
         // Format the date to YYYY-MM-DD to match your DB
         const dateString = dateToInputString(currentDate);
 
-        const response = await axios.get('http://localhost:3000/api/transfer', { 
+        const response = await axios.get(`${BACKEND_URL}/api/transfer`, { 
           params: {
             date: dateString
           },

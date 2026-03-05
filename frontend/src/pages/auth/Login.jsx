@@ -8,6 +8,8 @@ import fastBgImage from '../../assets/CheckIns.jpg';
 import updatesBgImage from '../../assets/Updates.jpg';
 import '../../styles/auth/login.css'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function Login() {
   const navigate = useNavigate(); 
   const { login, user, loading } = useAuth();
@@ -94,7 +96,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/auth', formData, {
+      const response = await axios.post(`${BACKEND_URL}/api/auth`, formData, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true 
       });

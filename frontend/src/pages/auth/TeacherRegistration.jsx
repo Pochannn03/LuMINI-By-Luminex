@@ -8,6 +8,8 @@ import { validateRegistrationStep } from '../../utils/validation';
 import AvatarEditor from "react-avatar-editor";
 import SuccessModal from '../../components/SuccessModal';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
@@ -471,7 +473,7 @@ export default function TeacherRegistration() {
     }
 
     try {
-      await axios.post('http://localhost:3000/api/teachers', data, {
+      await axios.post(`${BACKEND_URL}/api/teachers`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
