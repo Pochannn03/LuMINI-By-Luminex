@@ -8,23 +8,28 @@ import "../../../styles/user/parent/parent-profile.css";
 import NavBar from "../../../components/navigation/NavBar";
 import Header from "../../../components/navigation/Header";
 import SuccessModal from "../../../components/SuccessModal";
-import WarningModal from "../../../components/WarningModal"; // <-- NEW: Imported WarningModal
+import WarningModal from "../../../components/WarningModal"; 
 
 const BACKEND_URL = "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
-const calculateEAR = (eye) => {
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
-  const v1 = euclideanDistance(eye[1], eye[5]);
-  const v2 = euclideanDistance(eye[2], eye[4]);
-  const h = euclideanDistance(eye[0], eye[3]);
-  return (v1 + v2) / (2.0 * h);
+  
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
 };
 
 const calculateYawRatio = (landmarks) => {
@@ -192,11 +197,13 @@ export default function GuardianProfile() {
   const startDetectionSequence = () => {
     let isDetecting = true;
     let phase = 0; 
-    let framesHeld = 0;
-    let blinkClosed = false;
-    let blinkCount = 0; 
+    let framesHeld = 0; 
     let recognitionFrames = 0;
     let lostFaceFrames = 0; 
+
+    // NEW: Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
 
     stopDetectionRef.current = () => { isDetecting = false; };
 
@@ -223,7 +230,7 @@ export default function GuardianProfile() {
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { 
-          phase = 0; framesHeld = 0; blinkClosed = false; blinkCount = 0; recognitionFrames = 0;
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0; recognitionFrames = 0;
           setIsRecognizing(false);
           setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
           setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
@@ -243,16 +250,38 @@ export default function GuardianProfile() {
           setScanStatus("Face detected! Hold still..."); phase = 1;
         } else if (phase === 1) {
           framesHeld++;
-          if (framesHeld > 10) { phase = 2; framesHeld = 0; setScanStatus("Task 1: Please blink your eyes 3 times (0/3)"); }
+          if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } else if (phase === 2) {
-          const leftEye = detection.landmarks.getLeftEye();
-          const rightEye = detection.landmarks.getRightEye();
-          const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2;
-          if (avgEAR < 0.25) { blinkClosed = true; } 
-          else if (blinkClosed && avgEAR >= 0.25) { 
-            blinkCount++; blinkClosed = false; 
-            if (blinkCount >= 3) { phase = 3; setScanStatus("✅ Blinks verified! Please hold..."); } 
-            else { setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`); }
+          // --- UPDATED: THE 2-CYCLE MOUTH LIVENESS TEST ---
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
+
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; 
+              setScanStatus("✅ Liveness verified! Please hold...");
+            }
           }
         } else if (phase === 3) {
           framesHeld++;
@@ -269,10 +298,8 @@ export default function GuardianProfile() {
         } else if (phase === 7) {
           framesHeld++;
           if (framesHeld > 15) { 
-            phase = 8; 
-            recognitionFrames = 0; 
-            setScanStatus("Analyzing biometric data... Please hold still."); 
-            setIsRecognizing(true); 
+            phase = 8; recognitionFrames = 0; 
+            setScanStatus("Analyzing biometric data... Please hold still."); setIsRecognizing(true); 
           }
         } else if (phase === 8) {
           recognitionFrames++;

@@ -7,22 +7,29 @@ import secureBgImage from '../../assets/Secure.jpg';
 import fastBgImage from '../../assets/CheckIns.jpg';  
 import updatesBgImage from '../../assets/Updates.jpg';
 import '../../styles/auth/login.css'; 
+import WarningModal from "../../components/WarningModal"; 
 
 const BACKEND_URL = "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
-const calculateEAR = (eye) => {
+
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
-  const v1 = euclideanDistance(eye[1], eye[5]);
-  const v2 = euclideanDistance(eye[2], eye[4]);
-  const h = euclideanDistance(eye[0], eye[3]);
-  return (v1 + v2) / (2.0 * h);
+  
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
 };
 
 const calculateYawRatio = (landmarks) => {
@@ -57,6 +64,11 @@ export default function ForgotPassword() {
   const [otpSent, setOtpSent] = useState(false);
   
   const [foundUserId, setFoundUserId] = useState(null);
+
+  // --- NEW: WARNING MODAL STATES ---
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
 
   // --- FACIAL RECOGNITION STATES ---
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -146,8 +158,12 @@ export default function ForgotPassword() {
 
   const startDetectionSequence = () => {
     let isDetecting = true;
-    let phase = 0; let framesHeld = 0; let blinkClosed = false; let blinkCount = 0; 
+    let phase = 0; let framesHeld = 0; 
     let recognitionFrames = 0; let lostFaceFrames = 0; 
+
+    // NEW: Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
 
     stopDetectionRef.current = () => { isDetecting = false; };
 
@@ -172,7 +188,7 @@ export default function ForgotPassword() {
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { 
-          phase = 0; framesHeld = 0; blinkClosed = false; blinkCount = 0; recognitionFrames = 0;
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0; recognitionFrames = 0;
           setIsRecognizing(false);
           setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
           setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
@@ -191,16 +207,38 @@ export default function ForgotPassword() {
           setScanStatus("Face detected! Hold still..."); phase = 1;
         } else if (phase === 1) {
           framesHeld++;
-          if (framesHeld > 10) { phase = 2; framesHeld = 0; setScanStatus("Task 1: Please blink your eyes 3 times (0/3)"); }
+          if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } else if (phase === 2) {
-          const leftEye = detection.landmarks.getLeftEye();
-          const rightEye = detection.landmarks.getRightEye();
-          const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2;
-          if (avgEAR < 0.25) { blinkClosed = true; } 
-          else if (blinkClosed && avgEAR >= 0.25) { 
-            blinkCount++; blinkClosed = false; 
-            if (blinkCount >= 3) { phase = 3; setScanStatus("✅ Blinks verified! Please hold..."); } 
-            else { setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`); }
+          // --- UPDATED: THE 2-CYCLE MOUTH LIVENESS TEST ---
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
+
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; 
+              setScanStatus("✅ Liveness verified! Please hold...");
+            }
           }
         } else if (phase === 3) {
           framesHeld++;
@@ -277,7 +315,9 @@ export default function ForgotPassword() {
         setFaceVerified(true);
         setCurrentStep(2); 
     } catch (err) {
-        alert(err.response?.data?.message || "Biometric verification failed. Face does not match.");
+        setWarningTitle("Security Alert");
+        setWarningMessage(err.response?.data?.message || "Biometric verification failed. Face does not match.");
+        setShowWarningModal(true);
         setFaceVerified(false);
         setIsCameraActive(false); 
     }
@@ -302,7 +342,7 @@ export default function ForgotPassword() {
     if (otpInput.length !== 6) {
         setError("OTP must be exactly 6 digits."); return;
     }
-    setCurrentStep(3); // Let them type the password before verifying the final payload
+    setCurrentStep(3); 
   };
 
   // STEP 3: Final Submission (Verify OTP + Reset Password)
@@ -335,6 +375,14 @@ export default function ForgotPassword() {
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-white font-poppins overflow-hidden">
       
+      {/* --- NEW: WARNING MODAL COMPONENT --- */}
+      <WarningModal 
+        isOpen={showWarningModal} 
+        onClose={() => setShowWarningModal(false)} 
+        title={warningTitle} 
+        message={warningMessage} 
+      />
+
       {/* ---------------- TOP/LEFT SECTION: SLIDER ---------------- */}
       <div className="w-full h-[30vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out justify-start lg:h-full lg:w-1/2 lg:justify-center bg-size-[180%] lg:bg-cover" style={{ backgroundImage: `url(${features[featureIndex].bgImage})`, backgroundPosition: 'center' }}>
         <div className="relative z-10 w-full max-w-xl pb-12 pl-10 pr-8 text-left lg:px-16 lg:text-center lg:pb-0">

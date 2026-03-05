@@ -32,6 +32,7 @@ const seedSuperAdmin = async () => {
       relationship: "SuperAdmin",
       role: "superadmin",
       is_archive: false,
+      is_approved: true,
       created_by: "system_seed",
       updated_by: "system_seed"
     });
