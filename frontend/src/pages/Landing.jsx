@@ -208,8 +208,27 @@ export default function Landing() {
 
         <footer id="contact" className="bg-white pt-20 pb-10 border-t border-gray-200">
           <div className="container mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold text-cdark mb-6">Ready to upgrade?</h2>
-            <a href="#" className="btn btn-primary h-12 px-8 rounded-full mb-16 w-fit mx-auto">Contact Support</a>
+            <h2 className="text-3xl font-bold text-cdark mb-8">Get in Touch</h2>
+            
+            <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-16">
+              {/* Phone Number */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Call Us</span>
+                <p className="text-xl font-semibold text-cdark">(02) 882 2826</p>
+              </div>
+
+              {/* Vertical Divider for desktop */}
+              <div className="hidden md:block w-px h-10 bg-gray-200"></div>
+
+              {/* Email Address */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Email Us</span>
+                <a href="mailto:136710@deped.gov.ph" className="text-md font-semibold text-cdark hover:text-cbrand-blue transition-colors">
+                  136710@deped.gov.ph
+                </a>
+              </div>
+            </div>
+
             <div className="border-t border-gray-100 pt-8 text-sm text-gray-400">
               <p>© 2026 LuMINI Portal.</p>
             </div>
