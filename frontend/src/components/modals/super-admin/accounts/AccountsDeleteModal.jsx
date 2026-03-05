@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import axios from 'axios';
 import '../../../../styles/super-admin/class-management.css';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AccountsDeleteModal({ isOpen, onClose, account, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState(""); // <-- NEW: Error state
@@ -14,7 +16,7 @@ export default function AccountsDeleteModal({ isOpen, onClose, account, onSucces
     setErrorMsg(""); // Clear old errors
     try {
       const response = await axios.put(
-        `http://localhost:3000/api/users/archive/${account._id}`, 
+        `${BACKEND_URL}/api/users/archive/${account._id}`, 
         {},
         { withCredentials: true }
       );

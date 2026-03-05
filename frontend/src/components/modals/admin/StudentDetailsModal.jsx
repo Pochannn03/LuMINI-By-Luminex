@@ -2,7 +2,7 @@ import React from "react";
 import "../../../styles/teacher/class-list-modal.css";
 
 // --- ADDED IMAGE HELPER ---
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName || 'User'}&background=random`;

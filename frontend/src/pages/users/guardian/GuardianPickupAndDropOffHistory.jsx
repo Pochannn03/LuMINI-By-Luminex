@@ -17,12 +17,14 @@ const dateToInputString = (date) => {
   return localDate.toISOString().split('T')[0];
 };
 
+// DYNAMIC BACKEND URL
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
   if (path.startsWith("http")) return path;
-  return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+  const cleanPath = path.replace(/\\/g, "/").replace(/^\/+/, "");
+  return `${BACKEND_URL}/${cleanPath}`;
 };
 
 export default function GuardianPickupAndDropOffHistory() {
@@ -39,7 +41,7 @@ export default function GuardianPickupAndDropOffHistory() {
         setLoading(true);
         const dateString = dateToInputString(currentDate);
         
-        // Using the same endpoint as the parent since they share the "user" role
+        // Updated to use BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/transfer/parent`, { 
           params: {
             date: dateString,
@@ -62,18 +64,6 @@ export default function GuardianPickupAndDropOffHistory() {
     fetchTransferHistory();
   }, [currentDate, filterType]);
 
-  const filteredData = transferData.filter(item => {
-    const selectedDateString = dateToInputString(currentDate); 
-    const matchesDate = item.date === selectedDateString;
-    
-    const recordPurpose = item.purpose?.toLowerCase().replace(/\s/g, "") || "";
-    const activeFilter = filterType.toLowerCase().replace(/\s/g, "");
-
-    const matchesType = filterType === "all" || recordPurpose.includes(activeFilter);
-    
-    return matchesDate && matchesType;
-  });
-
   const handleDateChange = (days) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
@@ -86,6 +76,15 @@ export default function GuardianPickupAndDropOffHistory() {
       setCurrentDate(selectedDate);
     }
   };
+
+  const filteredData = transferData.filter(item => {
+    const selectedDateString = dateToInputString(currentDate); 
+    const matchesDate = item.date === selectedDateString;
+    const recordPurpose = item.purpose?.toLowerCase().replace(/\s/g, "") || "";
+    const activeFilter = filterType.toLowerCase().replace(/\s/g, "");
+    const matchesType = filterType === "all" || recordPurpose.includes(activeFilter);
+    return matchesDate && matchesType;
+  });
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -112,7 +111,6 @@ export default function GuardianPickupAndDropOffHistory() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                
                 <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
                   <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">filter_list</span>
                   <select 
@@ -127,10 +125,9 @@ export default function GuardianPickupAndDropOffHistory() {
                 </div>
 
                 <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm">
-                  <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                  <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 transition-all cursor-pointer">
                     <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                   </button>
-
                   <div className="relative">
                     <button 
                       onClick={() => dateInputRef.current.showPicker()} 
@@ -138,27 +135,14 @@ export default function GuardianPickupAndDropOffHistory() {
                     >
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-[18px] text-blue-500">calendar_month</span>
-                        <span className="text-[12px] font-bold text-cdark uppercase tracking-tight">
-                          {monthDay}
-                        </span>
+                        <span className="text-[12px] font-bold text-cdark uppercase tracking-tight">{monthDay}</span>
                       </div>
                       <div className="w-px h-3 bg-gray-300"></div>
-                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                        {weekday.slice(0, 3)} 
-                      </span>
+                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{weekday.slice(0, 3)}</span>
                     </button>
-
-                    <input 
-                      type="date"
-                      ref={dateInputRef}
-                      onChange={handleCalendarChange}
-                      value={dateToInputString(currentDate)}
-                      className="absolute opacity-0 pointer-events-none"
-                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
-                    />
+                    <input type="date" ref={dateInputRef} onChange={handleCalendarChange} value={dateToInputString(currentDate)} className="absolute opacity-0 pointer-events-none" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
                   </div>
-
-                  <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                  <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 transition-all cursor-pointer">
                     <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                   </button>
                 </div>
@@ -183,17 +167,11 @@ export default function GuardianPickupAndDropOffHistory() {
                     filteredData.map((record) => (
                       <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
                         <td className="py-4 px-2">
-                           <span className="inline-block px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-md text-gray-500 font-bold text-[10px] tracking-tight">
-                              {record.transfer_id}
-                           </span>
+                           <span className="inline-block px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-md text-gray-500 font-bold text-[10px] tracking-tight">{record.transfer_id}</span>
                         </td>
                         <td className="py-4 px-2">
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={getImageUrl(record.student_details?.profile_picture, record.student_name)} 
-                              className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                              alt="student"
-                            />
+                            <img src={getImageUrl(record.student_details?.profile_picture, record.student_name)} className="w-9 h-9 rounded-full object-cover border border-slate-200" alt="student" />
                             <div>
                               <p className="text-cdark text-[13px] font-bold leading-tight">{record.student_name}</p>
                               <div className="flex flex-col">
@@ -204,17 +182,13 @@ export default function GuardianPickupAndDropOffHistory() {
                           </div>
                         </td>
                         <td className="py-4 px-2">
-                           <div className="flex items-center gap-2.5">
-                              <img 
-                                src={getImageUrl(record.user_details?.profile_picture, record.user_name)} 
-                                className="w-9 h-9 rounded-full object-cover border border-slate-200"
-                                alt="guardian"
-                              />
+                            <div className="flex items-center gap-2.5">
+                              <img src={getImageUrl(record.user_details?.profile_picture, record.user_name)} className="w-9 h-9 rounded-full object-cover border border-slate-200" alt="guardian" />
                               <div>
                                  <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
-                                 <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details?.relationship || "Authorized User"}</span>
+                                 <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details?.relationship || "Guardian"}</span>
                               </div>
-                           </div>
+                            </div>
                         </td>
                         <td className="py-4 px-2 text-center">
                           <span className="text-cdark text-[13px] font-medium">{record.time}</span>
@@ -222,9 +196,7 @@ export default function GuardianPickupAndDropOffHistory() {
                         <td className="py-4 px-2 text-center">
                           <span className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             record.purpose === "Drop off" ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-green-50 text-green-600 border border-green-100"
-                          }`}>
-                            {record.purpose}
-                          </span>
+                          }`}>{record.purpose}</span>
                         </td>
                       </tr>
                     ))

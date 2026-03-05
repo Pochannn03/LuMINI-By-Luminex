@@ -3,6 +3,8 @@ import axios from 'axios';
 import { createPortal } from "react-dom";
 import WarningModal from '../../../WarningModal'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageDeleteStudentModal({ isOpen, onClose, studentData, onSuccess }) {
   const [confirmationInput, setConfirmationInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export default function ClassManageDeleteStudentModal({ isOpen, onClose, student
     setLoading(true);
     try {
       // Endpoint matched to your logic: /api/students/archive/
-      const response = await axios.put(`http://localhost:3000/api/students/archive/${studentData._id}`, {}, {
+      const response = await axios.put(`${BACKEND_URL}/api/students/archive/${studentData._id}`, {}, {
         withCredentials: true
       });
 

@@ -7,6 +7,8 @@ import ClassManageSelectStudentModal from '../class-management/ClassManageSelect
 import WarningModal from '../../../WarningModal'; 
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-class-modal.css';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess }) {
   // DATA STATES
   const [step, setStep] = useState(1); 
@@ -35,7 +37,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
     if(isOpen){
       const fetchTeachers = async () => {
         try {
-          const response = await axios.get('http://localhost:3000/api/teachers', {
+          const response = await axios.get(`${BACKEND_URL}/api/teachers`, {
             withCredentials: true
           });
 
@@ -130,7 +132,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
     };
 
     try {
-      const response = await axios.post('http://localhost:3000/api/sections', payload, {
+      const response = await axios.post(`${BACKEND_URL}/api/sections`, payload, {
         withCredentials: true
       });
 

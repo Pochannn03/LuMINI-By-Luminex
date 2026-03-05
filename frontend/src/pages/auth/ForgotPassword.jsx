@@ -15,7 +15,6 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
 
-// NEW: Mouth Aspect Ratio for Open/Close detection
 const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
@@ -65,12 +64,10 @@ export default function ForgotPassword() {
   
   const [foundUserId, setFoundUserId] = useState(null);
 
-  // --- NEW: WARNING MODAL STATES ---
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
 
-  // --- FACIAL RECOGNITION STATES ---
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -85,7 +82,6 @@ export default function ForgotPassword() {
   const streamRef = useRef(null);
   const stopDetectionRef = useRef(null);
 
-  // --- SLIDER STATE ---
   const [featureIndex, setFeatureIndex] = useState(0);
   const features = [
     { title: "Secure Identity", text: "Ensure only authorized guardians can pick up students.", bgImage: secureBgImage },
@@ -115,7 +111,6 @@ export default function ForgotPassword() {
     loadModels();
   }, []);
 
-  // --- CAMERA LOGIC ---
   useEffect(() => {
     if (isCameraActive && currentStep === 1) startCamera();
     else stopCamera();
@@ -160,8 +155,6 @@ export default function ForgotPassword() {
     let isDetecting = true;
     let phase = 0; let framesHeld = 0; 
     let recognitionFrames = 0; let lostFaceFrames = 0; 
-
-    // NEW: Mouth State Tracking
     let mouthPhase = 0; 
     let mouthHoldFrames = 0;
 
@@ -209,10 +202,8 @@ export default function ForgotPassword() {
           framesHeld++;
           if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } else if (phase === 2) {
-          // --- UPDATED: THE 2-CYCLE MOUTH LIVENESS TEST ---
           const mouth = detection.landmarks.getMouth();
           const mar = calculateMAR(mouth);
-          
           const OPEN_THRESHOLD = 0.4;
           const CLOSE_THRESHOLD = 0.15; 
 
@@ -272,22 +263,18 @@ export default function ForgotPassword() {
     runDetection(); 
   };
 
-  // --- HANDLERS ---
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData({ ...formData, [id]: value });
     if(error) setError('');
   };
 
-  // STEP 0: Find the User Account 
   const handleSearchAccount = async (e) => {
     e.preventDefault();
     setError('');
-    
     if (!formData.firstName || !formData.lastName || !formData.email) {
       setError("Please fill in all fields."); return;
     }
-
     setIsLoading(true);
     try {
       const response = await axios.post(`${BACKEND_URL}/api/auth/forgot-password/search`, {
@@ -304,14 +291,12 @@ export default function ForgotPassword() {
     }
   };
 
-  // STEP 1: Verify Face Mathematically against Database
   const handleBiometricMatch = async (descriptorArray) => {
     try {
         await axios.post(`${BACKEND_URL}/api/auth/forgot-password/verify-face`, {
             userId: foundUserId,
             facialDescriptor: descriptorArray
         });
-        // Success!
         setFaceVerified(true);
         setCurrentStep(2); 
     } catch (err) {
@@ -323,7 +308,6 @@ export default function ForgotPassword() {
     }
   };
 
-  // STEP 2: Request OTP manually
   const requestOTP = async () => {
       try {
           setIsLoading(true);
@@ -336,7 +320,6 @@ export default function ForgotPassword() {
       }
   };
 
-  // STEP 2.5: Move to Password Input
   const handleProceedToReset = (e) => {
     e.preventDefault();
     if (otpInput.length !== 6) {
@@ -345,7 +328,6 @@ export default function ForgotPassword() {
     setCurrentStep(3); 
   };
 
-  // STEP 3: Final Submission (Verify OTP + Reset Password)
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
@@ -362,7 +344,6 @@ export default function ForgotPassword() {
             otp: otpInput,
             newPassword: formData.newPassword
         });
-        
         alert("Password Successfully Reset! Redirecting to login...");
         navigate('/login');
     } catch (err) {
@@ -375,7 +356,6 @@ export default function ForgotPassword() {
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-white font-poppins overflow-hidden">
       
-      {/* --- NEW: WARNING MODAL COMPONENT --- */}
       <WarningModal 
         isOpen={showWarningModal} 
         onClose={() => setShowWarningModal(false)} 
@@ -383,7 +363,6 @@ export default function ForgotPassword() {
         message={warningMessage} 
       />
 
-      {/* ---------------- TOP/LEFT SECTION: SLIDER ---------------- */}
       <div className="w-full h-[30vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out justify-start lg:h-full lg:w-1/2 lg:justify-center bg-size-[180%] lg:bg-cover" style={{ backgroundImage: `url(${features[featureIndex].bgImage})`, backgroundPosition: 'center' }}>
         <div className="relative z-10 w-full max-w-xl pb-12 pl-10 pr-8 text-left lg:px-16 lg:text-center lg:pb-0">
             <h3 className="text-3xl lg:text-5xl font-extrabold text-[#2c3e50] mb-3 lg:mb-6 transition-all duration-500 tracking-tight">{features[featureIndex].title}</h3>
@@ -396,12 +375,10 @@ export default function ForgotPassword() {
         </div>
       </div>
 
-      {/* ---------------- BOTTOM/RIGHT SECTION: FORM WIZARD ---------------- */}
       <div className="w-full flex-1 bg-white rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] -mt-8 relative z-20 lg:w-1/2 lg:h-full lg:rounded-none lg:shadow-none lg:mt-0 lg:flex lg:flex-col lg:justify-center overflow-y-auto lg:overflow-hidden">
         
         <div className="w-full max-w-md lg:max-w-xl mx-auto px-8 pt-8 pb-12 lg:p-16 lg:flex lg:flex-col lg:justify-center min-h-full">
             
-            {/* Header */}
             <div className="mb-6 text-left">
               <h2 className="text-3xl lg:text-4xl font-extrabold text-[#2c3e50] mb-2 tracking-tight">Account Recovery</h2>
               <p className="text-gray-500 text-sm lg:text-base">
@@ -412,14 +389,12 @@ export default function ForgotPassword() {
               </p>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm flex items-center gap-2 animate-shake">
                 <span className="font-bold">!</span> {error}
               </div>
             )}
 
-            {/* --- STEP 0: SEARCH ACCOUNT --- */}
             {currentStep === 0 && (
                 <form onSubmit={handleSearchAccount} className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
                     <div className="flex gap-4 w-full">
@@ -438,7 +413,6 @@ export default function ForgotPassword() {
                             </div>
                         </div>
                     </div>
-                    
                     <div className="space-y-1">
                         <label className="text-sm font-semibold text-gray-700 ml-1">Email Address</label>
                         <div className="relative group flex items-center">
@@ -446,14 +420,12 @@ export default function ForgotPassword() {
                             <input type="email" id="email" className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] transition-all text-sm text-gray-700 placeholder-gray-400" placeholder="johndoe@email.com" value={formData.email} onChange={handleChange} />
                         </div>
                     </div>
-
                     <button type="submit" disabled={isLoading} className="w-full h-12 mt-6 bg-[var(--brand-blue)] hover:bg-[#2c8ac4] text-white rounded-xl font-bold text-lg shadow-md transform active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer">
                         {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Find My Account"}
                     </button>
                 </form>
             )}
 
-            {/* --- STEP 1: FACIAL BIOMETRICS --- */}
             {currentStep === 1 && (
                 <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
                     {!isCameraActive ? (
@@ -471,28 +443,24 @@ export default function ForgotPassword() {
                             <div className="w-full h-[300px] lg:h-[350px] bg-slate-900 rounded-2xl flex items-center justify-center text-white relative overflow-hidden border-2 border-slate-200 shadow-xl">
                                 <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-0" />
                                 <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
-
                                 {!isVideoPlaying && !cameraError && (
                                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400 animate-pulse">
                                         <span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing...</span>
                                     </div>
                                 )}
-                                
                                 {isVideoPlaying && !cameraError && (
                                     <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
                                         <div className={ovalClass} style={{ width: '190px', height: '250px', borderRadius: '50% / 50%' }}></div>
                                     </div>
                                 )}
-
                                 {isRecognizing && (
-                                    <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(4px)' }}>
+                                    <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifycenter: 'center', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(4px)' }}>
                                         <span className="material-symbols-outlined text-blue-500 text-[50px] animate-spin mb-4">autorenew</span>
                                         <span className="text-white text-[16px] font-bold tracking-wider animate-pulse mb-2">Analyzing Data...</span>
                                         <span className="text-slate-400 text-[12px] font-medium">Please keep the camera still</span>
                                     </div>
                                 )}
                             </div>
-
                             <p className={`text-[14px] font-bold mt-4 mb-2 text-center transition-colors duration-300 ${scanStatus.includes("✅") ? "text-green-600" : scanStatus.includes("⚠️") ? "text-red-500" : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? "text-blue-600 animate-pulse" : "text-slate-600"}`}>
                                 {cameraError ? "Check browser settings." : scanStatus}
                             </p>
@@ -502,7 +470,6 @@ export default function ForgotPassword() {
                 </div>
             )}
 
-            {/* --- STEP 2: EMAIL OTP --- */}
             {currentStep === 2 && (
                  <div className="animate-[fadeIn_0.3s_ease-out] flex flex-col items-center">
                     <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center text-green-500 mb-2">
@@ -512,24 +479,20 @@ export default function ForgotPassword() {
                     
                     {!otpSent ? (
                         <>
-                            <p className="text-[13px] text-[#64748b] text-center mb-6">
-                                Please send the OTP to your registered email to continue.
-                            </p>
-                            <button type="button" disabled={isLoading} onClick={requestOTP} className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center cursor-pointer transition-colors">
+                            <p className="text-[13px] text-[#64748b] text-center mb-6">Please send the OTP to your registered email to continue.</p>
+                            <button type="button" disabled={isLoading} onClick={requestOTP} className="w-full h-12 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold flex items-center justify-center transition-colors">
                                 {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Send OTP"}
                             </button>
                         </>
                     ) : (
                         <form onSubmit={handleProceedToReset} className="w-full flex flex-col items-center">
-                            <p className="text-[13px] text-[#64748b] text-center mb-4">
-                                We've sent a 6-digit security code to your email.
-                            </p>
+                            <p className="text-[13px] text-[#64748b] text-center mb-4">We've sent a 6-digit security code to your email.</p>
                             <div className="w-full space-y-1">
                                 <div className="relative group">
                                     <input type="text" className="w-full h-14 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-[var(--brand-blue)] transition-all text-center font-bold text-2xl tracking-[0.5em] text-gray-700" placeholder="------" maxLength="6" value={otpInput} onChange={(e) => {setOtpInput(e.target.value.replace(/\D/g, '')); setError('');}} />
                                 </div>
                             </div>
-                            <button type="submit" disabled={otpInput.length < 6} className="w-full h-12 mt-4 bg-[var(--brand-blue)] hover:bg-[#2c8ac4] text-white rounded-xl font-bold text-lg shadow-md transform active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer disabled:opacity-50">
+                            <button type="submit" disabled={otpInput.length < 6} className="w-full h-12 mt-4 bg-[var(--brand-blue)] hover:bg-[#2c8ac4] text-white rounded-xl font-bold text-lg shadow-md transition-all flex items-center justify-center cursor-pointer disabled:opacity-50">
                                 Verify Code
                             </button>
                         </form>
@@ -537,7 +500,6 @@ export default function ForgotPassword() {
                 </div>
             )}
 
-            {/* --- STEP 3: RESET PASSWORD --- */}
             {currentStep === 3 && (
                 <form onSubmit={handleResetPassword} className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
                     <div className="space-y-1">
@@ -550,7 +512,6 @@ export default function ForgotPassword() {
                             </button>
                         </div>
                     </div>
-
                     <div className="space-y-1">
                         <label className="text-sm font-semibold text-gray-700 ml-1">Confirm Password</label>
                         <div className="relative flex items-center">
@@ -561,20 +522,17 @@ export default function ForgotPassword() {
                             </button>
                         </div>
                     </div>
-
-                    <button type="submit" disabled={isLoading} className="w-full h-12 mt-6 bg-[var(--brand-blue)] hover:bg-[#2c8ac4] text-white rounded-xl font-bold text-lg shadow-md transform active:scale-[0.98] transition-all flex items-center justify-center cursor-pointer">
+                    <button type="submit" disabled={isLoading} className="w-full h-12 mt-6 bg-[var(--brand-blue)] hover:bg-[#2c8ac4] text-white rounded-xl font-bold text-lg shadow-md transition-all flex items-center justify-center cursor-pointer">
                         {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Reset Password"}
                     </button>
                 </form>
             )}
 
-            {/* Back to Login Link */}
             <div className="mt-8 text-center">
               <Link to="/login" className="text-sm font-semibold text-slate-400 hover:text-[var(--brand-blue)] transition-colors flex items-center justify-center gap-1">
                 <span className="material-symbols-outlined text-[16px]">arrow_back</span> Back to Login
               </Link>
             </div>
-
         </div>
       </div>
     </div>

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import AdminConfirmModal from '../TeacherConfirmationModal'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AdminQueueParentGuardian ({ item, setQueue }) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
@@ -17,7 +19,7 @@ export default function AdminQueueParentGuardian ({ item, setQueue }) {
     // Close the modal immediately to show responsiveness
     setIsConfirmOpen(false);
     try {
-      const response = await axios.patch(`http://localhost:3000/api/queue/remove/${item.user_id}`, 
+      const response = await axios.patch(`${BACKEND_URL}/api/queue/remove/${item.user_id}`, 
         {}, 
         { withCredentials: true }
       );

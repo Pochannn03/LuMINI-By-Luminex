@@ -5,6 +5,8 @@ import ClassManageAddStudentCard from "./ClassManageAddStudentCard";
 import WarningModal from '../../../WarningModal'; 
 import "../../../../styles/super-admin/class-manage-modal/class-manage-select-students-modal.css";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapacity, onSave, initialSelected, sectionId}) {
   const [studentList, setStudentList] = useState([]);
   const [filteredList, setFilteredList] = useState([]); // For search functionality
@@ -34,7 +36,7 @@ export default function ClassManageSelectStudentModal({ isOpen, onClose, maxCapa
           const idToPass = (sectionId !== undefined && sectionId !== null) ? sectionId : '';
           
           const response = await axios.get(
-            `http://localhost:3000/api/students/available?editingSectionId=${idToPass}`, 
+            `${BACKEND_URL}/api/students/available?editingSectionId=${idToPass}`, 
             { withCredentials: true }
           );
           

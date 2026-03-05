@@ -17,14 +17,11 @@ const dateToInputString = (date) => {
   return localDate.toISOString().split('T')[0];
 };
 
-// --- ADDED IMAGE HELPER ---
-
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
   if (path.startsWith("http")) return path;
   return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
 };
-// --------------------------
 
 export default function AdminDropAndPickHistory() {
   const [transferData, setTransferData] = useState([]);
@@ -36,14 +33,13 @@ export default function AdminDropAndPickHistory() {
   const dateInputRef = useRef(null);
   const { monthDay, weekday } = getDateParts(currentDate);
 
-
   useEffect(() => {
     const fetchTransferHistory = async () => {
       try {
         setLoading(true);
-        // Format the date to YYYY-MM-DD to match your DB
         const dateString = dateToInputString(currentDate);
 
+        // Updated to use dynamic BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/transfer`, { 
           params: {
             date: dateString
@@ -123,10 +119,7 @@ export default function AdminDropAndPickHistory() {
                 </div>
               </div>
 
-              {/* NEW COMBINED CONTROLS SECTION */}
               <div className="flex flex-wrap items-center gap-3">
-                
-                {/* 1. FILTER SELECT - CUSTOM DROPDOWN */}
                 <div className="filter-wrapper" ref={filterRef}>
                   <button 
                     className={`btn-filter ${isFilterOpen ? "active" : ""}`} 
@@ -145,14 +138,12 @@ export default function AdminDropAndPickHistory() {
                       >
                         <span className="material-symbols-outlined">list</span> All Records
                       </button>
-                      
                       <button 
                         className="filter-option" 
                         onClick={() => { setFilterType("drop off"); setIsFilterOpen(false); }}
                       >
                         <span className="material-symbols-outlined">login</span> Drop Offs
                       </button>
-
                       <button 
                         className="filter-option" 
                         onClick={() => { setFilterType("pick up"); setIsFilterOpen(false); }}
@@ -163,12 +154,10 @@ export default function AdminDropAndPickHistory() {
                   )}
                 </div>
 
-                {/* 2. SHRUNK DATE NAVIGATOR */}
                 <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm">
                   <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
                     <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                   </button>
-
                   <div className="relative">
                     <button 
                       onClick={() => dateInputRef.current.showPicker()} 
@@ -182,10 +171,9 @@ export default function AdminDropAndPickHistory() {
                       </div>
                       <div className="w-px h-3 bg-gray-300"></div>
                       <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
-                        {weekday.slice(0, 3)} {/* Shrunk day to 3 letters */}
+                        {weekday.slice(0, 3)}
                       </span>
                     </button>
-
                     <input 
                       type="date"
                       ref={dateInputRef}
@@ -195,7 +183,6 @@ export default function AdminDropAndPickHistory() {
                       style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
                     />
                   </div>
-
                   <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
                     <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                   </button>
@@ -227,7 +214,6 @@ export default function AdminDropAndPickHistory() {
                         </td>
                         <td className="py-4 px-2">
                           <div className="flex items-center gap-3">
-                            {/* --- APPLIED HELPER TO STUDENT IMAGE --- */}
                             <img 
                               src={getImageUrl(record.student_details?.profile_picture, record.student_name)} 
                               className="w-9 h-9 rounded-full object-cover border border-slate-200"
@@ -243,8 +229,7 @@ export default function AdminDropAndPickHistory() {
                           </div>
                         </td>
                         <td className="py-4 px-2">
-                           <div className="flex items-center gap-2.5">
-                              {/* --- APPLIED HELPER TO PARENT IMAGE --- */}
+                            <div className="flex items-center gap-2.5">
                               <img 
                                 src={getImageUrl(record.user_details?.profile_picture, record.user_name)} 
                                 className="w-9 h-9 rounded-full object-cover border border-slate-200"
@@ -254,7 +239,7 @@ export default function AdminDropAndPickHistory() {
                                  <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
                                  <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details?.relationship || "Authorized User"}</span>
                               </div>
-                           </div>
+                            </div>
                         </td>
                         <td className="py-4 px-2 text-center">
                           <span className="text-cdark text-[13px] font-medium">{record.time}</span>

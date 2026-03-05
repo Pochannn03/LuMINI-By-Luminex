@@ -20,7 +20,6 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
 
-// NEW: Mouth Aspect Ratio for Open/Close detection
 const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
@@ -86,9 +85,6 @@ export default function AdminDashboard() {
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
 
-  // ========================================================
-  // PHASE 2: LEGACY TEACHER BIOMETRIC INTERCEPTION STATES
-  // ========================================================
   const [needsBiometricSetup, setNeedsBiometricSetup] = useState(false);
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -106,15 +102,16 @@ export default function AdminDashboard() {
   const streamRef = useRef(null);
   const stopDetectionRef = useRef(null);
 
-  // 1. Check if Teacher needs to set up biometrics on load
+  // 1. Check if Teacher needs to set up biometrics
   useEffect(() => {
     const checkBiometrics = async () => {
       if (user?.role === 'admin') {
         try {
+          // Updated to BACKEND_URL
           const res = await axios.get(`${BACKEND_URL}/api/teacher/check-biometrics`, { withCredentials: true });
           if (res.data.needsBiometrics) {
             setNeedsBiometricSetup(true);
-            loadModels(); // Pre-load AI models
+            loadModels(); 
           }
         } catch (err) {
           console.error("Error checking biometrics", err);
@@ -124,7 +121,7 @@ export default function AdminDashboard() {
     checkBiometrics();
   }, [user]);
 
-  // 2. Load Models Function
+  // 2. Load Models
   const loadModels = async () => {
     const MODEL_URL = "/models"; 
     try {
@@ -139,7 +136,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // 3. Camera Control logic
   useEffect(() => {
     if (isCameraActive) startCamera();
     else stopCamera();
@@ -176,24 +172,15 @@ export default function AdminDashboard() {
     return canvas.toDataURL('image/jpeg', 0.9);
   };
 
-  // ==========================================
-  // LIVENESS DETECTION & MULTI-FRAME AVERAGING
-  // ==========================================
   const startDetectionSequence = () => {
     let isDetecting = true;
     let phase = 0; 
     let framesHeld = 0; 
-    
-    // Countdown Trackers
     let countdownSecs = 3; 
     let countdownFrames = 0; 
     let lostFaceFrames = 0; 
-
-    // Mouth State Tracking
     let mouthPhase = 0; 
     let mouthHoldFrames = 0;
-
-    // ARRAY TO STORE MULTIPLE FRAMES FOR AVERAGING
     let collectedDescriptors = []; 
 
     stopDetectionRef.current = () => { isDetecting = false; };
@@ -237,10 +224,8 @@ export default function AdminDashboard() {
           framesHeld++; if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } 
         else if (phase === 2) {
-          // --- THE 2-CYCLE MOUTH LIVENESS TEST ---
           const mouth = detection.landmarks.getMouth();
           const mar = calculateMAR(mouth);
-          
           const OPEN_THRESHOLD = 0.4;
           const CLOSE_THRESHOLD = 0.15; 
 
@@ -292,26 +277,19 @@ export default function AdminDashboard() {
             }
           }
         } else if (phase === 9) {
-          // --- THE MULTI-FRAME AVERAGING PROTOCOL ---
           collectedDescriptors.push(Array.from(detection.descriptor));
-          
           if (collectedDescriptors.length >= 5) { 
             setScanStatus("Processing Master Template...");
-            
             let averagedDescriptor = new Array(128).fill(0);
-            
             for (let i = 0; i < collectedDescriptors.length; i++) {
               for (let j = 0; j < 128; j++) {
                 averagedDescriptor[j] += collectedDescriptors[i][j];
               }
             }
-            
             averagedDescriptor = averagedDescriptor.map(val => val / collectedDescriptors.length);
-
             const imgData = takeSnapshot(); 
             setCapturedImage(imgData); 
             setFaceDescriptor(averagedDescriptor);
-
             isDetecting = false; stopCamera(); setIsCameraActive(false); return; 
           }
         }
@@ -321,7 +299,6 @@ export default function AdminDashboard() {
     runDetection(); 
   };
 
-  // 4. Save Final Data
   const handleSaveBiometrics = async () => {
     setIsSavingBiometrics(true);
     try {
@@ -333,13 +310,14 @@ export default function AdminDashboard() {
       }
       if (faceDescriptor) data.append('facialDescriptor', JSON.stringify(faceDescriptor));
 
+      // Updated to BACKEND_URL
       await axios.put(`${BACKEND_URL}/api/teacher/update-biometrics`, data, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       setTransferSuccessData({ type: 'success', title: 'Security Updated', message: "Your facial biometrics have been secured successfully!" });
-      setNeedsBiometricSetup(false); // <--- UNLOCKS DASHBOARD
+      setNeedsBiometricSetup(false); 
     } catch (err) {
       console.error(err);
       alert("Failed to save biometrics. Please try again.");
@@ -348,17 +326,10 @@ export default function AdminDashboard() {
       setIsSavingBiometrics(false);
     }
   }
-  // ========================================================
 
-
-  useEffect(() => { isAuthModalOpenRef.current = isAuthModalOpen; }, [isAuthModalOpen]);
-  useEffect(() => { transferSuccessDataRef.current = transferSuccessData; }, [transferSuccessData]);
-
-  // GETTING INFORMATION
   const handleScanSuccess = async (rawValue) => {
     setActiveScanMode(null);
     setLoadingScan(true);
-
     const parentTokenRegex = /^[0-9a-f]{32}$/i;
     const studentIdRegex = /^\d{4}-\d{4}$/;
 
@@ -367,25 +338,21 @@ export default function AdminDashboard() {
         if (!parentTokenRegex.test(rawValue)) {
           throw new Error("Invalid Parent Pass. Please scan a valid Pickup Token.");
         }
-
+        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/scan/pass/${rawValue}`, {
           withCredentials: true
         });
 
         if (response.data.valid) {
-          setScannedData({
-            ...response.data,
-            token: rawValue
-          });
+          setScannedData({ ...response.data, token: rawValue });
           setIsAuthModalOpen(true);
         }
       } 
-
       else if (activeScanMode === 'student') {
         if (!studentIdRegex.test(rawValue)) {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
-
+        // Updated to BACKEND_URL
         const response = await axios.post(`${BACKEND_URL}/api/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
@@ -400,7 +367,6 @@ export default function AdminDashboard() {
         });
         setIsAttendanceModalOpen(true);
       }
-
     } catch (error) {
       const finalMessage = error.response?.data?.error || error.message || "An unexpected error occurred.";
       setErrorTitle("Scan Error");
@@ -414,7 +380,6 @@ export default function AdminDashboard() {
 
   const handlePostAnnouncement = async () => {
     if (!announcementData.content.trim()) return;
-
     if (user?.role !== 'superadmin' && !selectedSection) {
       setErrorTitle("Post Failed");
       setErrorMainMsg("Section Required");
@@ -425,8 +390,8 @@ export default function AdminDashboard() {
 
     try {
       setPosting(true);
-      
-      const response = await axios.post("${BACKEND_URL}/api/announcements", 
+      // Updated to BACKEND_URL
+      const response = await axios.post(`${BACKEND_URL}/api/announcements`, 
         { announcement: announcementData.content,
           category: announcementData.category,
           section_id: selectedSection
@@ -438,14 +403,11 @@ export default function AdminDashboard() {
         const newAnn = response.data.announcement; 
         setAnnouncementData({ content: '', category: 'notifications_active' });
         setSelectedSection("");
-        
         setTransferSuccessData({
           type: 'success',
           title: 'Announcement Posted',
           message: 'Your update has been shared with all parents.',
-          details: [
-            { label: 'Author', value: `${newAnn.user.first_name} ${newAnn.user.last_name}` },
-          ]
+          details: [{ label: 'Author', value: `${newAnn.user.first_name} ${newAnn.user.last_name}` }]
         });
       }
     } catch (err) {
@@ -462,6 +424,7 @@ export default function AdminDashboard() {
   const handleConfirmPickup = async () => {
     try {
       setLoadingScan(true);
+      // Updated to BACKEND_URL
       const response = await axios.post(`${BACKEND_URL}/api/transfer`, {
         studentId: scannedData.student.studentId,
         studentName: scannedData.student.name,
@@ -488,11 +451,9 @@ export default function AdminDashboard() {
         });
         setScannedData(null);
       }
-
     } catch (err) {
       setIsAuthModalOpen(false); 
       setIsErrorModalOpen(false); 
-
       const backendError = err.response?.data?.error || "An unexpected error occurred.";
       setTransferSuccessData({
           type: 'error',
@@ -512,6 +473,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchMySections = async () => {
       try {
+        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/teacher/sections`, {
           withCredentials: true
         });
@@ -522,15 +484,13 @@ export default function AdminDashboard() {
         console.error("Failed to load sections:", err);
       }
     };
-
-    if (user?.role === 'admin') {
-      fetchMySections();
-    } 
+    if (user?.role === 'admin') fetchMySections();
   }, [user]);
 
   useEffect(() => {
     const fetchSystemAnnouncements = async () => {
       try {
+        // Updated to BACKEND_URL
         const res = await axios.get(`${BACKEND_URL}/api/announcement/teacher`, 
           { withCredentials: true });
         setSystemAnnouncements(res.data.announcements);
@@ -544,12 +504,11 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
+        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/announcement/teacher`, {
           withCredentials: true
         });
-        if (response.data.success) {
-          setAnnouncements(response.data.announcements);
-        }
+        if (response.data.success) setAnnouncements(response.data.announcements);
       } catch (err) {
         console.error("Failed to fetch announcements:", err);
       } finally {
@@ -562,81 +521,54 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchInitialQueue = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/queue`, 
-          { withCredentials: true }
-        );
-
+        // Updated to BACKEND_URL
+        const response = await axios.get(`${BACKEND_URL}/api/queue`, { withCredentials: true });
         if (response.data.success) {
           setQueue(response.data.queue);
           teacherSections.current = response.data.authorized_sections || [];
-          }
-      } catch (err) {
-          console.error("Failed to fetch queue:", err);
-      }
+        }
+      } catch (err) { console.error("Failed to fetch queue:", err); }
     };
-
     fetchInitialQueue();
 
-    const socket = io(`${BACKEND_URL}`, {
-      withCredentials: true
-    });
+    // Updated socket to BACKEND_URL
+    const socket = io(BACKEND_URL, { withCredentials: true });
 
-    if (user?.user_id) {
-      socket.emit("join", user.user_id);
-    }
+    if (user?.user_id) socket.emit("join", user.user_id);
     
     socket.on("new_queue_entry", (newEntry) => {
       setQueue(prevQueue => {
         const isAllowed = teacherSections.current.some(id => Number(id) === Number(newEntry.section_id));
-
-        if (!isAllowed) {
-            return prevQueue; 
-        }
-
+        if (!isAllowed) return prevQueue; 
         const filtered = prevQueue.filter(q => q.user_id !== newEntry.user_id);
         return [newEntry, ...filtered];
       });
     });
 
     socket.on("remove_queue_entry", (userId) => {
-      setQueue(prevQueue => 
-        prevQueue.filter(q => Number(q.user_id) !== Number(userId))
-      );
+      setQueue(prevQueue => prevQueue.filter(q => Number(q.user_id) !== Number(userId)));
     });
 
     socket.on('new_announcement', (newAnn) => {
       const incomingRole = newAnn.role || newAnn.user?.role;
-
       setAnnouncements(prev => {
         const exists = prev.some(ann => ann._id === newAnn._id);
         if (exists) return prev;
-        
-        if (incomingRole === 'superadmin' || Number(newAnn.user_id) === Number(user?.user_id)) {
-            return [newAnn, ...prev];
-        }
-        
+        if (incomingRole === 'superadmin' || Number(newAnn.user_id) === Number(user?.user_id)) return [newAnn, ...prev];
         return prev;
       });
     });
 
-  socket.on('new_notification', (notif) => {
-    if (notif.type === 'Transfer') {
-      if (!isAuthModalOpenRef.current) { 
-        setWarningTitle(notif.title);
-        setWarningMessage(notif.message);
-        setIsWarningModalOpen(true);
+    socket.on('new_notification', (notif) => {
+      if (notif.type === 'Transfer' && !isAuthModalOpenRef.current) { 
+        setWarningTitle(notif.title); setWarningMessage(notif.message); setIsWarningModalOpen(true);
       }
-    }
-    
-  });
+    });
 
     return () => socket.disconnect();
   }, [user]);
 
-  const handleCloseScanner = () => {
-    setActiveScanMode(null);
-  };
-
+  const handleCloseScanner = () => setActiveScanMode(null);
   const handleAnnChange = (e) => {
     const { name, value } = e.target;
     setAnnouncementData(prev => ({ ...prev, [name]: value }));
@@ -659,13 +591,9 @@ export default function AdminDashboard() {
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
 
-      {/* ========================================================
-          PHASE 2: INTERCEPTION MODAL (UN-CLOSABLE FULL SCREEN)
-          ======================================================== */}
       {needsBiometricSetup && (
         <div className="fixed inset-0 z-[999999] bg-slate-900/90 backdrop-blur-md flex justify-center items-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 w-full max-w-[600px] flex flex-col items-center animate-[fadeIn_0.3s_ease-out_forwards]">
-            
             {!isCameraActive && !faceDescriptor ? (
               <div className="flex flex-col items-center text-center">
                 <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-6 text-blue-600 shadow-inner">
@@ -693,15 +621,11 @@ export default function AdminDashboard() {
                  </div>
                  <h2 className="text-2xl font-black text-slate-800 mb-2">Verification Complete</h2>
                  <p className="text-[14px] text-slate-500 mb-8 text-center max-w-sm">Your highly accurate facial template has been securely generated.</p>
-                 
                  <div className="w-[180px] h-[240px] rounded-2xl overflow-hidden mb-8 border-4 border-slate-100 shadow-md">
                     <img src={capturedImage} alt="Captured face" className="w-full h-full object-cover" />
                  </div>
-
                  <div className="flex gap-4 w-full">
-                   <button type="button" disabled={isSavingBiometrics} onClick={() => { setFaceDescriptor(null); setCapturedImage(null); setIsCameraActive(true); }} className="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50">
-                     Retake Scan
-                   </button>
+                   <button type="button" disabled={isSavingBiometrics} onClick={() => { setFaceDescriptor(null); setCapturedImage(null); setIsCameraActive(true); }} className="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors disabled:opacity-50">Retake Scan</button>
                    <button type="button" disabled={isSavingBiometrics} onClick={handleSaveBiometrics} className="flex-1 py-3.5 rounded-xl font-bold text-white bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                      {isSavingBiometrics ? <span className="material-symbols-outlined animate-spin">sync</span> : "Save & Continue"}
                    </button>
@@ -713,30 +637,23 @@ export default function AdminDashboard() {
                  <div className="w-full h-[320px] md:h-[380px] bg-slate-900 rounded-3xl flex items-center justify-center text-white mb-6 relative overflow-hidden border-4 border-slate-100 shadow-xl">
                     <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-0" />
                     <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
-
                     {!isVideoPlaying && !cameraError && (
                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing Camera...</span></div>
                     )}
-                    
                     {isVideoPlaying && !cameraError && (
                       <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
                         <div className={`w-[200px] h-[280px] rounded-[100%] ${ovalClass}`} style={{borderRadius: '50% / 50%'}}></div>
                       </div>
                     )}
-
                     {countdownValue !== null && (
                       <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]">
-                        <span className="text-white text-[120px] font-black drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
-                          {countdownValue}
-                        </span>
+                        <span className="text-white text-[120px] font-black drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">{countdownValue}</span>
                       </div>
                     )}
                  </div>
-
                  <div className={`w-full py-4 px-6 rounded-xl text-[15px] font-bold text-center transition-colors duration-300 ${scanStatus.includes("✅") ? "bg-green-50 text-green-700 border border-green-200" : scanStatus.includes("⚠️") ? "bg-red-50 text-red-700 border border-red-200" : "bg-blue-50 text-blue-700 border border-blue-200 shadow-[inset_0_0_15px_rgba(59,130,246,0.1)]"}`}>
                    {cameraError ? "Camera blocked. Please enable it in your browser settings." : scanStatus}
                  </div>
-
                  <button type="button" onClick={() => setIsCameraActive(false)} className="mt-4 text-[13px] font-bold text-slate-400 hover:text-red-500 transition-colors px-4 py-2 cursor-pointer">Cancel Scan</button>
               </div>
             )}
@@ -753,18 +670,16 @@ export default function AdminDashboard() {
         </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
-        {/* Left Part of Content */}
         <div className="flex flex-col gap-6">
           <div className="card queue-card">
             <div className="mb-6">
               <div className="flex items-center gap-2.5 mb2">
                 <span className="material-symbols-outlined blue-icon text-[24px]">schedule</span>
-                <h2 className="text-cdark text-[18px] font-bold" id="queueTitle">Queue</h2>
+                <h2 className="text-cdark text-[18px] font-bold">Queue</h2>
               </div>
               <p className="text-cgray text-[14px]! leading-normal ml-0">Real-time updates from parents.</p>
             </div>
-
-            <div className="flex flex-col gap-4" id="queueContainer">
+            <div className="flex flex-col gap-4">
               {queue.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 opacity-60">
                   <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
@@ -772,22 +687,15 @@ export default function AdminDashboard() {
                 </div>
               ) : (
                 queue.map((item) => (
-                  <AdminQueueParentGuardian 
-                    key={item._id} 
-                    item={item}
-                    setQueue={setQueue}
-                  />
+                  <AdminQueueParentGuardian key={item._id} item={item} setQueue={setQueue} />
                 ))
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            
             <div className="card emergency-card !m-0 cursor-pointer hover:shadow-md transition-all" onClick={() => setIsOverrideModalOpen(true)}>
-              <div className="emergency-card-wrapper">
-                <span className="material-symbols-outlined shrink-0">e911_emergency</span>
-              </div>
+              <div className="emergency-card-wrapper"><span className="material-symbols-outlined shrink-0">e911_emergency</span></div>
               <div>
                 <h3 className="text-[#c53030] text-[15px]! font-bold mb-0.5">Transfer Override</h3>
                 <p className="text-[#742a2a] text-[11px]! leading-tight">Manual student transfer.</p>
@@ -796,67 +704,34 @@ export default function AdminDashboard() {
             </div>
 
             <div className="card emergency-card !m-0 cursor-pointer hover:shadow-md transition-all" onClick={() => setIsEmergencyBroadcastModalOpen(true)}>
-              <div className="emergency-card-wrapper">
-                <span className="material-symbols-outlined shrink-0">campaign</span>
-              </div>
+              <div className="emergency-card-wrapper"><span className="material-symbols-outlined shrink-0">campaign</span></div>
               <div>
                 <h3 className="text-[#c53030] text-[15px]! font-bold mb-0.5">Emergency SMS</h3>
                 <p className="text-[#742a2a] text-[11px]! leading-tight">Urgent broadcast to parents.</p>
               </div>
               <span className="material-symbols-outlined arrow-icon ml-auto text-[#c53030]! text-[18px]">arrow_forward</span>
             </div>
-
           </div>
 
           <div className="card action-card flex flex-col p-6">
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${
-                  announcementData.category === 'campaign' ? 'bg-red-50' : 
-                  announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'
-                }`}>
-                  <span className={`material-symbols-outlined text-[22px] ${
-                    announcementData.category === 'campaign' ? 'text-red-600' : 
-                    announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'
-                  }`}>
-                    {announcementData.category}
-                  </span>
+                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${announcementData.category === 'campaign' ? 'bg-red-50' : announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'}`}>
+                  <span className={`material-symbols-outlined text-[22px] ${announcementData.category === 'campaign' ? 'text-red-600' : announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'}`}>{announcementData.category}</span>
                 </div>
                 <h2 className="text-cdark font-bold text-[18px]! -m-2">Class Announcement</h2>
               </div>
-
               <p className="text-cgray leading-normal text-[14px]! mb-3">Post updates to parents.</p>
-
               <div className="flex gap-3 mb-3">
                 <div className="flex-1">
-                  <select 
-                    value={selectedSection}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
-                  >
-                    <option value="" disabled hidden>
-                      Select Section
-                    </option>
-                    
-                    <option value="all">
-                      {user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections"}
-                    </option>
-                    
-                    {sections.map((sec) => (
-                      <option key={sec.section_id} value={sec.section_id}>
-                        {sec.section_name}
-                      </option>
-                    ))}
+                  <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all">
+                    <option value="" disabled hidden>Select Section</option>
+                    <option value="all">{user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections"}</option>
+                    {sections.map((sec) => (<option key={sec.section_id} value={sec.section_id}>{sec.section_name}</option>))}
                   </select>
                 </div>
-
                 <div className="flex-1">
-                  <select 
-                    name="category"
-                    value={announcementData.category}
-                    onChange={handleAnnChange}
-                    className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
-                  >
+                  <select name="category" value={announcementData.category} onChange={handleAnnChange} className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all">
                     <option value="notifications_active">General</option>
                     <option value="campaign">Emergency</option>
                     <option value="calendar_month">Event</option>
@@ -864,25 +739,11 @@ export default function AdminDashboard() {
                 </div>
               </div>
             </div>
-
             <div className="announcement-box mt-1">
-              <textarea 
-                name="content"
-                className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" 
-                placeholder="Write an announcement..."
-                value={announcementData.content}
-                onChange={handleAnnChange}
-                disabled={posting}
-              />
+              <textarea name="content" className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" placeholder="Write an announcement..." value={announcementData.content} onChange={handleAnnChange} disabled={posting} />
               <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
-                <div className="text-[12px] text-cgray">
-                  {announcementData.content.length} characters
-                </div>
-                <button 
-                  className={`btn-post ${posting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={handlePostAnnouncement}
-                  disabled={posting || !announcementData.content.trim() || (user?.role !== 'superadmin' && !selectedSection)}
-                >
+                <div className="text-[12px] text-cgray">{announcementData.content.length} characters</div>
+                <button className={`btn-post ${posting ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={handlePostAnnouncement} disabled={posting || !announcementData.content.trim() || (user?.role !== 'superadmin' && !selectedSection)}>
                   {posting ? 'Posting...' : 'Post'}
                 </button>
               </div>
@@ -890,7 +751,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Right Part of the Content */}
         <div className="flex flex-col gap-6">
           <div className="card action-card flex flex-col gap-5">
             <div className="mb-6">
@@ -900,15 +760,10 @@ export default function AdminDashboard() {
               </div>
               <p className="text-cgray text-[14px]! leading-normal ml-0">Scan guardian's QR code for student pickup.</p>
             </div>
-
-            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0">
-              <span className="material-symbols-outlined qr-large-icon">qr_code_2</span>
-            </div>
-
+            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0"><span className="material-symbols-outlined qr-large-icon">qr_code_2</span></div>
             <div className="flex flex-col gap-3">
-              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="scanGuardianBtn" onClick={() => setActiveScanMode('user')}>
-                <span className="material-symbols-outlined text-[20px]!">center_focus_weak</span>
-                  Scan Parent or Guardian QR Code
+              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" onClick={() => setActiveScanMode('user')}>
+                <span className="material-symbols-outlined text-[20px]!">center_focus_weak</span> Scan Parent or Guardian QR Code
               </button>
             </div>
           </div>
@@ -921,15 +776,10 @@ export default function AdminDashboard() {
               </div>
               <p className="text-cgray leading-normal ml-0 text-[14px]!">Initiate scan for daily student attendance.</p>
             </div>
-
-            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0">
-              <span className="material-symbols-outlined qr-large-icon">qr_code_2</span>
-            </div>
-
+            <div className="w-full h-[220px] bg-[#dbeafe] flex items-center justify-center rounded-xl mb-0"><span className="material-symbols-outlined qr-large-icon">qr_code_2</span></div>
             <div className="flex flex-col gap-3">
-              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" id="startScanBtn" onClick={() => setActiveScanMode('student')}>
-                <span className="material-symbols-outlined">center_focus_weak</span>
-                Scan Student QR Code
+              <button className="btn btn-primary gap-2 h-[50px] font-semibold rounded-xl text-[14px] border-none w-full" onClick={() => setActiveScanMode('student')}>
+                <span className="material-symbols-outlined">center_focus_weak</span> Scan Student QR Code
               </button>
             </div>
           </div>
@@ -942,47 +792,24 @@ export default function AdminDashboard() {
               </div>
               <p className="text-cgray text-[14px]! leading-normal">System-wide broadcasts and alerts.</p>
             </div>
-
             <div className="flex flex-col gap-4 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar"> 
               {loadingAnnouncements ? (
                 <p className="text-center text-cgray py-4">Loading updates...</p>
               ) : announcements.length === 0 ? (
-                <div className="text-center py-6 opacity-60">
-                  <span className="material-symbols-outlined text-[40px] mb-2 text-slate-300">notifications_off</span>
-                  <p className="text-cgray text-[14px]">No recent updates.</p>
-                </div>
+                <div className="text-center py-6 opacity-60"><span className="material-symbols-outlined text-[40px] mb-2 text-slate-300">notifications_off</span><p className="text-cgray text-[14px]">No recent updates.</p></div>
               ) : (
                 announcements.map((ann) => (
                   <div key={ann._id} className="bg-[white] flex items-start p-4 rounded-xl border border-[#f1f5f9] gap-4 hover:bg-[#fafafa] transition-colors shrink-0">
-                    <div className={`flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px] ${
-                      ann.category === 'campaign' ? 'bg-[#fff1f2] text-[#f43f5e]' : 
-                      ann.category === 'calendar_month' ? 'bg-[#f0fdf4] text-[#22c55e]' : 
-                      'bg-[#eff6ff] text-[#3b82f6]'
-                    }`}>
-                      <span className="material-symbols-outlined">
-                        {ann.category || 'notifications_active'}
-                      </span>
+                    <div className={`flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px] ${ann.category === 'campaign' ? 'bg-[#fff1f2] text-[#f43f5e]' : ann.category === 'calendar_month' ? 'bg-[#f0fdf4] text-[#22c55e]' : 'bg-[#eff6ff] text-[#3b82f6]'}`}>
+                      <span className="material-symbols-outlined">{ann.category || 'notifications_active'}</span>
                     </div>
-
                     <div className="flex flex-col gap-0.5">
-                      <span className="text-cdark text-[15px] font-bold">
-                        {ann.role === 'superadmin' ? 'System Update' : (
-                          ann.category === 'campaign' ? 'Emergency Alert' : 
-                          ann.category === 'calendar_month' ? 'Event' : 
-                          'General Announcement'
-                        )}
-                      </span>
-                      <span className="text-cgray text-[13px] leading-relaxed">
-                        {ann.announcement}
-                      </span>
+                      <span className="text-cdark text-[15px] font-bold">{ann.role === 'superadmin' ? 'System Update' : (ann.category === 'campaign' ? 'Emergency Alert' : ann.category === 'calendar_month' ? 'Event' : 'General Announcement')}</span>
+                      <span className="text-cgray text-[13px] leading-relaxed">{ann.announcement}</span>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[#94a3b8] text-[11px] font-medium">
-                          {ann.role === 'superadmin' ? ann.full_name : `By Teacher ${ann.full_name}`}
-                        </span>
+                        <span className="text-[#94a3b8] text-[11px] font-medium">{ann.role === 'superadmin' ? ann.full_name : `By Teacher ${ann.full_name}`}</span>
                         <span className="text-[#cbd5e1]">•</span>
-                        <span className="text-[#94a3b8] text-[11px] font-medium">
-                          {new Date(ann.created_at).toLocaleDateString()}
-                        </span>
+                        <span className="text-[#94a3b8] text-[11px] font-medium">{new Date(ann.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
@@ -994,87 +821,15 @@ export default function AdminDashboard() {
       </div>
       </main>
 
-      <WarningModal 
-        isOpen={isWarningModalOpen}
-        onClose={() => {
-          setIsWarningModalOpen(false);
-          setWarningTitle("");
-          setWarningMessage("");
-        }}
-        title={warningTitle}
-        message={warningMessage}
-      />
-
-      <AdminEmergencyOverrideModal 
-        isOpen={isOverrideModalOpen}
-        onClose={() => setIsOverrideModalOpen(false)}
-        onSuccess={handleOverrideSuccess}
-      />
-
-      <AdminEmergencyBroadcastModal 
-        isOpen={isEmergencyBroadcastModalOpen}
-        onClose={() => setIsEmergencyBroadcastModalOpen(false)}
-      />
-
-      <AdminDashboardQrScan 
-        isOpen={!!activeScanMode}
-        onClose={handleCloseScanner}
-        scanMode={activeScanMode}
-        onScan={handleScanSuccess}
-      />
-
-      <AdminConfirmPickUpAuth 
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        data={scannedData}
-        onConfirm={handleConfirmPickup}
-      />
-
-      <AdminActionFeedbackModal
-        isOpen={isAttendanceModalOpen}
-        onClose={() => setIsAttendanceModalOpen(false)}
-        type={scannedStudentData?.status === 'Late' ? 'warning' : 'success'}
-        title="Attendance Recorded"
-        message={scannedStudentData?.displayMsg}
-        details={[
-          { label: 'Student ID', value: scannedStudentData?.studentId },
-          { label: 'Student', value: scannedStudentData?.studentName},
-          { label: 'Time In', value: scannedStudentData?.timeIn },
-          { label: 'Status', value: scannedStudentData?.status }
-        ]}
-      />
-
-      <AdminActionFeedbackModal
-        isOpen={!!transferSuccessData}
-        onClose={() => setTransferSuccessData(null)}
-        type={transferSuccessData?.type || 'success'}
-        title={transferSuccessData?.title}
-        message={transferSuccessData?.message}
-        details={transferSuccessData?.details}
-        buttonText={transferSuccessData?.type === 'error' ? 'Try Again' : 'Great'}
-      />
-
-      <AdminActionFeedbackModal
-        isOpen={isErrorModalOpen}
-        onClose={() => setIsErrorModalOpen(false)}
-        type="error"
-        title={errorTitle}
-        message={errorMainMsg}
-        details={[
-          { label: 'Reason', value: errorMessage } 
-        ]}
-        buttonText="Try Again"
-      />
-
-      {loadingScan && (
-        <div className="fixed inset-0 bg-black/50 z-9999 flex items-center justify-center">
-            <div className="bg-white p-4 rounded-lg flex items-center gap-3">
-                <span className="material-symbols-outlined animate-spin text-blue-600">sync</span>
-                <span>Verifying Pass...</span>
-            </div>
-        </div>
-      )}
-
+      <WarningModal isOpen={isWarningModalOpen} onClose={() => { setIsWarningModalOpen(false); setWarningTitle(""); setWarningMessage(""); }} title={warningTitle} message={warningMessage} />
+      <AdminEmergencyOverrideModal isOpen={isOverrideModalOpen} onClose={() => setIsOverrideModalOpen(false)} onSuccess={handleOverrideSuccess} />
+      <AdminEmergencyBroadcastModal isOpen={isEmergencyBroadcastModalOpen} onClose={() => setIsEmergencyBroadcastModalOpen(false)} />
+      <AdminDashboardQrScan isOpen={!!activeScanMode} onClose={handleCloseScanner} scanMode={activeScanMode} onScan={handleScanSuccess} />
+      <AdminConfirmPickUpAuth isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} data={scannedData} onConfirm={handleConfirmPickup} />
+      <AdminActionFeedbackModal isOpen={isAttendanceModalOpen} onClose={() => setIsAttendanceModalOpen(false)} type={scannedStudentData?.status === 'Late' ? 'warning' : 'success'} title="Attendance Recorded" message={scannedStudentData?.displayMsg} details={[{ label: 'Student ID', value: scannedStudentData?.studentId }, { label: 'Student', value: scannedStudentData?.studentName}, { label: 'Time In', value: scannedStudentData?.timeIn }, { label: 'Status', value: scannedStudentData?.status }]} />
+      <AdminActionFeedbackModal isOpen={!!transferSuccessData} onClose={() => setTransferSuccessData(null)} type={transferSuccessData?.type || 'success'} title={transferSuccessData?.title} message={transferSuccessData?.message} details={transferSuccessData?.details} buttonText={transferSuccessData?.type === 'error' ? 'Try Again' : 'Great'} />
+      <AdminActionFeedbackModal isOpen={isErrorModalOpen} onClose={() => setIsErrorModalOpen(false)} type="error" title={errorTitle} message={errorMainMsg} details={[{ label: 'Reason', value: errorMessage }]} buttonText="Try Again" />
+      {loadingScan && (<div className="fixed inset-0 bg-black/50 z-9999 flex items-center justify-center"><div className="bg-white p-4 rounded-lg flex items-center gap-3"><span className="material-symbols-outlined animate-spin text-blue-600">sync</span><span>Verifying Pass...</span></div></div>)}
     </div>
   );
 }

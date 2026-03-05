@@ -13,23 +13,16 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
-
-// NEW: Mouth Aspect Ratio for Open/Close detection
 const calculateMAR = (mouth) => {
-  // face-api.js returns 20 points for the mouth. 
-  // Indices 12-19 represent the inner lip track.
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
   
-  // Vertical distances across the inner mouth
   const v1 = euclideanDistance(mouth[13], mouth[19]);
   const v2 = euclideanDistance(mouth[14], mouth[18]);
   const v3 = euclideanDistance(mouth[15], mouth[17]);
-  
-  // Horizontal width of the inner mouth
   const h = euclideanDistance(mouth[12], mouth[16]);
   
   if (h === 0) return 0;
@@ -50,43 +43,24 @@ const calculateYawRatio = (landmarks) => {
 export default function TeacherRegistration() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  
   const [errors, setErrors] = useState({});
-  
-  // Profile Image State //
   const [profileImage, setProfileImage] = useState(null); 
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
-
-  // Verification IDs State //
   const [schoolIdFile, setSchoolIdFile] = useState(null);
   const [schoolIdPreview, setSchoolIdPreview] = useState(null);
-  
   const [validIdFile, setValidIdFile] = useState(null);
   const [validIdPreview, setValidIdPreview] = useState(null);
-  
   const [viewImage, setViewImage] = useState(null); 
-
-  // User Agreement State //
   const [hasAgreed, setHasAgreed] = useState(false);
-
-  // Password Visibility States //
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Success Modal State //
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-
-  // Cropper States //
   const editorRef = useRef(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImage, setTempImage] = useState(null);
   const [zoom, setZoom] = useState(1);
-
-  // ==========================================
-  // FACIAL VERIFICATION STATES & REFS
-  // ==========================================
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
@@ -94,36 +68,19 @@ export default function TeacherRegistration() {
   const [scanStatus, setScanStatus] = useState("Initializing camera...");
   const [ovalClass, setOvalClass] = useState("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
   const [countdownValue, setCountdownValue] = useState(null);
-  
   const [faceDescriptor, setFaceDescriptor] = useState(null); 
   const [capturedImage, setCapturedImage] = useState(null); 
   const [showCaptureModal, setShowCaptureModal] = useState(false);
-
   const videoRef = useRef(null);
   const canvasRef = useRef(null); 
   const streamRef = useRef(null);
   const stopDetectionRef = useRef(null); 
 
-  // Form Inputs Placeholder //
   const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',    
-    lastName: '',     
-    email: '',
-    phoneNumber: '09',  
-    relationship: 'Teacher', 
-    houseUnit: '',
-    street: '',
-    barangay: '',
-    city: '',
-    zipCode: '',
+    username: '', password: '', confirmPassword: '', firstName: '', lastName: '', email: '',
+    phoneNumber: '09', relationship: 'Teacher', houseUnit: '', street: '', barangay: '', city: '', zipCode: '',
   });
 
-  // ==========================================
-  // LOAD AI MODELS
-  // ==========================================
   useEffect(() => {
     const loadModels = async () => {
       const MODEL_URL = "/models"; 
@@ -134,68 +91,47 @@ export default function TeacherRegistration() {
           faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
         ]);
         setModelsLoaded(true);
-      } catch (err) {
-        console.error("❌ Failed to load models:", err);
-      }
+      } catch (err) { console.error("❌ Failed to load models:", err); }
     };
     loadModels();
   }, []);
 
-  // ==========================================
-  // CAMERA & LIVENESS LOGIC
-  // ==========================================
   useEffect(() => {
-    if (isCameraActive && currentStep === 4) {
-      startCamera();
-    } else {
-      stopCamera();
-    }
+    if (isCameraActive && currentStep === 4) startCamera();
+    else stopCamera();
     return () => stopCamera();
   }, [isCameraActive, currentStep]);
 
   const startCamera = async () => {
-    setCameraError(null);
-    setIsVideoPlaying(false);
+    setCameraError(null); setIsVideoPlaying(false);
     setScanStatus("Requesting camera access...");
     setOvalClass("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
     setCountdownValue(null);
-
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false
       });
       streamRef.current = stream;
-
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play();
-          setIsVideoPlaying(true);
-          startDetectionSequence(); 
+          videoRef.current.play(); setIsVideoPlaying(true); startDetectionSequence(); 
         };
       }
-    } catch (err) {
-      setCameraError("Camera access denied.");
-    }
+    } catch (err) { setCameraError("Camera access denied."); }
   };
 
   const stopCamera = () => {
     if (stopDetectionRef.current) stopDetectionRef.current();
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
+    if (streamRef.current) { streamRef.current.getTracks().forEach(track => track.stop()); streamRef.current = null; }
     setIsVideoPlaying(false);
   };
 
   const takeSnapshot = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
+    canvas.width = videoRef.current.videoWidth; canvas.height = videoRef.current.videoHeight;
     const ctx = canvas.getContext('2d');
-    ctx.translate(canvas.width, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(videoRef.current, 0, 0);
+    ctx.translate(canvas.width, 0); ctx.scale(-1, 1); ctx.drawImage(videoRef.current, 0, 0);
     return canvas.toDataURL('image/jpeg', 0.9);
   };
 
@@ -203,12 +139,7 @@ export default function TeacherRegistration() {
     let isDetecting = true;
     let phase = 0; let framesHeld = 0; 
     let countdownSecs = 3; let countdownFrames = 0; let lostFaceFrames = 0; 
-    
-    // NEW: Mouth State Tracking
-    let mouthPhase = 0; 
-    let mouthHoldFrames = 0;
-
-    // ARRAY TO STORE MULTIPLE FRAMES FOR AVERAGING
+    let mouthPhase = 0; let mouthHoldFrames = 0;
     let collectedDescriptors = []; 
 
     stopDetectionRef.current = () => { isDetecting = false; };
@@ -216,138 +147,86 @@ export default function TeacherRegistration() {
     const runDetection = async () => {
       if (!isDetecting || !videoRef.current || !canvasRef.current) return;
       if (videoRef.current.videoWidth === 0) { setTimeout(runDetection, 100); return; }
-
       if (canvasRef.current.width !== videoRef.current.videoWidth) {
-        canvasRef.current.width = videoRef.current.videoWidth;
-        canvasRef.current.height = videoRef.current.videoHeight;
+        canvasRef.current.width = videoRef.current.videoWidth; canvasRef.current.height = videoRef.current.videoHeight;
       }
       const displaySize = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
       faceapi.matchDimensions(canvasRef.current, displaySize);
-
-      const detection = await faceapi.detectSingleFace(
-        videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.55 })
-      ).withFaceLandmarks().withFaceDescriptor();
-
-      const ctx = canvasRef.current.getContext('2d');
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.55 })).withFaceLandmarks().withFaceDescriptor();
+      const ctx = canvasRef.current.getContext('2d'); ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
 
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { 
-          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0;
-          countdownSecs = 3; countdownFrames = 0; collectedDescriptors = [];
-          setCountdownValue(null);
-          setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
-          setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
-        } else if (phase === 8) {
-          countdownFrames++;
-        }
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0; countdownSecs = 3; collectedDescriptors = [];
+          setCountdownValue(null); setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
+          setScanStatus("⚠️ Face lost! Sequence reset.");
+        } else if (phase === 8) { countdownFrames++; }
       } else {
         lostFaceFrames = 0; 
-
         if (phase < 8) {
           const resizedDetections = faceapi.resizeResults(detection, displaySize);
           faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections, { drawLines: true, color: '#00ffff', lineWidth: 1.5 });
         }
-
         if (phase === 0) {
-          setOvalClass("border-green-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.7)] border-[4px] shadow-[inset_0_0_20px_rgba(74,222,128,0.3)] transition-all duration-300");
+          setOvalClass("border-green-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.7)] border-[4px] transition-all duration-300");
           setScanStatus("Face detected! Hold still..."); phase = 1;
-        } 
-        else if (phase === 1) {
-          framesHeld++;
-          if (framesHeld > 10) { phase = 2; framesHeld = 0; }
-        } 
-        else if (phase === 2) {
-          // --- NEW: THE 2-CYCLE MOUTH LIVENESS TEST ---
+        } else if (phase === 1) {
+          framesHeld++; if (framesHeld > 10) { phase = 2; framesHeld = 0; }
+        } else if (phase === 2) {
           const mouth = detection.landmarks.getMouth();
           const mar = calculateMAR(mouth);
-          
-          const OPEN_THRESHOLD = 0.4;
-          const CLOSE_THRESHOLD = 0.15; 
-
           if (mouthPhase === 0) {
             setScanStatus("Task 1: Please OPEN your mouth.");
-            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+            if (mar > 0.4) { mouthPhase = 1; }
           } else if (mouthPhase === 1) {
             setScanStatus("Task 1: Now CLOSE your mouth.");
-            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+            if (mar < 0.15) { mouthPhase = 2; }
           } else if (mouthPhase === 2) {
-            setScanStatus("Loading...");
-            mouthHoldFrames++;
-            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } // Wait ~1.5 secs
+            setScanStatus("Loading..."); mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; }
           } else if (mouthPhase === 3) {
             setScanStatus("Task 1: Please OPEN your mouth again.");
-            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+            if (mar > 0.4) { mouthPhase = 4; }
           } else if (mouthPhase === 4) {
             setScanStatus("Task 1: Now CLOSE your mouth.");
-            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+            if (mar < 0.15) { mouthPhase = 5; }
           } else if (mouthPhase === 5) {
-            setScanStatus("Loading...");
-            mouthHoldFrames++;
-            if (mouthHoldFrames > 15) {
-              phase = 3; // Liveness passed, move to Head Turns
-              setScanStatus("✅ Liveness verified! Please hold...");
-            }
+            setScanStatus("Loading..."); mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { phase = 3; setScanStatus("✅ Liveness verified!"); }
           }
-        } 
-        else if (phase === 3) {
-          framesHeld++;
-          if (framesHeld > 15) { phase = 4; framesHeld = 0; setScanStatus("Task 2: Slowly turn your head to your LEFT."); }
+        } else if (phase === 3) {
+          framesHeld++; if (framesHeld > 15) { phase = 4; framesHeld = 0; setScanStatus("Task 2: Slowly turn your head to your LEFT."); }
         } else if (phase === 4) {
-          const yaw = calculateYawRatio(detection.landmarks);
-          if (yaw > 1.6) { phase = 5; framesHeld = 0; setScanStatus("✅ Left turn verified! Please hold..."); }
+          if (calculateYawRatio(detection.landmarks) > 1.6) { phase = 5; framesHeld = 0; setScanStatus("✅ Left turn verified!"); }
         } else if (phase === 5) {
-          framesHeld++;
-          if (framesHeld > 15) { phase = 6; framesHeld = 0; setScanStatus("Task 3: Slowly turn your head to your RIGHT."); }
+          framesHeld++; if (framesHeld > 15) { phase = 6; framesHeld = 0; setScanStatus("Task 3: Slowly turn your head to your RIGHT."); }
         } else if (phase === 6) {
-          const yaw = calculateYawRatio(detection.landmarks);
-          if (yaw < 0.6) { phase = 7; framesHeld = 0; setScanStatus("✅ Right turn verified! Please hold..."); }
+          if (calculateYawRatio(detection.landmarks) < 0.6) { phase = 7; framesHeld = 0; setScanStatus("✅ Right turn verified!"); }
         } else if (phase === 7) {
-          framesHeld++;
-          if (framesHeld > 15) { 
-            phase = 8; countdownSecs = 3; countdownFrames = 0; 
-            setScanStatus("Excellent! Look directly at the camera. Capturing..."); 
-            setCountdownValue(3); 
-          }
+          framesHeld++; if (framesHeld > 15) { phase = 8; countdownSecs = 3; setScanStatus("Excellent! Look at the camera."); setCountdownValue(3); }
         } else if (phase === 8) {
           countdownFrames++;
           if (countdownFrames >= 8) { 
             countdownFrames = 0; countdownSecs--;
-            if (countdownSecs > 0) { 
-              setCountdownValue(countdownSecs); 
-            } else {
-              setCountdownValue(null); 
-              setScanStatus("Scanning facial geometry...");
-              phase = 9; 
-            }
+            if (countdownSecs > 0) { setCountdownValue(countdownSecs); } 
+            else { setCountdownValue(null); setScanStatus("Scanning facial geometry..."); phase = 9; }
           }
         } else if (phase === 9) {
-          // --- THE MULTI-FRAME AVERAGING PROTOCOL ---
           collectedDescriptors.push(Array.from(detection.descriptor));
-          
           if (collectedDescriptors.length >= 5) { 
             setScanStatus("Processing Master Template...");
-            
             let averagedDescriptor = new Array(128).fill(0);
-            
             for (let i = 0; i < collectedDescriptors.length; i++) {
-              for (let j = 0; j < 128; j++) {
-                averagedDescriptor[j] += collectedDescriptors[i][j];
-              }
+              for (let j = 0; j < 128; j++) { averagedDescriptor[j] += collectedDescriptors[i][j]; }
             }
-            
             averagedDescriptor = averagedDescriptor.map(val => val / collectedDescriptors.length);
-
-            const imgData = takeSnapshot();
-            setCapturedImage(imgData);
+            setCapturedImage(takeSnapshot());
             setFaceDescriptor(averagedDescriptor);
-            
             isDetecting = false; stopCamera(); setIsCameraActive(false); setShowCaptureModal(true); return; 
           }
         }
       }
-
       if (isDetecting) { setTimeout(runDetection, 100); }
     };
     runDetection(); 
@@ -355,7 +234,6 @@ export default function TeacherRegistration() {
 
   const validateStep = (step) => {
     if (step >= 3) return true; 
-
     const newErrors = validateRegistrationStep(step, formData, profileImage, 'admin');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -364,13 +242,10 @@ export default function TeacherRegistration() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      setTempImage(imageUrl);
-      setShowCropModal(true); 
-      setZoom(1);
+      setTempImage(URL.createObjectURL(file));
+      setShowCropModal(true); setZoom(1);
     }
     if (fileInputRef.current) fileInputRef.current.value = null; 
-    if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
   };
 
   const handleCropSave = () => {
@@ -381,19 +256,9 @@ export default function TeacherRegistration() {
           const croppedFile = new File([blob], "teacher_photo.jpg", { type: "image/jpeg" });
           setProfileImage(croppedFile); 
           setPreviewUrl(URL.createObjectURL(croppedFile)); 
-          setShowCropModal(false);
-          setTempImage(null);
+          setShowCropModal(false); setTempImage(null);
         }
       }, "image/jpeg", 0.95);
-    }
-  };
-
-  const removeImage = (e) => {
-    e.stopPropagation(); 
-    setProfileImage(null);
-    setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
     }
   };
 
@@ -401,131 +266,75 @@ export default function TeacherRegistration() {
     const file = e.target.files[0];
     if (file) {
       const previewUrl = URL.createObjectURL(file);
-      if (type === 'school') {
-        setSchoolIdFile(file);
-        setSchoolIdPreview(previewUrl);
-        setErrors(prev => ({ ...prev, schoolId: null }));
-      } else if (type === 'valid') {
-        setValidIdFile(file);
-        setValidIdPreview(previewUrl);
-        setErrors(prev => ({ ...prev, validId: null }));
-      }
+      if (type === 'school') { setSchoolIdFile(file); setSchoolIdPreview(previewUrl); } 
+      else if (type === 'valid') { setValidIdFile(file); setValidIdPreview(previewUrl); }
     }
     e.target.value = null; 
   };
 
   const handleDeleteId = (type) => {
-    if (type === 'school') {
-      setSchoolIdFile(null);
-      setSchoolIdPreview(null);
-    } else if (type === 'valid') {
-      setValidIdFile(null);
-      setValidIdPreview(null);
-    }
+    if (type === 'school') { setSchoolIdFile(null); setSchoolIdPreview(null); } 
+    else if (type === 'valid') { setValidIdFile(null); setValidIdPreview(null); }
     setViewImage(null); 
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    let finalValue = value;
-
-    if (name === 'phoneNumber') {
-      finalValue = finalValue.replace(/\D/g, '');
-      if (finalValue.startsWith('639')) finalValue = '0' + finalValue.substring(2);
-      if (!finalValue.startsWith('09')) finalValue = '09';
-      finalValue = finalValue.slice(0, 11);
-    }
-
-    setFormData(prev => ({
-      ...prev,
-      [name]: finalValue
-    }));
-
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: null }));
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
   
   const handleSubmitForm = async () => {
     const data = new FormData();
-      data.append('username', formData.username);
-      data.append('password', formData.password);
-      data.append('email', formData.email);
-      data.append('first_name', formData.firstName);
-      data.append('last_name', formData.lastName);
-      data.append('phone_number', formData.phoneNumber);
-      data.append('relationship', formData.relationship);
-      data.append('address', `${formData.houseUnit}, ${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.zipCode}`);
+    data.append('username', formData.username);
+    data.append('password', formData.password);
+    data.append('email', formData.email);
+    data.append('first_name', formData.firstName);
+    data.append('last_name', formData.lastName);
+    data.append('phone_number', formData.phoneNumber);
+    data.append('relationship', formData.relationship);
+    data.append('address', `${formData.houseUnit}, ${formData.street}, ${formData.barangay}, ${formData.city}, ${formData.zipCode}`);
       
     if (profileImage) data.append('profile_photo', profileImage); 
     if (schoolIdFile) data.append('school_id_photo', schoolIdFile);
     if (validIdFile) data.append('valid_id_photo', validIdFile);
-
     if (capturedImage) {
       const res = await fetch(capturedImage);
       const blob = await res.blob();
-      const faceFile = new File([blob], "facial_capture.jpg", { type: "image/jpeg" });
-      data.append('facialCapture', faceFile);
+      data.append('facialCapture', new File([blob], "facial_capture.jpg", { type: "image/jpeg" }));
     }
-
-    if (faceDescriptor) {
-      data.append('facialDescriptor', JSON.stringify(faceDescriptor));
-    }
+    if (faceDescriptor) data.append('facialDescriptor', JSON.stringify(faceDescriptor));
 
     try {
+      // Updated to use BACKEND_URL
       await axios.post(`${BACKEND_URL}/api/teachers`, data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
-      setSuccessMessage("Your registration has been submitted! Please wait for the Super Admin to review and approve your account before you can sign in.");
+      setSuccessMessage("Your registration has been submitted for review!");
       setIsSuccessModalOpen(true);
     } catch (error) {
-      console.error('Registration API Error:', error);
-      if (error.response && error.response.data && error.response.data.errors) {
-        const errorMessages = error.response.data.errors.map(err => err.msg).join('\n');
-        alert(`Validation Failed:\n${errorMessages}`);
-      } else {
-        alert(error.response?.data?.msg || "Registration failed. Please try again.");
-      }
-        const dbError = error.response?.data?.error;
-        if (dbError) alert(`Failed: ${dbError}`);
+      console.error('Registration Error:', error);
+      alert(error.response?.data?.msg || "Registration failed. Please try again.");
     }
   };
 
-  const handleCloseSuccess = () => {
-    setIsSuccessModalOpen(false);
-    navigate('/login'); 
-  };
+  const handleCloseSuccess = () => { setIsSuccessModalOpen(false); navigate('/login'); };
   
   const handleNext = () => {
     const isValid = validateStep(currentStep);
-
     if (isValid) {
-      if (currentStep < 3) {
-        setCurrentStep((prev) => prev + 1);
-      } else if (currentStep === 3) {
-        let stepErrors = {};
-        if (!schoolIdFile) stepErrors.schoolId = "School ID is required.";
-        if (!validIdFile) stepErrors.validId = "A Valid ID is required.";
-
-        if (Object.keys(stepErrors).length > 0) {
-          setErrors(prev => ({ ...prev, ...stepErrors }));
+      if (currentStep < 3) { setCurrentStep((prev) => prev + 1); } 
+      else if (currentStep === 3) {
+        if (!schoolIdFile || !validIdFile) {
+          setErrors(prev => ({ ...prev, schoolId: !schoolIdFile ? "Required" : null, validId: !validIdFile ? "Required" : null }));
           return; 
         }
         setCurrentStep((prev) => prev + 1); 
-
       } else if (currentStep === 4) {
-        if (!faceDescriptor) {
-          alert("Please complete the facial scan before proceeding.");
-          return;
-        }
+        if (!faceDescriptor) { alert("Please complete the facial scan."); return; }
         setCurrentStep((prev) => prev + 1); 
-
       } else if (currentStep === 5) {
-        if (!hasAgreed) {
-          setErrors(prev => ({ ...prev, agreement: "You must agree to the Terms and Conditions to register." }));
-          return;
-        }
+        if (!hasAgreed) { setErrors(prev => ({ ...prev, agreement: "Agreement required." })); return; }
         handleSubmitForm();
       }
     }
@@ -533,84 +342,55 @@ export default function TeacherRegistration() {
 
   const handleBack = () => {
     if (currentStep === 4) setIsCameraActive(false); 
-    if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
-    }
+    if (currentStep > 0) setCurrentStep((prev) => prev - 1);
   };
 
-  const ErrorMsg = ({ field }) => {
-    return errors[field] ? (
-      <span className="text-red-500 text-[11px] mt-1 ml-1 text-left w-full block font-medium">
-        {errors[field]}
-      </span>
-    ) : null;
-  };
+  const ErrorMsg = ({ field }) => errors[field] ? (
+    <span className="text-red-500 text-[11px] mt-1 ml-1 text-left w-full block font-medium">{errors[field]}</span>
+  ) : null;
 
   return (
-    <div className="wave min-h-screen w-full flex justify-center items-center p-5" style={{ backgroundAttachment: 'fixed' }}>
-
-      {/* --- CAPTURE REVIEW MODAL --- */}
+    <div className="wave min-h-screen w-full flex justify-center items-center p-5">
       {showCaptureModal && capturedImage && (
         <div className="fixed inset-0 z-[999999] bg-slate-900/80 backdrop-blur-md flex justify-center items-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-500 mb-4">
-              <span className="material-symbols-outlined text-[32px]">verified_user</span>
-            </div>
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-500 mb-4"><span className="material-symbols-outlined text-[32px]">verified_user</span></div>
             <h3 className="text-xl font-bold text-slate-800 mb-2">Scan Successful!</h3>
-            <p className="text-slate-500 text-[13px] text-center mb-6">Your facial template has been securely mapped and saved.</p>
-            
-            <div className="w-[180px] h-[240px] rounded-2xl overflow-hidden mb-6 border-4 border-slate-100 shadow-md">
-              <img src={capturedImage} alt="Captured face" className="w-full h-full object-cover" />
-            </div>
-
+            <div className="w-[180px] h-[240px] rounded-2xl overflow-hidden mb-6 border-4 border-slate-100 shadow-md"><img src={capturedImage} alt="Captured face" className="w-full h-full object-cover" /></div>
             <div className="flex gap-3 w-full">
-              <button type="button" className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" onClick={() => { setShowCaptureModal(false); setFaceDescriptor(null); setIsCameraActive(true); }}>
-                Retake
-              </button>
-              <button type="button" className="flex-1 py-3 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 shadow-md transition-colors" onClick={() => setShowCaptureModal(false)}>
-                Looks Good
-              </button>
+              <button type="button" className="flex-1 py-3 rounded-xl font-bold text-slate-600 bg-slate-100" onClick={() => { setShowCaptureModal(false); setFaceDescriptor(null); setIsCameraActive(true); }}>Retake</button>
+              <button type="button" className="flex-1 py-3 rounded-xl font-bold text-white bg-green-500" onClick={() => setShowCaptureModal(false)}>Looks Good</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* LIGHTBOX OVERLAY */}
       {viewImage && (
-        <div className="fixed inset-0 z-[999999] bg-slate-900/90 backdrop-blur-sm flex flex-col justify-center items-center p-6 transition-all">
-          <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors cursor-pointer" onClick={() => setViewImage(null)}>
-            <span className="material-symbols-outlined text-[28px]">close</span>
-          </button>
-          <img src={viewImage.url} alt="Fullscreen View" className="max-w-[90vw] max-h-[75vh] rounded-xl shadow-[0_0_40px_rgba(0,0,0,0.5)] border-[4px] border-white/20 object-contain mb-8"/>
+        <div className="fixed inset-0 z-[999999] bg-slate-900/90 backdrop-blur-sm flex flex-col justify-center items-center p-6">
+          <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 text-white rounded-full" onClick={() => setViewImage(null)}><span className="material-symbols-outlined text-[28px]">close</span></button>
+          <img src={viewImage.url} alt="ID" className="max-w-[90vw] max-h-[75vh] rounded-xl border-[4px] border-white/20 object-contain mb-8"/>
           <div className="flex gap-4">
-            <button onClick={() => handleDeleteId(viewImage.type)} className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-bold transition-transform active:scale-95 shadow-lg">
-              <span className="material-symbols-outlined">delete</span> Delete Photo
-            </button>
-            <button onClick={() => setViewImage(null)} className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-full font-bold transition-transform active:scale-95 shadow-lg">
-              <span className="material-symbols-outlined">check_circle</span> Looks Good
-            </button>
+            <button onClick={() => handleDeleteId(viewImage.type)} className="bg-red-500 text-white px-6 py-3 rounded-full font-bold shadow-lg">Delete Photo</button>
+            <button onClick={() => setViewImage(null)} className="bg-emerald-500 text-white px-6 py-3 rounded-full font-bold shadow-lg">Looks Good</button>
           </div>
         </div>
       )}
 
       <SuccessModal isOpen={isSuccessModalOpen} onClose={handleCloseSuccess} message={successMessage} />
 
-      {/* CROPPER */}
       {showCropModal && (
         <div className="fixed inset-0 z-[999999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center animate-[fadeIn_0.2s_ease-out]">
             <h3 className="text-lg font-bold text-slate-800 mb-4">Crop Photo</h3>
-            <div className="bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-inner">
-              <AvatarEditor ref={editorRef} image={tempImage} width={200} height={200} border={20} borderRadius={100} color={[15, 23, 42, 0.5]} scale={zoom} rotate={0} />
-            </div>
+            <AvatarEditor ref={editorRef} image={tempImage} width={200} height={200} border={20} borderRadius={100} color={[15, 23, 42, 0.5]} scale={zoom} rotate={0} />
             <div className="flex items-center w-full gap-3 mt-5 mb-6 px-2">
-              <span className="material-symbols-outlined text-slate-400 text-[18px]">zoom_out</span>
-              <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="flex-1 accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer" />
-              <span className="material-symbols-outlined text-slate-400 text-[18px]">zoom_in</span>
+              <span className="material-symbols-outlined text-slate-400">zoom_out</span>
+              <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="flex-1 accent-blue-600 h-1.5 bg-slate-200 rounded-lg" />
+              <span className="material-symbols-outlined text-slate-400">zoom_in</span>
             </div>
             <div className="flex gap-3 w-full">
-              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" onClick={() => { setShowCropModal(false); setTempImage(null); }}>Cancel</button>
-              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-colors" onClick={handleCropSave}>Apply Crop</button>
+              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100" onClick={() => { setShowCropModal(false); setTempImage(null); }}>Cancel</button>
+              <button type="button" className="flex-1 py-2.5 rounded-xl font-bold text-white bg-blue-600" onClick={handleCropSave}>Apply Crop</button>
             </div>
           </div>
         </div>
@@ -618,30 +398,26 @@ export default function TeacherRegistration() {
 
       <div className='main-container flex flex-col items-start bg-white p-10 rounded-3xl w-[90%] max-w-[500px] mx-auto my-10 relative z-10 sm:p-[25px]'>
         <h1 className='text-left w-full mb-2'>Create Account</h1>
-        <p className='w-full mb-4 font-normal text-left text-[14px] text-slate-500'>Please fill out the form to create your teacher account.</p>
+        <p className='w-full mb-4 text-[14px] text-slate-500'>Fill out the form to create your teacher account.</p>
 
-        {/* PROGRESS DOTS */}
         <div className="flex justify-center gap-2 mb-6 w-full"> 
           {[...Array(6)].map((_, i) => ( 
-            <div key={i} className={`h-2 rounded-full transition-all duration-500 ease-out ${currentStep === i ? 'w-8 bg-[#39a8ed]' : i < currentStep ? 'w-2 bg-[#bde0fe]' : 'w-2 bg-slate-200'}`} />
+            <div key={i} className={`h-2 rounded-full transition-all duration-500 ${currentStep === i ? 'w-8 bg-[#39a8ed]' : i < currentStep ? 'w-2 bg-[#bde0fe]' : 'w-2 bg-slate-200'}`} />
           ))}
         </div>
 
-        <form className="flex flex-col w-full" id="mainRegistrationForm" action="#" method="POST">
-          
+        <form className="flex flex-col w-full" onSubmit={(e) => e.preventDefault()}>
           {currentStep === 0 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Account Setup</p>
-              <div className='flex flex-col w-full mb-5'>
-                <FormInputRegistration label="Username" name="username" type='text' placeholder="e.g. Teacher_Juan" className="form-input-modal" value={formData.username} onChange={handleChange} error={errors.username} required={true} />
+              <FormInputRegistration label="Username" name="username" placeholder="e.g. Teacher_Juan" value={formData.username} onChange={handleChange} error={errors.username} required={true} />
+              <div className='relative'>
+                <FormInputRegistration label="Password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Password" value={formData.password} onChange={handleChange} error={errors.password} required={true} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[40px] text-slate-400"><span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span></button>
               </div>
-              <div className='flex flex-col w-full mb-5 relative'>
-                <FormInputRegistration label="Password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Type your password here" className="form-input-modal pr-12" value={formData.password} onChange={handleChange} error={errors.password} required={true} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none" title={showPassword ? "Hide Password" : "Show Password"}><span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span></button>
-              </div>
-              <div className='flex flex-col w-full mb-5 relative'>
-                <FormInputRegistration label="Confirm Password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Re-type your password here" className="form-input-modal pr-12" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required={true} />
-                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none" title={showConfirmPassword ? "Hide Password" : "Show Password"}><span className="material-symbols-outlined text-[20px]">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span></button>
+              <div className='relative'>
+                <FormInputRegistration label="Confirm Password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Confirm Password" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required={true} />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-[40px] text-slate-400"><span className="material-symbols-outlined text-[20px]">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span></button>
               </div>
             </div>
           )}
@@ -649,74 +425,58 @@ export default function TeacherRegistration() {
           {currentStep === 1 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Teacher Information</p>
-              <div className='flex flex-col w-full mb-4'>
-                <label htmlFor="profileUpload" className='text-cdark text-[13px] font-semibold mb-2'>Profile Photo <span className='text-cbrand-blue ml-1 text-[12px]'>*</span></label>
-                <div className="flex flex-col items-center justify-center mb-2 mt-2">
-                  <input type="file" ref={fileInputRef} accept="image/*" className='hidden' onChange={handleImageUpload} />
-                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
-                    <div className={`w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-100 flex items-center justify-center overflow-hidden transition-all duration-300 group-hover:shadow-xl ${errors.profileImage ? 'ring-2 ring-red-500' : ''}`}>
-                      {previewUrl ? <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-[40px] text-slate-300 group-hover:scale-110 transition-transform duration-300">add_a_photo</span>}
-                    </div>
-                    <div className="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"><span className="material-symbols-outlined text-white text-[24px]">edit</span></div>
+              <div className='flex flex-col items-center mb-4'>
+                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current.click()}>
+                  <div className={`w-24 h-24 rounded-full border-4 border-white shadow-lg bg-slate-100 flex items-center justify-center overflow-hidden`}>
+                    {previewUrl ? <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" /> : <span className="material-symbols-outlined text-[40px] text-slate-300">add_a_photo</span>}
                   </div>
-                  <p className="text-slate-500 text-[12px] font-medium mt-3">{previewUrl ? 'Click to change photo' : 'Click to select photo'}</p>
                 </div>
+                <input type="file" ref={fileInputRef} accept="image/*" className='hidden' onChange={handleImageUpload} />
                 <ErrorMsg field="profileImage" />
               </div>
-              <div className='flex w-full h-auto gap-4'>
-                <div className='flex flex-col w-full mb-1'><FormInputRegistration label="First Name" name="firstName" type='text' placeholder="John" className="form-input-modal" value={formData.firstName} onChange={handleChange} error={errors.firstName} required={true} /></div>
-                <div className='flex flex-col w-full mb-1'><FormInputRegistration label="Last Name" name="lastName" type='text' placeholder="Doe" className="form-input-modal" value={formData.lastName} onChange={handleChange} error={errors.lastName} required={true} /></div>
+              <div className='flex gap-4'>
+                <FormInputRegistration label="First Name" name="firstName" placeholder="John" value={formData.firstName} onChange={handleChange} error={errors.firstName} required={true} />
+                <FormInputRegistration label="Last Name" name="lastName" placeholder="Doe" value={formData.lastName} onChange={handleChange} error={errors.lastName} required={true} />
               </div>
-              <div className='flex flex-col w-full mb-2'><FormInputRegistration label="Email Address" name="email" type='text' placeholder="Johndoe@gmail.com" className='registration-input' value={formData.email} onChange={handleChange} error={errors.email} required={true} /></div>
-              <div className='flex flex-col w-full mb-2'><FormInputRegistration label="Phone Number" name="phoneNumber" type='text' placeholder="09*********" className='registration-input' value={formData.phoneNumber} onChange={handleChange} error={errors.phoneNumber} required={true} /></div>
+              <FormInputRegistration label="Email Address" name="email" placeholder="johndoe@email.com" value={formData.email} onChange={handleChange} error={errors.email} required={true} />
+              <FormInputRegistration label="Phone Number" name="phoneNumber" placeholder="09*********" value={formData.phoneNumber} onChange={handleChange} error={errors.phoneNumber} required={true} />
             </div>
           )}
 
           {currentStep === 2 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Address Details</p>
-              <div className='flex w-full h-auto gap-4'>
-                <div className='flex flex-col w-full mb-5'><FormInputRegistration label="House Unit" name="houseUnit" type='text' placeholder="117" className='registration-input' value={formData.houseUnit} onChange={handleChange} error={errors.houseUnit} required={true} /></div>
-                <div className='flex flex-col w-full mb-5'><FormInputRegistration label="Street" name="street" type='text' placeholder="Hope Street" className='registration-input' value={formData.street} onChange={handleChange} error={errors.street} required={true} /></div>
+              <div className='flex gap-4'>
+                <FormInputRegistration label="Unit" name="houseUnit" placeholder="117" value={formData.houseUnit} onChange={handleChange} error={errors.houseUnit} required={true} />
+                <FormInputRegistration label="Street" name="street" placeholder="Street" value={formData.street} onChange={handleChange} error={errors.street} required={true} />
               </div>
-              <div className='flex w-full h-auto gap-4'>
-                <div className='flex flex-col w-full mb-5'><FormInputRegistration label="Barangay" name="barangay" type='text' placeholder="Helin Hills" className='registration-input' value={formData.barangay} onChange={handleChange} error={errors.barangay} required={true} /></div>
-                <div className='flex flex-col w-full mb-5'><FormInputRegistration label="City" name="city" type='text' placeholder="Quezon City" className='registration-input' value={formData.city} onChange={handleChange} error={errors.city} required={true} /></div>
+              <div className='flex gap-4'>
+                <FormInputRegistration label="Barangay" name="barangay" value={formData.barangay} onChange={handleChange} error={errors.barangay} required={true} />
+                <FormInputRegistration label="City" name="city" value={formData.city} onChange={handleChange} error={errors.city} required={true} />
               </div>
-              <div className='flex flex-col w-full mb-5'><FormInputRegistration label="Zip Code" name="zipCode" type='text' placeholder="1153" className='registration-input' value={formData.zipCode} onChange={handleChange} error={errors.zipCode} required={true} /></div>
+              <FormInputRegistration label="Zip Code" name="zipCode" value={formData.zipCode} onChange={handleChange} error={errors.zipCode} required={true} />
             </div>
           )}
 
           {currentStep === 3 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Verification Documents</p>
-              <p className='text-slate-500 text-[13px] mb-5 leading-relaxed'>To ensure system security, Super Admins require proof of identity. Please upload clear photos of your IDs below.</p>
-              <div className="flex w-full gap-4 mb-4">
-                <div className='flex flex-col flex-1'>
-                  <label className='text-cdark text-[12px] font-semibold mb-2 flex items-center justify-center gap-1.5'><span className="material-symbols-outlined text-[16px] text-blue-500">badge</span> School ID <span className='text-cbrand-blue text-[12px]'>*</span></label>
+              <div className="flex gap-4 mb-4">
+                <div className='flex-1'>
+                  <label className='text-[12px] font-semibold mb-2 block'>School ID *</label>
                   {schoolIdPreview ? (
-                    <div onClick={() => setViewImage({ url: schoolIdPreview, type: 'school' })} className="relative w-full h-32 border-2 border-emerald-400 bg-emerald-50 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-100 transition-colors shadow-sm">
-                      <span className="material-symbols-outlined text-emerald-500 text-[32px] mb-1">check_circle</span><span className="text-[12px] font-bold text-emerald-700">Uploaded</span><span className="text-[10px] text-emerald-600 mt-1 underline font-medium">Click to view</span>
-                    </div>
+                    <div onClick={() => setViewImage({ url: schoolIdPreview, type: 'school' })} className="w-full h-32 border-2 border-emerald-400 bg-emerald-50 rounded-xl flex items-center justify-center cursor-pointer shadow-sm"><span className="material-symbols-outlined text-emerald-500">check_circle</span></div>
                   ) : (
-                    <label className={`relative w-full h-32 border-2 border-dashed rounded-xl bg-slate-50 flex flex-col items-center justify-center cursor-pointer group transition-all ${errors.schoolId ? 'border-red-400 bg-red-50' : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50/30'}`}>
-                      <span className={`material-symbols-outlined text-[32px] mb-1 group-hover:scale-110 transition-transform ${errors.schoolId ? 'text-red-400' : 'text-slate-300'}`}>add_photo_alternate</span><span className="text-[11px] text-slate-500 font-medium text-center px-2 leading-tight">Upload<br/>School ID</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleIdUpload(e, 'school')} />
-                    </label>
+                    <label className="w-full h-32 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center cursor-pointer"><span className="material-symbols-outlined text-slate-300">add_photo_alternate</span><input type="file" accept="image/*" className="hidden" onChange={(e) => handleIdUpload(e, 'school')} /></label>
                   )}
                   <ErrorMsg field="schoolId" />
                 </div>
-                <div className='flex flex-col flex-1'>
-                  <label className='text-cdark text-[12px] font-semibold mb-2 flex items-center justify-center gap-1.5'><span className="material-symbols-outlined text-[16px] text-purple-500">assignment_ind</span> Valid ID <span className='text-cbrand-blue text-[12px]'>*</span></label>
+                <div className='flex-1'>
+                  <label className='text-[12px] font-semibold mb-2 block'>Valid ID *</label>
                   {validIdPreview ? (
-                    <div onClick={() => setViewImage({ url: validIdPreview, type: 'valid' })} className="relative w-full h-32 border-2 border-emerald-400 bg-emerald-50 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-100 transition-colors shadow-sm">
-                      <span className="material-symbols-outlined text-emerald-500 text-[32px] mb-1">check_circle</span><span className="text-[12px] font-bold text-emerald-700">Uploaded</span><span className="text-[10px] text-emerald-600 mt-1 underline font-medium">Click to view</span>
-                    </div>
+                    <div onClick={() => setViewImage({ url: validIdPreview, type: 'valid' })} className="w-full h-32 border-2 border-emerald-400 bg-emerald-50 rounded-xl flex items-center justify-center cursor-pointer shadow-sm"><span className="material-symbols-outlined text-emerald-500">check_circle</span></div>
                   ) : (
-                    <label className={`relative w-full h-32 border-2 border-dashed rounded-xl bg-slate-50 flex flex-col items-center justify-center cursor-pointer group transition-all ${errors.validId ? 'border-red-400 bg-red-50' : 'border-slate-300 hover:border-purple-400 hover:bg-purple-50/30'}`}>
-                      <span className={`material-symbols-outlined text-[32px] mb-1 group-hover:scale-110 transition-transform ${errors.validId ? 'text-red-400' : 'text-slate-300'}`}>add_photo_alternate</span><span className="text-[11px] text-slate-500 font-medium text-center px-2 leading-tight">Upload<br/>Valid ID</span>
-                      <input type="file" accept="image/*" className="hidden" onChange={(e) => handleIdUpload(e, 'valid')} />
-                    </label>
+                    <label className="w-full h-32 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center cursor-pointer"><span className="material-symbols-outlined text-slate-300">add_photo_alternate</span><input type="file" accept="image/*" className="hidden" onChange={(e) => handleIdUpload(e, 'valid')} /></label>
                   )}
                   <ErrorMsg field="validId" />
                 </div>
@@ -725,66 +485,27 @@ export default function TeacherRegistration() {
           )}
 
           {currentStep === 4 && (
-            <div className="text-center py-2 animate-[fadeIn_0.3s_ease-out_forwards]">
-              <p className='border-bottom-custom text-left mb-6'>Facial Biometrics</p>
-              
+            <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
+              <p className='border-bottom-custom'>Facial Biometrics</p>
               {!isCameraActive && !faceDescriptor ? (
                 <div className="flex flex-col items-center">
-                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-blue-500 border border-blue-100"><span className="material-symbols-outlined text-[40px]">face_retouching_natural</span></div>
-                  <h2 className="text-[18px] font-bold text-slate-800 mb-2">Biometric Registration</h2>
-                  <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-left mb-6">
-                    <p className="text-[13px] text-slate-600 leading-relaxed mb-2">To ensure the highest level of security, LuMINI uses facial recognition.</p>
-                    <ul className="text-[12px] text-slate-500 space-y-1.5 list-disc pl-4 marker:text-blue-400">
-                      <li>We will scan your face to create a secure template.</li>
-                      <li>You will be asked to <strong>complete a sequence of tasks</strong> to verify liveness.</li>
-                    </ul>
-                  </div>
-                  <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} className={`w-full text-white font-bold text-[14px] py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 transition-all ${modelsLoaded ? 'bg-slate-800 hover:bg-slate-700 cursor-pointer' : 'bg-slate-300 cursor-not-allowed'}`}>
-                    <span className="material-symbols-outlined text-[20px]">{modelsLoaded ? 'photo_camera' : 'sync'}</span> 
-                    {modelsLoaded ? 'Open Camera & Scan' : 'Loading AI Models...'}
+                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-blue-500"><span className="material-symbols-outlined text-[40px]">face_retouching_natural</span></div>
+                  <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} className={`w-full text-white font-bold py-3.5 rounded-xl shadow-md ${modelsLoaded ? 'bg-slate-800' : 'bg-slate-300'}`}>
+                    {modelsLoaded ? 'Open Camera & Scan' : 'Loading AI...'}
                   </button>
                 </div>
               ) : faceDescriptor && !isCameraActive ? (
-                <div className="flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
-                   <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500 border border-green-200 shadow-inner">
-                     <span className="material-symbols-outlined text-[40px]">verified</span>
-                   </div>
-                   <h2 className="text-[20px] font-bold text-slate-800 mb-2">Scan Complete!</h2>
-                   <p className="text-[13px] text-slate-500 mb-6">Your highly accurate facial template has been securely captured.</p>
-                   <button type="button" onClick={() => { setFaceDescriptor(null); setCapturedImage(null); setIsCameraActive(true); }} className="text-blue-600 font-bold text-[13px] hover:underline cursor-pointer">
-                     Retake Scan
-                   </button>
-                </div>
+                <div className="flex flex-col items-center"><div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-4 text-green-500"><span className="material-symbols-outlined text-[40px]">verified</span></div><button type="button" onClick={() => { setFaceDescriptor(null); setIsCameraActive(true); }} className="text-blue-600 font-bold">Retake Scan</button></div>
               ) : (
-                <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
-                   <div className="w-full h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center text-white mb-4 relative overflow-hidden border-2 border-slate-200 shadow-xl">
-                      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-0" />
-                      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
-
-                      {!isVideoPlaying && !cameraError && (
-                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing...</span></div>
-                      )}
-                      
-                      {isVideoPlaying && !cameraError && (
-                        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
-                          <div className={`w-[190px] h-[250px] rounded-[100%] ${ovalClass}`} style={{borderRadius: '50% / 50%'}}></div>
-                        </div>
-                      )}
-
-                      {countdownValue !== null && (
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/50 backdrop-blur-[2px]">
-                          <span className="text-white text-[100px] font-black drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
-                            {countdownValue}
-                          </span>
-                        </div>
-                      )}
-                   </div>
-
-                   <p className={`text-[14px] font-bold mb-5 px-4 text-center transition-colors duration-300 ${scanStatus.includes("✅") ? "text-green-600" : scanStatus.includes("⚠️") ? "text-red-500" : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? "text-blue-600 animate-pulse" : "text-slate-600"}`}>
-                     {cameraError ? "Check browser settings." : scanStatus}
-                   </p>
-
-                   <button type="button" onClick={() => setIsCameraActive(false)} className="text-[13px] font-bold text-slate-500 hover:text-red-500 transition-colors px-4 py-2 cursor-pointer">Cancel Scan</button>
+                <div className="flex flex-col items-center w-full">
+                  <div className="w-full h-[320px] bg-slate-900 rounded-2xl relative overflow-hidden border-2 border-slate-200">
+                    <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1]" />
+                    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
+                    {isVideoPlaying && (<div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className={ovalClass} style={{width: '190px', height: '250px', borderRadius: '50%'}}></div></div>)}
+                    {countdownValue !== null && (<div className="absolute inset-0 flex items-center justify-center bg-slate-900/50"><span className="text-white text-[100px] font-black">{countdownValue}</span></div>)}
+                  </div>
+                  <p className="text-[14px] font-bold my-4 px-4 text-center">{scanStatus}</p>
+                  <button type="button" onClick={() => setIsCameraActive(false)} className="text-slate-500">Cancel</button>
                 </div>
               )}
             </div>
@@ -793,27 +514,26 @@ export default function TeacherRegistration() {
           {currentStep === 5 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Terms and Conditions</p>
-              <p className='text-slate-500 text-[13px] mb-3'>Please read the user agreement carefully before completing your registration.</p>
-              <div className='bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 h-[200px] overflow-y-auto custom-scrollbar text-[12px] text-slate-600 leading-relaxed shadow-inner'>
-                <strong className="text-slate-800 text-[14px] block mb-2">LuMINI Teacher User Agreement</strong>
-                <ol className="list-decimal pl-4 mb-2 space-y-1">
-                  <li><strong>Account Approval:</strong> Your account registration will be placed in a queue. You will not have access to the system until a Super Admin verifies your employment.</li>
-                  <li><strong>Data Confidentiality:</strong> You agree to keep student data strictly confidential.</li>
-                  <li><strong>Biometric Consent:</strong> You consent to the secure capture and storage of your facial biometric data for identity verification and system access.</li>
+              <div className='bg-slate-50 border p-4 h-[200px] overflow-y-auto text-[12px] text-slate-600 leading-relaxed'>
+                <strong>LuMINI Teacher User Agreement</strong>
+                <ol className="list-decimal pl-4 space-y-1">
+                  <li>Your registration requires approval by a Super Admin.</li>
+                  <li>You agree to keep student data confidential.</li>
+                  <li>You consent to biometric verification for system access.</li>
                 </ol>
               </div>
-              <div className='flex items-center gap-2 mt-2 mb-2 bg-blue-50/50 p-3 rounded-lg border border-blue-100'>
-                <input type="checkbox" id="userAgreement" className="w-[18px] h-[18px] cursor-pointer accent-blue-600" checked={hasAgreed} onChange={(e) => { setHasAgreed(e.target.checked); if (e.target.checked) setErrors(prev => ({ ...prev, agreement: null })); }} />
-                <label htmlFor="userAgreement" className="text-[13px] text-slate-800 font-medium cursor-pointer select-none">I have read and agree to the User Agreement</label>
+              <div className='flex items-center gap-2 mt-4 bg-blue-50 p-3 rounded-lg border border-blue-100'>
+                <input type="checkbox" id="userAgreement" className="w-[18px] h-[18px] cursor-pointer" checked={hasAgreed} onChange={(e) => setHasAgreed(e.target.checked)} />
+                <label htmlFor="userAgreement" className="text-[13px] font-medium cursor-pointer">I have read and agree to the Terms</label>
               </div>
               <ErrorMsg field="agreement" />
             </div>
           )}
 
-          <div className="flex flex-row w-full mt-2.5 gap-[15px]">
-            <button type="button" className="btn btn-outline flex-1 h-12 rounded-3xl font-semibold text-[15px] disabled:opacity-50 disabled:cursor-not-allowed" onClick={handleBack} disabled={currentStep === 0}>Back</button>
-            <button type="button" className={`btn btn-primary flex-1 h-12 rounded-3xl font-semibold text-[15px] transition-all ${currentStep === 5 && !hasAgreed ? 'opacity-70 grayscale-[20%]' : ''}`} onClick={handleNext} disabled={currentStep === 4 && isCameraActive}>
-              {currentStep === 5 ? 'Complete Registration' : 'Next'} 
+          <div className="flex flex-row w-full mt-4 gap-[15px]">
+            <button type="button" className="btn btn-outline flex-1 h-12 rounded-3xl font-semibold" onClick={handleBack} disabled={currentStep === 0}>Back</button>
+            <button type="button" className={`btn btn-primary flex-1 h-12 rounded-3xl font-semibold transition-all ${currentStep === 5 && !hasAgreed ? 'opacity-70' : ''}`} onClick={handleNext} disabled={currentStep === 4 && isCameraActive}>
+              {currentStep === 5 ? 'Complete' : 'Next'} 
             </button>
           </div>
         </form>
