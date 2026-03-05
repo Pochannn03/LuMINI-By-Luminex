@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import * as faceapi from "face-api.js"; // <-- NEW: Added Face API
+import * as faceapi from "face-api.js";
 import '../../styles/auth/registration.css';
 import FormInputRegistration from '../../components/FormInputRegistration';
 import { validateRegistrationStep } from '../../utils/validation';
@@ -11,16 +11,27 @@ import SuccessModal from '../../components/SuccessModal';
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
-const calculateEAR = (eye) => {
+
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
+  // face-api.js returns 20 points for the mouth. 
+  // Indices 12-19 represent the inner lip track.
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
-  const v1 = euclideanDistance(eye[1], eye[5]);
-  const v2 = euclideanDistance(eye[2], eye[4]);
-  const h = euclideanDistance(eye[0], eye[3]);
-  return (v1 + v2) / (2.0 * h);
+  
+  // Vertical distances across the inner mouth
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  
+  // Horizontal width of the inner mouth
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
 };
 
 const calculateYawRatio = (landmarks) => {
@@ -72,7 +83,7 @@ export default function TeacherRegistration() {
   const [zoom, setZoom] = useState(1);
 
   // ==========================================
-  // FACIAL VERIFICATION STATES & REFS (NEW)
+  // FACIAL VERIFICATION STATES & REFS
   // ==========================================
   const [modelsLoaded, setModelsLoaded] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -132,7 +143,6 @@ export default function TeacherRegistration() {
   // CAMERA & LIVENESS LOGIC
   // ==========================================
   useEffect(() => {
-    // Current Step 4 is now the Biometric Scan step
     if (isCameraActive && currentStep === 4) {
       startCamera();
     } else {
@@ -189,8 +199,15 @@ export default function TeacherRegistration() {
 
   const startDetectionSequence = () => {
     let isDetecting = true;
-    let phase = 0; let framesHeld = 0; let blinkClosed = false; let blinkCount = 0; 
+    let phase = 0; let framesHeld = 0; 
     let countdownSecs = 3; let countdownFrames = 0; let lostFaceFrames = 0; 
+    
+    // NEW: Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
+
+    // ARRAY TO STORE MULTIPLE FRAMES FOR AVERAGING
+    let collectedDescriptors = []; 
 
     stopDetectionRef.current = () => { isDetecting = false; };
 
@@ -215,16 +232,13 @@ export default function TeacherRegistration() {
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { 
-          phase = 0; framesHeld = 0; blinkClosed = false; blinkCount = 0; countdownSecs = 3; countdownFrames = 0;
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0;
+          countdownSecs = 3; countdownFrames = 0; collectedDescriptors = [];
           setCountdownValue(null);
           setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
           setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
         } else if (phase === 8) {
           countdownFrames++;
-          if (countdownFrames >= 8) {
-            countdownFrames = 0;
-            if (countdownSecs > 1) { countdownSecs--; setCountdownValue(countdownSecs); }
-          }
         }
       } else {
         lostFaceFrames = 0; 
@@ -237,20 +251,45 @@ export default function TeacherRegistration() {
         if (phase === 0) {
           setOvalClass("border-green-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.7)] border-[4px] shadow-[inset_0_0_20px_rgba(74,222,128,0.3)] transition-all duration-300");
           setScanStatus("Face detected! Hold still..."); phase = 1;
-        } else if (phase === 1) {
+        } 
+        else if (phase === 1) {
           framesHeld++;
-          if (framesHeld > 10) { phase = 2; framesHeld = 0; setScanStatus("Task 1: Please blink your eyes 3 times (0/3)"); }
-        } else if (phase === 2) {
-          const leftEye = detection.landmarks.getLeftEye();
-          const rightEye = detection.landmarks.getRightEye();
-          const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2;
-          if (avgEAR < 0.25) { blinkClosed = true; } 
-          else if (blinkClosed && avgEAR >= 0.25) { 
-            blinkCount++; blinkClosed = false; 
-            if (blinkCount >= 3) { phase = 3; setScanStatus("✅ Blinks verified! Please hold..."); } 
-            else { setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`); }
+          if (framesHeld > 10) { phase = 2; framesHeld = 0; }
+        } 
+        else if (phase === 2) {
+          // --- NEW: THE 2-CYCLE MOUTH LIVENESS TEST ---
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
+
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } // Wait ~1.5 secs
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; // Liveness passed, move to Head Turns
+              setScanStatus("✅ Liveness verified! Please hold...");
+            }
           }
-        } else if (phase === 3) {
+        } 
+        else if (phase === 3) {
           framesHeld++;
           if (framesHeld > 15) { phase = 4; framesHeld = 0; setScanStatus("Task 2: Slowly turn your head to your LEFT."); }
         } else if (phase === 4) {
@@ -264,22 +303,45 @@ export default function TeacherRegistration() {
           if (yaw < 0.6) { phase = 7; framesHeld = 0; setScanStatus("✅ Right turn verified! Please hold..."); }
         } else if (phase === 7) {
           framesHeld++;
-          if (framesHeld > 15) { phase = 8; countdownSecs = 3; countdownFrames = 0; setScanStatus("Excellent! Look directly at the camera. Capturing..."); setCountdownValue(3); }
+          if (framesHeld > 15) { 
+            phase = 8; countdownSecs = 3; countdownFrames = 0; 
+            setScanStatus("Excellent! Look directly at the camera. Capturing..."); 
+            setCountdownValue(3); 
+          }
         } else if (phase === 8) {
           countdownFrames++;
           if (countdownFrames >= 8) { 
             countdownFrames = 0; countdownSecs--;
-            if (countdownSecs > 0) { setCountdownValue(countdownSecs); } 
-            else {
-              setCountdownValue(null); setScanStatus("Processing...");
-              const imgData = takeSnapshot();
-              const descriptorArray = Array.from(detection.descriptor);
-              
-              setCapturedImage(imgData);
-              setFaceDescriptor(descriptorArray);
-              
-              isDetecting = false; stopCamera(); setIsCameraActive(false); setShowCaptureModal(true); return; 
+            if (countdownSecs > 0) { 
+              setCountdownValue(countdownSecs); 
+            } else {
+              setCountdownValue(null); 
+              setScanStatus("Scanning facial geometry...");
+              phase = 9; 
             }
+          }
+        } else if (phase === 9) {
+          // --- THE MULTI-FRAME AVERAGING PROTOCOL ---
+          collectedDescriptors.push(Array.from(detection.descriptor));
+          
+          if (collectedDescriptors.length >= 5) { 
+            setScanStatus("Processing Master Template...");
+            
+            let averagedDescriptor = new Array(128).fill(0);
+            
+            for (let i = 0; i < collectedDescriptors.length; i++) {
+              for (let j = 0; j < 128; j++) {
+                averagedDescriptor[j] += collectedDescriptors[i][j];
+              }
+            }
+            
+            averagedDescriptor = averagedDescriptor.map(val => val / collectedDescriptors.length);
+
+            const imgData = takeSnapshot();
+            setCapturedImage(imgData);
+            setFaceDescriptor(averagedDescriptor);
+            
+            isDetecting = false; stopCamera(); setIsCameraActive(false); setShowCaptureModal(true); return; 
           }
         }
       }
@@ -290,7 +352,6 @@ export default function TeacherRegistration() {
   };
 
   const validateStep = (step) => {
-    // We now have 6 steps (0-5). 3, 4, and 5 have custom validation in handleNext.
     if (step >= 3) return true; 
 
     const newErrors = validateRegistrationStep(step, formData, profileImage, 'admin');
@@ -398,7 +459,6 @@ export default function TeacherRegistration() {
     if (schoolIdFile) data.append('school_id_photo', schoolIdFile);
     if (validIdFile) data.append('valid_id_photo', validIdFile);
 
-    // --- NEW: Attach Facial Biometrics ---
     if (capturedImage) {
       const res = await fetch(capturedImage);
       const blob = await res.blob();
@@ -450,15 +510,14 @@ export default function TeacherRegistration() {
           setErrors(prev => ({ ...prev, ...stepErrors }));
           return; 
         }
-        setCurrentStep((prev) => prev + 1); // Move to Step 4 (Biometrics)
+        setCurrentStep((prev) => prev + 1); 
 
       } else if (currentStep === 4) {
-        // Enforce Biometric Capture
         if (!faceDescriptor) {
           alert("Please complete the facial scan before proceeding.");
           return;
         }
-        setCurrentStep((prev) => prev + 1); // Move to Step 5 (T&C)
+        setCurrentStep((prev) => prev + 1); 
 
       } else if (currentStep === 5) {
         if (!hasAgreed) {
@@ -471,7 +530,7 @@ export default function TeacherRegistration() {
   };
 
   const handleBack = () => {
-    if (currentStep === 4) setIsCameraActive(false); // Turn off camera if they go back
+    if (currentStep === 4) setIsCameraActive(false); 
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
     }
@@ -488,7 +547,7 @@ export default function TeacherRegistration() {
   return (
     <div className="wave min-h-screen w-full flex justify-center items-center p-5" style={{ backgroundAttachment: 'fixed' }}>
 
-      {/* --- CAPTURE REVIEW MODAL (NEW) --- */}
+      {/* --- CAPTURE REVIEW MODAL --- */}
       {showCaptureModal && capturedImage && (
         <div className="fixed inset-0 z-[999999] bg-slate-900/80 backdrop-blur-md flex justify-center items-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-[360px] flex flex-col items-center animate-[fadeIn_0.3s_ease-out]">
@@ -559,7 +618,7 @@ export default function TeacherRegistration() {
         <h1 className='text-left w-full mb-2'>Create Account</h1>
         <p className='w-full mb-4 font-normal text-left text-[14px] text-slate-500'>Please fill out the form to create your teacher account.</p>
 
-        {/* PROGRESS DOTS (Updated to 6 steps) */}
+        {/* PROGRESS DOTS */}
         <div className="flex justify-center gap-2 mb-6 w-full"> 
           {[...Array(6)].map((_, i) => ( 
             <div key={i} className={`h-2 rounded-full transition-all duration-500 ease-out ${currentStep === i ? 'w-8 bg-[#39a8ed]' : i < currentStep ? 'w-2 bg-[#bde0fe]' : 'w-2 bg-slate-200'}`} />
@@ -663,9 +722,6 @@ export default function TeacherRegistration() {
             </div>
           )}
 
-          {/* ========================================================= */}
-          {/* --- NEW: STEP 4 - FACIAL BIOMETRICS --- */}
-          {/* ========================================================= */}
           {currentStep === 4 && (
             <div className="text-center py-2 animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom text-left mb-6'>Facial Biometrics</p>
@@ -692,7 +748,7 @@ export default function TeacherRegistration() {
                      <span className="material-symbols-outlined text-[40px]">verified</span>
                    </div>
                    <h2 className="text-[20px] font-bold text-slate-800 mb-2">Scan Complete!</h2>
-                   <p className="text-[13px] text-slate-500 mb-6">Your facial template has been securely captured.</p>
+                   <p className="text-[13px] text-slate-500 mb-6">Your highly accurate facial template has been securely captured.</p>
                    <button type="button" onClick={() => { setFaceDescriptor(null); setCapturedImage(null); setIsCameraActive(true); }} className="text-blue-600 font-bold text-[13px] hover:underline cursor-pointer">
                      Retake Scan
                    </button>

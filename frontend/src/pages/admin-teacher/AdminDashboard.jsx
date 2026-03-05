@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import { useAuth } from "../../context/AuthProvider";
 import axios from 'axios';
-import * as faceapi from "face-api.js"; // <-- NEW: Face API
+import * as faceapi from "face-api.js"; 
 import NavBar from "../../components/navigation/NavBar";
 import AdminQueueParentGuardian from "../../components/modals/admin/dashboard/AdminQueueParentGuardian"
 import AdminDashboardQrScan from "../../components/modals/admin/dashboard/AdminDashboardQrScan"
@@ -17,16 +17,22 @@ import "../../styles/admin-teacher/admin-dashboard.css"
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
-const calculateEAR = (eye) => {
+
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
-  const v1 = euclideanDistance(eye[1], eye[5]);
-  const v2 = euclideanDistance(eye[2], eye[4]);
-  const h = euclideanDistance(eye[0], eye[3]);
-  return (v1 + v2) / (2.0 * h);
+  
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
 };
 
 const calculateYawRatio = (landmarks) => {
@@ -168,10 +174,26 @@ export default function AdminDashboard() {
     return canvas.toDataURL('image/jpeg', 0.9);
   };
 
+  // ==========================================
+  // LIVENESS DETECTION & MULTI-FRAME AVERAGING
+  // ==========================================
   const startDetectionSequence = () => {
     let isDetecting = true;
-    let phase = 0; let framesHeld = 0; let blinkClosed = false; let blinkCount = 0; 
-    let countdownSecs = 3; let countdownFrames = 0; let lostFaceFrames = 0; 
+    let phase = 0; 
+    let framesHeld = 0; 
+    
+    // Countdown Trackers
+    let countdownSecs = 3; 
+    let countdownFrames = 0; 
+    let lostFaceFrames = 0; 
+
+    // Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
+
+    // ARRAY TO STORE MULTIPLE FRAMES FOR AVERAGING
+    let collectedDescriptors = []; 
+
     stopDetectionRef.current = () => { isDetecting = false; };
 
     const runDetection = async () => {
@@ -190,7 +212,8 @@ export default function AdminDashboard() {
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { 
-          phase = 0; framesHeld = 0; blinkClosed = false; blinkCount = 0; countdownSecs = 3; countdownFrames = 0;
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0;
+          countdownSecs = 3; countdownFrames = 0; collectedDescriptors = [];
           setCountdownValue(null); setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
           setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
         } else if (phase === 8) {
@@ -207,17 +230,44 @@ export default function AdminDashboard() {
         if (phase === 0) {
           setOvalClass("border-green-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.7)] border-[4px] shadow-[inset_0_0_20px_rgba(74,222,128,0.3)] transition-all duration-300");
           setScanStatus("Face detected! Hold still..."); phase = 1;
-        } else if (phase === 1) {
-          framesHeld++; if (framesHeld > 10) { phase = 2; framesHeld = 0; setScanStatus("Task 1: Please blink your eyes 3 times (0/3)"); }
-        } else if (phase === 2) {
-          const avgEAR = (calculateEAR(detection.landmarks.getLeftEye()) + calculateEAR(detection.landmarks.getRightEye())) / 2;
-          if (avgEAR < 0.25) { blinkClosed = true; } 
-          else if (blinkClosed && avgEAR >= 0.25) { 
-            blinkCount++; blinkClosed = false; 
-            if (blinkCount >= 3) { phase = 3; setScanStatus("✅ Blinks verified! Please hold..."); } 
-            else { setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`); }
+        } 
+        else if (phase === 1) {
+          framesHeld++; if (framesHeld > 10) { phase = 2; framesHeld = 0; }
+        } 
+        else if (phase === 2) {
+          // --- THE 2-CYCLE MOUTH LIVENESS TEST ---
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
+
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; 
+              setScanStatus("✅ Liveness verified! Please hold...");
+            }
           }
-        } else if (phase === 3) {
+        } 
+        else if (phase === 3) {
           framesHeld++; if (framesHeld > 15) { phase = 4; framesHeld = 0; setScanStatus("Task 2: Slowly turn your head to your LEFT."); }
         } else if (phase === 4) {
           if (calculateYawRatio(detection.landmarks) > 1.6) { phase = 5; framesHeld = 0; setScanStatus("✅ Left turn verified! Please hold..."); }
@@ -231,13 +281,36 @@ export default function AdminDashboard() {
           countdownFrames++;
           if (countdownFrames >= 8) { 
             countdownFrames = 0; countdownSecs--;
-            if (countdownSecs > 0) { setCountdownValue(countdownSecs); } 
-            else {
-              setCountdownValue(null); setScanStatus("Processing...");
-              const imgData = takeSnapshot(); const descriptorArray = Array.from(detection.descriptor);
-              setCapturedImage(imgData); setFaceDescriptor(descriptorArray);
-              isDetecting = false; stopCamera(); setIsCameraActive(false); return; 
+            if (countdownSecs > 0) { 
+              setCountdownValue(countdownSecs); 
+            } else {
+              setCountdownValue(null); 
+              setScanStatus("Scanning facial geometry..."); 
+              phase = 9; 
             }
+          }
+        } else if (phase === 9) {
+          // --- THE MULTI-FRAME AVERAGING PROTOCOL ---
+          collectedDescriptors.push(Array.from(detection.descriptor));
+          
+          if (collectedDescriptors.length >= 5) { 
+            setScanStatus("Processing Master Template...");
+            
+            let averagedDescriptor = new Array(128).fill(0);
+            
+            for (let i = 0; i < collectedDescriptors.length; i++) {
+              for (let j = 0; j < 128; j++) {
+                averagedDescriptor[j] += collectedDescriptors[i][j];
+              }
+            }
+            
+            averagedDescriptor = averagedDescriptor.map(val => val / collectedDescriptors.length);
+
+            const imgData = takeSnapshot(); 
+            setCapturedImage(imgData); 
+            setFaceDescriptor(averagedDescriptor);
+
+            isDetecting = false; stopCamera(); setIsCameraActive(false); return; 
           }
         }
       }
@@ -617,7 +690,7 @@ export default function AdminDashboard() {
                    <span className="material-symbols-outlined text-[40px]">verified</span>
                  </div>
                  <h2 className="text-2xl font-black text-slate-800 mb-2">Verification Complete</h2>
-                 <p className="text-[14px] text-slate-500 mb-8 text-center max-w-sm">Your facial template has been securely generated.</p>
+                 <p className="text-[14px] text-slate-500 mb-8 text-center max-w-sm">Your highly accurate facial template has been securely generated.</p>
                  
                  <div className="w-[180px] h-[240px] rounded-2xl overflow-hidden mb-8 border-4 border-slate-100 shadow-md">
                     <img src={capturedImage} alt="Captured face" className="w-full h-full object-cover" />

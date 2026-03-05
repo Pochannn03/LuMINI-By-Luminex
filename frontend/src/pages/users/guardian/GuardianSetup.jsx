@@ -11,25 +11,29 @@ import AvatarEditor from "react-avatar-editor";
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
 
-// 1. Eye Aspect Ratio (For Blinking)
-const calculateEAR = (eye) => {
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
-  const v1 = euclideanDistance(eye[1], eye[5]);
-  const v2 = euclideanDistance(eye[2], eye[4]);
-  const h = euclideanDistance(eye[0], eye[3]);
-  return (v1 + v2) / (2.0 * h);
+  
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
 };
 
-// 2. Head Yaw Ratio (For turning head Left/Right)
 const calculateYawRatio = (landmarks) => {
   const jaw = landmarks.getJawOutline();
   const nose = landmarks.getNose();
-  const imageLeftCheek = jaw[0];   // Physical right
-  const imageRightCheek = jaw[16]; // Physical left
+  const imageLeftCheek = jaw[0];   
+  const imageRightCheek = jaw[16]; 
   const noseTip = nose[3];         
   const distLeft = noseTip.x - imageLeftCheek.x;
   const distRight = imageRightCheek.x - noseTip.x;
@@ -180,17 +184,20 @@ export default function GuardianSetup() {
     let isDetecting = true;
     let phase = 0; 
     let framesHeld = 0;
-    
-    // Blink Trackers
-    let blinkClosed = false;
-    let blinkCount = 0; 
 
     // Countdown Trackers
     let countdownSecs = 3;
     let countdownFrames = 0;
     
-    // NEW: Grace Period Tracker (Fixes the stuck countdown!)
+    // Grace Period Tracker
     let lostFaceFrames = 0; 
+
+    // NEW: Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
+
+    // ARRAY TO STORE MULTIPLE FRAMES FOR AVERAGING
+    let collectedDescriptors = []; 
 
     stopDetectionRef.current = () => { isDetecting = false; };
 
@@ -223,12 +230,8 @@ export default function GuardianSetup() {
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { // Approx 1.5 seconds of totally lost face = Full Reset
-          phase = 0;
-          framesHeld = 0;
-          blinkClosed = false;
-          blinkCount = 0;
-          countdownSecs = 3;
-          countdownFrames = 0;
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0;
+          countdownSecs = 3; countdownFrames = 0; collectedDescriptors = [];
           setCountdownValue(null);
           setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
           setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
@@ -265,25 +268,38 @@ export default function GuardianSetup() {
           if (framesHeld > 10) { 
             phase = 2;
             framesHeld = 0;
-            setScanStatus("Task 1: Please blink your eyes 3 times (0/3)");
           }
         } 
         else if (phase === 2) {
-          const leftEye = detection.landmarks.getLeftEye();
-          const rightEye = detection.landmarks.getRightEye();
-          const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2;
+          // --- THE 2-CYCLE MOUTH LIVENESS TEST ---
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
 
-          if (avgEAR < 0.25) {
-            blinkClosed = true; 
-          } else if (blinkClosed && avgEAR >= 0.25) { 
-            blinkCount++;
-            blinkClosed = false; 
-
-            if (blinkCount >= 3) {
-              phase = 3;
-              setScanStatus("✅ Blinks verified! Please hold...");
-            } else {
-              setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`);
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; // Liveness passed, move to Head Turns
+              setScanStatus("✅ Liveness verified! Please hold...");
             }
           }
         } 
@@ -337,22 +353,37 @@ export default function GuardianSetup() {
             if (countdownSecs > 0) {
               setCountdownValue(countdownSecs);
             } else {
-              // FIRE CAPTURE!
               setCountdownValue(null);
-              setScanStatus("Processing...");
-              
-              const imgData = takeSnapshot();
-              const descriptorArray = Array.from(detection.descriptor);
-              
-              setCapturedImage(imgData);
-              setFaceDescriptor(descriptorArray);
-              
-              isDetecting = false; 
-              stopCamera(); 
-              setIsCameraActive(false); 
-              setShowCaptureModal(true); 
-              return; 
+              setScanStatus("Scanning facial geometry...");
+              phase = 9; 
             }
+          }
+        } else if (phase === 9) {
+          // --- THE MULTI-FRAME AVERAGING PROTOCOL ---
+          collectedDescriptors.push(Array.from(detection.descriptor));
+          
+          if (collectedDescriptors.length >= 5) { 
+            setScanStatus("Processing Master Template...");
+            
+            let averagedDescriptor = new Array(128).fill(0);
+            
+            for (let i = 0; i < collectedDescriptors.length; i++) {
+              for (let j = 0; j < 128; j++) {
+                averagedDescriptor[j] += collectedDescriptors[i][j];
+              }
+            }
+            
+            averagedDescriptor = averagedDescriptor.map(val => val / collectedDescriptors.length);
+
+            const imgData = takeSnapshot();
+            setCapturedImage(imgData);
+            setFaceDescriptor(averagedDescriptor);
+            
+            isDetecting = false; 
+            stopCamera(); 
+            setIsCameraActive(false); 
+            setShowCaptureModal(true); 
+            return; 
           }
         }
       }
