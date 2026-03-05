@@ -3,7 +3,9 @@ import passport from "../config/passport.js";
 import crypto from 'crypto';
 import { User } from "../models/users.js";
 import { Audit } from "../models/audits.js"
-import { sendPasswordUpdateOTP } from '../utils/emailService.js';
+
+// --- UPDATED: Imported sendUnauthorizedAccessEmail here ---
+import { sendPasswordUpdateOTP, sendUnauthorizedAccessEmail } from '../utils/emailService.js';
 import { hashPassword } from '../utils/passwordUtils.js';
 
 // Helper function for Face Matching
@@ -268,6 +270,11 @@ router.post('/api/auth/forgot-password/verify-face', async (req, res) => {
             });
             await failedAudit.save().catch(e => console.error(e));
 
+            // --- NEW: FIRE OFF THE SECURITY ALERT EMAIL ---
+            if (user.email) {
+                await sendUnauthorizedAccessEmail(user.email, user.first_name);
+            }
+
             return res.status(401).json({ message: "Face does not match the registered user." });
         }
 
@@ -362,6 +369,5 @@ router.post('/api/auth/forgot-password/reset', async (req, res) => {
         return res.status(500).json({ message: "Server error during reset." });
     }
 });
-
 
 export default router;

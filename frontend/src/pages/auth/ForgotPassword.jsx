@@ -7,6 +7,7 @@ import secureBgImage from '../../assets/Secure.jpg';
 import fastBgImage from '../../assets/CheckIns.jpg';  
 import updatesBgImage from '../../assets/Updates.jpg';
 import '../../styles/auth/login.css'; 
+import WarningModal from "../../components/WarningModal"; // <-- NEW: Imported WarningModal
 
 const BACKEND_URL = "http://localhost:3000";
 
@@ -57,6 +58,11 @@ export default function ForgotPassword() {
   const [otpSent, setOtpSent] = useState(false);
   
   const [foundUserId, setFoundUserId] = useState(null);
+
+  // --- NEW: WARNING MODAL STATES ---
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
 
   // --- FACIAL RECOGNITION STATES ---
   const [modelsLoaded, setModelsLoaded] = useState(false);
@@ -277,7 +283,10 @@ export default function ForgotPassword() {
         setFaceVerified(true);
         setCurrentStep(2); 
     } catch (err) {
-        alert(err.response?.data?.message || "Biometric verification failed. Face does not match.");
+        // --- NEW: USING THE WARNING MODAL INSTEAD OF ALERT ---
+        setWarningTitle("Security Alert");
+        setWarningMessage(err.response?.data?.message || "Biometric verification failed. Face does not match.");
+        setShowWarningModal(true);
         setFaceVerified(false);
         setIsCameraActive(false); 
     }
@@ -302,7 +311,7 @@ export default function ForgotPassword() {
     if (otpInput.length !== 6) {
         setError("OTP must be exactly 6 digits."); return;
     }
-    setCurrentStep(3); // Let them type the password before verifying the final payload
+    setCurrentStep(3); 
   };
 
   // STEP 3: Final Submission (Verify OTP + Reset Password)
@@ -335,6 +344,14 @@ export default function ForgotPassword() {
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-white font-poppins overflow-hidden">
       
+      {/* --- NEW: WARNING MODAL COMPONENT --- */}
+      <WarningModal 
+        isOpen={showWarningModal} 
+        onClose={() => setShowWarningModal(false)} 
+        title={warningTitle} 
+        message={warningMessage} 
+      />
+
       {/* ---------------- TOP/LEFT SECTION: SLIDER ---------------- */}
       <div className="w-full h-[30vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out justify-start lg:h-full lg:w-1/2 lg:justify-center bg-size-[180%] lg:bg-cover" style={{ backgroundImage: `url(${features[featureIndex].bgImage})`, backgroundPosition: 'center' }}>
         <div className="relative z-10 w-full max-w-xl pb-12 pl-10 pr-8 text-left lg:px-16 lg:text-center lg:pb-0">

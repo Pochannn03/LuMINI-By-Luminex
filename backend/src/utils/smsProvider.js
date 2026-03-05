@@ -8,7 +8,7 @@ import axios from 'axios';
 export const sendIprogBulkSMS = async (phoneNumbers, messageText) => {
     // 🛑 MOCK MODE ENABLED - NO REAL CREDITS WILL BE USED 🛑
     // Change this to 'false' only when you are ready for production!
-    const isMockMode = false; 
+    const isMockMode = true; 
 
     if (isMockMode) {
         console.log("\n=====================================================");

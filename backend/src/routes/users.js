@@ -6,8 +6,11 @@ import { editUserValidationSchema } from "../validation/editAccountsValidation.j
 import { validationResult, body, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { hashPassword } from '../utils/passwordUtils.js';
-import { sendPasswordUpdateOTP } from '../utils/emailService.js';
+
+// --- ADDED EMAIL SERVICE AND CRYPTO HERE ---
+import { sendPasswordUpdateOTP, sendUnauthorizedAccessEmail } from '../utils/emailService.js'; // <-- NEW: Added sendUnauthorizedAccessEmail
 import crypto from 'crypto'; 
+
 import multer from "multer";
 import path from "path";
 import fs from "fs";
@@ -48,9 +51,12 @@ router.get('/api/users',
   hasRole('superadmin'),
   async (req, res) => {
     try {
+      // Exclude ONLY the primary superadmin by ID
+      // This allows other 'superadmin' role users to show up in the list
       const users = await User.find({ 
         user_id: { $nin: [0, 1, "0", "1"] } 
       });
+
       res.status(200).json({ success: true, users: users || [] });
     } catch(err) {
       console.error("Error fetching accounts:", err);
@@ -295,6 +301,11 @@ router.post('/api/user/verify-face-match', isAuthenticated, async (req, res) => 
             });
             await failedAudit.save().catch(e => console.error(e));
 
+            // --- NEW: FIRE OFF THE SECURITY ALERT EMAIL ---
+            if (user.email) {
+                await sendUnauthorizedAccessEmail(user.email, user.first_name);
+            }
+
             return res.status(401).json({ message: "Biometric mismatch. Face does not match the registered user." });
         }
 
@@ -324,12 +335,15 @@ router.post('/api/user/request-password-otp', isAuthenticated, async (req, res) 
       return res.status(400).json({ message: "User or email not found." });
     }
 
+    // 1. Generate a 6-digit numeric OTP
     const otp = crypto.randomInt(100000, 999999).toString();
 
+    // 2. Save it to the database with a 5-minute expiration
     user.reset_otp = otp;
     user.reset_otp_expires = Date.now() + 5 * 60 * 1000; 
     await user.save();
 
+    // 3. Send the email
     const emailSent = await sendPasswordUpdateOTP(user.email, otp, user.first_name);
 
     if (emailSent) {
@@ -361,6 +375,7 @@ router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) =>
     const { otp, newPassword } = req.body;
     const user = await User.findById(req.user._id);
 
+    // 1. Validate the OTP exists and hasn't expired
     if (!user.reset_otp || !user.reset_otp_expires) {
       return res.status(400).json({ message: "No OTP requested." });
     }
@@ -376,8 +391,10 @@ router.put('/api/user/verify-password-otp', isAuthenticated, async (req, res) =>
       return res.status(400).json({ message: "Invalid OTP. Please try again." });
     }
 
+    // 2. OTP is valid! Hash the new password and save it
     user.password = await hashPassword(newPassword);
     
+    // 3. Clear the OTP fields
     user.reset_otp = null;
     user.reset_otp_expires = null;
     await user.save();
