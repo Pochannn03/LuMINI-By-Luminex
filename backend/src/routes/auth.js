@@ -4,15 +4,27 @@ import crypto from 'crypto';
 import { User } from "../models/users.js";
 import { Audit } from "../models/audits.js"
 
-// --- UPDATED: Imported sendUnauthorizedAccessEmail here ---
 import { sendPasswordUpdateOTP, sendUnauthorizedAccessEmail } from '../utils/emailService.js';
 import { hashPassword } from '../utils/passwordUtils.js';
 
-// Helper function for Face Matching
+// ==========================================
+// BULLETPROOF ANTI-SPOOFING MATH HELPER
+// ==========================================
 const euclideanDistance = (desc1, desc2) => {
+    // 1. Force both inputs into standard arrays (handles MongoDB objects/strings)
+    let arr1 = typeof desc1 === 'string' ? JSON.parse(desc1) : desc1;
+    let arr2 = typeof desc2 === 'string' ? JSON.parse(desc2) : desc2;
+    
+    arr1 = Array.isArray(arr1) ? arr1 : Object.values(arr1);
+    arr2 = Array.isArray(arr2) ? arr2 : Object.values(arr2);
+
+    // 2. If lengths don't match (128 data points), it's corrupted data = NaN
+    if (arr1.length !== arr2.length || arr1.length === 0) return NaN;
+
+    // 3. Calculate distance
     let sum = 0;
-    for (let i = 0; i < desc1.length; i++) {
-        sum += Math.pow(desc1[i] - desc2[i], 2);
+    for (let i = 0; i < arr1.length; i++) {
+        sum += Math.pow(Number(arr1[i]) - Number(arr2[i]), 2);
     }
     return Math.sqrt(sum);
 };
@@ -38,9 +50,6 @@ router.post("/api/auth", (req, res, next) => {
       return res.status(401).json({ message: "Invalid Credentials" });
     }
 
-    // =======================================================
-    // 1. IMPROVED ARCHIVE CHECK (Removed strict '=== true')
-    // =======================================================
     if (user.is_archive) {
       const archiveAudit = new Audit({
         user_id: user.user_id,
@@ -53,11 +62,6 @@ router.post("/api/auth", (req, res, next) => {
       return res.status(403).json({ message: "This account has been revoked or archived. Access denied." });
     }
 
-    // =======================================================
-    // 2. NEW: PENDING APPROVAL CHECK
-    // =======================================================
-    // We strictly check '=== false' so older database accounts
-    // (where is_approved might be undefined) can still log in.
     if (user.is_approved === false) {
       const pendingAudit = new Audit({
         user_id: user.user_id,
@@ -131,19 +135,15 @@ router.post("/api/auth", (req, res, next) => {
   })(req, res, next);
 });
 
-// --- UPDATED: Made async to fetch fresh DB data ---
 router.get("/api/auth/session", async (req, res) => {
   if (req.isAuthenticated() && req.user) {
-    
     try {
-      // 1. Force a fresh database lookup using the ID from the session cookie
       const freshUser = await User.findById(req.user._id);
 
       if (!freshUser) {
         return res.status(200).json({ isAuthenticated: false, user: null });
       }
 
-      // 2. Build the safe object with the 100% fresh data
       const safeUser = {
         id: freshUser._id,
         username: freshUser.username,
@@ -153,7 +153,7 @@ router.get("/api/auth/session", async (req, res) => {
         firstName: freshUser.first_name, 
         lastName: freshUser.last_name,
         is_first_login: freshUser.is_first_login !== undefined ? freshUser.is_first_login : true,
-        profile_picture: freshUser.profile_picture // <-- ADDED MISSING PICTURE FIX!
+        profile_picture: freshUser.profile_picture 
       };
 
       return res.status(200).json({ isAuthenticated: true, user: safeUser });
@@ -171,7 +171,6 @@ router.get("/api/auth/session", async (req, res) => {
 router.post("/api/auth/logout", async (req, res) => {
   const user = req.user;
   
-  // NEW: Clear the session ID from the database before destroying the session
   if (user) {
     try {
       await User.findByIdAndUpdate(user._id, { $set: { current_session_id: null } });
@@ -215,7 +214,7 @@ router.post("/api/auth/logout", async (req, res) => {
 // FORGOT PASSWORD FLOW (UNAUTHENTICATED ROUTES)
 // =========================================================
 
-// 1. Search Account (Case Insensitive)
+// 1. Search Account
 router.post('/api/auth/forgot-password/search', async (req, res) => {
     try {
         const { firstName, lastName, email } = req.body;
@@ -239,7 +238,6 @@ router.post('/api/auth/forgot-password/search', async (req, res) => {
             return res.status(404).json({ message: "No account found matching those details." });
         }
 
-        // Return ONLY the ID, keep the rest secure
         return res.status(200).json({ userId: user._id });
     } catch (error) {
         console.error("Search Error:", error);
@@ -247,7 +245,7 @@ router.post('/api/auth/forgot-password/search', async (req, res) => {
     }
 });
 
-// 2. Verify Facial Biometrics
+// 2. Verify Facial Biometrics (STRICT REJECTION ENFORCED)
 router.post('/api/auth/forgot-password/verify-face', async (req, res) => {
     try {
         const { userId, facialDescriptor } = req.body;
@@ -257,25 +255,32 @@ router.post('/api/auth/forgot-password/verify-face', async (req, res) => {
             return res.status(400).json({ message: "No biometric data registered for this account." });
         }
 
-        // Compare the camera descriptor to the database descriptor
+        // Calculate distance with strict parsing
         const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
+        
+        console.log(`[SECURITY] Forgot Password Face Match Distance: ${distance}`); // Helpful for debugging
 
-        if (distance > 0.55) {
+        // STRICT REJECTION: Reject if over 0.55 OR if the calculation failed (NaN)
+        if (isNaN(distance) || distance > 0.55) {
+            
+            const failReason = isNaN(distance) ? "Corrupted Data (NaN)" : `Distance: ${distance.toFixed(4)}`;
+            console.log(`[SECURITY] REJECTED: ${failReason}`);
+
             const failedAudit = new Audit({
                 user_id: user.user_id,
                 full_name: `${user.first_name} ${user.last_name}`,
                 role: user.role,
                 action: "Face Verify Failed",
-                target: `Biometric mismatch (Distance: ${distance.toFixed(4)})`
+                target: `Forgot Password biometric mismatch (${failReason})`
             });
             await failedAudit.save().catch(e => console.error(e));
 
-            // --- NEW: FIRE OFF THE SECURITY ALERT EMAIL ---
+            // FIRE SECURITY ALERT EMAIL
             if (user.email) {
                 await sendUnauthorizedAccessEmail(user.email, user.first_name);
             }
 
-            return res.status(401).json({ message: "Face does not match the registered user." });
+            return res.status(401).json({ message: "Security Alert: Face does not match the registered user. The account owner has been notified." });
         }
 
         const successAudit = new Audit({
