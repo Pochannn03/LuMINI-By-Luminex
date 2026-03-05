@@ -2,17 +2,32 @@ import React, { useState, useEffect } from "react";
 import { Link } from 'react-router-dom';
 import '../styles/landing.css'; 
 import Logo from '../assets/lumini-logo.png';
+import Photo1 from '../assets/CapstoneTeam.jpg'
+import Photo2 from '../assets/nemesio.webp'
+import Photo3 from '../assets/CapstoneTeam1.jpg'
+import Photo4  from '../assets/NemesioLogo.jpg'
+import Photo5 from '../assets/Team.jpg'
+import Photo6 from '../assets/Principal.jpg'
 import { ShieldCheck, Zap, BellRing, Menu, X } from 'lucide-react'; 
 
 export default function Landing() {
   const [scrolled, setScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const images = [Photo1, Photo2, Photo3, Photo4, Photo5, Photo6];
+  const [currentImage, setCurrentImage] = useState(0);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % images.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [images.length]);
 
   return (
     <div className="relative overflow-x-hidden font-poppins">
@@ -170,17 +185,35 @@ export default function Landing() {
         <section id="about" className="py-24">
           <div className="container mx-auto px-6">
             <div className="flex flex-col lg:flex-row items-center gap-16">
+              
+              {/* --- FIXED POLAROID SLIDESHOW --- */}
               <div className="flex-1 w-full">
-                <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 transform -rotate-1 hover:rotate-0 transition-transform duration-500">
-                  <div className="h-64 bg-blue-50 rounded-2xl flex items-center justify-center mb-6">
-                    <span className="text-cbrand-blue text-6xl opacity-50">Sample Pic</span>
+                <div className="bg-white p-6 md:p-8 rounded-3xl shadow-xl border border-gray-100 transform -rotate-1 hover:rotate-0 transition-transform duration-500">
+                  
+                  {/* Image Container with fixed height to match your design */}
+                  <div className="h-64 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 overflow-hidden relative">
+                    <img 
+                      key={currentImage}
+                      src={images[currentImage]} 
+                      alt="LuMINI Gallery" 
+                      className={`w-full h-full transition-all duration-700 animate-in fade-in ${
+                        // Logic to contain logos so they don't get cut off, while covering for team photos
+                        images[currentImage] === Photo2 || images[currentImage] === Photo4 
+                          ? "object-contain p-4" 
+                          : "object-cover"
+                      }`}
+                    />
                   </div>
-                  <div className="flex justify-between items-center text-sm text-clight font-medium">
+
+                  {/* Footer Text */}
+                  <div className="flex justify-between items-center text-sm text-clight font-medium px-1">
                     <span>Since 2025</span>
                     <span>Trusted by Schools</span>
                   </div>
                 </div>
               </div>
+
+              {/* About Content */}
               <div className="flex-1">
                 <h2 className="text-cbrand-blue font-bold tracking-wider uppercase text-sm mb-4">About LuMINI</h2>
                 <h3 className="text-3xl lg:text-4xl font-extrabold text-cdark mb-6">Redefining Student Safety</h3>
@@ -208,8 +241,27 @@ export default function Landing() {
 
         <footer id="contact" className="bg-white pt-20 pb-10 border-t border-gray-200">
           <div className="container mx-auto px-6 text-center">
-            <h2 className="text-3xl font-bold text-cdark mb-6">Ready to upgrade?</h2>
-            <a href="#" className="btn btn-primary h-12 px-8 rounded-full mb-16 w-fit mx-auto">Contact Support</a>
+            <h2 className="text-3xl font-bold text-cdark mb-8">Get in Touch</h2>
+            
+            <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-16">
+              {/* Phone Number */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Call Us</span>
+                <p className="text-xl font-semibold text-cdark">(02) 882 2826</p>
+              </div>
+
+              {/* Vertical Divider for desktop */}
+              <div className="hidden md:block w-px h-10 bg-gray-200"></div>
+
+              {/* Email Address */}
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Email Us</span>
+                <a href="mailto:136710@deped.gov.ph" className="text-md font-semibold text-cdark hover:text-cbrand-blue transition-colors">
+                  136710@deped.gov.ph
+                </a>
+              </div>
+            </div>
+
             <div className="border-t border-gray-100 pt-8 text-sm text-gray-400">
               <p>© 2026 LuMINI Portal.</p>
             </div>
