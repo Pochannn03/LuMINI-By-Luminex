@@ -1,0 +1,48 @@
+// backend/src/models/GuardianRequest.js
+import mongoose from "mongoose";
+
+const GuardianRequestSchema = new mongoose.Schema({
+  parent: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
+  students: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Student' 
+  }],
+  teacher: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User', 
+    required: true 
+  },
+  guardianDetails: {
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    phone: { type: String, required: true },
+    role: { type: String, required: true },
+    tempUsername: { type: String, required: true },
+    tempPassword: { type: String, required: true }, 
+    idPhotoPath: { type: String, required: true } ,
+    createdUserId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+  },
+  status: { 
+    type: String, 
+    enum: ['pending', 'teacher_approved', 'approved', 'rejected', 'revoked'], // <-- ADDED 'teacher_approved'
+    default: 'pending' 
+  }
+}, { timestamps: true },
+  {
+    toJSON: { virtuals: true }, 
+    toObject: { virtuals: true }
+  }
+);
+
+GuardianRequestSchema.virtual('parent_details', {
+  ref: 'User',
+  localField: 'parent',
+  foreignField: '_id',
+  justOne: true
+});
+
+export default mongoose.model('GuardianRequest', GuardianRequestSchema);

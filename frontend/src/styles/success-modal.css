@@ -1,0 +1,104 @@
+/* frontend/src/styles/success-modal.css */
+
+/* The dark background overlay */
+.success-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5); /* Semi-transparent black */
+  backdrop-filter: blur(2px); /* Slight blur for modern look */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Ensure it's on top of everything */
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* The White Modal Box */
+.success-modal-content {
+  background: white;
+  padding: 30px 50px;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Bouncy effect */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+/* Green Circle Container */
+.success-icon-container {
+  width: 80px;
+  height: 80px;
+  background-color: #dcfce7; /* Light Green */
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+/* The Checkmark Icon */
+.success-icon {
+  font-size: 40px !important;
+  color: #16a34a; /* Dark Green */
+  font-weight: bold;
+}
+
+/* Text Styles */
+.success-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.success-message {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Close Button */
+.success-close-btn {
+  margin-top: 10px;
+  padding: 10px 30px;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.success-close-btn:hover {
+  background-color: #15803d;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

@@ -1,0 +1,488 @@
+/* frontend/src/styles/teacher/teacher-profile.css */
+
+:root {
+  /* Fallback variables in case they aren't in index.css */
+  --primary-blue: #39a8ed;
+  --white: #ffffff;
+  --text-dark: #1e293b;
+  --text-gray: #64748b;
+}
+
+/* =========================================
+   1. GLOBAL FIXES & CONTAINER
+   ========================================= */
+
+a.nav-item {
+  text-decoration: none;
+  color: inherit;
+}
+
+.profile-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+  padding-bottom: 40px;
+  animation: fadeIn 0.4s ease-out;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================
+   2. PROFILE HEADER CARD
+   ========================================= */
+.profile-header-card {
+  background: var(--white);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  position: relative;
+}
+
+.profile-cover {
+  height: 120px;
+  background: linear-gradient(135deg, var(--primary-blue), #25ccf7);
+}
+
+.profile-details-row {
+  padding: 0 32px 32px 32px;
+  display: flex;
+  align-items: flex-end;
+  gap: 24px;
+  margin-top: -30px;
+}
+
+.avatar-upload-wrapper {
+  position: relative;
+}
+
+.large-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 4px solid var(--white);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  object-fit: cover;
+  background: var(--white);
+}
+
+.camera-btn {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--text-dark);
+  color: white;
+  border: 2px solid var(--white);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+.camera-btn:hover {
+  transform: scale(1.1);
+}
+.camera-btn span {
+  font-size: 16px;
+}
+
+.profile-text {
+  flex: 1;
+  margin-bottom: 10px;
+  padding-top: 10px;
+  /* Ensure desktop stays left-aligned */
+  display: block; 
+  text-align: left; 
+}
+
+.profile-text h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+}
+.profile-text p {
+  font-size: 14px;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.profile-actions {
+  margin-bottom: 15px;
+}
+
+/* =========================================
+   3. GRID & FORMS
+   ========================================= */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-card {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+
+/* Flexbox to align the new icon with the title */
+.card-header h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* New Icon Style */
+.header-icon {
+  font-size: 22px;
+  color: var(--primary-blue);
+}
+
+.card-header p {
+  font-size: 13px;
+  color: var(--text-gray);
+}
+
+/* --- INPUTS & ICONS --- */
+.form-group {
+  margin-bottom: 20px;
+}
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 100%; /* Force it to stay inside the parent */
+  box-sizing: border-box; /* Apply to wrapper too */
+}
+
+.input-wrapper .icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.input-wrapper input {
+  width: 100%;
+  max-width: 100%; /* Stop it from bleeding out */
+  box-sizing: border-box !important; /* Force the browser to respect padding limits */
+  padding: 12px 16px 12px 48px !important; /* Space for icon */
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: var(--text-dark);
+  font-family: "Poppins", sans-serif;
+  transition: all 0.2s;
+  outline: none;
+  background: #fff;
+}
+
+.input-wrapper input:focus {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(57, 168, 237, 0.1);
+}
+
+/* Right Column Stack */
+.right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* =========================================
+   4. SIGN OUT BUTTON (Clean Style)
+   ========================================= */
+.btn-signout {
+  background: #ffffff;
+  color: #ef4444;
+  border: 2px solid #fee2e2;
+  width: 100%;
+  margin-top: 0; 
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-signout:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+/* =========================================
+   5. CLASSROOM LIST WIDGET
+   ========================================= */
+
+.classroom-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.classroom-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.classroom-list-item:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border-color: #e2e8f0;
+  transform: translateY(-2px);
+}
+
+.classroom-info-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Re-using your nice blue/orange aesthetic for the icons */
+.classroom-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.classroom-icon.blue { background: #e0f2fe; color: #0284c7; }
+.classroom-icon.orange { background: #ffedd5; color: #ea580c; }
+.classroom-icon.green { background: #dcfce7; color: #16a34a; }
+
+.classroom-icon span {
+  font-size: 24px;
+}
+
+.classroom-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.classroom-details h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 4px 0;
+}
+
+.classroom-details p {
+  font-size: 11.5px;
+  color: #64748b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.inline-icon {
+  font-size: 14px !important;
+  color: #94a3b8;
+}
+
+.bullet-divider {
+  margin: 0 4px;
+  color: #cbd5e1;
+}
+
+/* The Eye Icon Button */
+.btn-view-class {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-view-class:hover {
+  background: var(--primary-blue);
+  color: white;
+  border-color: var(--primary-blue);
+  box-shadow: 0 4px 10px rgba(57, 168, 237, 0.25);
+  transform: scale(1.05);
+}
+
+.btn-view-class span {
+  font-size: 20px;
+}
+
+/* Add top margin to push content below the fixed Header */
+.main-content {
+  margin-top: 80px; 
+  padding: 20px; 
+  min-height: calc(100vh - 80px); 
+  box-sizing: border-box;
+  background-color: transparent; /* <-- Let the doodles show through! */
+}
+
+/* --- NEW BUTTON STYLES --- */
+
+/* Wrapper for the buttons to sit side-by-side */
+.action-buttons-wrapper {
+  display: flex;
+  gap: 12px; 
+  align-items: center;
+}
+
+/* =========================================
+   ADDRESS SPLIT & ANIMATIONS
+   ========================================= */
+.address-container {
+  overflow: hidden;
+}
+
+/* The grid that holds the 5 split inputs */
+.address-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+  width: 100%; /* Ensure it doesn't stretch past the container */
+  box-sizing: border-box; /* Calculate the gap inside the 100% width */
+}
+
+/* Make Zip Code span the whole bottom row */
+.address-edit-grid .full-width {
+  grid-column: span 2;
+}
+
+/* The Modern "Poof" Slide & Fade Animation */
+@keyframes modernPoof {
+  0% {
+    opacity: 0;
+    transform: translateY(-15px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-poof {
+  animation: modernPoof 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  transform-origin: top center;
+}
+
+/* Remove icon padding override for split fields since they have no icons */
+.address-edit-grid .input-wrapper input {
+  padding-left: 16px !important; 
+}
+
+/* =========================================
+   MOBILE RESPONSIVENESS (Center Profile)
+   ========================================= */
+@media (max-width: 768px) {
+  .profile-details-row {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-top: -60px; 
+    padding: 0 20px 24px 20px;
+    gap: 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .avatar-upload-wrapper {
+    display: block; 
+    width: 120px; /* Locks the wrapper to the exact size of the avatar */
+    height: 120px;
+    margin: 0 auto; /* Centers the whole wrapper */
+    position: relative;
+  }
+
+  .large-avatar {
+    margin: 0 !important; 
+  }
+
+  /* THIS MUST BE INSIDE THE @MEDIA BLOCK */
+  .profile-text {
+    padding-top: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centers the text horizontally */
+    text-align: center;
+  }
+
+  .profile-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .profile-actions .btn {
+    width: 100%;
+  }
+
+  .action-buttons-wrapper {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .address-edit-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .address-edit-grid .full-width {
+    grid-column: span 1 !important;
+  }
+}

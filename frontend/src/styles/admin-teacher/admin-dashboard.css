@@ -1,0 +1,31 @@
+.announcement-box {
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 16px;
+  background-color: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.announcement-box:focus-within {
+  background-color: #ffffff;
+  border-color: var(--accent-purple);
+  box-shadow: 0 0 0 4px rgba(155, 89, 182, 0.1);
+}
+
+.btn-post {
+  background: var(--accent-purple);
+  color: white;
+  border: none;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(155, 89, 182, 0.25);
+}
+
+.btn-post:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}

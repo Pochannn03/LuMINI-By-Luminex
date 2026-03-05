@@ -1,0 +1,41 @@
+/* Icon Support Attribute on Modal */
+
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-gray);
+  pointer-events: none;
+}
+
+/* Simple Card inside Modal */
+
+.inside-card-modal{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+/* Icon for Small Box */
+
+.icon-box-small {
+  width: 45px;
+  height: 45px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary-blue);
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.blue-bg-soft {
+  background: #e0f2fe;
+  color: var(--primary-blue);
+}

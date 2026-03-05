@@ -1,0 +1,34 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.border-ctop{
+  border-top: 1px solid #f0f0f0;
+}
+
+.search-bar-small {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.search-bar-small span {
+  color: var(--text-gray);
+  font-size: 18px;
+}
+
+.search-bar-small input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 13px;
+  font-family: "Poppins", sans-serif;
+}

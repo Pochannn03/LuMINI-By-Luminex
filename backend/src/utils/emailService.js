@@ -1,0 +1,619 @@
+// backend/src/utils/emailService.js
+
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+// Create the transporter using Gmail
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+/**
+ * Sends an OTP email to the specified address.
+ */
+export const sendOTPEmail = async (toEmail, otpCode, parentName = "Parent") => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: 'LuMINI - Your Account Verification Code',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #1e293b; text-align: center;">Welcome to LuMINI!</h2>
+          <p style="color: #475569; font-size: 16px;">Hello ${parentName},</p>
+          <p style="color: #475569; font-size: 16px;">You are attempting to link your account to your child's profile. Please use the verification code below to complete the process.</p>
+          
+          <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; text-align: center; margin: 25px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #2563eb;">${otpCode}</span>
+          </div>
+          
+          <p style="color: #64748b; font-size: 14px; text-align: center;">This code will expire in <strong>5 minutes</strong>.</p>
+          <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+          <p style="color: #94a3b8; font-size: 12px; text-align: center;">If you did not request this code, please ignore this email.</p>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Email sent successfully to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error sending email:", error);
+    return false;
+  }
+};
+
+/**
+ * Sends the permanent System Invitation Code to the parent's email.
+ */
+export const sendInvitationEmail = async (toEmail, invitationCode, parentName, studentName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Account Invitation for ${studentName}`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #eff6ff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bfdbfe;">
+            <h1 style="color: #1e3a8a; margin: 0; font-size: 24px; letter-spacing: -0.5px;">Welcome to LuMINI</h1>
+            <p style="color: #3b82f6; font-size: 14px; margin: 8px 0 0 0; font-weight: 500;">Student Dismissal & Safety System</p>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Your child, <strong>${studentName}</strong>, has been successfully registered in the LuMINI safety system by the school administration.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              To monitor your child's status, receive real-time updates, and manage pickup authorizations, please link your parent account using the unique invitation code below.
+            </p>
+            
+            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+              <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px;">Your Invitation Code</span><br/>
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #2563eb; display: block; margin-top: 10px; font-family: monospace;">${invitationCode}</span>
+            </div>
+            
+            <h3 style="color: #1e293b; font-size: 16px; margin-bottom: 12px;">Next Steps:</h3>
+            <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-top: 0; line-height: 1.7;">
+              <li>Visit the LuMINI Portal through this link: </li>
+              <li>Click "Create Account" and register as a parent.</li>
+              <li>Use the code above to process your registration.</li>
+            </ol>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              If you did not expect this invitation, please contact the school administration.<br/>
+              Thank you for helping us keep our students safe!
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Invitation Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error sending invitation email:", error);
+    return false;
+  }
+};
+
+/**
+ * Sends a secure OTP specifically for updating the user's password.
+ */
+export const sendPasswordUpdateOTP = async (toEmail, otpCode, userName = "User") => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Security" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: 'LuMINI - Password Change Verification Code',
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #fef2f2; padding: 20px; text-align: center; border-bottom: 1px solid #fecaca;">
+            <h2 style="color: #991b1b; margin: 0; font-size: 20px;">Security Alert: Password Change Request</h2>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Hello <strong>${userName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              We successfully verified your facial biometrics. To complete the process of changing your password, please use the 6-digit verification code below:
+            </p>
+            
+            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #dc2626; display: block; font-family: monospace;">${otpCode}</span>
+            </div>
+            
+            <p style="color: #dc2626; font-size: 14px; text-align: center; font-weight: 600;">
+              ⚠️ This code will expire in exactly 5 minutes.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              If you did not request this password change, someone may be trying to access your account.<br/>
+              Please contact the school administration immediately.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Password Change OTP sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error sending Password Change OTP:", error);
+    return false;
+  }
+};
+
+/**
+ * Notifies the parent that the teacher has approved their pre-enrollment.
+ */
+export const sendEnrollmentApprovalEmail = async (toEmail, parentName, studentName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Application Update for ${studentName}`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
+            <div style="background-color: #22c55e; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✓</div>
+            <h1 style="color: #166534; margin: 0; font-size: 22px;">Application Approved by Teacher</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Great news! The class adviser has reviewed and <strong>approved</strong> your pre-enrollment application for <strong>${studentName}</strong>.
+            </p>
+            
+            <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">What happens next?</h3>
+              <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.5;">
+                Your application has now been forwarded to the School Faculty & Administration for final verification and system registration. You will receive another email with your official Invitation Code once the process is completely finalized.
+              </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              No further action is required from you at this moment.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              Thank you for choosing LuMINI to help keep our students safe!
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Teacher Approval Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error("❌ Error sending approval email:", error);
+    return false;
+  }
+};
+
+/**
+ * Sends the teacher's Section Code directly to parents via email.
+ */
+export const sendBulkSectionInvite = async (toEmail, parentName, sectionName, sectionCode, teacherName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Classrooms" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Class Enrollment Invitation from ${teacherName}`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+          
+          <div style="background-color: #eff6ff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bfdbfe;">
+            <div style="background-color: #3b82f6; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 12px; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">👋</div>
+            <h1 style="color: #1e3a8a; margin: 0; font-size: 22px;">Classroom Invitation</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Hello <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              <strong>Teacher ${teacherName}</strong> has invited you to enroll your child into their class section: <strong>${sectionName}</strong> on the LuMINI platform.
+            </p>
+            
+            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+              <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px;">Section Code</span><br/>
+              <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #2563eb; display: block; margin-top: 10px; font-family: monospace;">${sectionCode}</span>
+            </div>
+            
+            <h3 style="color: #1e293b; font-size: 16px; margin-bottom: 12px;">How to enroll:</h3>
+            <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-top: 0; line-height: 1.7;">
+              <li>Go to the <a href="#" style="color: #2563eb; text-decoration: none; font-weight: bold;">LuMINI Portal</a>.</li>
+              <li>Navigate to the Pre-Enrollment / Registration page.</li>
+              <li>Enter the Section Code above to link your child directly to this class!</li>
+            </ol>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              If you believe you received this in error, you may safely ignore this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Bulk Section Invite sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error sending Bulk Invite to ${toEmail}:`, error);
+    return false;
+  }
+};
+
+export const sendEmergencyEmailAlert = async (toEmail, parentName, messageContent) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Emergency Alert" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `🚨 LuMINI EMERGENCY ALERT`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 2px solid #ef4444; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 2px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 56px; height: 56px; line-height: 56px; border-radius: 50%; display: inline-block; text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 10px;">!</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px;">Emergency Alert</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              An emergency broadcast has been issued by the school administration. Please read the following message carefully:
+            </p>
+            
+            <div style="background-color: #fff1f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <p style="color: #991b1b; font-size: 16px; margin: 0; line-height: 1.6; font-weight: 500;">
+                ${messageContent}
+              </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              For immediate updates, please check your LuMINI App or contact the school directly.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              This is an automated emergency message from the LuMINI Safety System.<br/>
+              Do not reply directly to this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Emergency Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error sending Emergency Email to ${toEmail}:`, error);
+    return false;
+  }
+};
+
+
+// =========================================================================
+// NEW: GUARDIAN REGISTRATION NOTIFICATION EMAILS
+// =========================================================================
+
+/**
+ * TIER 1: Teacher Verified Email
+ */
+export const sendGuardianVerifiedEmail = async (toEmail, parentName, guardianName, childNames) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Guardian Request Verified`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #eff6ff; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bfdbfe;">
+            <div style="background-color: #3b82f6; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✓</div>
+            <h1 style="color: #1e3a8a; margin: 0; font-size: 22px;">Request Verified</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Your request to authorize <strong>${guardianName}</strong> to pick up <strong>${childNames}</strong> has been successfully verified by the class teacher.
+            </p>
+            <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">What happens next?</h3>
+              <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.5;">
+                The application has now been forwarded to the Superadmin for final security approval and account creation. You will be notified via email once this is completed.
+              </p>
+            </div>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("❌ Error sending Guardian Verified email:", error);
+    return false;
+  }
+};
+
+/**
+ * TIER 2: Superadmin Finalized Email (Account Created)
+ */
+export const sendGuardianFinalizedEmail = async (toEmail, parentName, guardianName, childNames, tempUsername) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Guardian Request Approved`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
+            <div style="background-color: #22c55e; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✓</div>
+            <h1 style="color: #166534; margin: 0; font-size: 22px;">Guardian Registration Approved</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Great news! The Superadmin has officially approved <strong>${guardianName}</strong> to pick up <strong>${childNames}</strong>. Their system account has been successfully created.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Please provide them with the temporary username below, along with the temporary password you created during the application process, so they can log in and complete their biometric setup.
+            </p>
+            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+              <span style="font-size: 11px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 1.5px;">Temporary Username</span><br/>
+              <span style="font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #2563eb; display: block; margin-top: 10px; font-family: monospace;">${tempUsername}</span>
+            </div>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("❌ Error sending Guardian Finalized email:", error);
+    return false;
+  }
+};
+
+/**
+ * SETUP COMPLETE: Guardian logged in and finished setup
+ */
+export const sendGuardianSetupCompleteEmail = async (toEmail, parentName, guardianName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Guardian Account Setup Complete`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
+            <div style="background-color: #22c55e; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">🛡️</div>
+            <h1 style="color: #166534; margin: 0; font-size: 22px;">Guardian Account Active</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              This is an automated notification to inform you that <strong>${guardianName}</strong> has successfully logged into the LuMINI app, changed their password, and completed their facial biometric setup.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Their account is now fully active, and they are officially authorized for student pickups.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("❌ Error sending Guardian Setup Complete email:", error);
+    return false;
+  }
+};
+
+/**
+ * REJECTED: Notifies the parent that the guardian request was denied, including the reason.
+ */
+export const sendGuardianRejectedEmail = async (toEmail, parentName, guardianName, rejectedByRole, rejectReason) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Guardian Request Rejected`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 1px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✕</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 22px;">Application Rejected</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Your request to authorize <strong>${guardianName}</strong> as an authorized personnel has been reviewed and <strong>rejected</strong> by the ${rejectedByRole}.
+            </p>
+            <div style="background-color: #f8fafc; border-left: 4px solid #ef4444; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">Reason for Rejection:</h3>
+              <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.5; font-weight: bold;">
+                "${rejectReason}"
+              </p>
+            </div>
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              You may submit a new application with the corrected information through your LuMINI portal. If you believe this is a mistake, please contact the school administration.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("❌ Error sending Guardian Rejected email:", error);
+    return false;
+  }
+};
+
+/**
+ * REJECTED: Notifies the parent that the student pre-enrollment request was denied, including the reason.
+ */
+export const sendEnrollmentRejectedEmail = async (toEmail, parentName, studentName, rejectReason) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `LuMINI - Enrollment Application Rejected`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 1px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✕</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 22px;">Enrollment Application Rejected</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              The pre-enrollment application for your child, <strong>${studentName}</strong>, has been reviewed and <strong>rejected</strong> by the class adviser.
+            </p>
+            <div style="background-color: #f8fafc; border-left: 4px solid #ef4444; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">Reason for Rejection:</h3>
+              <p style="color: #64748b; font-size: 14px; margin: 0; line-height: 1.5; font-weight: bold;">
+                "${rejectReason}"
+              </p>
+            </div>
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              Please review the reason above. You may submit a new pre-enrollment application with the correct information through the LuMINI portal, or contact the school administration if you need further assistance.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("❌ Error sending Enrollment Rejected email:", error);
+    return false;
+  }
+};
+
+/**
+ * APPROVED: Notifies the teacher that their account was approved by the Superadmin.
+ */
+export const sendAccountApprovalEmail = async (toEmail, lastName, relationship) => {
+  try {
+    // If it's a teacher, we greet them as "Teacher Smith". If Parent, just "Smith".
+    const greetingName = relationship === 'Teacher' ? `Teacher ${lastName}` : lastName;
+
+    const mailOptions = {
+      from: `"LuMINI System" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      // Dynamic Subject Line
+      subject: `LuMINI - ${relationship} Account Approved!`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+          <div style="background-color: #f0fdf4; padding: 30px 20px; text-align: center; border-bottom: 1px solid #bbf7d0;">
+            <div style="background-color: #22c55e; color: white; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; display: inline-block; text-align: center; font-size: 24px; font-weight: bold; margin-bottom: 10px;">✓</div>
+            <h1 style="color: #166534; margin: 0; font-size: 22px;">Account Approved!</h1>
+          </div>
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${greetingName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Great news! Your <strong>${relationship.toLowerCase()}</strong> account registration has been successfully verified and <strong>approved</strong> by the LuMINI Superadmin.
+            </p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              Your account is now fully active. You can log in to the portal using the username and password you created during registration to access the system.
+            </p>
+            <div style="margin-top: 30px; text-align: center;">
+              <p style="color: #94a3b8; font-size: 13px;">Welcome to the LuMINI community!</p>
+            </div>
+          </div>
+        </div>
+      `,
+    };
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error sending ${relationship} Approval email:`, error);
+    return false;
+  }
+};
+
+/**
+ * SECURITY ALERT: Notifies the user of a failed biometric attempt on their account.
+ */
+export const sendUnauthorizedAccessEmail = async (toEmail, userName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Security" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `🚨 LuMINI Security Alert - Unauthorized Access Attempt`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 2px solid #ef4444; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 2px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 56px; height: 56px; line-height: 56px; border-radius: 50%; display: inline-block; text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 10px;">!</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">Security Alert</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${userName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              We recently detected an attempt to change the password on your LuMINI account. 
+            </p>
+            
+            <div style="background-color: #fff1f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <p style="color: #991b1b; font-size: 15px; margin: 0; line-height: 1.6; font-weight: 500;">
+                <strong>Action Blocked:</strong> The facial biometric scan provided during this attempt <strong>did not match</strong> your registered profile. The system has automatically denied access and blocked the password change.
+              </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              If this was you and you were wearing glasses, a mask, or were in poor lighting, please try again in a well-lit area. 
+            </p>
+            <p style="color: #475569; font-size: 14px; line-height: 1.6; font-weight: bold;">
+              If you did not initiate this request, your account is currently safe, but we recommend notifying the school administration immediately.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              This is an automated security message from the LuMINI Safety System.<br/>
+              Do not reply directly to this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Security Alert Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error sending Security Alert to ${toEmail}:`, error);
+    return false;
+  }
+};
