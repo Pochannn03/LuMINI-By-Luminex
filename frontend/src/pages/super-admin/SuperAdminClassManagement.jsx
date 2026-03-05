@@ -132,7 +132,7 @@ export default function SuperAdminClassManagement() {
 
   // WEBSOCKET FOR LIVE FETCHING
   useEffect(() => {
-    const socket = io("http://localhost:3000", { withCredentials: true });
+    const socket = io(`${BACKEND_URL}`, { withCredentials: true });
     socket.on("teacher_added", () => fetchTeachers());
     socket.on("student_added", () => fetchStudents());
     socket.on("section_updated", () => { fetchClasses(); fetchStudents(); fetchTeachers(); });
