@@ -298,6 +298,13 @@ export default function Dashboard() {
 
   const isScanDisabled = !childData || childData.status === 'Dismissed' || !isParentOnQueue || loading;
   const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
+
+  const getImageUrl = (path) => {
+    if (!path) return "../../../assets/placeholder_image.jpg"; 
+    if (path.startsWith("http")) return path;
+    return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
+  };
+
   const isUnassigned = !loading && childData && childData.sectionName === "Not Assigned";
 
   return(

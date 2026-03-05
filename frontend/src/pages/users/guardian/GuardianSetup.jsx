@@ -310,7 +310,6 @@ export default function GuardianSetup() {
         submitData.append('facialCapture', new File([blob], "facial_capture.jpg", { type: "image/jpeg" }));
       }
       if (faceDescriptor) submitData.append('facialDescriptor', JSON.stringify(faceDescriptor));
-
       // Updated to use BACKEND_URL
       await axios.put(`${BACKEND_URL}/api/guardian/setup`, submitData, {
         headers: { "Content-Type": "multipart/form-data" },

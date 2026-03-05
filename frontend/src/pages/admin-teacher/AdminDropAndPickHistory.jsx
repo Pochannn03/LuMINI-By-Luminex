@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // --- HELPERS ---
 const getDateParts = (date) => {
   const monthDay = date.toLocaleDateString("en-US", { month: "long", day: "numeric" });
@@ -14,9 +16,6 @@ const dateToInputString = (date) => {
   const localDate = new Date(date.getTime() - (offset * 60 * 1000));
   return localDate.toISOString().split('T')[0];
 };
-
-// --- DYNAMIC BACKEND URL ---
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;

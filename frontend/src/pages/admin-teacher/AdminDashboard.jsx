@@ -14,6 +14,8 @@ import AdminEmergencyBroadcastModal from "../../components/modals/admin/dashboar
 import WarningModal from "../../components/WarningModal";
 import "../../styles/admin-teacher/admin-dashboard.css"
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
@@ -44,9 +46,6 @@ const calculateYawRatio = (landmarks) => {
   const distRight = imageRightCheek.x - noseTip.x;
   return distLeft / distRight;
 };
-
-// DYNAMIC BACKEND URL
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function AdminDashboard() {
   const { user } = useAuth();

@@ -8,6 +8,8 @@ import { validateRegistrationStep } from '../../utils/validation';
 import AvatarEditor from "react-avatar-editor";
 import SuccessModal from '../../components/SuccessModal'; 
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
@@ -38,9 +40,6 @@ const calculateYawRatio = (landmarks) => {
   const distRight = imageRightCheek.x - noseTip.x;
   return distLeft / distRight;
 };
-
-// DYNAMIC BACKEND URL
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function ParentRegistration() {
   const navigate = useNavigate();
