@@ -577,7 +577,7 @@ export default function AdminDashboard() {
 
     fetchInitialQueue();
 
-    const socket = io("http://localhost:3000", {
+    const socket = io(`${BACKEND_URL}`, {
       withCredentials: true
     });
 
