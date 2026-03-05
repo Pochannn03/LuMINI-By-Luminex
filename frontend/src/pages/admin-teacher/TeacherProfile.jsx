@@ -1,16 +1,49 @@
 import { useEffect, useState, useRef } from "react";
 import AvatarEditor from "react-avatar-editor";
 import axios from "axios";
-import { useAuth } from "../../context/AuthProvider"; // Adjust path if needed
+import { useAuth } from "../../context/AuthProvider"; 
 import { useNavigate } from "react-router-dom";
+import * as faceapi from "face-api.js";
 import "../../styles/teacher/teacher-profile.css";
 import "../../styles/teacher/class-list-modal.css";
 import NavBar from "../../components/navigation/NavBar";
 import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
+import WarningModal from "../../components/WarningModal"; 
 import ClassListModal from "../../components/modals/admin/ClassListModal";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
+// ==========================================
+// ANTI-SPOOFING MATH HELPERS
+// ==========================================
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
+  const MathSqrt = Math.sqrt;
+  const MathPow = Math.pow;
+  const euclideanDistance = (point1, point2) => {
+    return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
+  };
+  
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
+};
+
+const calculateYawRatio = (landmarks) => {
+  const jaw = landmarks.getJawOutline();
+  const nose = landmarks.getNose();
+  const imageLeftCheek = jaw[0];   
+  const imageRightCheek = jaw[16]; 
+  const noseTip = nose[3];         
+  const distLeft = noseTip.x - imageLeftCheek.x;
+  const distRight = imageRightCheek.x - noseTip.x;
+  return distLeft / distRight;
+};
 
 export default function TeacherProfile() {
   const navigate = useNavigate();
@@ -18,14 +51,20 @@ export default function TeacherProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("Profile information updated successfully!");
 
-  // --- NEW: Profile Picture & Cropper States ---
+  // --- Warning Modal States ---
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
+
+  // --- Profile Picture & Cropper States ---
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   
-  // Cropper specific states
   const editorRef = useRef(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImage, setTempImage] = useState(null);
@@ -36,86 +75,62 @@ export default function TeacherProfile() {
     password: "",
     confirmPassword: "",
   });
-  
-  // Dedicated state for the credentials card
   const [isEditingCredentials, setIsEditingCredentials] = useState(false);
-
-  // --- NEW: Password Visibility States ---
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData((prev) => ({ ...prev, [name]: value }));
-  };
+  // --- OTP States ---
+  const [otpInput, setOtpInput] = useState("");
+  const [isOtpSending, setIsOtpSending] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
-  const handleEditCredentialsClick = (e) => {
-    e.preventDefault();
-    setIsEditingCredentials(true);
-  };
+  // ==========================================
+  // FACIAL VERIFICATION STATES & REFS
+  // ==========================================
+  const [showFaceAuthModal, setShowFaceAuthModal] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [scanStatus, setScanStatus] = useState("Initializing camera...");
+  const [ovalClass, setOvalClass] = useState("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
+  
+  const [isRecognizing, setIsRecognizing] = useState(false); 
+  const [faceVerified, setFaceVerified] = useState(false); 
 
-  const handleCancelCredentials = (e) => {
-    e.preventDefault();
-    setIsEditingCredentials(false);
-    setPasswordData({ password: "", confirmPassword: "" }); // Clear fields on cancel
-    setShowPassword(false); // Reset eyes to hidden
-    setShowConfirmPassword(false);
-  };
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null); 
+  const streamRef = useRef(null);
+  const stopDetectionRef = useRef(null);
 
-  const handleSaveCredentials = (e) => {
-    e.preventDefault();
-    // Temporary check until we wire the backend
-    if (passwordData.password !== passwordData.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-    alert("Password logic ready to be wired to backend!");
-    setIsEditingCredentials(false);
-    setPasswordData({ password: "", confirmPassword: "" });
-    setShowPassword(false); // Reset eyes to hidden
-    setShowConfirmPassword(false);
-  };
-
+  // --- Classes / Sections States ---
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
-
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    totalSections: 0,
-  });
-
+  const [stats, setStats] = useState({ totalStudents: 0, totalSections: 0 });
   const [sections, setSections] = useState([]);
 
+  // --- General Form Data ---
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone_number: "",
-    address: "",
-    role: "",
-    user_id: "",
-    profile_picture: "",
+    first_name: "", last_name: "", email: "", phone_number: "",
+    address: "", role: "", user_id: "", profile_picture: "",
   });
 
   const [addressParts, setAddressParts] = useState({
-    houseUnit: "",
-    street: "",
-    barangay: "",
-    city: "",
-    zipCode: "",
+    houseUnit: "", street: "", barangay: "", city: "", zipCode: "",
   });
 
+  // ==========================================
+  // Fetch Data & Load Models
+  // ==========================================
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`${BACKEND_URL}/api/user/profile`, {
-          withCredentials: true,
-        });
-        // --- NEW: Tell the Header to update its picture! ---
-      if (response.data.user?.profile_picture) {
-         updateUser({ profile_picture: response.data.user.profile_picture });
-      }
-        setFormData(response.data);
+        const response = await axios.get(`${BACKEND_URL}/api/user/profile`, { withCredentials: true });
+        if (response.data.user?.profile_picture) {
+           updateUser({ profile_picture: response.data.user.profile_picture });
+        }
+        setFormData(response.data.user || response.data);
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError("Failed to load profile. Please log in again.");
@@ -124,16 +139,27 @@ export default function TeacherProfile() {
       }
     };
     fetchProfile();
+
+    const loadModels = async () => {
+      const MODEL_URL = "/models"; 
+      try {
+        await Promise.all([
+          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        ]);
+        setModelsLoaded(true);
+      } catch (err) {
+        console.error("❌ Failed to load models:", err);
+      }
+    };
+    loadModels();
   }, [navigate]);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get(
-          `${BACKEND_URL}/api/students/teacher/totalStudents`,
-          { withCredentials: true }
-        );
-        
+        const response = await axios.get(`${BACKEND_URL}/api/students/teacher/totalStudents`, { withCredentials: true });
         if (response.data.success) {
           setStats({
             totalStudents: response.data.totalStudents || 0,
@@ -148,6 +174,192 @@ export default function TeacherProfile() {
     fetchStats();
   }, []);
 
+  // ==========================================
+  // CAMERA & LIVENESS LOGIC
+  // ==========================================
+  useEffect(() => {
+    if (isCameraActive && showFaceAuthModal) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [isCameraActive, showFaceAuthModal]);
+
+  const startCamera = async () => {
+    setCameraError(null);
+    setIsVideoPlaying(false);
+    setScanStatus("Requesting camera access...");
+    setOvalClass("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
+    setIsRecognizing(false);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false
+      });
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play();
+          setIsVideoPlaying(true);
+          startDetectionSequence(); 
+        };
+      }
+    } catch (err) {
+      setCameraError("Camera access denied.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (stopDetectionRef.current) stopDetectionRef.current();
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsVideoPlaying(false);
+  };
+
+  const startDetectionSequence = () => {
+    let isDetecting = true;
+    let phase = 0; let framesHeld = 0; 
+    let recognitionFrames = 0; let lostFaceFrames = 0; 
+
+    // Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
+
+    stopDetectionRef.current = () => { isDetecting = false; };
+
+    const runDetection = async () => {
+      if (!isDetecting || !videoRef.current || !canvasRef.current) return;
+      if (videoRef.current.videoWidth === 0) { setTimeout(runDetection, 100); return; }
+
+      if (canvasRef.current.width !== videoRef.current.videoWidth) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+      }
+      const displaySize = { width: videoRef.current.videoWidth, height: videoRef.current.videoHeight };
+      faceapi.matchDimensions(canvasRef.current, displaySize);
+
+      const detection = await faceapi.detectSingleFace(
+        videoRef.current, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.55 })
+      ).withFaceLandmarks().withFaceDescriptor();
+
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+      if (!detection) {
+        lostFaceFrames++;
+        if (lostFaceFrames > 8) { 
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0; recognitionFrames = 0;
+          setIsRecognizing(false);
+          setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
+          setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
+        } else if (phase === 8) {
+          recognitionFrames++;
+        }
+      } else {
+        lostFaceFrames = 0; 
+
+        if (phase < 8) {
+          const resizedDetections = faceapi.resizeResults(detection, displaySize);
+          faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections, { drawLines: true, color: '#00ffff', lineWidth: 1.5 });
+        }
+
+        if (phase === 0) {
+          setOvalClass("border-green-400 shadow-[0_0_0_9999px_rgba(15,23,42,0.7)] border-[4px] shadow-[inset_0_0_20px_rgba(74,222,128,0.3)] transition-all duration-300");
+          setScanStatus("Face detected! Hold still..."); phase = 1;
+        } else if (phase === 1) {
+          framesHeld++;
+          if (framesHeld > 10) { phase = 2; framesHeld = 0; }
+        } else if (phase === 2) {
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
+
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; 
+              setScanStatus("✅ Liveness verified! Please hold...");
+            }
+          }
+        } else if (phase === 3) {
+          framesHeld++;
+          if (framesHeld > 15) { phase = 4; framesHeld = 0; setScanStatus("Task 2: Slowly turn your head to your LEFT."); }
+        } else if (phase === 4) {
+          const yaw = calculateYawRatio(detection.landmarks);
+          if (yaw > 1.6) { phase = 5; framesHeld = 0; setScanStatus("✅ Left turn verified! Please hold..."); }
+        } else if (phase === 5) {
+          framesHeld++;
+          if (framesHeld > 15) { phase = 6; framesHeld = 0; setScanStatus("Task 3: Slowly turn your head to your RIGHT."); }
+        } else if (phase === 6) {
+          const yaw = calculateYawRatio(detection.landmarks);
+          if (yaw < 0.6) { phase = 7; framesHeld = 0; setScanStatus("✅ Right turn verified! Please hold..."); }
+        } else if (phase === 7) {
+          framesHeld++;
+          if (framesHeld > 15) { 
+            phase = 8; recognitionFrames = 0; 
+            setScanStatus("Analyzing biometric data... Please hold still."); setIsRecognizing(true); 
+          }
+        } else if (phase === 8) {
+          recognitionFrames++;
+          if (recognitionFrames >= 15) { 
+            isDetecting = false; 
+            
+            const descriptorArray = Array.from(detection.descriptor);
+            
+            axios.post(`${BACKEND_URL}/api/user/verify-face-match`, 
+              { facialDescriptor: descriptorArray }, 
+              { withCredentials: true }
+            )
+            .then(() => {
+                stopCamera(); 
+                setIsCameraActive(false); 
+                setFaceVerified(true);
+            })
+            .catch((error) => {
+                stopCamera(); 
+                setIsCameraActive(false); 
+                setShowFaceAuthModal(false);
+                setWarningTitle("Security Alert");
+                setWarningMessage(error.response?.data?.message || "Facial verification failed.");
+                setShowWarningModal(true);
+            });
+            return; 
+          }
+        }
+      }
+      if (isDetecting) { setTimeout(runDetection, 100); }
+    };
+    runDetection(); 
+  };
+
+
+  // ==========================================
+  // HANDLERS
+  // ==========================================
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -161,41 +373,61 @@ export default function TeacherProfile() {
   const handleEditClick = () => {
     const parts = (formData.address || "").split(",").map((s) => s.trim());
     setAddressParts({
-      houseUnit: parts[0] || "",
-      street: parts[1] || "",
-      barangay: parts[2] || "",
-      city: parts[3] || "",
-      zipCode: parts[4] || "",
+      houseUnit: parts[0] || "", street: parts[1] || "", barangay: parts[2] || "", city: parts[3] || "", zipCode: parts[4] || "",
     });
     setIsEditing(true);
   };
 
-  // Opens the Cropper when a file is selected
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditCredentialsClick = (e) => {
+    e.preventDefault();
+    setIsEditingCredentials(true);
+  };
+
+  const handleCancelCredentials = (e) => {
+    e.preventDefault();
+    setIsEditingCredentials(false);
+    setPasswordData({ password: "", confirmPassword: "" }); 
+    setShowPassword(false); 
+    setShowConfirmPassword(false);
+  };
+
+  const handleSaveCredentials = (e) => {
+    e.preventDefault();
+    if (passwordData.password !== passwordData.confirmPassword) {
+      alert("Passwords do not match!"); return;
+    }
+    if (passwordData.password.length < 8) {
+      alert("Password must be at least 8 characters."); return;
+    }
+    setFaceVerified(false);
+    setOtpSent(false);
+    setShowFaceAuthModal(true); 
+  };
+
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Safely convert the raw file into a local browser URL
       const imageUrl = URL.createObjectURL(file); 
       setTempImage(imageUrl);
       setShowCropModal(true); 
       setZoom(1); 
     }
-    // Clear the input so they can click the same file again if needed
     e.target.value = null; 
   };
 
-  // Handles grabbing the dragged/zoomed image and converting it to a file
   const handleCropSave = () => {
     if (editorRef.current) {
-      // Get the cropped area as an HTML canvas
       const canvas = editorRef.current.getImageScaledToCanvas();
-      
-      // Convert it to an actual image file for the backend
       canvas.toBlob((blob) => {
         if (blob) {
           const croppedFile = new File([blob], "profile_photo.jpg", { type: "image/jpeg" });
           setSelectedImageFile(croppedFile);
-          setPreviewImage(URL.createObjectURL(croppedFile)); // Show the cropped preview
+          setPreviewImage(URL.createObjectURL(croppedFile)); 
           setShowCropModal(false);
           setTempImage(null);
         }
@@ -203,27 +435,18 @@ export default function TeacherProfile() {
     }
   };
   
-  // --- NEW: Open Lightbox (only if not editing) ---
   const handleAvatarClick = () => {
-    if (!isEditing) {
-      setIsLightboxOpen(true);
-    }
+    if (!isEditing) setIsLightboxOpen(true);
   };
 
   const handleSave = async () => {
     try {
       const mergedAddress = [
-        addressParts.houseUnit,
-        addressParts.street,
-        addressParts.barangay,
-        addressParts.city,
-        addressParts.zipCode,
+        addressParts.houseUnit, addressParts.street, addressParts.barangay, addressParts.city, addressParts.zipCode,
       ].filter(Boolean).join(", ");
 
       let payload;
-      let axiosConfig = { 
-        withCredentials: true 
-      };
+      let axiosConfig = { withCredentials: true };
 
       if (selectedImageFile) {
         payload = new FormData();
@@ -231,7 +454,6 @@ export default function TeacherProfile() {
         payload.append("address", mergedAddress);
         payload.append("email", formData.email);
         payload.append("profile_picture", selectedImageFile); 
-        
       } else {
         payload = {
           phone_number: formData.phone_number,
@@ -240,23 +462,17 @@ export default function TeacherProfile() {
         };
       }
 
-      const response = await axios.put(
-        `${BACKEND_URL}/api/user/profile`,
-        payload,
-        axiosConfig 
-      );
+      const response = await axios.put(`${BACKEND_URL}/api/user/profile`, payload, axiosConfig);
 
-      // --- THE MAGIC FIX: Instantly update the Header without refreshing! ---
       if (response.data.user?.profile_picture) {
         updateUser({ profile_picture: response.data.user.profile_picture });
       }
 
       setFormData((prev) => ({ 
-        ...prev, 
-        address: mergedAddress,
-        profile_picture: response.data.user.profile_picture 
+        ...prev, address: mergedAddress, profile_picture: response.data.user.profile_picture 
       }));
       
+      setSuccessMessage("Profile information updated successfully!");
       setShowSuccessModal(true);
       setIsEditing(false);
       setSelectedImageFile(null);
@@ -271,7 +487,7 @@ export default function TeacherProfile() {
   const handleCancel = () => {
     setIsEditing(false);
     setSelectedImageFile(null);
-    setPreviewImage(null); // Revert image to original
+    setPreviewImage(null); 
   };
 
   const getImageUrl = (path) => {
@@ -292,8 +508,135 @@ export default function TeacherProfile() {
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
-        message="Profile information updated successfully!"
+        message={successMessage}
       />
+
+      <WarningModal 
+        isOpen={showWarningModal} 
+        onClose={() => setShowWarningModal(false)} 
+        title={warningTitle} 
+        message={warningMessage} 
+      />
+
+      {/* --- FACIAL AUTHENTICATION & OTP MODAL --- */}
+      {showFaceAuthModal && (
+        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
+          <div className="modal-card" style={{ padding: '30px 24px', alignItems: 'center', width: '90%', maxWidth: '420px' }}>
+            <h3 style={{ fontSize: '20px', color: '#1e293b', fontWeight: 'bold', marginBottom: '8px' }}>Security Verification</h3>
+            
+            {!faceVerified ? (
+              <>
+                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
+                  To change your password, we must first verify your identity using facial biometrics.
+                </p>
+
+                {!isCameraActive ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                    <div style={{ width: '80px', height: '80px', background: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', marginBottom: '20px' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>face_retouching_natural</span>
+                    </div>
+                    
+                    <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: 'none', cursor: modelsLoaded ? 'pointer' : 'not-allowed', background: modelsLoaded ? '#1e293b' : '#cbd5e1', transition: 'background 0.2s' }}>
+                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{modelsLoaded ? 'photo_camera' : 'sync'}</span> 
+                      {modelsLoaded ? 'Start Verification' : 'Loading AI Models...'}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                    <div style={{ width: '100%', height: '320px', background: '#0f172a', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', position: 'relative', overflow: 'hidden', border: '2px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+                      <video ref={videoRef} autoPlay playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', zIndex: 0 }} />
+                      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', zIndex: 5 }} />
+
+                      {!isVideoPlaying && !cameraError && (
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', zIndex: 6, background: '#0f172a', color: '#94a3b8' }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'pulse 2s infinite' }}>videocam</span>
+                          <span style={{ fontSize: '12px', fontWeight: '500', letterSpacing: '0.1em' }}>INITIALIZING...</span>
+                        </div>
+                      )}
+                      
+                      {isVideoPlaying && !cameraError && (
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <div className={ovalClass} style={{ width: '190px', height: '250px', borderRadius: '50% / 50%' }}></div>
+                        </div>
+                      )}
+
+                      {isRecognizing && (
+                        <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(4px)' }}>
+                          <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '50px', animation: 'spin 1.5s linear infinite', marginBottom: '16px' }}>autorenew</span>
+                          <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', letterSpacing: '0.05em', animation: 'pulse 1.5s infinite', marginBottom: '8px' }}>Recognizing Face...</span>
+                          <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: '500' }}>Please keep the camera still</span>
+                        </div>
+                      )}
+                    </div>
+                    <p style={{ fontSize: '14px', fontWeight: 'bold', margin: '20px 0', padding: '0 16px', textAlign: 'center', color: scanStatus.includes("✅") ? '#16a34a' : scanStatus.includes("⚠️") ? '#ef4444' : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? '#2563eb' : '#475569' }}>
+                      {cameraError ? "Check browser settings." : scanStatus}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '10px 0' }} className="animate-[fadeIn_0.3s_ease-out]">
+                <div style={{ width: '60px', height: '60px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', marginBottom: '16px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>verified</span>
+                </div>
+                <h4 style={{ fontSize: '18px', color: '#1e293b', fontWeight: 'bold', marginBottom: '8px' }}>Identity Verified!</h4>
+                
+                {!otpSent ? (
+                  <>
+                    <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
+                      To finalize the password change, we will send a 6-digit security code to your registered email.
+                    </p>
+                    <button type="button" disabled={isOtpSending} onClick={async () => {
+                          try {
+                            setIsOtpSending(true);
+                            await axios.post(`${BACKEND_URL}/api/user/request-password-otp`, {}, { withCredentials: true });
+                            setOtpSent(true);
+                          } catch (err) {
+                            alert("Failed to send email. Please try again.");
+                          } finally {
+                            setIsOtpSending(false);
+                          }
+                        }}
+                        className="btn btn-primary" style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}>
+                        {isOtpSending ? "Sending OTP..." : "Send me the OTP"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
+                      We've sent a 6-digit security code to your email. Please enter it below.
+                    </p>
+                    <div className="input-wrapper" style={{ width: '100%', marginBottom: '16px' }}>
+                        <span className="material-symbols-outlined icon">pin</span>
+                        <input type="text" placeholder="Enter 6-digit OTP" value={otpInput} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 6) setOtpInput(val); setOtpError(""); }} style={{ letterSpacing: '4px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', borderColor: otpError ? '#ef4444' : '' }} />
+                    </div>
+                    {otpError && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '-10px', marginBottom: '16px', fontWeight: '500' }}>{otpError}</p>}
+                    <button type="button" disabled={isOtpSending || otpInput.length < 6} onClick={async () => {
+                          if (otpInput.length !== 6) { setOtpError("OTP must be exactly 6 digits."); return; }
+                          try {
+                            setIsOtpSending(true);
+                            await axios.put(`${BACKEND_URL}/api/user/verify-password-otp`, { otp: otpInput, newPassword: passwordData.password }, { withCredentials: true });
+                            setShowFaceAuthModal(false);
+                            setSuccessMessage("Password successfully changed!");
+                            setShowSuccessModal(true);
+                            handleCancelCredentials({ preventDefault: () => {} });
+                          } catch (error) {
+                            setOtpError(error.response?.data?.message || "Invalid OTP.");
+                          } finally {
+                            setIsOtpSending(false);
+                          }
+                        }}
+                        className="btn btn-primary" style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}>
+                        {isOtpSending ? "Verifying..." : "Confirm Password Change"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <button type="button" onClick={() => { setShowFaceAuthModal(false); stopCamera(); setFaceVerified(false); setOtpSent(false); setOtpInput(""); setOtpError(""); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '16px' }}>Cancel Update</button>
+          </div>
+        </div>
+      )}
 
       <ClassListModal 
         isOpen={isClassModalOpen} 
@@ -301,7 +644,7 @@ export default function TeacherProfile() {
         section={selectedClass} 
       />
 
-      {/* --- NEW: FULLSCREEN LIGHTBOX --- */}
+      {/* --- FULLSCREEN LIGHTBOX --- */}
       {isLightboxOpen && (
         <div 
           style={{
@@ -324,7 +667,7 @@ export default function TeacherProfile() {
         </div>
       )}
 
-      {/* --- NEW: CROPPER MODAL --- */}
+      {/* --- CROPPER MODAL --- */}
       {showCropModal && (
         <div className="class-modal-overlay" style={{ zIndex: 999999 }}>
           <div className="class-modal-card" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
@@ -332,7 +675,6 @@ export default function TeacherProfile() {
               Adjust Profile Picture
             </h3>
             
-            {/* The Editor Area */}
             <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
               <AvatarEditor
                 ref={editorRef}
@@ -340,14 +682,13 @@ export default function TeacherProfile() {
                 width={220}
                 height={220}
                 border={20}
-                borderRadius={110} /* Creates the circle cutout effect */
-                color={[15, 23, 42, 0.6]} /* Dark overlay outside crop */
+                borderRadius={110} 
+                color={[15, 23, 42, 0.6]} 
                 scale={zoom}
                 rotate={0}
               />
             </div>
 
-            {/* Zoom Slider */}
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
               <input 
@@ -360,7 +701,6 @@ export default function TeacherProfile() {
               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
             </div>
 
-            {/* Buttons */}
             <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
               <button 
                 type="button" 
@@ -401,7 +741,6 @@ export default function TeacherProfile() {
             <div className="profile-cover"></div>
             <div className="profile-details-row">
               
-              {/* --- UPDATED: AVATAR WITH CAMERA OVERLAY --- */}
               <div className="avatar-upload-wrapper">
                 <img
                   src={previewImage || getImageUrl(formData.profile_picture)}
@@ -413,7 +752,6 @@ export default function TeacherProfile() {
                   onMouseOut={(e) => { if(!isEditing) e.currentTarget.style.transform = 'scale(1)' }}
                 />
 
-                {/* Show Camera Button ONLY when Edit is clicked */}
                 {isEditing && (
                   <>
                     <label htmlFor="profile-upload" className="camera-btn" style={{ position: 'absolute', bottom: '5px', right: '5px', cursor: 'pointer', background: '#1e293b', color: 'white', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.1)'} onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}>
@@ -455,27 +793,25 @@ export default function TeacherProfile() {
                     Edit Information
                   </button>
                 ) : (
-                  <div className="action-buttons-wrapper">
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     
-                    {/* --- SAVE BUTTON --- */}
                     <button 
                       type="button"
-                      className="btn btn-save h-[42px] w-[190px] rounded-[10px]" 
+                      className="btn btn-save flex-1 sm:w-[120px] h-[42px] rounded-[10px] flex items-center justify-center font-bold" 
                       onClick={(e) => {
                         e.preventDefault();
                         handleSave();
                       }}
                     >
-                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
+                      <span className="material-symbols-outlined" style={{ marginRight: '6px', fontSize: '18px' }}>
                         check
                       </span>
                       Save
                     </button>
 
-                    {/* --- CANCEL BUTTON --- */}
                     <button 
                       type="button"
-                      className="btn btn-cancel profile-action-btn" 
+                      className="btn btn-cancel flex-1 sm:w-[120px] h-[42px] rounded-[10px] flex items-center justify-center font-bold" 
                       onClick={(e) => {
                         e.preventDefault();
                         handleCancel();
@@ -658,12 +994,10 @@ export default function TeacherProfile() {
                   <p>Quick overview of your active classes.</p>
                 </div>
                 
-                {/* --- NEW SIMPLIFIED CLASSROOM LIST UI --- */}
                 <div className="classroom-list">
                   {sections.map((section) => (
                     <div key={section.id} className="classroom-list-item">
                       
-                      {/* LEFT SIDE: Icon and Info */}
                       <div className="classroom-info-wrapper">
                         <div className={`classroom-icon ${section.color}`}>
                           <span className="material-symbols-outlined">meeting_room</span>
@@ -672,20 +1006,18 @@ export default function TeacherProfile() {
                         <div className="classroom-details">
                           <h4>{section.name}</h4>
                           <p>
-                            {/* Changed icon back to a clock since we are showing time! */}
                             <span className="material-symbols-outlined inline-icon">schedule</span> 
                             {section.time}
                           </p>
                         </div>
                       </div>
 
-                      {/* RIGHT SIDE: Eye Icon Button */}
                       <button 
                         className="btn-view-class" 
                         title="View Section"
                         onClick={() => {
-                          setSelectedClass(section); // Save the clicked section data
-                          setIsClassModalOpen(true); // Open the modal
+                          setSelectedClass(section); 
+                          setIsClassModalOpen(true); 
                         }}
                       >
                         <span className="material-symbols-outlined">visibility</span>
@@ -694,10 +1026,8 @@ export default function TeacherProfile() {
                     </div>
                   ))}
                 </div>
-                {/* --- END CLASSROOM LIST --- */}
               </div>
 
-              {/* --- NEW: ACCOUNT CREDENTIALS CARD --- */}
               <div className="card form-card">
                 <div className="card-header">
                   <h3>
@@ -708,7 +1038,6 @@ export default function TeacherProfile() {
                 
                 <div className="profile-form">
                   
-                  {/* Username (Typically Read-Only) */}
                   <div className="form-group">
                     <label>Username</label>
                     <div className="input-wrapper">
@@ -716,14 +1045,13 @@ export default function TeacherProfile() {
                       <input
                         type="text"
                         name="username"
-                        value={formData.username || "maria_lanee"} /* Dummy fallback until wired */
+                        value={formData.username || "teacher_user"} 
                         readOnly
                         style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }}
                       />
                     </div>
                   </div>
 
-                  {/* Password Field with Hide/View Toggle */}
                   <div className="form-group">
                     <label>{isEditingCredentials ? "New Password" : "Password"}</label>
                     <div className="input-wrapper">
@@ -737,7 +1065,7 @@ export default function TeacherProfile() {
                         readOnly={!isEditingCredentials}
                         style={!isEditingCredentials 
                           ? { opacity: 0.8 } 
-                          : { borderColor: "#39a8ed", paddingRight: '40px' } /* Make room for the eye icon! */}
+                          : { borderColor: "#39a8ed", paddingRight: '40px' }}
                       />
                       {isEditingCredentials && (
                         <button
@@ -757,7 +1085,6 @@ export default function TeacherProfile() {
                     </div>
                   </div>
 
-                  {/* Confirm Password with Hide/View Toggle (ONLY SHOWS WHEN EDITING) */}
                   {isEditingCredentials && (
                     <div className="form-group animate-poof">
                       <label>Confirm New Password</label>
@@ -769,7 +1096,7 @@ export default function TeacherProfile() {
                           placeholder="••••••••"
                           value={passwordData.confirmPassword}
                           onChange={handlePasswordChange}
-                          style={{ borderColor: "#39a8ed", paddingRight: '40px' }} /* Make room for the eye icon! */
+                          style={{ borderColor: "#39a8ed", paddingRight: '40px' }} 
                         />
                         <button
                           type="button"
@@ -788,7 +1115,6 @@ export default function TeacherProfile() {
                     </div>
                   )}
 
-                  {/* --- CARD ACTION BUTTONS --- */}
                   <div style={{ marginTop: '24px' }}>
                     {!isEditingCredentials ? (
                       <button 
@@ -801,20 +1127,18 @@ export default function TeacherProfile() {
                         Change Password
                       </button>
                     ) : (
-                      <div className="action-buttons-wrapper">
+                      <div className="flex flex-col sm:flex-row gap-3 w-full">
                         <button 
                           type="button"
-                          className="btn btn-save profile-action-btn"
-                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold"
                           onClick={handleSaveCredentials}
                         >
-                          <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>check</span>
+                          <span className="material-symbols-outlined" style={{ marginRight: '6px', fontSize: '18px' }}>check</span>
                           Update
                         </button>
                         <button 
                           type="button"
-                          className="btn btn-cancel profile-action-btn"
-                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          className="btn btn-cancel flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold"
                           onClick={handleCancelCredentials}
                         >
                           Cancel
@@ -825,7 +1149,6 @@ export default function TeacherProfile() {
 
                 </div>
               </div>
-              {/* --- END ACCOUNT CREDENTIALS --- */}
             </div>
           </div>
         </div>
