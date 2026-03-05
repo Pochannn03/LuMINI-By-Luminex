@@ -8,12 +8,23 @@ import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
 import { hashPassword } from '../utils/passwordUtils.js';
 
 // --- ADDED EMAIL SERVICE AND CRYPTO HERE ---
-import { sendPasswordUpdateOTP } from '../utils/emailService.js';
+import { sendPasswordUpdateOTP, sendUnauthorizedAccessEmail } from '../utils/emailService.js'; // <-- NEW: Added sendUnauthorizedAccessEmail
 import crypto from 'crypto'; 
 
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+
+// ==========================================
+// ANTI-SPOOFING MATH HELPER
+// ==========================================
+const euclideanDistance = (desc1, desc2) => {
+    let sum = 0;
+    for (let i = 0; i < desc1.length; i++) {
+        sum += Math.pow(desc1[i] - desc2[i], 2);
+    }
+    return Math.sqrt(sum);
+};
 
 const router = Router();
 
@@ -261,6 +272,56 @@ router.get('/api/users/demographics',
     } catch(err) {
       console.error("Demographics Fetch Error:", err);
       res.status(500).json({ msg: "Failed to fetch user demographics" });
+    }
+});
+
+// =========================================================
+// NEW: Verify Facial Match for Logged-In User
+// =========================================================
+router.post('/api/user/verify-face-match', isAuthenticated, async (req, res) => {
+    try {
+        const { facialDescriptor } = req.body;
+        const user = await User.findById(req.user._id);
+
+        if (!user || !user.facial_descriptor || user.facial_descriptor.length === 0) {
+            return res.status(400).json({ message: "No biometric data registered for this account." });
+        }
+
+        // Mathematical Comparison
+        const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
+
+        // 0.55 is the standard strict threshold for Face-API
+        if (distance > 0.55) {
+            const failedAudit = new Audit({
+                user_id: user.user_id,
+                full_name: `${user.first_name} ${user.last_name}`,
+                role: user.role,
+                action: "Face Verify Failed",
+                target: `Profile password change biometric mismatch (Distance: ${distance.toFixed(4)})`
+            });
+            await failedAudit.save().catch(e => console.error(e));
+
+            // --- NEW: FIRE OFF THE SECURITY ALERT EMAIL ---
+            if (user.email) {
+                await sendUnauthorizedAccessEmail(user.email, user.first_name);
+            }
+
+            return res.status(401).json({ message: "Biometric mismatch. Face does not match the registered user." });
+        }
+
+        const successAudit = new Audit({
+            user_id: user.user_id,
+            full_name: `${user.first_name} ${user.last_name}`,
+            role: user.role,
+            action: "Face Verify Success",
+            target: "Profile identity verified via facial recognition."
+        });
+        await successAudit.save().catch(e => console.error(e));
+        
+        return res.status(200).json({ message: "Identity verified successfully." });
+    } catch (error) {
+        console.error("Face Verify Error:", error);
+        return res.status(500).json({ message: "Server error verifying biometrics." });
     }
 });
 

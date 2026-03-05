@@ -247,7 +247,7 @@ export default function Landing() {
               {/* Phone Number */}
               <div className="flex flex-col items-center">
                 <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Call Us</span>
-                <p className="text-xl font-semibold text-cdark">(02) 882 2826</p>
+                <p className="text-xl font-semibold text-cdark">+63 9617481421</p>
               </div>
 
               {/* Vertical Divider for desktop */}
@@ -256,8 +256,8 @@ export default function Landing() {
               {/* Email Address */}
               <div className="flex flex-col items-center">
                 <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Email Us</span>
-                <a href="mailto:136710@deped.gov.ph" className="text-md font-semibold text-cdark hover:text-cbrand-blue transition-colors">
-                  136710@deped.gov.ph
+                <a href="mailto:luminex.techgroup@gmail.com" className="text-md font-semibold text-cdark hover:text-cbrand-blue transition-colors">
+                  luminex.techgroup@gmail.com
                 </a>
               </div>
             </div>

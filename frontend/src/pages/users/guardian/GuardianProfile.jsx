@@ -8,22 +8,28 @@ import "../../../styles/user/parent/parent-profile.css";
 import NavBar from "../../../components/navigation/NavBar";
 import Header from "../../../components/navigation/Header";
 import SuccessModal from "../../../components/SuccessModal";
+import WarningModal from "../../../components/WarningModal"; 
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
-const calculateEAR = (eye) => {
+// NEW: Mouth Aspect Ratio for Open/Close detection
+const calculateMAR = (mouth) => {
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
-  const v1 = euclideanDistance(eye[1], eye[5]);
-  const v2 = euclideanDistance(eye[2], eye[4]);
-  const h = euclideanDistance(eye[0], eye[3]);
-  return (v1 + v2) / (2.0 * h);
+  
+  const v1 = euclideanDistance(mouth[13], mouth[19]);
+  const v2 = euclideanDistance(mouth[14], mouth[18]);
+  const v3 = euclideanDistance(mouth[15], mouth[17]);
+  const h = euclideanDistance(mouth[12], mouth[16]);
+  
+  if (h === 0) return 0;
+  return (v1 + v2 + v3) / (2.0 * h);
 };
 
 const calculateYawRatio = (landmarks) => {
@@ -44,7 +50,7 @@ export default function GuardianProfile() {
   const [otpInput, setOtpInput] = useState("");
   const [isOtpSending, setIsOtpSending] = useState(false);
   const [otpError, setOtpError] = useState("");
-  const [otpSent, setOtpSent] = useState(false); // <-- NEW STATE
+  const [otpSent, setOtpSent] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
@@ -54,6 +60,11 @@ export default function GuardianProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+  // Warning Modal State
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningTitle, setWarningTitle] = useState("");
+  const [warningMessage, setWarningMessage] = useState("");
 
   // --- Address Splicing States ---
   const [addressParts, setAddressParts] = useState({
@@ -186,11 +197,13 @@ export default function GuardianProfile() {
   const startDetectionSequence = () => {
     let isDetecting = true;
     let phase = 0; 
-    let framesHeld = 0;
-    let blinkClosed = false;
-    let blinkCount = 0; 
+    let framesHeld = 0; 
     let recognitionFrames = 0;
     let lostFaceFrames = 0; 
+
+    // NEW: Mouth State Tracking
+    let mouthPhase = 0; 
+    let mouthHoldFrames = 0;
 
     stopDetectionRef.current = () => { isDetecting = false; };
 
@@ -217,7 +230,7 @@ export default function GuardianProfile() {
       if (!detection) {
         lostFaceFrames++;
         if (lostFaceFrames > 8) { 
-          phase = 0; framesHeld = 0; blinkClosed = false; blinkCount = 0; recognitionFrames = 0;
+          phase = 0; framesHeld = 0; mouthPhase = 0; mouthHoldFrames = 0; recognitionFrames = 0;
           setIsRecognizing(false);
           setOvalClass("border-red-500 shadow-[0_0_0_9999px_rgba(15,23,42,0.8)] border-[4px] transition-all duration-300");
           setScanStatus("⚠️ Face lost! Sequence reset. Please center yourself.");
@@ -237,16 +250,38 @@ export default function GuardianProfile() {
           setScanStatus("Face detected! Hold still..."); phase = 1;
         } else if (phase === 1) {
           framesHeld++;
-          if (framesHeld > 10) { phase = 2; framesHeld = 0; setScanStatus("Task 1: Please blink your eyes 3 times (0/3)"); }
+          if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } else if (phase === 2) {
-          const leftEye = detection.landmarks.getLeftEye();
-          const rightEye = detection.landmarks.getRightEye();
-          const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2;
-          if (avgEAR < 0.25) { blinkClosed = true; } 
-          else if (blinkClosed && avgEAR >= 0.25) { 
-            blinkCount++; blinkClosed = false; 
-            if (blinkCount >= 3) { phase = 3; setScanStatus("✅ Blinks verified! Please hold..."); } 
-            else { setScanStatus(`Task 1: Please blink your eyes 3 times (${blinkCount}/3)`); }
+          // --- UPDATED: THE 2-CYCLE MOUTH LIVENESS TEST ---
+          const mouth = detection.landmarks.getMouth();
+          const mar = calculateMAR(mouth);
+          
+          const OPEN_THRESHOLD = 0.4;
+          const CLOSE_THRESHOLD = 0.15; 
+
+          if (mouthPhase === 0) {
+            setScanStatus("Task 1: Please OPEN your mouth.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 1; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 1) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 2; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 2) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
+          } else if (mouthPhase === 3) {
+            setScanStatus("Task 1: Please OPEN your mouth again.");
+            if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 4) {
+            setScanStatus("Task 1: Now CLOSE your mouth.");
+            if (mar < CLOSE_THRESHOLD) { mouthPhase = 5; mouthHoldFrames = 0; }
+          } else if (mouthPhase === 5) {
+            setScanStatus("Loading...");
+            mouthHoldFrames++;
+            if (mouthHoldFrames > 15) {
+              phase = 3; 
+              setScanStatus("✅ Liveness verified! Please hold...");
+            }
           }
         } else if (phase === 3) {
           framesHeld++;
@@ -263,24 +298,40 @@ export default function GuardianProfile() {
         } else if (phase === 7) {
           framesHeld++;
           if (framesHeld > 15) { 
-            phase = 8; 
-            recognitionFrames = 0; 
-            setScanStatus("Analyzing biometric data... Please hold still."); 
-            setIsRecognizing(true); 
+            phase = 8; recognitionFrames = 0; 
+            setScanStatus("Analyzing biometric data... Please hold still."); setIsRecognizing(true); 
           }
         } else if (phase === 8) {
           recognitionFrames++;
           if (recognitionFrames >= 15) { 
-            // SUCCESS: INSTANTLY TRANSITION UI 
             isDetecting = false; 
-            stopCamera(); 
-            setIsCameraActive(false); 
-            setFaceVerified(true); 
+            
+            // --- THE REJECTION PROTOCOL ENFORCEMENT ---
+            const descriptorArray = Array.from(detection.descriptor);
+            
+            axios.post(`${BACKEND_URL}/api/user/verify-face-match`, 
+              { facialDescriptor: descriptorArray }, 
+              { withCredentials: true }
+            )
+            .then(() => {
+                // MATCH SUCCESS!
+                stopCamera(); 
+                setIsCameraActive(false); 
+                setFaceVerified(true);
+            })
+            .catch((error) => {
+                // IMPOSTER CAUGHT!
+                stopCamera(); 
+                setIsCameraActive(false); 
+                setShowFaceAuthModal(false);
+                setWarningTitle("Security Alert");
+                setWarningMessage(error.response?.data?.message || "Facial verification failed.");
+                setShowWarningModal(true);
+            });
             return; 
           }
         }
       }
-
       if (isDetecting) { setTimeout(runDetection, 100); }
     };
     runDetection(); 
@@ -330,12 +381,10 @@ export default function GuardianProfile() {
   const handleSaveCredentials = async (e) => {
     e.preventDefault();
     if (passwordData.password !== passwordData.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
+      alert("Passwords do not match!"); return;
     }
     if (passwordData.password.length < 8) {
-      alert("Password must be at least 8 characters.");
-      return;
+      alert("Password must be at least 8 characters."); return;
     }
     setFaceVerified(false);
     setOtpSent(false); // Reset OTP state
@@ -440,6 +489,13 @@ export default function GuardianProfile() {
       
       <SuccessModal isOpen={showSuccessModal} onClose={() => setShowSuccessModal(false)} message={successMessage} />
 
+      <WarningModal 
+        isOpen={showWarningModal} 
+        onClose={() => setShowWarningModal(false)} 
+        title={warningTitle} 
+        message={warningMessage} 
+      />
+
       {/* --- GUARDIAN Lightbox --- */}
       {isLightboxOpen && (
         <div 
@@ -494,15 +550,7 @@ export default function GuardianProfile() {
                       <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>face_retouching_natural</span>
                     </div>
                     
-                    <button 
-                      type="button" 
-                      disabled={!modelsLoaded} 
-                      onClick={() => setIsCameraActive(true)}
-                      style={{
-                        width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: 'none', cursor: modelsLoaded ? 'pointer' : 'not-allowed',
-                        background: modelsLoaded ? '#1e293b' : '#cbd5e1', transition: 'background 0.2s'
-                      }}
-                    >
+                    <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: 'none', cursor: modelsLoaded ? 'pointer' : 'not-allowed', background: modelsLoaded ? '#1e293b' : '#cbd5e1', transition: 'background 0.2s' }}>
                       <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{modelsLoaded ? 'photo_camera' : 'sync'}</span> 
                       {modelsLoaded ? 'Start Verification' : 'Loading AI Models...'}
                     </button>
@@ -528,19 +576,12 @@ export default function GuardianProfile() {
 
                       {isRecognizing && (
                         <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(4px)' }}>
-                          <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '50px', animation: 'spin 1.5s linear infinite', marginBottom: '16px' }}>
-                            autorenew
-                          </span>
-                          <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', letterSpacing: '0.05em', animation: 'pulse 1.5s infinite', marginBottom: '8px' }}>
-                            Recognizing Face...
-                          </span>
-                          <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: '500' }}>
-                            Please keep the camera still
-                          </span>
+                          <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '50px', animation: 'spin 1.5s linear infinite', marginBottom: '16px' }}>autorenew</span>
+                          <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', letterSpacing: '0.05em', animation: 'pulse 1.5s infinite', marginBottom: '8px' }}>Recognizing Face...</span>
+                          <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: '500' }}>Please keep the camera still</span>
                         </div>
                       )}
                     </div>
-
                     <p style={{ fontSize: '14px', fontWeight: 'bold', margin: '20px 0', padding: '0 16px', textAlign: 'center', color: scanStatus.includes("✅") ? '#16a34a' : scanStatus.includes("⚠️") ? '#ef4444' : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? '#2563eb' : '#475569' }}>
                       {cameraError ? "Check browser settings." : scanStatus}
                     </p>
@@ -559,10 +600,7 @@ export default function GuardianProfile() {
                     <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
                       To finalize the password change, we will send a 6-digit security code to your registered email.
                     </p>
-                    <button 
-                        type="button" 
-                        disabled={isOtpSending}
-                        onClick={async () => {
+                    <button type="button" disabled={isOtpSending} onClick={async () => {
                           try {
                             setIsOtpSending(true);
                             await axios.post(`${BACKEND_URL}/api/user/request-password-otp`, {}, { withCredentials: true });
@@ -573,9 +611,7 @@ export default function GuardianProfile() {
                             setIsOtpSending(false);
                           }
                         }}
-                        className="btn btn-primary"
-                        style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}
-                      >
+                        className="btn btn-primary" style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}>
                         {isOtpSending ? "Sending OTP..." : "Send me the OTP"}
                     </button>
                   </>
@@ -584,37 +620,16 @@ export default function GuardianProfile() {
                     <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
                       We've sent a 6-digit security code to your email. Please enter it below.
                     </p>
-
                     <div className="input-wrapper" style={{ width: '100%', marginBottom: '16px' }}>
                         <span className="material-symbols-outlined icon">pin</span>
-                        <input 
-                          type="text" 
-                          placeholder="Enter 6-digit OTP" 
-                          value={otpInput}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '');
-                            if (val.length <= 6) setOtpInput(val);
-                            setOtpError("");
-                          }}
-                          style={{ letterSpacing: '4px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', borderColor: otpError ? '#ef4444' : '' }}
-                        />
+                        <input type="text" placeholder="Enter 6-digit OTP" value={otpInput} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 6) setOtpInput(val); setOtpError(""); }} style={{ letterSpacing: '4px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', borderColor: otpError ? '#ef4444' : '' }} />
                     </div>
-                    
                     {otpError && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '-10px', marginBottom: '16px', fontWeight: '500' }}>{otpError}</p>}
-
-                    <button 
-                        type="button" 
-                        onClick={async () => {
-                          if (otpInput.length !== 6) {
-                            setOtpError("OTP must be exactly 6 digits.");
-                            return;
-                          }
+                    <button type="button" disabled={isOtpSending || otpInput.length < 6} onClick={async () => {
+                          if (otpInput.length !== 6) { setOtpError("OTP must be exactly 6 digits."); return; }
                           try {
                             setIsOtpSending(true);
-                            await axios.put(`${BACKEND_URL}/api/user/verify-password-otp`, 
-                              { otp: otpInput, newPassword: passwordData.password }, 
-                              { withCredentials: true }
-                            );
+                            await axios.put(`${BACKEND_URL}/api/user/verify-password-otp`, { otp: otpInput, newPassword: passwordData.password }, { withCredentials: true });
                             setShowFaceAuthModal(false);
                             setSuccessMessage("Password successfully changed!");
                             setShowSuccessModal(true);
@@ -625,25 +640,14 @@ export default function GuardianProfile() {
                             setIsOtpSending(false);
                           }
                         }}
-                        disabled={isOtpSending || otpInput.length < 6}
-                        className="btn btn-primary"
-                        style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}
-                      >
+                        className="btn btn-primary" style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}>
                         {isOtpSending ? "Verifying..." : "Confirm Password Change"}
                     </button>
                   </>
                 )}
               </div>
             )}
-
-            <button 
-              type="button" 
-              onClick={() => { setShowFaceAuthModal(false); stopCamera(); setFaceVerified(false); setOtpSent(false); setOtpInput(""); setOtpError(""); }}
-              style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '16px' }}
-            >
-              Cancel Update
-            </button>
-
+            <button type="button" onClick={() => { setShowFaceAuthModal(false); stopCamera(); setFaceVerified(false); setOtpSent(false); setOtpInput(""); setOtpError(""); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '16px' }}>Cancel Update</button>
           </div>
         </div>
       )}
@@ -767,6 +771,7 @@ export default function GuardianProfile() {
                     </div>
                   )}
                 </div>
+
               </form>
             </div>
 

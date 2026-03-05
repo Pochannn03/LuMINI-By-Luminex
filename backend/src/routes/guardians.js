@@ -868,6 +868,7 @@ router.put('/api/superadmin/guardian-requests/:id/final-approve', isAuthenticate
             address: "Not Provided", 
             role: "user", 
             is_archive: false,
+            is_approved: true
         });
 
         const savedGuardian = await newGuardian.save();

@@ -560,3 +560,60 @@ export const sendAccountApprovalEmail = async (toEmail, lastName, relationship) 
     return false;
   }
 };
+
+/**
+ * SECURITY ALERT: Notifies the user of a failed biometric attempt on their account.
+ */
+export const sendUnauthorizedAccessEmail = async (toEmail, userName) => {
+  try {
+    const mailOptions = {
+      from: `"LuMINI Security" <${process.env.EMAIL_USER}>`,
+      to: toEmail,
+      subject: `🚨 LuMINI Security Alert - Unauthorized Access Attempt`,
+      html: `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 550px; margin: 0 auto; background-color: #ffffff; border: 2px solid #ef4444; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          
+          <div style="background-color: #fef2f2; padding: 30px 20px; text-align: center; border-bottom: 2px solid #fecaca;">
+            <div style="background-color: #ef4444; color: white; width: 56px; height: 56px; line-height: 56px; border-radius: 50%; display: inline-block; text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 10px;">!</div>
+            <h1 style="color: #991b1b; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 1px;">Security Alert</h1>
+          </div>
+          
+          <div style="padding: 30px;">
+            <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${userName}</strong>,</p>
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+              We recently detected an attempt to change the password on your LuMINI account. 
+            </p>
+            
+            <div style="background-color: #fff1f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+              <p style="color: #991b1b; font-size: 15px; margin: 0; line-height: 1.6; font-weight: 500;">
+                <strong>Action Blocked:</strong> The facial biometric scan provided during this attempt <strong>did not match</strong> your registered profile. The system has automatically denied access and blocked the password change.
+              </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+              If this was you and you were wearing glasses, a mask, or were in poor lighting, please try again in a well-lit area. 
+            </p>
+            <p style="color: #475569; font-size: 14px; line-height: 1.6; font-weight: bold;">
+              If you did not initiate this request, your account is currently safe, but we recommend notifying the school administration immediately.
+            </p>
+          </div>
+
+          <div style="background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0;">
+            <p style="color: #94a3b8; font-size: 12px; margin: 0; line-height: 1.5;">
+              This is an automated security message from the LuMINI Safety System.<br/>
+              Do not reply directly to this email.
+            </p>
+          </div>
+        </div>
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`✅ Security Alert Email sent to ${toEmail} (Message ID: ${info.messageId})`);
+    return true;
+
+  } catch (error) {
+    console.error(`❌ Error sending Security Alert to ${toEmail}:`, error);
+    return false;
+  }
+};

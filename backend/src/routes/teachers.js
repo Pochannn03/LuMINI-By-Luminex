@@ -144,7 +144,7 @@ router.post('/api/teachers',
 
 router.get('/api/teachers', isAuthenticated, hasRole('superadmin'), async (req, res) => {
   try{
-    const teachers = await User.find({ relationship: 'Teacher', is_archive: false })
+    const teachers = await User.find({ relationship: 'Teacher', is_archive: false, is_approved: true})
     if (!teachers || teachers.length === 0) {
       return res.status(200).json({ success: true, teachers: [] });
     }
@@ -176,7 +176,7 @@ router.post('/api/teachers/modal', isAuthenticated, hasRole('superadmin'), uploa
     data.password = await hashPassword(data.password);
     data.role = "admin";
     data.is_archive = false;
-    data.is_approved = false;
+    data.is_approved = true;
 
     if (req.file) {
       data.profile_picture = req.file.path; 
