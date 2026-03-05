@@ -226,7 +226,7 @@ export default function TeacherProfile() {
     let phase = 0; let framesHeld = 0; 
     let recognitionFrames = 0; let lostFaceFrames = 0; 
 
-    // NEW: Mouth State Tracking
+    // Mouth State Tracking
     let mouthPhase = 0; 
     let mouthHoldFrames = 0;
 
@@ -275,7 +275,6 @@ export default function TeacherProfile() {
           framesHeld++;
           if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } else if (phase === 2) {
-          // --- UPDATED: THE 2-CYCLE MOUTH LIVENESS TEST ---
           const mouth = detection.landmarks.getMouth();
           const mar = calculateMAR(mouth);
           
@@ -329,7 +328,6 @@ export default function TeacherProfile() {
           if (recognitionFrames >= 15) { 
             isDetecting = false; 
             
-            // --- THE REJECTION PROTOCOL ENFORCEMENT ---
             const descriptorArray = Array.from(detection.descriptor);
             
             axios.post(`${BACKEND_URL}/api/user/verify-face-match`, 
@@ -337,13 +335,11 @@ export default function TeacherProfile() {
               { withCredentials: true }
             )
             .then(() => {
-                // MATCH SUCCESS!
                 stopCamera(); 
                 setIsCameraActive(false); 
                 setFaceVerified(true);
             })
             .catch((error) => {
-                // IMPOSTER CAUGHT!
                 stopCamera(); 
                 setIsCameraActive(false); 
                 setShowFaceAuthModal(false);
@@ -400,7 +396,6 @@ export default function TeacherProfile() {
     setShowConfirmPassword(false);
   };
 
-  // --- TRIGGER FACE AUTH ---
   const handleSaveCredentials = (e) => {
     e.preventDefault();
     if (passwordData.password !== passwordData.confirmPassword) {
@@ -414,7 +409,6 @@ export default function TeacherProfile() {
     setShowFaceAuthModal(true); 
   };
 
-  // --- Image Cropper Handlers ---
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -799,17 +793,17 @@ export default function TeacherProfile() {
                     Edit Information
                   </button>
                 ) : (
-                  <div className="action-buttons-wrapper">
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     
                     <button 
                       type="button"
-                      className="btn btn-save h-[42px] w-[190px] rounded-[10px]" 
+                      className="btn btn-save flex-1 sm:w-[120px] h-[42px] rounded-[10px] flex items-center justify-center font-bold" 
                       onClick={(e) => {
                         e.preventDefault();
                         handleSave();
                       }}
                     >
-                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>
+                      <span className="material-symbols-outlined" style={{ marginRight: '6px', fontSize: '18px' }}>
                         check
                       </span>
                       Save
@@ -817,7 +811,7 @@ export default function TeacherProfile() {
 
                     <button 
                       type="button"
-                      className="btn btn-cancel profile-action-btn" 
+                      className="btn btn-cancel flex-1 sm:w-[120px] h-[42px] rounded-[10px] flex items-center justify-center font-bold" 
                       onClick={(e) => {
                         e.preventDefault();
                         handleCancel();
@@ -1133,20 +1127,18 @@ export default function TeacherProfile() {
                         Change Password
                       </button>
                     ) : (
-                      <div className="action-buttons-wrapper">
+                      <div className="flex flex-col sm:flex-row gap-3 w-full">
                         <button 
                           type="button"
-                          className="btn btn-save profile-action-btn"
-                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold"
                           onClick={handleSaveCredentials}
                         >
-                          <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>check</span>
+                          <span className="material-symbols-outlined" style={{ marginRight: '6px', fontSize: '18px' }}>check</span>
                           Update
                         </button>
                         <button 
                           type="button"
-                          className="btn btn-cancel profile-action-btn"
-                          style={{ flex: 1, height: '44px', borderRadius: '10px' }}
+                          className="btn btn-cancel flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold"
                           onClick={handleCancelCredentials}
                         >
                           Cancel

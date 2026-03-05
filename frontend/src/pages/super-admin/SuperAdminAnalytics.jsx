@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from 'axios';
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable"; // <-- THE FIX: Import it directly
+import autoTable from "jspdf-autotable"; 
 import NavBar from "../../components/navigation/NavBar";
-import ConfirmModal from "../../components/ConfirmModal"; 
 import "../../styles/super-admin/super-admin-analytics.css";
 
 export default function SuperAdminAnalytics() {
@@ -38,8 +37,10 @@ export default function SuperAdminAnalytics() {
   // WEEKLY ATTENDANCE STATE
   const [weeklyTraffic, setWeeklyTraffic] = useState([]);
 
-  // EXPORT MODAL STATE
+  // --- NEW: CUSTOM EXPORT MODAL STATES ---
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportStartPage, setExportStartPage] = useState(1);
+  const [exportEndPage, setExportEndPage] = useState(1);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -59,7 +60,7 @@ export default function SuperAdminAnalytics() {
           if (Array.isArray(data)) {
             setAuditLogs(data);
             const totalCount = parseInt(headers['x-total-count']) || 0;
-            setTotalPages(Math.ceil(totalCount / logsPerPage));
+            setTotalPages(Math.ceil(totalCount / logsPerPage) || 1);
           }
         } catch (err) {
           console.error("Error fetching logs:", err);
@@ -147,49 +148,92 @@ export default function SuperAdminAnalytics() {
     fetchWeeklyStats();
   }, []);
 
-  // --- THE FIX: PDF EXPORT FUNCTION ---
-  const handleExportPDF = () => {
-    const doc = new jsPDF();
-    
-    // Add Document Header
-    doc.setFontSize(18);
-    doc.text("System Audit Trail Report", 14, 22);
-    
-    // Add Metadata
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
-    doc.text(`Filter Applied: ${filterRole} | Search Query: ${searchQuery || 'None'}`, 14, 36);
+  // --- TRIGGER MODAL HANDLER ---
+  const handleOpenExportModal = () => {
+    setExportStartPage(1);
+    setExportEndPage(totalPages);
+    setIsExportModalOpen(true);
+  };
 
-    // Define Table Columns and Map Data
-    const tableColumn = ["User", "Role", "Action", "Target / Details", "Timestamp"];
-    const tableRows = [];
+  // --- DYNAMIC PDF EXPORT FUNCTION ---
+  const handleExportPDF = async () => {
+    // Validate Inputs
+    if (exportStartPage < 1 || exportEndPage > totalPages || exportStartPage > exportEndPage) {
+      alert("Please enter a valid page range.");
+      return;
+    }
 
-    auditLogs.forEach(log => {
-      const logData = [
-        log.full_name || "Unknown",
-        log.role || "N/A",
-        log.action || "N/A",
-        log.target || "N/A",
-        log.createdAt || log.created_at || log.timestamp 
-          ? new Date(log.createdAt || log.created_at || log.timestamp).toLocaleString() 
-          : "Date Missing"
-      ];
-      tableRows.push(logData);
-    });
+    try {
+      // 1. Silently fetch ALL matching logs from the backend
+      const { data } = await axios.get(`http://localhost:3000/api/audit`, {
+        params: { 
+          role: filterRole === "All" ? "" : filterRole, 
+          search: searchQuery,
+          limit: 100000 // Extremely high limit to grab all filtered records
+        }, 
+        withCredentials: true
+      });
 
-    // THE FIX: Call autoTable explicitly and pass the doc inside it
-    autoTable(doc, {
-      head: [tableColumn],
-      body: tableRows,
-      startY: 42,
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [58, 176, 249] }, // Matches brand blue
-      alternateRowStyles: { fillColor: [248, 250, 252] }, // Light slate for readability
-    });
+      let exportData = Array.isArray(data) ? data : [];
 
-    // Download the PDF
-    doc.save(`LuMINI_Audit_Trail_${new Date().getTime()}.pdf`);
+      // 2. Mathematically slice the array to match the requested page range
+      const startIndex = (exportStartPage - 1) * logsPerPage;
+      const endIndex = exportEndPage * logsPerPage;
+      exportData = exportData.slice(startIndex, endIndex);
+
+      if (exportData.length === 0) {
+        alert("No records found in the selected range.");
+        return;
+      }
+
+      // 3. Generate the PDF
+      const doc = new jsPDF();
+      
+      // Add Document Header
+      doc.setFontSize(18);
+      doc.text("System Audit Trail Report", 14, 22);
+      
+      // Add Metadata
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+      doc.text(`Filter Applied: ${filterRole} | Search Query: ${searchQuery || 'None'}`, 14, 36);
+      doc.text(`Pages Exported: ${exportStartPage} to ${exportEndPage} | Total Records: ${exportData.length}`, 14, 42);
+
+      // Define Table Columns and Map Data
+      const tableColumn = ["User", "Role", "Action", "Target / Details", "Timestamp"];
+      const tableRows = [];
+
+      exportData.forEach(log => {
+        const logData = [
+          log.full_name || "Unknown",
+          log.role || "N/A",
+          log.action || "N/A",
+          log.target || "N/A",
+          log.createdAt || log.created_at || log.timestamp 
+            ? new Date(log.createdAt || log.created_at || log.timestamp).toLocaleString() 
+            : "Date Missing"
+        ];
+        tableRows.push(logData);
+      });
+
+      autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: 48,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [58, 176, 249] }, 
+        alternateRowStyles: { fillColor: [248, 250, 252] }, 
+      });
+
+      // Download the PDF
+      doc.save(`LuMINI_Audit_Trail_Pages_${exportStartPage}_to_${exportEndPage}.pdf`);
+      setIsExportModalOpen(false); // Close modal on success
+
+    } catch (err) {
+      console.error("Failed to export PDF:", err);
+      alert("Failed to export the audit trail. Please try again.");
+    }
   };
 
   // --- Calculations for Donut Chart ---
@@ -224,17 +268,74 @@ export default function SuperAdminAnalytics() {
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <NavBar />
 
-      {/* --- CONFIRM EXPORT MODAL --- */}
-      <ConfirmModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onConfirm={handleExportPDF}
-        title="Export Audit Trail"
-        message="Do you want to download a PDF report of the currently loaded audit logs?"
-        confirmText="Download PDF"
-        cancelText="Cancel"
-        isDestructive={false}
-      />
+      {/* --- NEW: CUSTOM DYNAMIC EXPORT MODAL --- */}
+      {isExportModalOpen && (
+        <div className="fixed inset-0 z-[999999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-[420px] flex flex-col animate-[fadeIn_0.2s_ease-out]">
+            
+            <div className="flex items-center gap-3 mb-2 text-[var(--brand-blue)]">
+              <span className="material-symbols-outlined text-[36px]">picture_as_pdf</span>
+              <h3 className="text-2xl font-bold text-slate-800">Export Report</h3>
+            </div>
+            
+            <p className="text-sm text-slate-500 mb-6">
+              Select the page range of the audit trail you want to download. (Max pages: {totalPages})
+            </p>
+
+            <div className="flex items-center gap-4 mb-6">
+              <div className="flex flex-col flex-1">
+                <label className="text-xs font-bold text-slate-400 mb-1 tracking-wider uppercase">Start Page</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  max={exportEndPage} 
+                  value={exportStartPage} 
+                  onChange={e => setExportStartPage(Number(e.target.value))} 
+                  className="w-full h-12 border-2 border-slate-200 rounded-xl px-4 font-bold text-slate-700 outline-none focus:border-[var(--brand-blue)] transition-colors" 
+                />
+              </div>
+              <span className="mt-5 text-slate-300 font-bold">TO</span>
+              <div className="flex flex-col flex-1">
+                <label className="text-xs font-bold text-slate-400 mb-1 tracking-wider uppercase">End Page</label>
+                <input 
+                  type="number" 
+                  min={exportStartPage} 
+                  max={totalPages} 
+                  value={exportEndPage} 
+                  onChange={e => setExportEndPage(Number(e.target.value))} 
+                  className="w-full h-12 border-2 border-slate-200 rounded-xl px-4 font-bold text-slate-700 outline-none focus:border-[var(--brand-blue)] transition-colors" 
+                />
+              </div>
+            </div>
+
+            {/* DYNAMIC CONFIRMATION MESSAGE */}
+            <div className="bg-blue-50 border border-blue-100 flex items-start gap-3 p-4 rounded-xl mb-8">
+              <span className="material-symbols-outlined text-blue-500 text-[20px] mt-0.5">info</span>
+              <p className="text-blue-800 text-[13px] leading-relaxed">
+                <strong>Confirmation:</strong> You are about to download <span className="font-bold underline">page {exportStartPage} to {exportEndPage}</span> of the current audit trail.
+              </p>
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button 
+                type="button" 
+                className="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" 
+                onClick={() => setIsExportModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="flex-[1.5] py-3.5 rounded-xl font-bold text-white bg-[var(--brand-blue)] hover:bg-[#2c8ac4] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2" 
+                onClick={handleExportPDF}
+              >
+                <span className="material-symbols-outlined text-[20px]">download</span> Download PDF
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
 
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards] pb-20">
         
@@ -316,7 +417,7 @@ export default function SuperAdminAnalytics() {
                       className={`chart-bar w-8 rounded-t-sm transition-all duration-700 ease-out ${
                         data.isToday ? 'bg-[#3ab0f9]' : 'bg-[#e2e8f0]'
                       }`} 
-                      style={{ height: `${data.present || 5}%` }} // Min 5% height so the bar is visible even if 0
+                      style={{ height: `${data.present || 5}%` }} 
                     ></div>
                   </div>
                   
@@ -355,7 +456,6 @@ export default function SuperAdminAnalytics() {
                     <div className="legend-indicator">
                       <div className="legend-color" style={{ background: stat.color }}></div>
                       <span className="capitalize">
-                        {/* Maps 'users' to 'Parents & Guardians' and 'teachers' to 'Teachers' */}
                         {key === 'users' ? 'Parents & Guardians' : 'Teachers'}
                       </span>
                     </div>
@@ -383,10 +483,10 @@ export default function SuperAdminAnalytics() {
               {/* TRIGGER EXPORT MODAL */}
               <button 
                 className="btn btn-outline text-sm h-[38px] px-3 cursor-pointer"
-                onClick={() => setIsExportModalOpen(true)}
+                onClick={handleOpenExportModal}
               >
                 <span className="material-symbols-outlined text-[18px] mr-1">download</span>
-                Export
+                Export Data
               </button>
 
             </div>
@@ -407,7 +507,7 @@ export default function SuperAdminAnalytics() {
                  </select>
               </div>
 
-              {/* Search Filter - Connected to State */}
+              {/* Search Filter */}
               <div className="filter-container search-wrapper ml-auto">
                 <span className="material-symbols-outlined filter-icon">search</span>
                 <input 
