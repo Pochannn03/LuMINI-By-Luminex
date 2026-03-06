@@ -663,7 +663,7 @@ export default function AdminDashboard() {
           PHASE 2: INTERCEPTION MODAL (UN-CLOSABLE FULL SCREEN)
           ======================================================== */}
       {needsBiometricSetup && (
-        <div className="fixed inset-0 z-[999999] bg-slate-900/90 backdrop-blur-md flex justify-center items-center p-4">
+        <div className="fixed inset-0 z-999999 bg-slate-900/90 backdrop-blur-md flex justify-center items-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 w-full max-w-[600px] flex flex-col items-center animate-[fadeIn_0.3s_ease-out_forwards]">
             
             {!isCameraActive && !faceDescriptor ? (
@@ -694,7 +694,7 @@ export default function AdminDashboard() {
                  <h2 className="text-2xl font-black text-slate-800 mb-2">Verification Complete</h2>
                  <p className="text-[14px] text-slate-500 mb-8 text-center max-w-sm">Your highly accurate facial template has been securely generated.</p>
                  
-                 <div className="w-[180px] h-[240px] rounded-2xl overflow-hidden mb-8 border-4 border-slate-100 shadow-md">
+                 <div className="w-[180px] h-60 rounded-2xl overflow-hidden mb-8 border-4 border-slate-100 shadow-md">
                     <img src={capturedImage} alt="Captured face" className="w-full h-full object-cover" />
                  </div>
 
@@ -710,12 +710,12 @@ export default function AdminDashboard() {
             ) : (
               <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
                  <h2 className="text-xl font-black text-slate-800 mb-4">Liveness Verification</h2>
-                 <div className="w-full h-[320px] md:h-[380px] bg-slate-900 rounded-3xl flex items-center justify-center text-white mb-6 relative overflow-hidden border-4 border-slate-100 shadow-xl">
+                 <div className="w-full h-80 md:h-[380px] bg-slate-900 rounded-3xl flex items-center justify-center text-white mb-6 relative overflow-hidden border-4 border-slate-100 shadow-xl">
                     <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-0" />
                     <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
 
                     {!isVideoPlaying && !cameraError && (
-                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing Camera...</span></div>
+                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-6 bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing Camera...</span></div>
                     )}
                     
                     {isVideoPlaying && !cameraError && (
@@ -726,7 +726,7 @@ export default function AdminDashboard() {
 
                     {countdownValue !== null && (
                       <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px]">
-                        <span className="text-white text-[120px] font-black drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
+                        <span className="text-white text-[120px] font-black drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] animate-ping">
                           {countdownValue}
                         </span>
                       </div>
