@@ -84,7 +84,7 @@ export const sendInvitationEmail = async (toEmail, invitationCode, parentName, s
             <h3 style="color: #1e293b; font-size: 16px; margin-bottom: 12px;">Next Steps:</h3>
             <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-top: 0; line-height: 1.7;">
               <li>Visit the LuMINI Portal through this link: </li>
-              <li>Click "Create Account" and register as a parent.</li>
+              <li>Click "Create Account" and register as a parent. If you already have an account, go to your profile, click "Add Student," and use the code.</li>
               <li>Use the code above to process your registration.</li>
             </ol>
           </div>
@@ -343,7 +343,7 @@ export const sendGuardianVerifiedEmail = async (toEmail, parentName, guardianNam
           <div style="padding: 30px;">
             <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-              Your request to authorize <strong>${guardianName}</strong> to pick up <strong>${childNames}</strong> has been successfully verified by the class teacher.
+              Your request to authorize <strong>${guardianName}</strong> to accompany <strong>${childNames}</strong> has been successfully verified by the class teacher.
             </p>
             <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
               <h3 style="color: #1e293b; font-size: 14px; margin: 0 0 5px 0;">What happens next?</h3>
@@ -381,7 +381,7 @@ export const sendGuardianFinalizedEmail = async (toEmail, parentName, guardianNa
           <div style="padding: 30px;">
             <p style="color: #334155; font-size: 16px; margin-top: 0;">Dear <strong>${parentName}</strong>,</p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
-              Great news! The Superadmin has officially approved <strong>${guardianName}</strong> to pick up <strong>${childNames}</strong>. Their system account has been successfully created.
+              Great news! The Superadmin has officially approved <strong>${guardianName}</strong> to accompany <strong>${childNames}</strong>. Their system account has been successfully created.
             </p>
             <p style="color: #475569; font-size: 15px; line-height: 1.6;">
               Please provide them with the temporary username below, along with the temporary password you created during the application process, so they can log in and complete their biometric setup.

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // HELPER: Convert backend path to full URL
 const getImageUrl = (path) => {

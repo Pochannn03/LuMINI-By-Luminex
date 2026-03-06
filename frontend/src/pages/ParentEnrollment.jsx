@@ -10,7 +10,7 @@ import WarningModal from '../components/WarningModal'; // <-- NEW: Import Warnin
 
 export default function ParentEnrollment() {
   const navigate = useNavigate(); 
-  const BACKEND_URL = "http://localhost:3000"; 
+  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
   // --- CAROUSEL STATES ---
   const [step, setStep] = useState(0); 

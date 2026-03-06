@@ -4,6 +4,8 @@ import axios from 'axios';
 import ClassManageArchivedCard from "./ClassManageArchivedClassCard"; 
 import ClassManageViewClassModal from "./ClassManageViewClassModal";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageArchivedClassesModal({ isOpen, onClose }) {
   const [archivedClasses, setArchivedClasses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@ export default function ClassManageArchivedClassesModal({ isOpen, onClose }) {
   const fetchArchived = async () => {
     setLoading(true);
     try {
-      const { data, headers } = await axios.get('http://localhost:3000/api/sections/archived-list', { 
+      const { data, headers } = await axios.get(`${BACKEND_URL}/api/sections/archived-list`, { 
         params: { page: currentPage, limit },
         withCredentials: true 
       });
@@ -59,7 +61,7 @@ export default function ClassManageArchivedClassesModal({ isOpen, onClose }) {
 
   const handleViewDetails = async (cls) => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/sections/archived/${cls._id}`, {
+      const response = await axios.get(`${BACKEND_URL}/api/sections/archived/${cls._id}`, {
         withCredentials: true 
       });
 

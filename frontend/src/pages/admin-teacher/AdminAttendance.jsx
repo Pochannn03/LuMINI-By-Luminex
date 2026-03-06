@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import axios from 'axios';
 import NavBar from "../../components/navigation/NavBar";
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // <-- CHANGED: Proper import for modern React
+import autoTable from 'jspdf-autotable'; 
 
 // --- HELPERS ---
 const getDateParts = (date) => {
@@ -39,7 +39,7 @@ const convertTo12Hour = (time24h) => {
 };
 
 // --- IMAGE HELPER ---
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path, fallbackName) => {
   if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
@@ -50,10 +50,8 @@ const getImageUrl = (path, fallbackName) => {
   
   return `${BACKEND_URL}/${cleanPath}`;
 };
-// --------------------------
 
 export default function AdminAttendance() {
-  // --- STATE ---
   const [currentDate, setCurrentDate] = useState(new Date());
   const [activeRemarkId, setActiveRemarkId] = useState(null);
   const [attendanceData, setAttendanceData] = useState([]); 
@@ -70,17 +68,15 @@ export default function AdminAttendance() {
   const [pendingChanges, setPendingChanges] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- 1. FETCH DATA FROM DB ---
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
         setLoading(true);
         const dateString = dateToInputString(currentDate);
 
-        const response = await axios.get('http://localhost:3000/api/attendance', {
-          params: {
-            date: dateString
-          },
+        // Updated to use BACKEND_URL
+        const response = await axios.get(`${BACKEND_URL}/api/attendance`, {
+          params: { date: dateString },
           withCredentials: true
         });
 
@@ -108,7 +104,6 @@ export default function AdminAttendance() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // --- 2. FILTER & STATS CALCULATION ---
   const filteredRecords = React.useMemo(() => {
     return attendanceData.filter(record => {
       const selectedUIString = dateToInputString(currentDate);
@@ -161,7 +156,8 @@ export default function AdminAttendance() {
             status: pendingChanges[id].status || currentRecord.status,
             time_in: pendingChanges[id].time_in !== undefined ? pendingChanges[id].time_in : currentRecord.time_in
           };
-          return axios.put(`http://localhost:3000/api/attendance/${id}`, payload, { withCredentials: true });
+          // Updated to use BACKEND_URL
+          return axios.put(`${BACKEND_URL}/api/attendance/${id}`, payload, { withCredentials: true });
         })
       );
 
@@ -189,7 +185,6 @@ export default function AdminAttendance() {
     }
   };
 
-  // --- 3. HANDLERS ---
   const handleDateChange = (days) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
@@ -203,69 +198,45 @@ export default function AdminAttendance() {
     }
   };
 
-  const handleSetMode = () => {
-    const modeLabels = {
-      dropoff: "Morning Drop-off",
-      class: "Class In-Session",
-      dismissal: "Afternoon Dismissal"
-    };
-    setActiveMode(modeLabels[selectedAction]);
-  };
-
-  // --- 4. PRINT TO PDF HELPER ---
   const handlePrint = () => {
     const doc = new jsPDF();
-    
-    // Add Title
     doc.setFontSize(20);
-    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setTextColor(30, 41, 59);
     doc.text("Daily Attendance Log", 14, 22);
     
-    // Add Date and Section Info
     doc.setFontSize(11);
-    doc.setTextColor(100, 116, 139); // slate-500
+    doc.setTextColor(100, 116, 139);
     doc.text(`Date: ${monthDay}, ${currentDate.getFullYear()}`, 14, 32);
     doc.text(`Section: ${selectedSection === "all" ? "All Sections" : selectedSection}`, 14, 38);
-    
-    // Add Summary Stats
     doc.text(`Summary: ${stats.present} Present | ${stats.late} Late | ${stats.absent} Absent`, 14, 44);
 
-    // Prepare Table Data
     const tableColumn = ["Student ID", "Student Name", "Section", "Time In", "Status", "Details"];
-    const tableRows = [];
+    const tableRows = filteredRecords.map(record => [
+      record.student_id || "---",
+      record.student_name,
+      record.section_name || "Unassigned",
+      record.time_in || "---",
+      record.status,
+      record.details || ""
+    ]);
 
-    filteredRecords.forEach(record => {
-      const rowData = [
-        record.student_id || "---",
-        record.student_name,
-        record.section_name || "Unassigned",
-        record.time_in || "---",
-        record.status,
-        record.details || ""
-      ];
-      tableRows.push(rowData);
-    });
-
-    // CHANGED: Using autoTable() properly
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 52,
       theme: 'grid',
-      headStyles: { fillColor: [57, 168, 237] }, // Matches LuMINI blue
+      headStyles: { fillColor: [57, 168, 237] }, 
       styles: { fontSize: 8, cellPadding: 3 },
-      alternateRowStyles: { fillColor: [248, 250, 252] }, // slate-50
+      alternateRowStyles: { fillColor: [248, 250, 252] },
       didParseCell: function(data) {
-        // Color code the status column text
         if (data.section === 'body' && data.column.index === 4) {
-          if (data.cell.raw === 'Present') data.cell.styles.textColor = [22, 163, 74]; // green-600
-          if (data.cell.raw === 'Late') data.cell.styles.textColor = [202, 138, 4]; // yellow-600
-          if (data.cell.raw === 'Absent') data.cell.styles.textColor = [220, 38, 38]; // red-600
+          if (data.cell.raw === 'Present') data.cell.styles.textColor = [22, 163, 74];
+          if (data.cell.raw === 'Late') data.cell.styles.textColor = [202, 138, 4];
+          if (data.cell.raw === 'Absent') data.cell.styles.textColor = [220, 38, 38];
         }
       }
     });
 
-    // Save PDF
     doc.save(`Attendance_${selectedSection}_${dateToInputString(currentDate)}.pdf`);
   };
 
@@ -285,10 +256,8 @@ export default function AdminAttendance() {
           
           <div className="flex flex-col gap-6">
             <div className="card p-6 min-h-[500px]">
-              {/* --- HEADER AREA --- */}
               <div className="flex flex-col xl:flex-row xl:items-start justify-between gap-4 mb-6">
                 
-                {/* Title & Icon */}
                 <div className="flex items-start gap-3 shrink-0">
                   <span className="material-symbols-outlined blue-icon text-[32px]">list_alt</span>
                   <div>
@@ -297,10 +266,7 @@ export default function AdminAttendance() {
                   </div>
                 </div>
 
-                {/* Right Side Controls */}
                 <div className="flex flex-col gap-3 w-full xl:w-auto xl:ml-auto shrink-0 mt-4 xl:mt-0">
-                  
-                  {/* TOP ROW: DATE NAVIGATOR (Stretched to match width) */}
                   <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm w-full h-[38px]">
                     <button onClick={() => handleDateChange(-1)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0">
                       <span className="material-symbols-outlined text-[20px]">chevron_left</span>
@@ -337,76 +303,67 @@ export default function AdminAttendance() {
                     </button>
                   </div>
 
-                  {/* BOTTOM ROW: FILTER & EDIT/SUBMIT BUTTONS */}
-                  <div className="flex items-center justify-between sm:justify-end gap-2 w-full">
+                  {/* RIGHT SIDE: Filter & Calendar Wrapper */}
+                  <div className="flex flex-col md:flex-row items-center gap-2 w-full xl:w-auto xl:ml-auto">
                     
-                    {/* 1. SECTION FILTER */}
-                    <div className="filter-wrapper relative flex-1 min-w-0 max-w-40 sm:max-w-none" ref={filterRef}>
+                    {/* CUSTOM SECTION FILTER (Compact Size) */}
+                    <div className="relative w-full md:w-44" ref={filterRef}>
                       <button 
-                        className={`btn-filter flex w-full items-center justify-center gap-1.5 px-2 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all font-bold text-slate-700 ${isFilterOpen ? "active ring-2 ring-blue-100" : ""}`} 
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
-                        style={{ height: '38px', textTransform: 'uppercase' }}
+                        className={`flex items-center justify-between w-full h-[38px] px-3 rounded-xl border bg-slate-50 transition-all duration-200 cursor-pointer ${
+                          isFilterOpen ? "border-(--brand-blue) ring-2 ring-blue-500/10 bg-white" : "border-slate-200"
+                        }`}
                       >
-                        <span className="material-symbols-outlined text-[16px] sm:text-[18px] shrink-0">filter_list</span> 
-                        <span className="text-[11px] sm:text-[12px] whitespace-nowrap truncate">
-                          {selectedSection === "all" ? "All Sections" : selectedSection}
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="material-symbols-outlined text-slate-400 text-[18px] mr-0.5 shrink-0">
+                            {selectedSection === "all" ? "groups" : "inbox"}
+                          </span>
+                          <span className="text-[12px] font-semibold text-slate-700 uppercase truncate">
+                            {selectedSection === "all" ? "Sections" : selectedSection}
+                          </span>
+                        </div>
+                        <span className={`material-symbols-outlined text-slate-400 text-[18px] transition-transform duration-300 ${isFilterOpen ? "rotate-180" : ""}`}>
+                          expand_more
                         </span>
                       </button>
-                      
+
                       {isFilterOpen && (
-                        <div className="filter-dropdown-menu absolute bg-white shadow-lg border border-slate-100 rounded-xl mt-2 w-48 z-50 overflow-hidden" style={{ top: '100%', left: 0 }}>
+                        <div className="absolute top-[42px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 animate-[fadeIn_0.2s_ease-out]">
                           <button 
-                            className="filter-option w-full text-left px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors border-b border-slate-50" 
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-(--brand-blue) transition-colors"
                             onClick={() => { setSelectedSection("all"); setIsFilterOpen(false); }}
                           >
-                            <span className="material-symbols-outlined text-[16px]">groups</span> All Sections
+                            <span className="material-symbols-outlined text-[18px]">groups</span> All
                           </button>
-                          
-                          {teacherSections.map(section => (
+                          {teacherSections.map((section) => (
                             <button 
-                              key={section._id} 
-                              className="filter-option w-full text-left px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors border-b border-slate-50 last:border-0" 
+                              key={section._id}
+                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-(--brand-blue) transition-colors"
                               onClick={() => { setSelectedSection(section.section_name); setIsFilterOpen(false); }}
                             >
-                              <span className="material-symbols-outlined text-[16px]">inbox</span> {section.section_name}
+                              <span className="material-symbols-outlined text-[18px]">inbox</span> {section.section_name}
                             </button>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    {/* 2. EDIT / SUBMIT BUTTONS */}
-                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    {/* ACTION BUTTONS (Compact Height) */}
+                    <div className="flex items-center gap-1.5 w-full md:w-auto">
                       {isEditMode ? (
                         <>
-                          <button
-                            onClick={() => { setIsEditMode(false); setPendingChanges({}); }}
-                            className="text-slate-500 hover:text-slate-800 font-extrabold px-2 sm:px-3 text-[11px] sm:text-[12px] uppercase cursor-pointer h-[38px] flex items-center tracking-wider transition-colors shrink-0"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSubmitChanges}
-                            disabled={isSubmitting}
-                            className="bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl font-bold px-3 sm:px-5 flex items-center gap-1.5 text-[12px] sm:text-[13px] transition-all shadow-sm cursor-pointer disabled:opacity-50 h-[38px] shrink-0 whitespace-nowrap"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {isSubmitting ? 'hourglass_empty' : 'check_circle'}
-                            </span>
-                            {isSubmitting ? 'Save' : 'Submit'}
+                          <button onClick={() => { setIsEditMode(false); setPendingChanges({}); }} className="px-3 text-[11px] font-black uppercase text-slate-500 hover:text-slate-800 transition-colors h-[38px]">Cancel</button>
+                          <button onClick={handleSubmitChanges} disabled={isSubmitting} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-4 flex items-center justify-center gap-1.5 text-[12px] h-[38px] transition-all shadow-sm cursor-pointer disabled:opacity-50">
+                            <span className="material-symbols-outlined text-[16px]">{isSubmitting ? 'hourglass_empty' : 'check_circle'}</span>
+                            {isSubmitting ? 'Saving' : 'Submit'}
                           </button>
                         </>
                       ) : (
-                        <button
-                          onClick={() => setIsEditMode(true)}
-                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold px-4 flex items-center gap-2 text-[12px] sm:text-[13px] transition-all shadow-sm cursor-pointer h-[38px] w-full sm:w-auto justify-center shrink-0 whitespace-nowrap"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">edit</span>
-                          Edit
+                        <button onClick={() => setIsEditMode(true)} className="w-full md:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold px-4 flex items-center justify-center gap-1.5 text-[12px] h-[38px] transition-all shadow-sm cursor-pointer">
+                          <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                         </button>
                       )}
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -427,8 +384,6 @@ export default function AdminAttendance() {
                     ) : filteredRecords.length > 0 ? (
                       filteredRecords.map((record) => (
                         <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
-                          
-                          {/* 1. STUDENT COLUMN */}
                           <td className="py-4 px-2">
                             <div className="flex items-center gap-3">
                               <img 
@@ -446,7 +401,6 @@ export default function AdminAttendance() {
                             </div>
                           </td>
 
-                          {/* 2. TIME COLUMN */}
                           <td className="py-4 px-2 text-center">
                             {isEditMode ? (
                               <div className="flex justify-center">
@@ -464,23 +418,18 @@ export default function AdminAttendance() {
                             )}
                           </td>
 
-                          {/* 3. STATUS COLUMN */}
                           <td className="py-4 px-2 text-center">
                             {isEditMode ? (
-                              /* Interactive Status Toggle (Edit Mode) */
                               <div className="flex flex-nowrap whitespace-nowrap bg-[#f1f5f9] rounded-xl p-1 w-max mx-auto shadow-inner border border-slate-100 items-center">
                                 {['Present', 'Late', 'Absent'].map((statusOption) => {
                                   const currentStatus = pendingChanges[record._id]?.status || record.status;
                                   const isActive = currentStatus === statusOption;
-                                  
-                                  // Assign Colors: Green, Yellow, Red
                                   let activeTextColor = 'text-slate-800';
                                   if (isActive) {
                                     if (statusOption === 'Present') activeTextColor = 'text-green-600'; 
                                     if (statusOption === 'Late') activeTextColor = 'text-yellow-600';
                                     if (statusOption === 'Absent') activeTextColor = 'text-red-600';
                                   }
-
                                   return (
                                     <button
                                       key={statusOption}
@@ -497,7 +446,6 @@ export default function AdminAttendance() {
                                 })}
                               </div>
                             ) : (
-                              /* Read-Only Status Badge (Default Mode) */
                               <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block ${
                                 record.status === 'Present' ? 'bg-green-50 text-green-600' : 
                                 record.status === 'Late' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
@@ -507,14 +455,12 @@ export default function AdminAttendance() {
                             )}
                           </td>
 
-                          {/* 4. REMARKS COLUMN */}
                           <td className="py-3 px-2 text-center relative overflow-visible">
                             {record.details ? (
                               <div className="inline-flex items-center justify-center relative">
-                                {/* The Info Icon - Now a Button */}
                                 <button 
                                   onClick={(e) => {
-                                    e.stopPropagation(); // Prevent closing immediately from the useEffect listener
+                                    e.stopPropagation();
                                     setActiveRemarkId(activeRemarkId === record._id ? null : record._id);
                                   }}
                                   className={`material-symbols-outlined cursor-pointer text-[22px] transition-all duration-200 outline-none
@@ -522,8 +468,6 @@ export default function AdminAttendance() {
                                 >
                                   info
                                 </button>
-
-                                {/* The Expanding Bubble */}
                                 <div 
                                   className={`
                                     absolute z-[9999] bottom-[130%] left-1/2 -translate-x-1/2 mb-2
@@ -533,7 +477,6 @@ export default function AdminAttendance() {
                                       : 'invisible opacity-0 scale-95 lg:group-hover:visible lg:group-hover:opacity-100 lg:group-hover:scale-100'}
                                   `}
                                 >
-                                  {/* Added onClick to stop propagation so clicking inside bubble doesn't close it */}
                                   <div 
                                     onClick={(e) => e.stopPropagation()}
                                     className="bg-[#39A8ED] text-white p-4 rounded-2xl shadow-[0_10px_30px_-5px_rgba(57,168,237,0.4)] border border-blue-300/30 relative"
@@ -543,36 +486,21 @@ export default function AdminAttendance() {
                                         <span className="material-symbols-outlined text-white text-[16px]">chat_bubble</span>
                                         <span className="text-[9px] font-black uppercase tracking-[0.15em] text-white">Absence Note</span>
                                       </div>
-                                      {/* Close button for mobile clarity */}
-                                      <button 
-                                        onClick={() => setActiveRemarkId(null)}
-                                        className="lg:hidden material-symbols-outlined text-[16px] text-white/70"
-                                      >
-                                        close
-                                      </button>
+                                      <button onClick={() => setActiveRemarkId(null)} className="lg:hidden material-symbols-outlined text-[16px] text-white/70">close</button>
                                     </div>
-
                                     <div className="max-h-[250px] overflow-y-auto custom-scrollbar">
                                       <p className="text-[11px]! leading-normal text-white! font-medium italic text-left whitespace-normal break-words">
                                         "{record.details}"
                                       </p>
                                     </div>
-
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 
-                                                    border-l-[10px] border-l-transparent 
-                                                    border-r-[10px] border-r-transparent 
-                                                    border-t-[10px] border-t-[#39A8ED]">
-                                    </div>
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-[#39A8ED]"></div>
                                   </div>
                                 </div>
                               </div>
                             ) : (
-                              <span className="material-symbols-outlined text-gray-200 text-[22px] select-none">
-                                info
-                              </span>
+                              <span className="material-symbols-outlined text-gray-200 text-[22px] select-none">info</span>
                             )}
                           </td>
-
                         </tr>
                       ))
                     ) : (
@@ -591,7 +519,6 @@ export default function AdminAttendance() {
             </div>
           </div>
 
-          {/* SIDEBAR */}
           <div className="flex flex-col gap-6">
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-4">
@@ -615,14 +542,13 @@ export default function AdminAttendance() {
             </div>
 
             <button 
-              className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn btn-primary w-full h-[55px] rounded-xl font-bold text-[16px] gap-2 cursor-pointer disabled:opacity-50"
               onClick={handlePrint}
               disabled={filteredRecords.length === 0}
             >
               <span className="material-symbols-outlined">print</span>
               Print Attendance
             </button>
-
           </div>
         </div>
       </main>

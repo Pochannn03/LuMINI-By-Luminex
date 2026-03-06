@@ -7,6 +7,8 @@ import axios from 'axios';
 import AvatarEditor from "react-avatar-editor";
 import '../../../../styles/super-admin/class-manage-modal/class-manage-add-student-modal.css'
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess }) {
   const qrRef = useRef(null);
   const [profileImage, setProfileImage] = useState(null);
@@ -49,7 +51,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
         try {
           setFormData(prev => ({ ...prev, studentId: "Loading..." }));
           
-          const response = await axios.get('http://localhost:3000/api/students/id', {
+          const response = await axios.get(`${BACKEND_URL}/api/students/id`, {
             withCredentials: true
           });
 
@@ -82,7 +84,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
   const generateCode = async () => {
     setLoadingCode(true);
     try {
-      const response = await axios.get('http://localhost:3000/api/students/invitation', {
+      const response = await axios.get(`${BACKEND_URL}/api/students/invitation`, {
         withCredentials: true
       });
       setFormData((prev) => ({ 
@@ -221,7 +223,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/api/students', data, {
+      const response = await axios.post(`${BACKEND_URL}/api/students`, data, {
         withCredentials: true
       });
 

@@ -8,6 +8,9 @@ import fastBgImage from '../../assets/CheckIns.jpg';
 import updatesBgImage from '../../assets/Updates.jpg';
 import '../../styles/auth/login.css'; 
 
+// DYNAMIC BACKEND URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function Login() {
   const navigate = useNavigate(); 
   const { login, user, loading } = useAuth();
@@ -20,11 +23,8 @@ export default function Login() {
     rememberMe: false
   });
 
-  // --- NEW: 3-STRIKE TRACKING STATES ---
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [attemptedUsername, setAttemptedUsername] = useState("");
-
-  // --- SLIDER STATE & LOGIC ---
   const [featureIndex, setFeatureIndex] = useState(0);
 
   const features = [
@@ -94,14 +94,13 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/auth', formData, {
+      // Updated to use dynamic BACKEND_URL
+      const response = await axios.post(`${BACKEND_URL}/api/auth`, formData, {
         headers: { 'Content-Type': 'application/json' },
         withCredentials: true 
       });
 
-      // Reset attempts on successful login
       setFailedAttempts(0);
-
       const data = response.data;
       login(data.user);
 
@@ -122,23 +121,19 @@ export default function Login() {
     } catch (err) {
       console.error("Login Error:", err);
       
-      // --- NEW: 3-STRIKE LOGIC INTERCEPTION ---
       if (err.response && err.response.status === 401) {
         const { role, isUserFound } = err.response.data;
 
-        // If the username exists AND they are a Parent/Guardian (role 'user')
         if (isUserFound && role === 'user') {
           const currentUsername = formData.username.trim();
           let newAttempts = failedAttempts + 1;
 
-          // Reset counter if they change the username they are typing
           if (currentUsername !== attemptedUsername) {
             newAttempts = 1;
             setAttemptedUsername(currentUsername);
           }
           
           if (newAttempts >= 3) {
-            // 3 Strikes = Redirect to Account Recovery
             setFailedAttempts(0);
             navigate('/forgot-password');
           } else {
@@ -146,7 +141,6 @@ export default function Login() {
             setError(`Incorrect password. Attempt ${newAttempts}/3 before automatic recovery.`);
           }
         } else {
-          // Normal Error for Admins, Teachers, or invalid usernames
           setError("Invalid Credentials");
         }
       } else {
@@ -159,50 +153,28 @@ export default function Login() {
 
   return (
     <div className="flex flex-col lg:flex-row h-screen w-full bg-white font-poppins overflow-hidden">
-      
-      {/* ---------------- TOP/LEFT SECTION: SLIDER ---------------- */}
       <div 
-        className="
-          w-full h-[40vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out
-          justify-start 
-          lg:h-full lg:w-1/2 lg:justify-center
-          bg-size-[180%] lg:bg-cover
-        "
+        className="w-full h-[40vh] relative flex items-center overflow-hidden transition-all duration-1000 ease-in-out justify-start lg:h-full lg:w-1/2 lg:justify-center bg-size-[180%] lg:bg-cover"
         style={{
           backgroundImage: `url(${features[featureIndex].bgImage})`,
           backgroundPosition: 'center'
         }}
       >
-        <div className="
-            relative z-10 w-full max-w-xl pb-12 
-            pl-10 pr-8 text-left 
-            lg:px-16 lg:text-center lg:pb-0
-        ">
-            
+        <div className="relative z-10 w-full max-w-xl pb-12 pl-10 pr-8 text-left lg:px-16 lg:text-center lg:pb-0">
             <h3 className="text-3xl lg:text-5xl font-extrabold text-[#2c3e50] mb-3 lg:mb-6 transition-all duration-500 tracking-tight">
                 {features[featureIndex].title}
             </h3>
-            
-            <p className="
-                text-[#2c3e50] text-sm lg:text-xl leading-relaxed font-semibold transition-all duration-500 max-w-sm
-                mx-0 
-                lg:mx-auto
-            ">
+            <p className="text-[#2c3e50] text-sm lg:text-xl leading-relaxed font-semibold transition-all duration-500 max-w-sm mx-0 lg:mx-auto">
                 {features[featureIndex].text}
             </p>
-            
-            <div className="
-                flex gap-2.5 mt-6 
-                justify-start 
-                lg:mt-12 lg:justify-center
-            ">
+            <div className="flex gap-2.5 mt-6 justify-start lg:mt-12 lg:justify-center">
               {features.map((_, idx) => (
                 <button 
                   key={idx} 
                   onClick={() => setFeatureIndex(idx)}
                   className={`h-2 lg:h-2.5 rounded-full transition-all duration-500 ease-in-out shadow-sm ${
                     idx === featureIndex 
-                    ? `w-8 lg:w-12 bg-(--brand-blue)` 
+                    ? `w-8 lg:w-12 bg-blue-500` 
                     : 'w-2 lg:w-2.5 bg-gray-400 hover:bg-gray-600'
                   }`}
                   aria-label={`Go to slide ${idx + 1}`}
@@ -212,16 +184,8 @@ export default function Login() {
         </div>
       </div>
 
-      {/* ---------------- BOTTOM/RIGHT SECTION: FORM ---------------- */}
-      <div className="
-        w-full flex-1 bg-white 
-        rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] -mt-8 relative z-20 
-        lg:w-1/2 lg:h-full lg:rounded-none lg:shadow-none lg:mt-0 lg:flex lg:flex-col lg:justify-center
-        overflow-y-auto lg:overflow-hidden
-      ">
-        
+      <div className="w-full flex-1 bg-white rounded-t-[30px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] -mt-8 relative z-20 lg:w-1/2 lg:h-full lg:rounded-none lg:shadow-none lg:mt-0 lg:flex lg:flex-col lg:justify-center overflow-y-auto lg:overflow-hidden">
         <div className="w-full max-w-md lg:max-w-xl mx-auto px-8 pt-10 pb-12 lg:p-16 lg:flex lg:flex-col lg:justify-center min-h-full">
-            
             <div className="mb-8 lg:mb-12 text-left">
               <h2 className="text-3xl lg:text-5xl font-extrabold text-[#2c3e50] mb-2 lg:mb-4 tracking-tight">Sign In</h2>
               <p className="text-gray-500 text-base lg:text-xl">Welcome back! Please enter your details.</p>
@@ -234,17 +198,16 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-8 flex-col justify-start">
-              
               <div className="space-y-2 mt-12 lg:mt-2">
                 <label htmlFor="username" className="text-sm lg:text-base font-semibold text-gray-700 ml-1">Username</label>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-(--brand-blue) transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
                     <User size={22} />
                   </div>
                   <input 
                     type="text" 
                     id="username" 
-                    className="w-full h-[50px] lg:h-16 pl-14 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
+                    className="w-full h-[50px] lg:h-16 pl-14 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
                     placeholder="Enter your username"
                     value={formData.username} 
                     onChange={handleChange} 
@@ -257,13 +220,13 @@ export default function Login() {
                   <label htmlFor="password" className="text-sm lg:text-base font-semibold text-gray-700">Password</label>
                 </div>
                 <div className="relative group">
-                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-(--brand-blue) transition-colors">
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
                     <Lock size={22} />
                   </div>
                   <input 
                     type={showPassword ? "text" : "password"} 
                     id="password" 
-                    className="w-full h-[50px] lg:h-16 pl-14 pr-14 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
+                    className="w-full h-[50px] lg:h-16 pl-14 pr-14 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
                     placeholder="••••••••"
                     value={formData.password} 
                     onChange={handleChange} 
@@ -285,11 +248,11 @@ export default function Login() {
                     id="rememberMe" 
                     checked={formData.rememberMe} 
                     onChange={handleChange} 
-                    className="w-4 h-4 lg:w-5 lg:h-5 rounded text-(--brand-blue) focus:ring-(--brand-blue) border-gray-300"
+                    className="w-4 h-4 lg:w-5 lg:h-5 rounded text-blue-500 focus:ring-blue-500 border-gray-300"
                   />
                   <label htmlFor="rememberMe" className="text-sm lg:text-base text-gray-500 cursor-pointer select-none">Remember me</label>
                 </div>
-                <Link to="/forgot-password" className="text-sm lg:text-base font-semibold text-(--brand-blue) hover:text-blue-600 transition-colors">
+                <Link to="/forgot-password" className="text-sm lg:text-base font-semibold text-blue-500 hover:text-blue-600 transition-colors">
                   Forgot Password?
                 </Link>
               </div>
@@ -297,7 +260,7 @@ export default function Login() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full h-[50px] lg:h-16 bg-(--brand-blue) hover:bg-[#2c8ac4] text-white rounded-2xl font-bold text-lg lg:text-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer"
+                className="w-full h-[50px] lg:h-16 bg-blue-500 hover:bg-blue-600 text-white rounded-2xl font-bold text-lg lg:text-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transform active:scale-[0.98] transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer"
               >
                 {isLoading ? (
                   <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -309,13 +272,12 @@ export default function Login() {
 
             <p className="mt-8 lg:mt-10 text-center text-sm lg:text-lg text-gray-500">
               New to LuMINI?{" "}
-              <Link to="/register" className="font-semibold text-(--brand-blue) hover:text-blue-700 transition-colors">
+              <Link to="/register" className="font-semibold text-blue-500 hover:text-blue-700 transition-colors">
                 Create an Account
               </Link>
             </p>
         </div>
       </div>
-
     </div>
   );
 }

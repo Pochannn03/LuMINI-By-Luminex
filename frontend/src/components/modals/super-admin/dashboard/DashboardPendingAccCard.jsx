@@ -3,6 +3,8 @@ import axios from "axios";
 import { DashboardReviewAccModal } from './DashboardReviewAccModal';
 import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export function DashboardPendingAccCard({ tch, onSuccess }) {
   const [viewPendingAccModal, setViewPendingAccModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState(""); 
@@ -43,7 +45,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   const handleApproveAction = async () => {
     setLoading(true); // Start Loading
     try {
-      const { data } = await axios.patch(`http://localhost:3000/api/teacher/approval/${tch._id}`, {}, { withCredentials: true });
+      const { data } = await axios.patch(`${BACKEND_URL}/api/teacher/approval/${tch._id}`, {}, { withCredentials: true });
       
       // Close the confirm modal first
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -64,7 +66,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   const handleRejectAction = async () => {
     setLoading(true); // Start Loading
     try {
-      const { data } = await axios.delete(`http://localhost:3000/api/teacher/rejection/${tch._id}`, { withCredentials: true });
+      const { data } = await axios.delete(`${BACKEND_URL}/api/teacher/rejection/${tch._id}`, { withCredentials: true });
       
       // Close the confirm modal first
       setConfirmConfig(prev => ({ ...prev, isOpen: false }));
@@ -83,7 +85,7 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   };
 
   const photoUrl = tch.profile_picture 
-    ? `http://localhost:3000/${tch.profile_picture.replace(/\\/g, "/")}` 
+    ? `${BACKEND_URL}/${tch.profile_picture.replace(/\\/g, "/")}` 
     : "https://via.placeholder.com/45";
 
   const dateString = new Date(tch.created_at).toLocaleDateString();

@@ -9,8 +9,9 @@ import NavBar from "../../../components/navigation/NavBar";
 import Header from "../../../components/navigation/Header";
 import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal"; 
+import FormInputRegistration from "../../../components/FormInputRegistration";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
@@ -499,11 +500,11 @@ export default function GuardianProfile() {
       {/* --- GUARDIAN Lightbox --- */}
       {isLightboxOpen && (
         <div 
-          style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }}
+          className="fixed inset-0 z-[99999] bg-black/85 backdrop-blur-sm flex justify-center items-center p-5 cursor-zoom-out"
           onClick={() => setIsLightboxOpen(false)}
         >
-          <img src={previewImage || getImageUrl(formData.profile_picture)} alt="Fullscreen Profile" style={{ width: '400px', height: '400px', objectFit: 'cover', borderRadius: '50%', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '6px solid white' }} />
-          <button style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsLightboxOpen(false)}>
+          <img src={previewImage || getImageUrl(formData.profile_picture)} alt="Fullscreen Profile" className="w-[400px] h-[400px] object-cover rounded-full shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border-[6px] border-white" />
+          <button className="absolute top-6 right-6 bg-white/20 border-none text-white w-10 h-10 rounded-full cursor-pointer flex items-center justify-center" onClick={() => setIsLightboxOpen(false)}>
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -511,20 +512,20 @@ export default function GuardianProfile() {
 
       {/* --- GUARDIAN Cropper Modal --- */}
       {showCropModal && (
-        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
-          <div className="modal-card" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>Adjust Profile Picture</h3>
-            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
+        <div className="modal-overlay active z-[999999]">
+          <div className="modal-card p-6 items-center max-w-[350px]">
+            <h3 className="mb-4 text-lg text-slate-800 font-bold">Adjust Profile Picture</h3>
+            <div className="bg-slate-50 p-2.5 rounded-xl">
               <AvatarEditor ref={editorRef} image={tempImage} width={220} height={220} border={20} borderRadius={110} color={[15, 23, 42, 0.6]} scale={zoom} rotate={0} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
-              <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }} />
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
+            <div className="flex items-center w-full gap-3 my-5">
+              <span className="material-symbols-outlined text-lg text-slate-500">zoom_out</span>
+              <input type="range" min="1" max="3" step="0.01" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} className="flex-1 accent-[#39a8ed] cursor-pointer" />
+              <span className="material-symbols-outlined text-lg text-slate-500">zoom_in</span>
             </div>
-            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <button type="button" className="btn btn-cancel" style={{ flex: 1, height: '44px', borderRadius: '10px', cursor: 'pointer' }} onClick={(e) => { e.preventDefault(); setShowCropModal(false); setTempImage(null); }}>Cancel</button>
-              <button type="button" className="btn btn-save" style={{ flex: 1, height: '44px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} onClick={(e) => { e.preventDefault(); handleCropSave(); }}>Apply Crop</button>
+            <div className="flex gap-3 w-full">
+              <button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] cursor-pointer" onClick={(e) => { e.preventDefault(); setShowCropModal(false); setTempImage(null); }}>Cancel</button>
+              <button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center cursor-pointer" onClick={(e) => { e.preventDefault(); handleCropSave(); }}>Apply Crop</button>
             </div>
           </div>
         </div>
@@ -534,70 +535,70 @@ export default function GuardianProfile() {
       {/* --- FACIAL AUTHENTICATION & OTP MODAL FOR PASSWORD CHANGE --- */}
       {/* ========================================================= */}
       {showFaceAuthModal && (
-        <div className="modal-overlay active" style={{ zIndex: 999999 }}>
-          <div className="modal-card" style={{ padding: '30px 24px', alignItems: 'center', width: '90%', maxWidth: '420px' }}>
-            <h3 style={{ fontSize: '20px', color: '#1e293b', fontWeight: 'bold', marginBottom: '8px' }}>Security Verification</h3>
+        <div className="modal-overlay active z-[999999]">
+          <div className="modal-card px-6 py-[30px] items-center w-[90%] max-w-[420px]">
+            <h3 className="text-[20px] text-slate-800 font-bold mb-2">Security Verification</h3>
             
             {!faceVerified ? (
               <>
-                <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
+                <p className="text-[13px] text-slate-500 text-center mb-6">
                   To change your password, we must first verify your identity using facial biometrics.
                 </p>
 
                 {!isCameraActive ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                    <div style={{ width: '80px', height: '80px', background: '#eff6ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6', marginBottom: '20px' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '40px' }}>face_retouching_natural</span>
+                  <div className="flex flex-col items-center w-full">
+                    <div className="w-[80px] h-[80px] bg-blue-50 rounded-full flex items-center justify-center text-blue-500 mb-5">
+                      <span className="material-symbols-outlined text-[40px]">face_retouching_natural</span>
                     </div>
                     
-                    <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', border: 'none', cursor: modelsLoaded ? 'pointer' : 'not-allowed', background: modelsLoaded ? '#1e293b' : '#cbd5e1', transition: 'background 0.2s' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{modelsLoaded ? 'photo_camera' : 'sync'}</span> 
+                    <button type="button" disabled={!modelsLoaded} onClick={() => setIsCameraActive(true)} className={`w-full h-12 rounded-xl font-bold text-white flex items-center justify-center gap-2 border-none transition-colors duration-200 ${modelsLoaded ? 'cursor-pointer bg-slate-800' : 'cursor-not-allowed bg-slate-300'}`}>
+                      <span className="material-symbols-outlined text-[20px]">{modelsLoaded ? 'photo_camera' : 'sync'}</span> 
                       {modelsLoaded ? 'Start Verification' : 'Loading AI Models...'}
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                    <div style={{ width: '100%', height: '320px', background: '#0f172a', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', position: 'relative', overflow: 'hidden', border: '2px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-                      <video ref={videoRef} autoPlay playsInline muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', zIndex: 0 }} />
-                      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', zIndex: 5 }} />
+                  <div className="flex flex-col items-center w-full">
+                    <div className="w-full h-[320px] bg-slate-900 rounded-2xl flex items-center justify-center text-white relative overflow-hidden border-2 border-slate-200 shadow-[0_10px_25px_rgba(0,0,0,0.1)]">
+                      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover -scale-x-100 z-0" />
+                      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover -scale-x-100 z-5" />
 
                       {!isVideoPlaying && !cameraError && (
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', zIndex: 6, background: '#0f172a', color: '#94a3b8' }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '48px', animation: 'pulse 2s infinite' }}>videocam</span>
-                          <span style={{ fontSize: '12px', fontWeight: '500', letterSpacing: '0.1em' }}>INITIALIZING...</span>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400">
+                          <span className="material-symbols-outlined text-[48px] animate-pulse">videocam</span>
+                          <span className="text-xs font-medium tracking-[0.1em]">INITIALIZING...</span>
                         </div>
                       )}
                       
                       {isVideoPlaying && !cameraError && (
-                        <div style={{ position: 'absolute', inset: 0, zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div className={ovalClass} style={{ width: '190px', height: '250px', borderRadius: '50% / 50%' }}></div>
+                        <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+                          <div className={`${ovalClass} w-[190px] h-[250px] rounded-[50%]`}></div>
                         </div>
                       )}
 
                       {isRecognizing && (
-                        <div style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(15,23,42,0.85)', backdropFilter: 'blur(4px)' }}>
-                          <span className="material-symbols-outlined" style={{ color: '#3b82f6', fontSize: '50px', animation: 'spin 1.5s linear infinite', marginBottom: '16px' }}>autorenew</span>
-                          <span style={{ color: 'white', fontSize: '16px', fontWeight: 'bold', letterSpacing: '0.05em', animation: 'pulse 1.5s infinite', marginBottom: '8px' }}>Recognizing Face...</span>
-                          <span style={{ color: '#94a3b8', fontSize: '12px', fontWeight: '500' }}>Please keep the camera still</span>
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-900/85 backdrop-blur-sm">
+                          <span className="material-symbols-outlined text-blue-500 text-[50px] animate-spin mb-4">autorenew</span>
+                          <span className="text-white text-base font-bold tracking-widest animate-pulse mb-2">Recognizing Face...</span>
+                          <span className="text-slate-400 text-xs font-medium">Please keep the camera still</span>
                         </div>
                       )}
                     </div>
-                    <p style={{ fontSize: '14px', fontWeight: 'bold', margin: '20px 0', padding: '0 16px', textAlign: 'center', color: scanStatus.includes("✅") ? '#16a34a' : scanStatus.includes("⚠️") ? '#ef4444' : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? '#2563eb' : '#475569' }}>
+                    <p className={`text-sm font-bold my-5 px-4 text-center ${scanStatus.includes("✅") ? 'text-green-600' : scanStatus.includes("⚠️") ? 'text-red-500' : scanStatus.includes("blink") || scanStatus.includes("LEFT") || scanStatus.includes("RIGHT") ? 'text-blue-600' : 'text-slate-600'}`}>
                       {cameraError ? "Check browser settings." : scanStatus}
                     </p>
                   </div>
                 )}
               </>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', padding: '10px 0' }} className="animate-[fadeIn_0.3s_ease-out]">
-                <div style={{ width: '60px', height: '60px', background: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#16a34a', marginBottom: '16px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>verified</span>
+              <div className="flex flex-col items-center w-full py-2.5 animate-[fadeIn_0.3s_ease-out]">
+                <div className="w-[60px] h-[60px] bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-4">
+                  <span className="material-symbols-outlined text-[32px]">verified</span>
                 </div>
-                <h4 style={{ fontSize: '18px', color: '#1e293b', fontWeight: 'bold', marginBottom: '8px' }}>Identity Verified!</h4>
+                <h4 className="text-lg text-slate-800 font-bold mb-2">Identity Verified!</h4>
                 
                 {!otpSent ? (
                   <>
-                    <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
+                    <p className="text-[13px] text-slate-500 text-center mb-6">
                       To finalize the password change, we will send a 6-digit security code to your registered email.
                     </p>
                     <button type="button" disabled={isOtpSending} onClick={async () => {
@@ -611,20 +612,20 @@ export default function GuardianProfile() {
                             setIsOtpSending(false);
                           }
                         }}
-                        className="btn btn-primary" style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}>
+                        className="btn btn-primary w-full h-12 rounded-xl font-bold">
                         {isOtpSending ? "Sending OTP..." : "Send me the OTP"}
                     </button>
                   </>
                 ) : (
                   <>
-                    <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', marginBottom: '24px' }}>
+                    <p className="text-[13px] text-slate-500 text-center mb-6">
                       We've sent a 6-digit security code to your email. Please enter it below.
                     </p>
-                    <div className="input-wrapper" style={{ width: '100%', marginBottom: '16px' }}>
+                    <div className="input-wrapper w-full mb-4">
                         <span className="material-symbols-outlined icon">pin</span>
-                        <input type="text" placeholder="Enter 6-digit OTP" value={otpInput} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 6) setOtpInput(val); setOtpError(""); }} style={{ letterSpacing: '4px', textAlign: 'center', fontWeight: 'bold', fontSize: '16px', borderColor: otpError ? '#ef4444' : '' }} />
+                        <input type="text" placeholder="Enter 6-digit OTP" value={otpInput} onChange={(e) => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 6) setOtpInput(val); setOtpError(""); }} className={`tracking-[4px] text-center font-bold text-base ${otpError ? 'border-red-500' : ''}`} />
                     </div>
-                    {otpError && <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '-10px', marginBottom: '16px', fontWeight: '500' }}>{otpError}</p>}
+                    {otpError && <p className="text-red-500 text-xs -mt-2.5 mb-4 font-medium">{otpError}</p>}
                     <button type="button" disabled={isOtpSending || otpInput.length < 6} onClick={async () => {
                           if (otpInput.length !== 6) { setOtpError("OTP must be exactly 6 digits."); return; }
                           try {
@@ -640,14 +641,14 @@ export default function GuardianProfile() {
                             setIsOtpSending(false);
                           }
                         }}
-                        className="btn btn-primary" style={{ width: '100%', height: '48px', borderRadius: '12px', fontWeight: 'bold' }}>
+                        className="btn btn-primary w-full h-12 rounded-xl font-bold">
                         {isOtpSending ? "Verifying..." : "Confirm Password Change"}
                     </button>
                   </>
                 )}
               </div>
             )}
-            <button type="button" onClick={() => { setShowFaceAuthModal(false); stopCamera(); setFaceVerified(false); setOtpSent(false); setOtpInput(""); setOtpError(""); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '16px' }}>Cancel Update</button>
+            <button type="button" onClick={() => { setShowFaceAuthModal(false); stopCamera(); setFaceVerified(false); setOtpSent(false); setOtpInput(""); setOtpError(""); }} className="bg-transparent border-none text-slate-400 text-[13px] font-bold cursor-pointer mt-4">Cancel Update</button>
           </div>
         </div>
       )}
@@ -661,14 +662,14 @@ export default function GuardianProfile() {
             <div className="profile-details-row">
               
               <div className="avatar-upload-wrapper">
-                <img src={previewImage || getImageUrl(formData.profile_picture)} className="large-avatar" alt="Profile" onClick={handleAvatarClick} style={{ cursor: isEditing ? 'default' : 'zoom-in', transition: 'transform 0.2s' }} />
+                <img src={previewImage || getImageUrl(formData.profile_picture)} className={`large-avatar transition-transform duration-200 ${isEditing ? 'cursor-default' : 'cursor-zoom-in'}`} alt="Profile" onClick={handleAvatarClick} />
                 
                 {isEditing && (
                   <>
-                    <label htmlFor="profile-upload" className="camera-btn" style={{ position: 'absolute', bottom: '5px', right: '5px', cursor: 'pointer', background: '#1e293b', color: 'white', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }}>
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>photo_camera</span>
+                    <label htmlFor="profile-upload" className="camera-btn absolute bottom-1 right-1 cursor-pointer bg-slate-800 text-white rounded-full w-9 h-9 flex items-center justify-center border-[3px] border-white shadow-[0_4px_10px_rgba(0,0,0,0.15)] transition-transform duration-200">
+                      <span className="material-symbols-outlined text-[18px]">photo_camera</span>
                     </label>
-                    <input id="profile-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageSelect} />
+                    <input id="profile-upload" type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
                   </>
                 )}
               </div>
@@ -681,16 +682,16 @@ export default function GuardianProfile() {
               <div className="profile-actions">
                 {!isEditing ? (
                   <button type="button" className="btn btn-primary h-[42px] w-[190px] rounded-[10px]" onClick={handleEditClick}>
-                    <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>edit</span>
+                    <span className="material-symbols-outlined mr-2 text-[18px]">edit</span>
                     Edit Information
                   </button>
                 ) : (
                   <div className="action-buttons-wrapper">
                     <button type="button" className="btn btn-save h-[42px] w-[190px] rounded-[10px]" onClick={handleSave}>
-                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>check</span> Save
+                      <span className="material-symbols-outlined mr-2 text-[18px]">check</span> Save
                     </button>
                     <button type="button" className="btn btn-cancel h-[42px] w-[190px] rounded-[10px]" onClick={handleCancel}>
-                      <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>close</span> Cancel
+                      <span className="material-symbols-outlined mr-2 text-[18px]">close</span> Cancel
                     </button>
                   </div>
                 )}
@@ -705,19 +706,19 @@ export default function GuardianProfile() {
                 <h3><span className="material-symbols-outlined header-icon">badge</span> Personal Information</h3>
               </div>
               <form className="profile-form">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                <div className="grid grid-cols-2 gap-5">
                   <div className="form-group">
                     <label>First Name</label>
                     <div className="input-wrapper">
                       <span className="material-symbols-outlined icon">person</span>
-                      <input type="text" name="first_name" value={formData.first_name || ""} readOnly style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }} />
+                      <input type="text" name="first_name" value={formData.first_name || ""} readOnly className="opacity-70 cursor-not-allowed bg-slate-100" />
                     </div>
                   </div>
                   <div className="form-group">
                     <label>Last Name</label>
                     <div className="input-wrapper">
                       <span className="material-symbols-outlined icon">person</span>
-                      <input type="text" name="last_name" value={formData.last_name || ""} readOnly style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }} />
+                      <input type="text" name="last_name" value={formData.last_name || ""} readOnly className="opacity-70 cursor-not-allowed bg-slate-100" />
                     </div>
                   </div>
                 </div>
@@ -726,14 +727,14 @@ export default function GuardianProfile() {
                   <label>Email</label>
                   <div className="input-wrapper">
                     <span className="material-symbols-outlined icon">mail</span>
-                    <input type="email" name="email" value={formData.email || ""} onChange={handleChange} readOnly={!isEditing} style={!isEditing ? { opacity: 0.8 } : { borderColor: "#39a8ed" }} />
+                    <input type="email" name="email" value={formData.email || ""} onChange={handleChange} readOnly={!isEditing} className={!isEditing ? "opacity-80" : "border-[#39a8ed]"} />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Phone</label>
                   <div className="input-wrapper">
                     <span className="material-symbols-outlined icon">call</span>
-                    <input type="text" name="phone_number" value={formData.phone_number || ""} onChange={handleChange} readOnly={!isEditing} style={!isEditing ? { opacity: 0.8 } : { borderColor: "#39a8ed" }} />
+                    <input type="text" name="phone_number" value={formData.phone_number || ""} onChange={handleChange} readOnly={!isEditing} className={!isEditing ? "opacity-80" : "border-[#39a8ed]"} />
                   </div>
                 </div>
 
@@ -743,30 +744,30 @@ export default function GuardianProfile() {
                       <label>Address</label>
                       <div className="input-wrapper">
                         <span className="material-symbols-outlined icon">home</span>
-                        <input type="text" name="address" value={formData.address || "No address provided"} readOnly style={{ opacity: 0.8 }} />
+                        <input type="text" name="address" value={formData.address || "No address provided"} readOnly className="opacity-80" />
                       </div>
                     </div>
                   ) : (
                     <div className="address-edit-grid animate-poof">
                       <div className="form-group">
                         <label>House/Unit No.</label>
-                        <div className="input-wrapper"><input type="text" name="houseUnit" placeholder="e.g. 123" value={addressParts.houseUnit} onChange={handleAddressChange} style={{ paddingLeft: '16px', borderColor: "#39a8ed" }} /></div>
+                        <div className="input-wrapper"><input type="text" name="houseUnit" placeholder="e.g. 123" value={addressParts.houseUnit} onChange={handleAddressChange} className="pl-4 border-[#39a8ed]" /></div>
                       </div>
                       <div className="form-group">
                         <label>Street</label>
-                        <div className="input-wrapper"><input type="text" name="street" placeholder="e.g. Nissan St." value={addressParts.street} onChange={handleAddressChange} style={{ paddingLeft: '16px', borderColor: "#39a8ed" }} /></div>
+                        <div className="input-wrapper"><input type="text" name="street" placeholder="e.g. Nissan St." value={addressParts.street} onChange={handleAddressChange} className="pl-4 border-[#39a8ed]" /></div>
                       </div>
                       <div className="form-group">
                         <label>Barangay</label>
-                        <div className="input-wrapper"><input type="text" name="barangay" placeholder="e.g. Rotonda" value={addressParts.barangay} onChange={handleAddressChange} style={{ paddingLeft: '16px', borderColor: "#39a8ed" }} /></div>
+                        <div className="input-wrapper"><input type="text" name="barangay" placeholder="e.g. Rotonda" value={addressParts.barangay} onChange={handleAddressChange} className="pl-4 border-[#39a8ed]" /></div>
                       </div>
                       <div className="form-group">
                         <label>City</label>
-                        <div className="input-wrapper"><input type="text" name="city" placeholder="e.g. Mandaluyong" value={addressParts.city} onChange={handleAddressChange} style={{ paddingLeft: '16px', borderColor: "#39a8ed" }} /></div>
+                        <div className="input-wrapper"><input type="text" name="city" placeholder="e.g. Mandaluyong" value={addressParts.city} onChange={handleAddressChange} className="pl-4 border-[#39a8ed]" /></div>
                       </div>
                       <div className="form-group full-width">
                         <label>Zip Code</label>
-                        <div className="input-wrapper"><input type="text" name="zipCode" placeholder="e.g. 1700" value={addressParts.zipCode} onChange={handleAddressChange} style={{ paddingLeft: '16px', borderColor: "#39a8ed" }} /></div>
+                        <div className="input-wrapper"><input type="text" name="zipCode" placeholder="e.g. 1700" value={addressParts.zipCode} onChange={handleAddressChange} className="pl-4 border-[#39a8ed]" /></div>
                       </div>
                     </div>
                   )}
@@ -784,7 +785,7 @@ export default function GuardianProfile() {
                 </div>
                 <div className="children-list">
                   {(!children || children.length === 0) ? (
-                    <p style={{ padding: "10px", color: "#94a3b8" }}>No students linked yet.</p>
+                    <p className="p-2.5 text-slate-400">No students linked yet.</p>
                   ) : (
                     children.map((child) => (
                       <div key={child.student_id || Math.random()} className="child-item" onClick={() => setSelectedStudent(child)}>
@@ -793,7 +794,7 @@ export default function GuardianProfile() {
                           <span className="child-name">{child.first_name} {child.last_name}</span>
                           <span className="child-grade">{child.section_details?.section_name || "No Section"}</span>
                         </div>
-                        <span className="material-symbols-outlined" style={{ color: "#94a3b8" }}>chevron_right</span>
+                        <span className="material-symbols-outlined text-slate-400">chevron_right</span>
                       </div>
                     ))
                   )}
@@ -812,7 +813,7 @@ export default function GuardianProfile() {
                     <label>Username</label>
                     <div className="input-wrapper">
                       <span className="material-symbols-outlined icon">account_circle</span>
-                      <input type="text" name="username" value={formData.username || "guardian_user"} readOnly style={{ opacity: 0.7, cursor: "not-allowed", backgroundColor: "#f1f5f9" }} />
+                      <input type="text" name="username" value={formData.username || "guardian_user"} readOnly className="opacity-70 cursor-not-allowed bg-slate-100" />
                     </div>
                   </div>
 
@@ -820,10 +821,10 @@ export default function GuardianProfile() {
                     <label>{isEditingCredentials ? "New Password" : "Password"}</label>
                     <div className="input-wrapper">
                       <span className="material-symbols-outlined icon">key</span>
-                      <input type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" value={passwordData.password} onChange={handlePasswordChange} readOnly={!isEditingCredentials} style={!isEditingCredentials ? { opacity: 0.8 } : { borderColor: "#39a8ed", paddingRight: '40px' }} />
+                      <input type={showPassword ? "text" : "password"} name="password" placeholder="••••••••" value={passwordData.password} onChange={handlePasswordChange} readOnly={!isEditingCredentials} className={!isEditingCredentials ? "opacity-80" : "border-[#39a8ed] pr-10"} />
                       {isEditingCredentials && (
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', padding: 0 }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{showPassword ? "visibility_off" : "visibility"}</span>
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-slate-400 flex p-0">
+                          <span className="material-symbols-outlined text-[20px]">{showPassword ? "visibility_off" : "visibility"}</span>
                         </button>
                       )}
                     </div>
@@ -834,26 +835,26 @@ export default function GuardianProfile() {
                       <label>Confirm New Password</label>
                       <div className="input-wrapper">
                         <span className="material-symbols-outlined icon">lock_reset</span>
-                        <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="••••••••" value={passwordData.confirmPassword} onChange={handlePasswordChange} style={{ borderColor: "#39a8ed", paddingRight: '40px' }} />
-                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', padding: 0 }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>{showConfirmPassword ? "visibility_off" : "visibility"}</span>
+                        <input type={showConfirmPassword ? "text" : "password"} name="confirmPassword" placeholder="••••••••" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="border-[#39a8ed] pr-10" />
+                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-none cursor-pointer text-slate-400 flex p-0">
+                          <span className="material-symbols-outlined text-[20px]">{showConfirmPassword ? "visibility_off" : "visibility"}</span>
                         </button>
                       </div>
                     </div>
                   )}
 
-                  <div style={{ marginTop: '24px' }}>
+                  <div className="mt-6">
                     {!isEditingCredentials ? (
-                      <button type="button" className="btn btn-primary profile-action-btn" style={{ width: '100%', height: '44px', borderRadius: '10px' }} onClick={handleEditCredentialsClick}>
-                        <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>edit</span>
+                      <button type="button" className="btn btn-primary profile-action-btn w-full h-[44px] rounded-[10px]" onClick={handleEditCredentialsClick}>
+                        <span className="material-symbols-outlined mr-2 text-[18px]">edit</span>
                         Change Password
                       </button>
                     ) : (
                       <div className="action-buttons-wrapper">
-                        <button type="button" className="btn btn-save profile-action-btn" style={{ flex: 1, height: '44px', borderRadius: '10px' }} onClick={handleSaveCredentials}>
-                          <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>check</span> Update
+                        <button type="button" className="btn btn-save profile-action-btn flex-1 h-[44px] rounded-[10px]" onClick={handleSaveCredentials}>
+                          <span className="material-symbols-outlined mr-2 text-[18px]">check</span> Update
                         </button>
-                        <button type="button" className="btn btn-cancel profile-action-btn" style={{ flex: 1, height: '44px', borderRadius: '10px' }} onClick={handleCancelCredentials}>
+                        <button type="button" className="btn btn-cancel profile-action-btn flex-1 h-[44px] rounded-[10px]" onClick={handleCancelCredentials}>
                           Cancel
                         </button>
                       </div>
@@ -869,55 +870,104 @@ export default function GuardianProfile() {
 
       {/* STUDENT DETAILS MODAL (READ-ONLY FOR GUARDIANS) */}
       {selectedStudent && (
-        <div className="modal-overlay active" onClick={() => setSelectedStudent(null)} style={{ zIndex: 99999 }}>
+        <div className="modal-overlay active z-[99999]" onClick={() => setSelectedStudent(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            
             <div className="modal-header">
               <h3>View Student Details</h3>
-              <button className="close-modal-btn" onClick={() => setSelectedStudent(null)}><span className="material-symbols-outlined">close</span></button>
+              <button className="close-modal-btn" onClick={() => setSelectedStudent(null)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
-            <div className="modal-body">
-              <div className="avatar-edit-center">
-                <div className="avatar-upload-wrapper"><img src={getImageUrl(selectedStudent.profile_picture)} className="modal-avatar" alt="Student" /></div>
-              </div>
-              <div className="form-group">
-                <label>Full Name</label>
-                <div className="input-wrapper"><span className="material-symbols-outlined icon">person</span><input type="text" value={`${selectedStudent.first_name || ''} ${selectedStudent.last_name || ''}`.trim()} disabled className="read-only" /></div>
-              </div>
-              <div className="form-group">
-                <label>Gender</label>
-                <div className="input-wrapper"><span className="material-symbols-outlined icon">person</span><input type="text" value={selectedStudent.gender || "N/A"} disabled className="read-only" /></div>
-              </div>
-              <div className="modal-row-2">
-                <div className="form-group">
-                  <label>Birthday</label>
-                  <div className="input-wrapper"><span className="material-symbols-outlined icon">cake</span><input type="text" value={selectedStudent.birthday ? new Date(selectedStudent.birthday).toLocaleDateString() : "N/A"} disabled className="read-only" /></div>
-                </div>
-                <div className="form-group">
-                  <label>Student ID</label>
-                  <div className="input-wrapper"><span className="material-symbols-outlined icon">badge</span><input type="text" value={selectedStudent.student_id || "N/A"} disabled className="read-only" /></div>
+
+            <div className="modal-body flex flex-col gap-3">
+              <div className="avatar-edit-center mb-2">
+                <div className="avatar-upload-wrapper">
+                  <img src={getImageUrl(selectedStudent.profile_picture)} className="modal-avatar" alt="Student" />
                 </div>
               </div>
-              <div className="form-group">
-                <label>Grade / Class</label>
-                <div className="input-wrapper"><span className="material-symbols-outlined icon">school</span><input type="text" value={selectedStudent.section_details?.section_name || "Not Assigned"} disabled className="read-only" /></div>
+
+              <FormInputRegistration 
+                label="Full Name" 
+                value={`${selectedStudent.first_name || ''} ${selectedStudent.last_name || ''}`.trim()} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+
+              <FormInputRegistration 
+                label="Gender" 
+                value={selectedStudent.gender || "N/A"} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+
+              <div className="modal-row-2 flex gap-4">
+                <FormInputRegistration 
+                  label="Birthday" 
+                  value={selectedStudent.birthday ? new Date(selectedStudent.birthday).toLocaleDateString() : "N/A"} 
+                  readOnly 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+                />
+                <FormInputRegistration 
+                  label="Student ID" 
+                  value={selectedStudent.student_id || "N/A"} 
+                  readOnly 
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+                />
               </div>
-              <div className="modal-separator"></div>
-              <div className="modal-section-title"><span className="material-symbols-outlined" style={{ color: "var(--primary-blue)" }}>school</span> Class Teacher</div>
-              <div className="form-group">
-                <label>Adviser Name</label>
-                <div className="input-wrapper"><span className="material-symbols-outlined icon">person</span><input type="text" value={selectedStudent.section_details?.user_details ? `${selectedStudent.section_details.user_details.first_name} ${selectedStudent.section_details.user_details.last_name}` : "N/A"} disabled className="read-only" /></div>
+
+              <FormInputRegistration 
+                label="Grade / Class" 
+                value={selectedStudent.section_details?.section_name || "Not Assigned"} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+
+              <div className="modal-separator my-2"></div>
+              
+              <div className="modal-section-title flex items-center gap-2 font-bold text-slate-700 mb-2">
+                <span className="material-symbols-outlined text-[var(--primary-blue)]">school</span> 
+                Class Teacher
               </div>
-              <div className="form-group">
-                <label>Email</label>
-                <div className="input-wrapper"><span className="material-symbols-outlined icon">mail</span><input type="text" value={selectedStudent.section_details?.user_details?.email || "N/A"} disabled className="read-only" /></div>
+              
+              <FormInputRegistration 
+                label="Adviser Name" 
+                value={selectedStudent.section_details?.user_details ? `${selectedStudent.section_details.user_details.first_name} ${selectedStudent.section_details.user_details.last_name}` : "N/A"} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+              <FormInputRegistration 
+                label="Email" 
+                value={selectedStudent.section_details?.user_details?.email || "N/A"} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+
+              <div className="modal-separator my-2"></div>
+              
+              <div className="modal-section-title flex items-center gap-2 font-bold text-slate-700 mb-2">
+                <span className="material-symbols-outlined text-[#e74c3c]">medical_services</span> 
+                Additional Information
               </div>
-              <div className="modal-separator"></div>
-              <div className="modal-section-title"><span className="material-symbols-outlined" style={{ color: "#e74c3c" }}>medical_services</span> Additional Information</div>
-              <div className="form-group"><label>Allergies</label><textarea className="modal-textarea read-only" disabled value={selectedStudent.allergies || "None reported"}></textarea></div>
-              <div className="form-group"><label>Medical History</label><textarea className="modal-textarea read-only" disabled value={selectedStudent.medical_history || "None reported"}></textarea></div>
+              
+              <FormInputRegistration 
+                label="Allergies" 
+                type="textarea"
+                value={selectedStudent.allergies || "None reported"} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
+              <FormInputRegistration 
+                label="Medical History" 
+                type="textarea"
+                value={selectedStudent.medical_history || "None reported"} 
+                readOnly 
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700"
+              />
             </div>
-            <div className="modal-footer" style={{ justifyContent: "center" }}>
-              <button className="btn btn-cancel" onClick={() => setSelectedStudent(null)} style={{ width: "100%" }}>Close</button>
+
+            <div className="modal-footer justify-center mt-4">
+              <button className="btn btn-cancel w-full" onClick={() => setSelectedStudent(null)}>Close</button>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import { validateStudentRegistrationStep } from '../../../../utils/class-manage-
 import AvatarEditor from "react-avatar-editor"; 
 import WarningModal from '../../../WarningModal'; // <-- ADDED FOR BETTER ERROR FEEDBACK
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path, firstName) => {
   if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${firstName || 'User'}`; 

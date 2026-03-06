@@ -4,15 +4,16 @@ import axios from 'axios';
 import FormInputRegistration from '../../../../FormInputRegistration';
 import ConfirmModal from "../../../../ConfirmModal";
 
-// Added studentId to the props
+// Added dynamic backend URL support
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ParentAbsenceModal({ isOpen, onClose, onSuccess, studentId }) {
-  const [reason, setReason] = useState(""); // Added reason state
+  const [reason, setReason] = useState(""); 
   const [details, setDetails] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setReason("");
@@ -35,12 +36,12 @@ export default function ParentAbsenceModal({ isOpen, onClose, onSuccess, student
     setError(null);
 
     try {
-      // Payload now includes reason and specific student_id
-      const response = await axios.post('http://localhost:3000/api/attendance/absence', 
+      // Updated to use dynamic BACKEND_URL
+      const response = await axios.post(`${BACKEND_URL}/api/attendance/absence`, 
         { 
           reason,
           details,
-          student_id: studentId, // Tied to the currently selected student
+          student_id: studentId,
           date: new Date().toISOString() 
         }, 
         { withCredentials: true }
@@ -85,7 +86,6 @@ export default function ParentAbsenceModal({ isOpen, onClose, onSuccess, student
           </p>
           
           <div className="flex flex-col gap-4 text-left">
-            {/* Reason Selector */}
             <div className="form-group">
               <label className="text-[14px] font-bold text-cdark mb-1 block">Reason for Absence</label>
               <select 

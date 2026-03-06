@@ -1,5 +1,3 @@
-// frontend/src/pages/admin-teacher/ManageApprovals.jsx
-
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import jsPDF from "jspdf"; 
@@ -10,7 +8,7 @@ import Header from "../../components/navigation/Header";
 import SuccessModal from "../../components/SuccessModal";
 import TeacherConfirmationModal from "../../components/modals/admin/TeacherConfirmationModal"
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function ManageApprovals() {
   const [activeTab, setActiveTab] = useState("pending");
@@ -33,7 +31,6 @@ export default function ManageApprovals() {
   const [pendingActionId, setPendingActionId] = useState(null);
   const [modalType, setModalType] = useState("approve");
   
-  // --- NEW: REJECT REASON STATE ---
   const [rejectReason, setRejectReason] = useState("");
 
   useEffect(() => {
@@ -106,11 +103,10 @@ export default function ManageApprovals() {
     e.stopPropagation();
     setPendingActionId(id);
     setModalType("reject");
-    setRejectReason(""); // Reset reason field
+    setRejectReason(""); 
     setConfirmModalOpen(true);
   };
 
-  // --- UPDATED: SEND REASON TO BACKEND ---
   const handleConfirmAction = async () => {
     const id = pendingActionId;
     const endpoint = modalType; 
@@ -214,97 +210,103 @@ export default function ManageApprovals() {
   };
 
   return (
-    <div className="dashboard-wrapper">
+    <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
       <Header />
       <NavBar />
 
-      <main className="main-content">
-        <div className="approvals-container">
+      <main className="flex-1 p-6 animate-[fadeIn_0.4s_ease-out_forwards] overflow-y-auto">
+        <div className="max-w-[1200px] mx-auto w-full">
           
-          <div className="header-banner">
-             <div className="header-title">
-              <h1>Account Approvals</h1>
-              <p>Review and manage registration requests.</p>
+          {/* BANNER */}
+          <div className="admin-banner mb-6 flex justify-between items-center px-8 py-6 rounded-2xl">
+             <div>
+              <h1 className="text-white! text-[28px]! font-bold mb-2 tracking-[-0.5px]">Account Approvals</h1>
+              <p className="text-white! opacity-90 m-0">Review and manage registration requests.</p>
             </div>
-            <span className="material-symbols-outlined" style={{ fontSize: "48px", opacity: 0.8 }}>verified_user</span>
           </div>
 
-          <div className="controls-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', padding: '16px', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px', position: 'relative', zIndex: 50 }}>
+          {/* CONTROLS BAR */}
+          <div className="flex flex-col md:flex-row gap-4 p-4 bg-white rounded-xl border border-slate-200 mb-6 relative z-50 shadow-sm w-full items-center">
              
-             <div className="tab-group" style={{ display: 'flex', flex: '1 1 auto', minWidth: '280px', background: '#f8fafc', padding: '4px', borderRadius: '10px' }}>
+             {/* TABS */}
+             <div className="flex w-full md:w-[320px] shrink-0 bg-slate-50 p-1 rounded-[10px]">
                 <button 
-                  className={`tab-btn ${activeTab === "pending" ? "active" : ""}`} 
+                  className={`flex-1 flex justify-center items-center m-0 rounded-lg py-2 text-sm font-semibold transition-all cursor-pointer ${activeTab === "pending" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"}`} 
                   onClick={() => setActiveTab("pending")}
-                  style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: 0, borderRadius: '8px' }}
                 >
-                  Pending {pendingCount > 0 && <span className="tab-badge" style={{ marginLeft: "8px" }}>{pendingCount}</span>}
+                  Pending {pendingCount > 0 && <span className="ml-2 bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full text-xs">{pendingCount}</span>}
                 </button>
                 <button 
-                  className={`tab-btn ${activeTab === "history" ? "active" : ""}`} 
+                  className={`flex-1 flex justify-center items-center m-0 rounded-lg py-2 text-sm font-semibold transition-all cursor-pointer ${activeTab === "history" ? "bg-white shadow-sm text-blue-600" : "text-slate-500 hover:text-slate-700"}`} 
                   onClick={() => setActiveTab("history")}
-                  style={{ flex: 1, display: 'flex', justifyContent: 'center', margin: 0, borderRadius: '8px' }}
                 >
-                  History <span style={{ fontSize: "10px", opacity: 0.7, marginLeft: "6px" }}>{historyCount}</span>
+                  History <span className="ml-2 text-[10px] opacity-70 bg-slate-200 px-2 py-0.5 rounded-full">{historyCount}</span>
                 </button>
              </div>
 
-             <div style={{ display: 'flex', flex: '1 1 auto', gap: '12px', minWidth: '280px', alignItems: 'center' }}>
-                <div style={{ display: 'flex', flex: 1, alignItems: 'center', border: '1px solid #cbd5e1', borderRadius: '8px', background: 'white', padding: '4px 4px 4px 12px' }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#94a3b8', marginRight: '8px' }}>search</span>
-                  
-                  <input 
-                    type="text" 
-                    placeholder="Search by name or ID..." 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '14px', minWidth: '50px', height: '34px' }} 
-                  />
-                  
-                  <div style={{ position: 'relative' }} ref={filterRef}>
-                    <button 
-                      onClick={() => setIsFilterOpen(!isFilterOpen)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 12px', background: isFilterOpen ? '#f1f5f9' : 'transparent', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#475569', fontSize: '13px', fontWeight: '600', transition: 'background 0.2s', height: '100%' }}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>filter_list</span>
-                      <span className="hide-on-mobile">Filter</span>
-                    </button>
-
-                    {isFilterOpen && (
-                      <div className="filter-dropdown-menu" style={{ position: 'absolute', top: 'calc(100% + 12px)', right: 0, zIndex: 9999, background: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)', padding: '8px', minWidth: '180px' }}>
-                        <button className="filter-option" onClick={() => handleSort("surname")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>sort_by_alpha</span> Via Surname</button>
-                        <button className="filter-option" onClick={() => handleSort("date")} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: '#334155', borderRadius: '6px', transition: 'background 0.2s' }} onMouseOver={e=>e.currentTarget.style.background='#f1f5f9'} onMouseOut={e=>e.currentTarget.style.background='transparent'}><span className="material-symbols-outlined" style={{ fontSize: '18px' }}>calendar_month</span> Via Date</button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {activeTab === "history" && (
+             {/* SEARCH, FILTER & EXPORT */}
+             <div className="flex w-full flex-1 gap-2 sm:gap-3 items-center">
+              
+              {/* SEARCH & FILTER */}
+              <div className="flex flex-1 items-center border border-slate-300 rounded-lg bg-white p-1 pl-2 sm:pl-3 transition-colors focus-within:border-blue-400 min-w-0">
+                <span className="material-symbols-outlined text-[18px] sm:text-[20px] text-slate-400 mr-1 sm:mr-2 shrink-0">search</span>
+                
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 border-none outline-none bg-transparent text-sm w-full min-w-0 h-[34px] text-slate-700 placeholder-slate-400" 
+                />
+                
+                <div className="relative h-full shrink-0" ref={filterRef}>
                   <button 
-                    className="btn-outline" 
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', height: '44px', padding: '0 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', color: '#475569', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background 0.2s' }}
-                    onMouseOver={(e) => e.currentTarget.style.background = '#f8fafc'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'white'}
-                    onClick={() => exportHistoryToPDF()}
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-md cursor-pointer text-slate-600 text-[13px] font-semibold transition-colors h-full ${isFilterOpen ? 'bg-slate-100' : 'bg-transparent hover:bg-slate-50'}`}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>picture_as_pdf</span>
-                    <span className="hide-on-mobile" style={{ fontWeight: 600, fontSize: '14px' }}>Export PDF</span>
+                    <span className="material-symbols-outlined text-[18px]">filter_list</span>
+                    <span className="hidden sm:block">Filter</span>
                   </button>
-                )}
-             </div>
+
+                  {isFilterOpen && (
+                    <div className="absolute top-[calc(100%+12px)] right-0 z-[9999] bg-white border border-slate-200 rounded-lg shadow-xl p-2 min-w-[180px] animate-[fadeIn_0.2s_ease-out]">
+                      <button className="w-full flex items-center gap-2 p-2.5 bg-transparent border-none cursor-pointer text-left text-slate-700 rounded-md transition-colors hover:bg-slate-100" onClick={() => handleSort("surname")}>
+                        <span className="material-symbols-outlined text-[18px]">sort_by_alpha</span> Via Surname
+                      </button>
+                      <button className="w-full flex items-center gap-2 p-2.5 bg-transparent border-none cursor-pointer text-left text-slate-700 rounded-md transition-colors hover:bg-slate-100" onClick={() => handleSort("date")}>
+                        <span className="material-symbols-outlined text-[18px]">calendar_month</span> Via Date
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* EXPORT BUTTON */}
+              {activeTab === "history" && (
+                <button 
+                  className="flex items-center justify-center gap-1.5 h-[44px] px-3 sm:px-4 rounded-lg border border-slate-300 bg-white text-slate-600 cursor-pointer whitespace-nowrap transition-colors hover:bg-slate-50 shrink-0 shadow-sm"
+                  onClick={() => exportHistoryToPDF()}
+                >
+                  <span className="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+                  <span className="hidden sm:block font-semibold text-sm">Export PDF</span>
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* REQUESTS LIST */}
           <div className="requests-grid">
             {loading ? (
-              <div style={{ padding: "60px", textAlign: "center", color: "#64748b" }}>
-                 Fetching pending requests...
+              <div className="p-[60px] text-center text-slate-500 font-medium">
+                Fetching pending requests...
               </div>
             ) : activeTab === "pending" && filteredPending.length === 0 ? (
-              <div className="empty-queue">
-                <span className="material-symbols-outlined empty-queue-icon">inbox_customize</span>
-                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>
+              <div className="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center">
+                <span className="material-symbols-outlined text-[48px] text-slate-300 mb-4">inbox_customize</span>
+                <h3 className="text-lg font-bold text-slate-700 mb-2">
                   {searchQuery ? "No matches found." : "All Caught Up!"}
                 </h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+                <p className="text-slate-400 text-sm">
                   {searchQuery ? "Try a different search term." : "There are no pending account requests at the moment."}
                 </p>
               </div>
@@ -312,7 +314,7 @@ export default function ManageApprovals() {
 
             {activeTab === "pending" && !loading &&
               filteredPending.map((req) => (
-                <div className="request-card" key={req._id}>
+                <div className="request-card shadow-sm border border-slate-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-shadow" key={req._id}>
                   <div className="card-split-header">
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
@@ -326,7 +328,6 @@ export default function ManageApprovals() {
                     <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
                       <span className="info-label">Requested Guardian</span>
                       <div className="person-group">
-                        {/* --- THE FIX: ONERROR FOR CARD AVATAR --- */}
                         <img 
                           src={getImageUrl(req.guardianDetails.idPhotoPath)} 
                           alt="Guardian ID" 
@@ -342,43 +343,43 @@ export default function ManageApprovals() {
                         </div>
                       </div>
                       <div className="view-details-btn">
-                        <span className="material-symbols-outlined" style={{fontSize: '14px'}}>visibility</span> View Details
+                        <span className="material-symbols-outlined text-[14px]">visibility</span> View Details
                       </div>
                     </div>
                   </div>
-                  <div className="card-row">
-                    <span className="info-label">Linked Child</span>
-                    <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
-                      <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
+                  <div className="card-row border-t border-slate-100 p-4 flex justify-between items-center">
+                    <span className="info-label text-slate-500 font-semibold text-xs">Linked Child</span>
+                    <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold">
+                      <span className="material-symbols-outlined text-[18px]">face</span>
                       {req.students && req.students.length > 0 
                         ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
                     </div>
                   </div>
-                  <div className="card-row">
-                    <span className="info-label">Requested On</span>
-                    <span className="info-value" style={{fontWeight: 500, fontSize: '13px'}}>{formatDateTime(req.createdAt)}</span>
+                  <div className="card-row border-t border-slate-100 p-4 flex justify-between items-center bg-slate-50">
+                    <span className="info-label text-slate-500 font-semibold text-xs">Requested On</span>
+                    <span className="info-value font-medium text-[13px] text-slate-700">{formatDateTime(req.createdAt)}</span>
                   </div>
-                  <div className="card-actions">
-                    <button className="btn-card btn-reject" onClick={(e) => handleRejectClick(e, req._id)}>Reject</button>
-                    <button className="btn-card btn-approve" onClick={(e) => handleApproveClick(e, req._id)}>Verify</button>
+                  <div className="card-actions flex gap-3 p-4 border-t border-slate-100">
+                    <button className="flex-1 py-2.5 rounded-lg border-none bg-red-50 text-red-600 font-bold text-sm hover:bg-red-100 transition-colors" onClick={(e) => handleRejectClick(e, req._id)}>Reject</button>
+                    <button className="flex-1 py-2.5 rounded-lg border-none bg-blue-500 text-white font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm" onClick={(e) => handleApproveClick(e, req._id)}>Verify</button>
                   </div>
                 </div>
               ))}
 
             {activeTab === "history" && !loading && filteredHistory.length === 0 ? (
-              <div className="empty-queue">
-                <span className="material-symbols-outlined empty-queue-icon">history</span>
-                <h3 style={{ fontSize: "18px", fontWeight: "bold", color: "#334155", marginBottom: "8px" }}>
+              <div className="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center">
+                <span className="material-symbols-outlined text-[48px] text-slate-300 mb-4">history</span>
+                <h3 className="text-lg font-bold text-slate-700 mb-2">
                   {searchQuery ? "No matches found." : "No History Yet"}
                 </h3>
-                <p style={{ color: "#94a3b8", fontSize: "14px" }}>
+                <p className="text-slate-400 text-sm">
                   {searchQuery ? "Try a different search term." : "Approved and rejected applications will appear here."}
                 </p>
               </div>
             ) : activeTab === "history" && !loading && (
               filteredHistory.map((req) => (
-                <div className="request-card" key={req._id} style={{ opacity: 0.9 }}> 
+                <div className="request-card opacity-90 shadow-sm border border-slate-200 rounded-xl overflow-hidden bg-white" key={req._id}> 
                   <div className="card-split-header">
                     <div className="header-half header-left">
                       <span className="info-label">Legal Parent</span>
@@ -392,11 +393,10 @@ export default function ManageApprovals() {
                     <div className="header-half guardian-clickable" onClick={() => handleCardClick(req)}>
                       <span className="info-label">Requested Guardian</span>
                       <div className="person-group">
-                        {/* --- THE FIX: ONERROR FOR HISTORY CARD AVATAR --- */}
                         <img 
                           src={getImageUrl(req.guardianDetails.idPhotoPath)} 
                           alt="Guardian ID" 
-                          className="header-avatar" 
+                          className="header-avatar grayscale" 
                           onError={(e) => {
                             e.target.onerror = null; 
                             e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(req.guardianDetails.firstName || 'User')}&backgroundColor=e2e8f0&textColor=475569`;
@@ -404,41 +404,41 @@ export default function ManageApprovals() {
                         />
                         <div className="name-stack">
                           <span className="info-value">{req.guardianDetails.firstName} {req.guardianDetails.lastName}</span>
-                          <span className="role-tag" style={{ background: '#e2e8f0', color: '#64748b' }}>{req.guardianDetails.role}</span>
+                          <span className="role-tag bg-slate-200 text-slate-500">{req.guardianDetails.role}</span>
                         </div>
                       </div>
-                      <div className="view-details-btn" style={{ color: '#64748b' }}>
-                        <span className="material-symbols-outlined" style={{fontSize: '14px'}}>visibility</span> View Details
+                      <div className="view-details-btn text-slate-500">
+                        <span className="material-symbols-outlined text-[14px]">visibility</span> View Details
                       </div>
                     </div>
                   </div>
-                  <div className="card-row">
-                    <span className="info-label">Linked Child</span>
-                    <div className="student-badge-inline" style={{ background: '#f1f5f9', borderColor: '#e2e8f0', color: '#64748b' }}>
-                      <span className="material-symbols-outlined" style={{fontSize: '18px'}}>face</span>
+                  <div className="card-row border-t border-slate-100 p-4 flex justify-between items-center">
+                    <span className="info-label text-slate-500 font-semibold text-xs">Linked Child</span>
+                    <div className="flex items-center gap-2 bg-slate-100 border border-slate-200 text-slate-500 px-3 py-1.5 rounded-full text-xs font-bold">
+                      <span className="material-symbols-outlined text-[18px]">face</span>
                       {req.students && req.students.length > 0 
                         ? req.students.map(s => `${s.first_name} ${s.last_name}`).join(", ") 
                         : "Unknown Student"}
                     </div>
                   </div>
-                  <div className="card-actions" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', padding: '16px' }}>
+                  <div className="flex justify-center items-center bg-slate-50 p-4 border-t border-slate-100">
                     {req.status === 'teacher_approved' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
+                      <span className="flex items-center gap-2 text-blue-500 font-bold text-[15px]">
                         <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
                       </span>
                     )}
                     {req.status === 'approved' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
+                      <span className="flex items-center gap-2 text-green-600 font-bold text-[15px]">
                         <span className="material-symbols-outlined">check_circle</span> Application Approved
                       </span>
                     )}
                     {req.status === 'rejected' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
+                      <span className="flex items-center gap-2 text-red-600 font-bold text-[15px]">
                         <span className="material-symbols-outlined">cancel</span> Application Rejected
                       </span>
                     )}
                     {req.status === 'revoked' && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '15px' }}>
+                      <span className="flex items-center gap-2 text-slate-500 font-bold text-[15px]">
                         <span className="material-symbols-outlined">block</span> Access Revoked
                       </span>
                     )}
@@ -450,123 +450,117 @@ export default function ManageApprovals() {
         </div>
       </main>
 
-      {/* --- UNIFIED DETAILS MODAL --- */}
       {selectedRequest && (
-        <div className="approval-modal-overlay" onClick={() => setSelectedRequest(null)}>
-          <div className="approval-modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '90%' }}>
+        <div className="fixed inset-0 z-99999 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4" onClick={() => setSelectedRequest(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-[450px] w-full overflow-hidden animate-[fadeIn_0.2s_ease-out]" onClick={(e) => e.stopPropagation()}>
             
-            <div className="modal-header" style={{ padding: '24px', borderBottom: '1px solid #f1f5f9' }}>
+            <div className="p-5 border-b border-slate-100 flex justify-between items-start bg-white">
               <div>
-                <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px'}}>Guardian Application</h2>
-                <p style={{color: '#64748b', fontSize: '13px', margin: 0}}>
-                  Submitted by <strong>{selectedRequest.parent ? `${selectedRequest.parent.first_name} ${selectedRequest.parent.last_name}` : "Unknown Parent"}</strong>
+                <h2 className="text-xl text-slate-800 mb-1 font-extrabold">Guardian Application</h2>
+                <p className="text-slate-500 text-[13px]! m-0">
+                  Submitted by <strong className="text-slate-700">{selectedRequest.parent ? `${selectedRequest.parent.first_name} ${selectedRequest.parent.last_name}` : "Unknown Parent"}</strong>
                 </p>
               </div>
-              <button className="close-modal-icon" onClick={() => setSelectedRequest(null)}>
+              <button className="text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer" onClick={() => setSelectedRequest(null)}>
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
+            <div className="flex flex-col gap-6 p-6">
+              <div className="flex flex-col gap-4">
+                <h3 className="text-[15px] font-bold text-slate-800 border-b-2 border-slate-100 pb-2 m-0">
                   Applicant Details
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>First Name</label>
-                    <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.firstName}</div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">First Name</label>
+                    <div className="text-sm text-slate-800 font-semibold">{selectedRequest.guardianDetails.firstName}</div>
                   </div>
                   <div>
-                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Last Name</label>
-                    <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.lastName}</div>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <div>
-                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Relationship</label>
-                    <div className="role-tag" style={{ marginTop: '2px' }}>{selectedRequest.guardianDetails.role}</div>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Phone Number</label>
-                    <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 600 }}>{selectedRequest.guardianDetails.phone}</div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Last Name</label>
+                    <div className="text-sm text-slate-800 font-semibold">{selectedRequest.guardianDetails.lastName}</div>
                   </div>
                 </div>
-                <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-                  <label style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Assigned Username</label>
-                  <div style={{ fontSize: '15px', color: 'var(--primary-blue)', fontWeight: 700, letterSpacing: '0.5px' }}>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Relationship</label>
+                    <div className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded text-[11px] font-bold uppercase mt-0.5">{selectedRequest.guardianDetails.role}</div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">Phone Number</label>
+                    <div className="text-sm text-slate-800 font-semibold">{selectedRequest.guardianDetails.phone}</div>
+                  </div>
+                </div>
+                <div className="bg-slate-50 p-3 rounded-[10px] border border-slate-200">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Assigned Username</label>
+                  <div className="text-[15px] text-(--brand-blue) font-bold tracking-wide mt-1">
                     {selectedRequest.guardianDetails.tempUsername}
                   </div>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h3 style={{ fontSize: '15px', color: '#1e293b', borderBottom: '2px solid #f1f5f9', paddingBottom: '8px', margin: 0 }}>
+              <div className="flex flex-col gap-3">
+                <h3 className="text-[15px] font-bold text-slate-800 border-b-2 border-slate-100 pb-2 m-0">
                   Valid ID Verification
                 </h3>
                 <div 
                   onClick={() => setExpandedImage(getImageUrl(selectedRequest.guardianDetails.idPhotoPath))}
-                  style={{ 
-                    background: '#f8fafc', border: '2px dashed #cbd5e1', borderRadius: '12px', 
-                    padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    cursor: 'zoom-in', position: 'relative', transition: 'border-color 0.2s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-blue)'}
-                  onMouseOut={(e) => e.currentTarget.style.borderColor = '#cbd5e1'}
+                  className="group bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl p-2 flex items-center justify-center cursor-zoom-in relative transition-colors hover:border-(--brand-blue)"
                 >
-                  {/* --- THE FIX: ONERROR FOR ID DOCUMENT IN MODAL --- */}
                   <img 
                     src={getImageUrl(selectedRequest.guardianDetails.idPhotoPath)} 
                     alt="ID Document" 
-                    style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px' }} 
+                    className="w-full h-[160px] object-cover rounded-md"
                     onError={(e) => {
                       e.target.onerror = null; 
                       e.target.src = `https://placehold.co/600x400/f8fafc/94a3b8?text=ID+Deleted+(Rejected)`;
                     }}
                   />
-                  <div style={{ position: 'absolute', bottom: '12px', background: 'rgba(15, 23, 42, 0.7)', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <span className="material-symbols-outlined" style={{fontSize: '14px'}}>zoom_in</span> Click to Enlarge
+                  <div className="absolute bottom-3 bg-slate-900/80 text-white px-3 py-1.5 rounded-full text-[11px] font-semibold flex gap-1 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="material-symbols-outlined text-[14px]">zoom_in</span> Click to Enlarge
                   </div>
                 </div>
               </div>
             </div>
             
             {selectedRequest.status === 'pending' ? (
-              <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '12px' }}>
-                <button className="btn-card btn-reject" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleRejectClick(e, selectedRequest._id)}>Reject</button>
-                <button className="btn-card btn-approve" style={{ flex: 1, padding: '12px 0' }} onClick={(e) => handleApproveClick(e, selectedRequest._id)}>Verify</button>
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+                <button className="flex-1 py-3 rounded-xl border-none bg-red-100 text-red-600 font-bold text-sm hover:bg-red-200 transition-colors cursor-pointer" onClick={(e) => { setSelectedRequest(null); handleRejectClick(e, selectedRequest._id); }}>Reject</button>
+                <button className="flex-1 py-3 rounded-xl border-none bg-blue-500 text-white font-bold text-sm hover:bg-blue-600 transition-colors shadow-sm cursor-pointer" onClick={(e) => { setSelectedRequest(null); handleApproveClick(e, selectedRequest._id); }}>Verify</button>
               </div>
-            ) : (
-              <div style={{ padding: '16px 24px', background: '#f8fafc', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'center' }}>
-                 {selectedRequest.status === 'teacher_approved' && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#3b82f6', fontWeight: 'bold', fontSize: '15px' }}>
+              ) : (
+              /* UPDATED: Increased py-4 to py-8 and added pb-10 for extra space at the very bottom */
+              <div className="px-6 py-8 pb-10 bg-slate-50 border-t border-slate-100 flex justify-center">
+                  {selectedRequest.status === 'teacher_approved' && (
+                  <span className="flex items-center gap-2 text-blue-500 font-bold text-[15px]">
                     <span className="material-symbols-outlined">forward_to_inbox</span> Forwarded to Admin
                   </span>
                 )}
                 {selectedRequest.status === 'approved' && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#16a34a', fontWeight: 'bold', fontSize: '15px' }}>
+                  <span className="flex items-center gap-2 text-green-600 font-bold text-[15px]">
                     <span className="material-symbols-outlined">check_circle</span> Application Approved
                   </span>
                 )}
                 {selectedRequest.status === 'rejected' && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 'bold', fontSize: '15px' }}>
+                  <span className="flex items-center gap-2 text-red-600 font-bold text-[15px]">
                     <span className="material-symbols-outlined">cancel</span> Application Rejected
                   </span>
                 )}
                 {selectedRequest.status === 'revoked' && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748b', fontWeight: 'bold', fontSize: '15px' }}>
+                  <span className="flex items-center gap-2 text-slate-500 font-bold text-[15px]">
                     <span className="material-symbols-outlined">block</span> Access Revoked
                   </span>
                 )}
               </div>
-            )}
+              )}
           </div>
         </div>
       )}
 
+      {/* --- EXPANDED IMAGE VIEW --- */}
       {expandedImage && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }} onClick={() => setExpandedImage(null)}>
-          <img src={expandedImage} alt="Expanded ID" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
+        <div className="fixed inset-0 z-[999999] bg-black/85 backdrop-blur-sm flex justify-center items-center p-5 cursor-zoom-out" onClick={() => setExpandedImage(null)}>
+          <img src={expandedImage} alt="Expanded ID" className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" />
         </div>
       )}
 
@@ -584,30 +578,41 @@ export default function ManageApprovals() {
 
       {/* --- NEW CUSTOM REJECTION MODAL WITH REASON INPUT --- */}
       {modalType === "reject" && confirmModalOpen && (
-        <div className="modal-overlay active" style={{ zIndex: 9999 }}>
-          <div className="modal-card" style={{ maxWidth: '400px', padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#ef4444' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>warning</span>
-              <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Reject Application?</h2>
+        <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex justify-center items-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[400px] p-6 animate-[fadeIn_0.2s_ease-out]">
+            <div className="flex items-center gap-3 mb-4 text-red-500">
+              <span className="material-symbols-outlined text-[28px]">warning</span>
+              <h2 className="text-lg m-0 font-bold text-slate-800">Reject Application?</h2>
             </div>
-            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+            <p className="text-sm text-slate-600 mb-5 leading-relaxed">
               You are about to reject this guardian request. Please provide a reason to help the parent understand what needs to be fixed.
             </p>
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>
-                Reason for Rejection <span style={{color: '#ef4444'}}>*</span>
+            <div className="mb-6">
+              <label className="block text-xs font-semibold text-slate-500 mb-2">
+                Reason for Rejection <span className="text-red-500">*</span>
               </label>
               <textarea 
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="e.g., ID is blurry, Name does not match, Unrecognized person..."
-                style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', minHeight: '80px', resize: 'vertical' }}
+                className="w-full p-3 border border-slate-300 rounded-lg text-sm outline-none min-h-[80px] resize-y focus:border-[var(--brand-blue)] focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
-            {/* --- FIX: UPDATED JUSTIFYCONTENT SYNTAX --- */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => setConfirmModalOpen(false)} style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <button disabled={!rejectReason.trim()} onClick={handleConfirmAction} style={{ background: rejectReason.trim() ? '#ef4444' : '#fca5a5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: rejectReason.trim() ? 'pointer' : 'not-allowed' }}>Reject & Notify Parent</button>
+            
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmModalOpen(false)} 
+                className="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={!rejectReason.trim()} 
+                onClick={handleConfirmAction} 
+                className={`px-4 py-2 rounded-lg font-semibold text-white transition-colors border-none ${rejectReason.trim() ? 'bg-red-500 hover:bg-red-600 cursor-pointer shadow-md' : 'bg-red-300 cursor-not-allowed'}`}
+              >
+                Reject & Notify
+              </button>
             </div>
           </div>
         </div>

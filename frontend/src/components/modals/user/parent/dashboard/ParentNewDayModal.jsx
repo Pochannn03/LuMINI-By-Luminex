@@ -21,7 +21,7 @@ const NewDayModal = ({ isOpen, onClose }) => {
 
         <button 
           onClick={onClose}
-          className="w-full h-[52px] bg-[#0288d1] hover:bg-[#0277bd] text-white rounded-xl font-bold transition-all shadow-md active:scale-[0.98]"
+          className="w-full h-[52px] bg-[#0288d1] hover:bg-[#0277bd] text-white rounded-xl font-bold transition-all shadow-md active:scale-[0.98] cursor-pointer"
         >
           Got it!
         </button>
