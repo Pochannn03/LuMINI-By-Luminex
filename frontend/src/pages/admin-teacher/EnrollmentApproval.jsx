@@ -536,7 +536,7 @@ export default function EnrollmentApproval() {
               <div className="flex flex-col items-center">
                 <img src={getImageUrl(selectedApplication.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedApplication.student_first_name}`} alt="Student" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover bg-slate-100 cursor-zoom-in" onClick={() => setViewImage(getImageUrl(selectedApplication.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedApplication.student_first_name}`)} />
                 <h3 className="text-[18px] font-bold text-slate-800 mt-3">{selectedApplication.student_first_name} {selectedApplication.student_last_name}</h3>
-                <p className="text-[13px] font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">New Enrollment</p>
+                <p className="text-[13px]! font-medium text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">New Enrollment</p>
               </div>
               <div>
                 <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">school</span> Student Details</h4>

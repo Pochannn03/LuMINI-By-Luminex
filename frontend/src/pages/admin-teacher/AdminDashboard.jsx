@@ -380,7 +380,7 @@ export default function AdminDashboard() {
         setIsAttendanceModalOpen(true);
       }
     } catch (error) {
-      const finalMessage = error.response?.data?.error || error.message || "An unexpected error occurred.";
+      const finalMessage = error.response?.data?.msg || error.response?.data?.error || error.message || "An unexpected error occurred.";
       setErrorTitle("Scan Error");
       setErrorMainMsg("Could not process QR");
       setErrorMessage(finalMessage);

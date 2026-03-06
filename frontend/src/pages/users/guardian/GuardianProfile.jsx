@@ -11,7 +11,7 @@ import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal"; 
 import FormInputRegistration from "../../../components/FormInputRegistration";
 
-const BACKEND_URL = "http://localhost:3000";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // ==========================================
 // ANTI-SPOOFING MATH HELPERS
