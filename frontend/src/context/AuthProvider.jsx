@@ -13,7 +13,6 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     const checkSession = async () => {
     try {
-      // Updated to use BACKEND_URL
       const response = await axios.get(`${BACKEND_URL}/api/auth/session`, {
           withCredentials: true 
         });

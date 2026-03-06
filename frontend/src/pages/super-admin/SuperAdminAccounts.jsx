@@ -180,21 +180,35 @@ export default function SuperAdminAccounts() {
                 <input type="text" placeholder="Search by name or username..." className="bg-transparent border-none outline-none w-full text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
               </div>
               <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                <div className="relative w-full md:w-auto">
-                  <select className="appearance-none w-full md:w-auto bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-3 pr-10 py-2.5 outline-none cursor-pointer" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
+                <div className="relative shrink-0 w-full md:w-auto">
+                  <select 
+                    className="appearance-none bg-slate-50 border border-slate-200 text-[#475569] text-[11px] font-bold py-2.5 pl-3 pr-8 rounded-lg cursor-pointer w-full md:w-auto" 
+                    value={roleFilter} 
+                    onChange={(e) => setRoleFilter(e.target.value)}
+                  >
                     <option value="All">All Roles</option>
                     <option value="admin">Teachers</option>
                     <option value="user">Parents & Guardian</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"><span className="material-symbols-outlined text-[20px]">expand_more</span></div>
+                  <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
+                    filter_list
+                  </span>
                 </div>
-                <div className="relative w-full md:w-auto">
-                  <select className="appearance-none w-full md:w-auto bg-white border border-gray-200 text-gray-700 text-sm rounded-lg pl-3 pr-10 py-2.5 outline-none cursor-pointer" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+
+                {/* STATUS FILTER */}
+                <div className="relative shrink-0 w-full md:w-auto">
+                  <select 
+                    className="appearance-none bg-slate-50 border border-slate-200 text-[#475569] text-[11px] font-bold py-2.5 pl-3 pr-8 rounded-lg cursor-pointer w-full md:w-auto" 
+                    value={statusFilter} 
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
                     <option value="All">All Status</option>
                     <option value="Active">Active</option>
                     <option value="Archived">Archived</option>
                   </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500"><span className="material-symbols-outlined text-[20px]">expand_more</span></div>
+                  <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-[16px] pointer-events-none">
+                    filter_list
+                  </span>
                 </div>
               </div>
             </div>
@@ -264,7 +278,19 @@ export default function SuperAdminAccounts() {
                 <span className="text-xs text-gray-500">Page <b>{currentPage}</b> of <b>{totalPages}</b></span>
                 <div className="flex gap-1">
                   <button className="btn btn-outline h-8 w-8 p-0 flex items-center justify-center rounded-md border" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => prev - 1)}><span className="material-symbols-outlined text-[16px]">chevron_left</span></button>
-                  {generatePageNumbers(currentPage, totalPages).map(pageNum => (<button key={pageNum} className={`h-8 w-8 rounded-md text-sm ${currentPage === pageNum ? 'bg-blue-500 text-white' : 'border'}`} onClick={() => setCurrentPage(pageNum)}>{pageNum}</button>))}
+                  {generatePageNumbers(currentPage, totalPages).map(pageNum => (
+                    <button 
+                      key={pageNum} 
+                      className={`btn h-8 w-8 rounded-md text-sm transition-all duration-200 ${
+                        currentPage === pageNum 
+                          ? 'bg-blue-500 text-white shadow-md border-blue-500' // Active State
+                          : 'btn-outline border border-gray-200' // Inactive State with your custom hover
+                      }`} 
+                      onClick={() => setCurrentPage(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  ))}
                   <button className="btn btn-outline h-8 w-8 p-0 flex items-center justify-center rounded-md border" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => prev + 1)}><span className="material-symbols-outlined text-[16px]">chevron_right</span></button>
                 </div>
               </div>

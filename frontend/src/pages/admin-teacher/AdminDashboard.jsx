@@ -70,6 +70,12 @@ export default function AdminDashboard() {
   const [sections, setSections] = useState([]); 
   const [selectedSection, setSelectedSection] = useState("");
 
+  // --- NEW: Custom Dropdown States ---
+  const [isSectionOpen, setIsSectionOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const sectionRef = useRef(null);
+  const categoryRef = useRef(null);
+
   const [scannedData, setScannedData] = useState(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [loadingScan, setLoadingScan] = useState(false);
@@ -102,12 +108,21 @@ export default function AdminDashboard() {
   const streamRef = useRef(null);
   const stopDetectionRef = useRef(null);
 
+  // Click Outside Listener for Custom Dropdowns
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (sectionRef.current && !sectionRef.current.contains(event.target)) setIsSectionOpen(false);
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) setIsCategoryOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   // 1. Check if Teacher needs to set up biometrics
   useEffect(() => {
     const checkBiometrics = async () => {
       if (user?.role === 'admin') {
         try {
-          // Updated to BACKEND_URL
           const res = await axios.get(`${BACKEND_URL}/api/teacher/check-biometrics`, { withCredentials: true });
           if (res.data.needsBiometrics) {
             setNeedsBiometricSetup(true);
@@ -310,7 +325,6 @@ export default function AdminDashboard() {
       }
       if (faceDescriptor) data.append('facialDescriptor', JSON.stringify(faceDescriptor));
 
-      // Updated to BACKEND_URL
       await axios.put(`${BACKEND_URL}/api/teacher/update-biometrics`, data, {
         withCredentials: true,
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -338,7 +352,6 @@ export default function AdminDashboard() {
         if (!parentTokenRegex.test(rawValue)) {
           throw new Error("Invalid Parent Pass. Please scan a valid Pickup Token.");
         }
-        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/scan/pass/${rawValue}`, {
           withCredentials: true
         });
@@ -352,7 +365,6 @@ export default function AdminDashboard() {
         if (!studentIdRegex.test(rawValue)) {
           throw new Error("Invalid Student ID. Please scan a valid Student ID QR.");
         }
-        // Updated to BACKEND_URL
         const response = await axios.post(`${BACKEND_URL}/api/attendance`, 
           { studentId: rawValue }, 
           { withCredentials: true }
@@ -368,7 +380,7 @@ export default function AdminDashboard() {
         setIsAttendanceModalOpen(true);
       }
     } catch (error) {
-      const finalMessage = error.response?.data?.error || error.message || "An unexpected error occurred.";
+      const finalMessage = error.response?.data?.msg || error.response?.data?.error || error.message || "An unexpected error occurred.";
       setErrorTitle("Scan Error");
       setErrorMainMsg("Could not process QR");
       setErrorMessage(finalMessage);
@@ -390,7 +402,6 @@ export default function AdminDashboard() {
 
     try {
       setPosting(true);
-      // Updated to BACKEND_URL
       const response = await axios.post(`${BACKEND_URL}/api/announcements`, 
         { announcement: announcementData.content,
           category: announcementData.category,
@@ -424,7 +435,6 @@ export default function AdminDashboard() {
   const handleConfirmPickup = async () => {
     try {
       setLoadingScan(true);
-      // Updated to BACKEND_URL
       const response = await axios.post(`${BACKEND_URL}/api/transfer`, {
         studentId: scannedData.student.studentId,
         studentName: scannedData.student.name,
@@ -473,7 +483,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchMySections = async () => {
       try {
-        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/teacher/sections`, {
           withCredentials: true
         });
@@ -490,7 +499,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchSystemAnnouncements = async () => {
       try {
-        // Updated to BACKEND_URL
         const res = await axios.get(`${BACKEND_URL}/api/announcement/teacher`, 
           { withCredentials: true });
         setSystemAnnouncements(res.data.announcements);
@@ -504,7 +512,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/announcement/teacher`, {
           withCredentials: true
         });
@@ -521,7 +528,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchInitialQueue = async () => {
       try {
-        // Updated to BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/queue`, { withCredentials: true });
         if (response.data.success) {
           setQueue(response.data.queue);
@@ -531,7 +537,6 @@ export default function AdminDashboard() {
     };
     fetchInitialQueue();
 
-    // Updated socket to BACKEND_URL
     const socket = io(BACKEND_URL, { withCredentials: true });
 
     if (user?.user_id) socket.emit("join", user.user_id);
@@ -592,7 +597,7 @@ export default function AdminDashboard() {
       <NavBar />
 
       {needsBiometricSetup && (
-        <div className="fixed inset-0 z-[999999] bg-slate-900/90 backdrop-blur-md flex justify-center items-center p-4">
+        <div className="fixed inset-0 z-999999 bg-slate-900/90 backdrop-blur-md flex justify-center items-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 w-full max-w-[600px] flex flex-col items-center animate-[fadeIn_0.3s_ease-out_forwards]">
             {!isCameraActive && !faceDescriptor ? (
               <div className="flex flex-col items-center text-center">
@@ -634,11 +639,11 @@ export default function AdminDashboard() {
             ) : (
               <div className="flex flex-col items-center w-full animate-[fadeIn_0.3s_ease-out]">
                  <h2 className="text-xl font-black text-slate-800 mb-4">Liveness Verification</h2>
-                 <div className="w-full h-[320px] md:h-[380px] bg-slate-900 rounded-3xl flex items-center justify-center text-white mb-6 relative overflow-hidden border-4 border-slate-100 shadow-xl">
+                 <div className="w-full h-80 md:h-[380px] bg-slate-900 rounded-3xl flex items-center justify-center text-white mb-6 relative overflow-hidden border-4 border-slate-100 shadow-xl">
                     <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-0" />
                     <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover scale-x-[-1] z-[5]" />
                     {!isVideoPlaying && !cameraError && (
-                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-[6] bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing Camera...</span></div>
+                       <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 z-6 bg-slate-900 text-slate-400 animate-pulse"><span className="material-symbols-outlined text-[48px]">videocam</span><span className="text-[12px] font-medium tracking-widest uppercase">Initializing Camera...</span></div>
                     )}
                     {isVideoPlaying && !cameraError && (
                       <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
@@ -722,22 +727,115 @@ export default function AdminDashboard() {
                 <h2 className="text-cdark font-bold text-[18px]! -m-2">Class Announcement</h2>
               </div>
               <p className="text-cgray leading-normal text-[14px]! mb-3">Post updates to parents.</p>
-              <div className="flex gap-3 mb-3">
-                <div className="flex-1">
-                  <select value={selectedSection} onChange={(e) => setSelectedSection(e.target.value)} className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all">
-                    <option value="" disabled hidden>Select Section</option>
-                    <option value="all">{user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections"}</option>
-                    {sections.map((sec) => (<option key={sec.section_id} value={sec.section_id}>{sec.section_name}</option>))}
-                  </select>
+              
+              {/* --- NEW CUSTOM DROPDOWNS START HERE --- */}
+              <div className="flex gap-2 mb-3">
+                
+                {/* SECTION SELECT (Custom Dropdown) */}
+                <div className="relative flex-1" ref={sectionRef}>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsSectionOpen(!isSectionOpen);
+                      setIsCategoryOpen(false);
+                    }}
+                    className={`flex items-center justify-between w-full h-[38px] pl-4 pr-3 border rounded-xl text-[12px] font-semibold text-slate-700 uppercase transition-all focus:outline-none ${
+                      isSectionOpen ? "border-[var(--brand-blue)] ring-2 ring-blue-500/10 bg-white" : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {selectedSection === "" ? "Select Section" : 
+                       selectedSection === "all" ? (user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections") : 
+                       sections.find(sec => sec.section_id === selectedSection)?.section_name || "Select Section"}
+                    </span>
+                    <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isSectionOpen ? "rotate-180 text-[var(--brand-blue)]" : ""}`}>
+                      expand_more
+                    </span>
+                  </button>
+
+                  {isSectionOpen && (
+                    <div className="absolute top-[42px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 animate-[fadeIn_0.2s_ease-out]">
+                      <button 
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[var(--brand-blue)] transition-colors uppercase"
+                        onClick={() => { setSelectedSection("all"); setIsSectionOpen(false); }}
+                      >
+                        {user?.role === 'superadmin' ? "All (System-wide)" : "All My Sections"}
+                      </button>
+                      {sections.map((sec) => (
+                        <button 
+                          type="button"
+                          key={sec.section_id}
+                          className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[var(--brand-blue)] transition-colors uppercase"
+                          onClick={() => { setSelectedSection(sec.section_id); setIsSectionOpen(false); }}
+                        >
+                          {sec.section_name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <select name="category" value={announcementData.category} onChange={handleAnnChange} className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all">
-                    <option value="notifications_active">General</option>
-                    <option value="campaign">Emergency</option>
-                    <option value="calendar_month">Event</option>
-                  </select>
+
+                {/* CATEGORY SELECT (Custom Dropdown) */}
+                <div className="relative flex-1" ref={categoryRef}>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setIsCategoryOpen(!isCategoryOpen);
+                      setIsSectionOpen(false); 
+                    }}
+                    className={`flex items-center justify-between w-full h-[38px] pl-4 pr-3 border rounded-xl text-[12px] font-semibold text-slate-700 uppercase transition-all focus:outline-none ${
+                      isCategoryOpen ? "border-[var(--brand-blue)] ring-2 ring-blue-500/10 bg-white" : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {announcementData.category === "notifications_active" ? "General" :
+                       announcementData.category === "campaign" ? "Emergency" :
+                       announcementData.category === "calendar_month" ? "Event" : "General"}
+                    </span>
+                    <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isCategoryOpen ? "rotate-180 text-[var(--brand-blue)]" : ""}`}>
+                      expand_more
+                    </span>
+                  </button>
+
+                  {isCategoryOpen && (
+                    <div className="absolute top-[42px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 animate-[fadeIn_0.2s_ease-out]">
+                      <button 
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[var(--brand-blue)] transition-colors uppercase"
+                        onClick={() => { 
+                          handleAnnChange({ target: { name: 'category', value: 'notifications_active' } }); 
+                          setIsCategoryOpen(false); 
+                        }}
+                      >
+                        General
+                      </button>
+                      <button 
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[var(--brand-blue)] transition-colors uppercase"
+                        onClick={() => { 
+                          handleAnnChange({ target: { name: 'category', value: 'campaign' } }); 
+                          setIsCategoryOpen(false); 
+                        }}
+                      >
+                        Emergency
+                      </button>
+                      <button 
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-lg text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[var(--brand-blue)] transition-colors uppercase"
+                        onClick={() => { 
+                          handleAnnChange({ target: { name: 'category', value: 'calendar_month' } }); 
+                          setIsCategoryOpen(false); 
+                        }}
+                      >
+                        Event
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
+              {/* --- NEW CUSTOM DROPDOWNS END HERE --- */}
+              
             </div>
             <div className="announcement-box mt-1">
               <textarea name="content" className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" placeholder="Write an announcement..." value={announcementData.content} onChange={handleAnnChange} disabled={posting} />

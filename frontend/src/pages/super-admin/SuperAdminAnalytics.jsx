@@ -280,7 +280,7 @@ export default function SuperAdminAnalytics() {
               <h3 className="text-2xl font-bold text-slate-800">Export Report</h3>
             </div>
             
-            <p className="text-sm text-slate-500 mb-6">
+            <p className="text-sm! text-slate-500 mb-6">
               Select the page range of the audit trail you want to download. (Max pages: {totalPages})
             </p>
 
@@ -313,7 +313,7 @@ export default function SuperAdminAnalytics() {
             {/* DYNAMIC CONFIRMATION MESSAGE */}
             <div className="bg-blue-50 border border-blue-100 flex items-start gap-3 p-4 rounded-xl mb-8">
               <span className="material-symbols-outlined text-blue-500 text-[20px] mt-0.5">info</span>
-              <p className="text-blue-800 text-[13px] leading-relaxed">
+              <p className="text-blue-800 text-[13px]! leading-relaxed">
                 <strong>Confirmation:</strong> You are about to download <span className="font-bold underline">page {exportStartPage} to {exportEndPage}</span> of the current audit trail.
               </p>
             </div>
@@ -321,14 +321,14 @@ export default function SuperAdminAnalytics() {
             <div className="flex gap-3 w-full">
               <button 
                 type="button" 
-                className="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors" 
+                className="flex-1 py-3.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer" 
                 onClick={() => setIsExportModalOpen(false)}
               >
                 Cancel
               </button>
               <button 
                 type="button" 
-                className="flex-[1.5] py-3.5 rounded-xl font-bold text-white bg-[var(--brand-blue)] hover:bg-[#2c8ac4] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2" 
+                className="flex-[1.5] py-3.5 rounded-xl font-bold text-white bg-[var(--brand-blue)] hover:bg-[#2c8ac4] shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer" 
                 onClick={handleExportPDF}
               >
                 <span className="material-symbols-outlined text-[20px]">download</span> Download PDF
@@ -494,33 +494,44 @@ export default function SuperAdminAnalytics() {
             </div>
 
             {/* Filter Bar */}
-            <div className="filter-bar">
-              <div className="filter-container">
-                 <span className="material-symbols-outlined filter-icon">filter_list</span>
-                 <select 
-                   className="filter-select"
-                   value={filterRole}
-                   onChange={(e) => setFilterRole(e.target.value)}
-                 >
-                   <option value="All">All Roles</option>
-                   <option value="superadmin">Super Admin</option>
-                   <option value="admin">Teacher</option>
-                   <option value="user">Users</option>
-                 </select>
+            <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+
+              <div className="relative w-full md:w-[350px]">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+                      search
+                  </span>
+                  <input 
+                      type="text" 
+                      placeholder="Search action, user, or target..." 
+                      className="w-full h-[45px] bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold pl-12 pr-4 rounded-xl outline-none focus:border-[var(--brand-blue)] focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all"
+                      value={searchQuery}
+                      onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setCurrentPage(1);
+                      }}
+                  />
               </div>
 
-              {/* Search Filter */}
-              <div className="filter-container search-wrapper ml-auto">
-                <span className="material-symbols-outlined filter-icon">search</span>
-                <input 
-                  type="text" 
-                  placeholder="Search logs..." 
-                  className="filter-select md:w-[300px] cursor-text!"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+              <div className="relative shrink-0 w-full md:w-auto">
+                  <select 
+                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-10 rounded-xl cursor-pointer w-full md:w-auto outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/5 transition-all"
+                      value={filterRole}
+                      onChange={(e) => {
+                          setFilterRole(e.target.value);
+                          setCurrentPage(1);
+                      }}
+                  >
+                      <option value="All">All Roles</option>
+                      <option value="superadmin">Super Admin</option>
+                      <option value="admin">Teacher</option>
+                      <option value="user">Users</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+                      filter_list
+                  </span>
               </div>
-            </div>
+
+          </div>
 
             {/* Audit Table */}
             <div className="audit-table-container">

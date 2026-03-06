@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useRef } from "react";
+import QRCode from "react-qr-code";
 import "../../../styles/teacher/class-list-modal.css";
 
 // --- ADDED IMAGE HELPER ---
@@ -17,7 +18,53 @@ const getImageUrl = (path, fallbackName) => {
 // --------------------------
 
 export default function StudentDetailsModal({ isOpen, onClose, student }) {
+  const qrRef = useRef(null);
+
   if (!isOpen || !student) return null;
+
+  const studentId = student.id || student.student_id;
+
+  // --- QR DOWNLOAD LOGIC ---
+  const downloadQRCode = () => {
+    if (!qrRef.current || !studentId) return;
+    const svg = qrRef.current.querySelector("svg");
+    if (!svg) return;
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    const qrSize = 500; 
+    const padding = 60; 
+    const textSpace = 80; 
+    canvas.width = qrSize + (padding * 2); 
+    canvas.height = qrSize + padding + textSpace;
+
+    img.onload = () => {
+      // Draw background
+      ctx.fillStyle = "white"; 
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw QR Image
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      
+      // Draw Student ID Text
+      ctx.fillStyle = "#64748b"; 
+      ctx.font = "bold 24px monospace"; 
+      ctx.textAlign = "center";
+      ctx.fillText(studentId, canvas.width / 2, qrSize + padding + (textSpace / 2));
+      
+      // Trigger Download
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `QR_${studentId}.png`; 
+      downloadLink.href = pngFile; 
+      downloadLink.click();
+    };
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
+  // -------------------------
 
   return (
     // Note the inline z-index: 10000 to ensure it sits ON TOP of the previous modal
@@ -47,7 +94,36 @@ export default function StudentDetailsModal({ isOpen, onClose, student }) {
               />
             </div>
             <h2>{student.name}</h2>
-            <p>ID: {student.id}</p>
+            <p>ID: {studentId}</p>
+
+            {/* --- ADDED QR CODE RENDERER --- */}
+            {studentId && (
+              <div 
+                onClick={downloadQRCode}
+                title="Click to download QR Code"
+                style={{ 
+                  marginTop: '16px', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', 
+                  cursor: 'pointer', padding: '12px 24px', border: '1px solid #e2e8f0', borderRadius: '12px', 
+                  backgroundColor: '#f8fafc', transition: 'all 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' 
+                }}
+                onMouseOver={(e) => e.currentTarget.style.borderColor = '#93c5fd'}
+                onMouseOut={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+              >
+                <div ref={qrRef} style={{ background: 'white', padding: '6px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                  <QRCode 
+                    size={64} 
+                    value={studentId} 
+                    viewBox={`0 0 256 256`} 
+                    style={{ height: "auto", maxWidth: "100%", width: "64px" }} 
+                  />
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#3b82f6', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>download</span> Download QR
+                </span>
+              </div>
+            )}
+            {/* ------------------------------ */}
+
           </div>
 
           {/* Middle: Personal & Medical Info */}

@@ -273,8 +273,8 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
                             value={formData.classSchedule}
                           >
                             <option value="" disabled>Select Schedule</option>
-                            <option value="Morning">Morning (8:00 AM - 11:30 AM)</option>
-                            <option value="Afternoon">Afternoon (1:00 PM - 4:30 PM)</option>
+                            <option value="Morning">Morning</option>
+                            <option value="Afternoon">Afternoon</option>
                           </select>
                           <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
                         </div>

@@ -100,54 +100,76 @@ export default function AdminDropAndPickHistory() {
         <div className="w-full max-w-[1200px] mx-auto">
           <div className="card p-6 min-h-[500px]">
             
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+  
+              {/* LEFT SIDE: Icon and Header Text */}
+              <div className="flex items-center gap-3 shrink-0">
                 <span className="material-symbols-outlined blue-icon text-[32px]">history</span>
                 <div>
                   <h2 className="text-cdark text-[18px] font-bold">Log Record</h2>
-                  <p className="text-cgray text-[14px]!">Historical records for the selected date.</p>
+                  <p className="text-cgray text-[14px]! m-0">Historical records for the selected date.</p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
-                  <span className="material-symbols-outlined text-gray-400 text-[18px] mr-2">filter_list</span>
+              {/* RIGHT SIDE: Filters and Calendar */}
+              <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+                
+                {/* TYPE FILTER (Matched Style) */}
+                <div className="relative shrink-0 w-full md:w-auto">
                   <select 
+                    className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-10 rounded-xl cursor-pointer w-full md:w-auto outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/5 transition-all"
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="bg-transparent text-[12px] font-bold text-cdark uppercase outline-none cursor-pointer"
                   >
                     <option value="all">All Records</option>
                     <option value="drop off">Drop Offs</option>
                     <option value="pick up">Pick Ups</option>
                   </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+                    filter_list
+                  </span>
                 </div>
 
-                <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm">
-                  <button onClick={() => handleDateChange(-1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                {/* CALENDAR CONTROLS (Height matched to 45px) */}
+                <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-200 h-[45px] w-full md:w-auto">
+                  <button 
+                    onClick={() => handleDateChange(-1)} 
+                    className="w-10 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-(--brand-blue) hover:bg-white transition-all cursor-pointer"
+                  >
                     <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                   </button>
 
-                  <div className="relative">
+                  <div className="relative h-full flex items-center flex-1 md:flex-none">
                     <button 
                       onClick={() => dateInputRef.current.showPicker()} 
-                      className="flex items-center justify-between gap-3 px-3 py-1 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-100 min-w-[180px] cursor-pointer"
+                      className="flex items-center justify-between gap-3 px-3 h-full w-full rounded-lg hover:bg-white transition-all border border-transparent hover:border-gray-100 min-w-[180px] cursor-pointer"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-blue-500">calendar_month</span>
-                        <span className="text-[12px] font-bold text-cdark uppercase tracking-tight">{monthDay}</span>
+                        <span className="material-symbols-outlined text-[18px] text-(--brand-blue)">calendar_month</span>
+                        <span className="text-[13px] font-bold text-gray-700 uppercase tracking-tight">{monthDay}</span>
                       </div>
-                      <div className="w-px h-3 bg-gray-300"></div>
+                      <div className="w-px h-4 bg-gray-300"></div>
                       <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{weekday.slice(0, 3)}</span>
                     </button>
 
-                    <input type="date" ref={dateInputRef} onChange={handleCalendarChange} value={dateToInputString(currentDate)} className="absolute opacity-0 pointer-events-none" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                    <input 
+                      type="date" 
+                      ref={dateInputRef} 
+                      onChange={handleCalendarChange} 
+                      value={dateToInputString(currentDate)} 
+                      className="absolute opacity-0 pointer-events-none" 
+                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} 
+                    />
                   </div>
 
-                  <button onClick={() => handleDateChange(1)} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer">
+                  <button 
+                    onClick={() => handleDateChange(1)} 
+                    className="w-10 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-(--brand-blue) hover:bg-white transition-all cursor-pointer"
+                  >
                     <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                   </button>
                 </div>
+
               </div>
             </div>
 
