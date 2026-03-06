@@ -4,6 +4,8 @@ import { validateOverrideForm } from '../../../../utils/override-modal/overrideM
 import axios from 'axios';
 import AvatarEditor from "react-avatar-editor";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess }) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
@@ -30,7 +32,7 @@ export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess
         if (isOpen) {
             const fetchMyStudents = async () => {
               try {
-                  const res = await axios.get('http://localhost:3000/api/teacher/students', 
+                  const res = await axios.get(`${BACKEND_URL}/api/teacher/students`, 
                     { withCredentials: true });
                   
                   if (res.data.success) {
@@ -129,7 +131,7 @@ export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess
         }
 
         try {
-            const res = await axios.post('http://localhost:3000/api/transfer/override', submitData, {
+            const res = await axios.post(`${BACKEND_URL}/api/transfer/override`, submitData, {
                 withCredentials: true,
                 timeout: 5000
             });
@@ -321,7 +323,7 @@ export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess
                                                 <div className="flex flex-col items-center">
                                                   <img className="w-[140px] h-[140px] rounded-xl object-cover border border-slate-200 shadow-sm mb-3" src={previewUrl} alt="ID Preview" />
                                                   <label htmlFor="guestIdPhotoInput" className="text-blue-600 bg-blue-50 px-4 py-2 rounded-lg cursor-pointer text-[13px] font-bold hover:bg-blue-100 transition-colors flex items-center gap-1 focus:outline-none">
-                                                    <span className="material-symbols-outlined text-[16px]">edit</span> Change Photo
+                                                      <span className="material-symbols-outlined text-[16px]">edit</span> Change Photo
                                                   </label>
                                                 </div>
                                             ) : (

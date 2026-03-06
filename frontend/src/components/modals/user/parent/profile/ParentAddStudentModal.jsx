@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 
-const BACKEND_URL = "http://localhost:3000";
+// Updated to use dynamic backend URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 // NEW PROP ADDED: onError
 export default function ParentAddStudentModal({ isOpen, onClose, onSuccess, onError }) {

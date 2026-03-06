@@ -6,16 +6,17 @@ import AvatarEditor from "react-avatar-editor";
 import axios from 'axios'; 
 import ConfirmModal from '../components/ConfirmModal'; 
 import SuccessModal from '../components/SuccessModal'; 
-import WarningModal from '../components/WarningModal'; // <-- NEW: Import WarningModal
+import WarningModal from '../components/WarningModal'; 
+
+// DYNAMIC BACKEND URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function ParentEnrollment() {
   const navigate = useNavigate(); 
-  const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
   // --- CAROUSEL STATES ---
   const [step, setStep] = useState(0); 
   const totalSteps = 5;
-
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // --- STEP 0: VERIFICATION STATES ---
@@ -55,8 +56,6 @@ export default function ParentEnrollment() {
 
   // --- MODAL STATES ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
-  // <-- NEW: State for Duplicate Warning Modal -->
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [warningMessage, setWarningMessage] = useState("");
 
@@ -67,11 +66,9 @@ export default function ParentEnrollment() {
     setCodeError(""); 
     const value = e.target.value.toUpperCase();
     if (/[^A-Z0-9]/.test(value)) return;
-
     const newCode = [...code];
     newCode[index] = value.slice(-1);
     setCode(newCode);
-
     if (value && index < 5) {
       inputRefs.current[index + 1].focus();
     }
@@ -88,13 +85,11 @@ export default function ParentEnrollment() {
     setCodeError("");
     const pastedData = e.clipboardData.getData('text').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
     if (!pastedData) return;
-
     const newCode = [...code];
     for (let i = 0; i < pastedData.length; i++) {
       newCode[i] = pastedData[i];
     }
     setCode(newCode);
-
     const focusIndex = pastedData.length < 6 ? pastedData.length : 5;
     inputRefs.current[focusIndex].focus();
   };
@@ -104,24 +99,17 @@ export default function ParentEnrollment() {
   const handleVerifyCode = async (e) => {
     e.preventDefault();
     if (!isCodeComplete) return;
-
     const fullCode = code.join('');
     setIsVerifying(true);
     setCodeError("");
-
     try {
       const response = await axios.get(`${BACKEND_URL}/api/sections/verify-code/${fullCode}`);
-      
       if (response.data.success) {
         setVerifiedClass(response.data.data); 
         setStep(1); 
       }
     } catch (error) {
-      console.error("Submission Failed:", error);
-      const errorMessage = error.response?.data?.errorDetails || error.response?.data?.msg || "Failed to submit.";
-      // Still using an alert here because it's Step 0 and we haven't imported the Warning Modal structure to wrap the whole app, 
-      // but if you want this to also be a modal, we can change it!
-      alert(`Error: ${errorMessage}`);
+      setCodeError(error.response?.data?.msg || "Invalid section code.");
     } finally {
       setIsVerifying(false);
     }
@@ -191,27 +179,22 @@ export default function ParentEnrollment() {
                            parentData.email.includes('@');
 
   // ==========================================
-  // FINAL SUBMISSION TO BACKEND
+  // FINAL SUBMISSION
   // ==========================================
   const handleFinalSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     const formData = new FormData();
-    
     formData.append('studentFirstName', studentData.firstName);
     formData.append('studentLastName', studentData.lastName);
     formData.append('studentSuffix', studentData.suffix);
     formData.append('studentBirthdate', studentData.birthdate);
     formData.append('studentGender', studentData.gender);
-    
     formData.append('parentFirstName', parentData.firstName);
     formData.append('parentLastName', parentData.lastName);
     formData.append('parentPhone', parentData.phone);
     formData.append('parentEmail', parentData.email);
-    
     formData.append('sectionId', verifiedClass.section_id); 
-    
     if (studentImageFile) {
       formData.append('studentPhoto', studentImageFile);
     }
@@ -220,22 +203,16 @@ export default function ParentEnrollment() {
       const response = await axios.post(`${BACKEND_URL}/api/enrollments/submit`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
       if (response.data.success) {
         setShowSuccessModal(true); 
       }
     } catch (error) {
-      console.error("Submission Failed:", error);
-      
-      // <-- THE FIX: INTERCEPT THE 409 CONFLICT AND SHOW THE WARNING MODAL -->
       if (error.response && error.response.status === 409) {
-        setWarningMessage("You have already submitted an enrollment application for this student. If you believe this is a mistake, please immediately contact the class adviser to resolve this issue.");
+        setWarningMessage("You have already submitted an enrollment application for this student.");
         setShowWarningModal(true);
       } else {
-        // Fallback for other errors
         alert(error.response?.data?.msg || "Failed to submit. Please try again.");
       }
-
     } finally {
       setIsSubmitting(false);
     }
@@ -248,337 +225,102 @@ export default function ParentEnrollment() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 tech-bg relative font-poppins">
-      
       <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-bottom from-white to-transparent pointer-events-none"></div>
 
-      <SuccessModal 
-        isOpen={showSuccessModal}
-        onClose={handleCloseSuccess}
-        message="Your application has been successfully submitted! Please wait for the class adviser's approval. An email notification will be sent to you shortly."
-      />
-
-      {/* --- NEW: DUPLICATE WARNING MODAL --- */}
-      <WarningModal 
-        isOpen={showWarningModal}
-        onClose={() => setShowWarningModal(false)}
-        title="Duplicate Application"
-        message={warningMessage}
-      />
-
-      {/* --- CROPPER & GUIDELINES MODALS --- */}
-      <ConfirmModal 
-        isOpen={showPhotoGuidelines}
-        onClose={() => setShowPhotoGuidelines(false)}
-        onConfirm={proceedToImageUpload}
-        title="Photo Guidelines"
-        message="Please upload a clear, front-facing photo of your child with a blue background, wearing their school uniform or formal attire. (Note: Don't worry if you don't have one yet, you can always upload it later!)"
-        confirmText="Select Photo"
-        cancelText="Not right now"
-        isDestructive={false}
-      />
+      <SuccessModal isOpen={showSuccessModal} onClose={handleCloseSuccess} message="Enrollment submitted! Please wait for teacher approval." />
+      <WarningModal isOpen={showWarningModal} onClose={() => setShowWarningModal(false)} title="Duplicate Application" message={warningMessage} />
+      <ConfirmModal isOpen={showPhotoGuidelines} onClose={() => setShowPhotoGuidelines(false)} onConfirm={proceedToImageUpload} title="Photo Guidelines" message="Clear front-facing photo with a blue background is recommended." confirmText="Select Photo" cancelText="Later" isDestructive={false} />
 
       {showStudentCropModal && (
         <div className="modal-overlay active" style={{ zIndex: 999999 }}>
           <div className="modal-container" style={{ padding: '24px', alignItems: 'center', maxWidth: '350px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '18px', color: 'var(--text-dark)', fontWeight: 'bold' }}>Crop Student Photo</h3>
-            <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
-              <AvatarEditor ref={studentEditorRef} image={tempStudentImage} width={220} height={220} border={20} borderRadius={110} color={[15, 23, 42, 0.6]} scale={studentZoom} rotate={0} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-gray)' }}>zoom_out</span>
-              <input type="range" min="1" max="3" step="0.01" value={studentZoom} onChange={(e) => setStudentZoom(parseFloat(e.target.value))} style={{ flex: 1, accentColor: 'var(--primary-blue)', cursor: 'pointer' }} />
-              <span className="material-symbols-outlined" style={{ fontSize: '18px', color: 'var(--text-gray)' }}>zoom_in</span>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={() => { setShowStudentCropModal(false); setTempStudentImage(null); }}>Cancel</button>
-              <button type="button" className="btn-save" style={{ flex: 1, background: 'var(--primary-blue)', border: 'none' }} onClick={handleStudentCropSave}>Apply Crop</button>
-            </div>
+            <h3 className="mb-4 font-bold">Crop Student Photo</h3>
+            <div className="bg-slate-50 p-2 rounded-xl"><AvatarEditor ref={studentEditorRef} image={tempStudentImage} width={220} height={220} border={20} borderRadius={110} scale={studentZoom} /></div>
+            <div className="flex items-center w-full gap-3 my-4"><input type="range" min="1" max="3" step="0.01" value={studentZoom} onChange={(e) => setStudentZoom(parseFloat(e.target.value))} className="flex-1" /></div>
+            <div className="flex gap-3 w-full"><button type="button" className="btn-cancel flex-1" onClick={() => setShowStudentCropModal(false)}>Cancel</button><button type="button" className="btn-save flex-1 bg-blue-500" onClick={handleStudentCropSave}>Apply</button></div>
           </div>
         </div>
       )}
 
-      {/* --- MAIN CARD --- */}
-      <div className="card max-w-md w-full p-8 text-center relative z-10 shadow-xl border border-slate-100 transition-all duration-500">
-        
-        {/* PROGRESS DOTS */}
+      <div className="card max-w-md w-full p-8 text-center relative z-10 shadow-xl border border-slate-100">
         <div className="flex justify-center gap-2 mb-8">
-          {[...Array(totalSteps)].map((_, i) => (
-            <div key={i} className={`h-2 rounded-full transition-all duration-500 ease-out ${step === i ? 'w-8 bg-[#39a8ed]' : i < step ? 'w-2 bg-[#bde0fe]' : 'w-2 bg-slate-200'}`} />
-          ))}
+          {[...Array(totalSteps)].map((_, i) => (<div key={i} className={`h-2 rounded-full transition-all duration-500 ${step === i ? 'w-8 bg-[#39a8ed]' : i < step ? 'w-2 bg-[#bde0fe]' : 'w-2 bg-slate-200'}`} />))}
         </div>
 
-        {/* ==========================================
-            STEP 0: SECTION CODE VERIFICATION
-            ========================================== */}
         {step === 0 && (
           <div className="animate-enter">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6" style={{ backgroundColor: 'var(--bg-light)', color: 'var(--brand-blue)' }}>
-              <span className="material-symbols-outlined text-[32px]">vpn_key</span>
-            </div>
-            
-            <h1 className="text-2xl font-extrabold mb-2" style={{ color: 'var(--text-dark)' }}>
-              Student Pre-Enrollment
-            </h1>
-            <p className="mb-8 text-[14px] leading-relaxed" style={{ color: 'var(--text-light)' }}>
-              Welcome! Please enter the 6-digit section code provided by your child's adviser to begin.
-            </p>
-            
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 bg-blue-50 text-blue-500"><span className="material-symbols-outlined text-[32px]">vpn_key</span></div>
+            <h1 className="text-2xl font-extrabold mb-2">Student Pre-Enrollment</h1>
+            <p className="mb-8 text-sm">Enter the 6-digit code from your teacher.</p>
             <form onSubmit={handleVerifyCode} className="flex flex-col gap-6">
-              
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
-                  {code.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => (inputRefs.current[index] = el)}
-                      type="text"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleCodeChange(e, index)}
-                      onKeyDown={(e) => handleCodeKeyDown(e, index)}
-                      className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold uppercase rounded-xl transition-all outline-none border-2 ${codeError ? 'border-red-400 bg-red-50' : ''}`}
-                      style={{
-                        backgroundColor: codeError ? '#fef2f2' : digit ? 'var(--white)' : 'var(--bg-gray)',
-                        borderColor: codeError ? '#f87171' : digit ? 'var(--primary-blue)' : 'var(--border-color)',
-                        color: codeError ? '#991b1b' : 'var(--text-dark)',
-                        boxShadow: digit && !codeError ? '0 0 0 3px rgba(57, 168, 237, 0.1)' : 'none'
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.borderColor = 'var(--primary-blue)';
-                        e.target.style.backgroundColor = 'var(--white)';
-                      }}
-                      onBlur={(e) => {
-                        if (!e.target.value && !codeError) {
-                          e.target.style.borderColor = 'var(--border-color)';
-                          e.target.style.backgroundColor = 'var(--bg-gray)';
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-                {codeError && (
-                  <p className="text-red-500 font-semibold text-[13px] animate-enter flex justify-center items-center gap-1 mt-2">
-                    <span className="material-symbols-outlined text-[16px]">error</span> {codeError}
-                  </p>
-                )}
+              <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
+                {code.map((digit, index) => (
+                  <input key={index} ref={(el) => (inputRefs.current[index] = el)} type="text" maxLength={1} value={digit} onChange={(e) => handleCodeChange(e, index)} onKeyDown={(e) => handleCodeKeyDown(e, index)} className="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 outline-none focus:border-blue-500" />
+                ))}
               </div>
-
-              <button 
-                type="submit" 
-                className="btn btn-primary w-full h-[55px] rounded-xl text-[16px] font-bold mt-2"
-                disabled={!isCodeComplete || isVerifying}
-                style={{ opacity: isCodeComplete ? 1 : 0.5, cursor: isCodeComplete ? 'pointer' : 'not-allowed' }}
-              >
-                {isVerifying ? "Verifying..." : "Verify Code"}
-              </button>
+              <button type="submit" className="btn btn-primary w-full h-[55px] rounded-xl font-bold" disabled={!isCodeComplete || isVerifying}>{isVerifying ? "Verifying..." : "Verify Code"}</button>
             </form>
-
-            <div className="mt-8 pt-6 border-t" style={{ borderColor: 'var(--border-color)' }}>
-              <Link to="/" className="inline-flex items-center gap-1 font-semibold text-sm transition-colors text-slate-500 hover:text-[#39a8ed]">
-                <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                Back to Home
-              </Link>
-            </div>
           </div>
         )}
 
-        {/* ==========================================
-            STEP 1: TERMS & CONDITIONS
-            ========================================== */}
         {step === 1 && (
           <div className="animate-enter">
             {verifiedClass && (
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 mb-8 text-left flex items-start gap-3">
-                <span className="material-symbols-outlined text-blue-500 mt-0.5">verified</span>
-                <div>
-                  <p className="text-[12px] font-bold text-blue-400 uppercase tracking-wider mb-0.5">Enrolling In</p>
-                  <p className="text-[15px] font-bold text-blue-900">{verifiedClass.section_name}</p>
-                  <p className="text-[13px] font-medium text-blue-700">Teacher: {verifiedClass.teacher_name}</p>
-                </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-8 text-left flex gap-3">
+                <span className="material-symbols-outlined text-blue-500">verified</span>
+                <div><p className="text-[12px] font-bold text-blue-400 uppercase">Enrolling In</p><p className="text-[15px] font-bold text-blue-900">{verifiedClass.section_name}</p></div>
               </div>
             )}
-            
-            <h1 className="text-2xl font-extrabold mb-2" style={{ color: 'var(--text-dark)' }}>Terms & Conditions</h1>
-            <p className="mb-6 text-[14px] leading-relaxed" style={{ color: 'var(--text-light)' }}>Please read and accept our enrollment policies.</p>
-
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 h-[220px] overflow-y-auto text-left text-[13px] mb-6 custom-scrollbar leading-relaxed text-slate-500">
-              <p className="mb-3"><strong className="text-slate-800 block mb-1">1. Data Privacy & Consent</strong> By enrolling your child, you consent to the processing of personal data.</p>
-              <p className="mb-3"><strong className="text-slate-800 block mb-1">2. QR Gate Pass Policy</strong> Digital passes are dynamically generated and strictly non-transferable.</p>
-              <p className="mb-3"><strong className="text-slate-800 block mb-1">3. Medical Accuracy</strong> Parents must provide accurate medical history.</p>
-              <p><strong className="text-slate-800 block mb-1">4. System Communication</strong> You agree to receive SMS and App notifications.</p>
+            <h1 className="text-2xl font-extrabold mb-2">Terms & Conditions</h1>
+            <div className="bg-slate-50 border rounded-xl p-5 h-[220px] overflow-y-auto text-left text-[13px] mb-6 leading-relaxed text-slate-500">
+              <p>Please read and accept the data privacy and enrollment policies.</p>
             </div>
-
-            <label className="flex items-start gap-3 text-left mb-8 cursor-pointer group">
-              <div className="relative flex items-start pt-0.5">
-                <input type="checkbox" className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-[#39a8ed] checked:border-[#39a8ed] transition-all cursor-pointer" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
-                <span className="material-symbols-outlined absolute text-white text-[16px] pointer-events-none opacity-0 peer-checked:opacity-100 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-bold transition-opacity">check</span>
-              </div>
-              <span className="text-[13px] font-medium text-slate-700">I have read and agree to the LuMINI Terms & Conditions.</span>
-            </label>
-
-            <div className="flex gap-3">
-              <button type="button" className="btn btn-outline flex-1 h-[55px] rounded-xl text-[16px]" onClick={() => setStep(0)}>Back</button>
-              <button type="button" className="btn btn-primary flex-1 h-[55px] rounded-xl text-[16px] font-bold" disabled={!agreed} style={{ opacity: agreed ? 1 : 0.5 }} onClick={() => setStep(2)}>Accept & Continue</button>
-            </div>
+            <label className="flex items-start gap-3 text-left mb-8 cursor-pointer"><input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" /><span className="text-[13px] font-medium">I agree to the LuMINI Terms & Conditions.</span></label>
+            <div className="flex gap-3"><button className="btn btn-outline flex-1" onClick={() => setStep(0)}>Back</button><button className="btn btn-primary flex-1 font-bold" disabled={!agreed} onClick={() => setStep(2)}>Accept</button></div>
           </div>
         )}
 
-        {/* ==========================================
-            STEP 2: STUDENT DETAILS
-            ========================================== */}
         {step === 2 && (
           <div className="animate-enter text-left">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-extrabold mb-1" style={{ color: 'var(--text-dark)' }}>Student Details</h1>
-              <p className="text-[14px]" style={{ color: 'var(--text-light)' }}>Tell us about your child.</p>
-            </div>
-
-            <div className="flex flex-col items-center mb-6">
-              <div className="relative w-[100px] h-[100px] rounded-full shadow-md group cursor-pointer border-4" style={{ borderColor: 'var(--white)' }} onClick={() => setShowPhotoGuidelines(true)}>
-                <img src={studentPreviewUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${studentData.firstName || 'Student'}`} alt="Preview" className="w-full h-full rounded-full object-cover bg-slate-100" />
-                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="material-symbols-outlined text-white text-[28px]">photo_camera</span></div>
-                {!studentPreviewUrl && <div className="absolute bottom-0 right-0 w-8 h-8 rounded-full border-2 border-white flex items-center justify-center bg-slate-800"><span className="material-symbols-outlined text-white text-[16px]">add_a_photo</span></div>}
+            <h1 className="text-center text-2xl font-extrabold mb-6">Student Details</h1>
+            <div className="flex flex-col items-center mb-6" onClick={() => setShowPhotoGuidelines(true)}>
+              <div className="relative w-[100px] h-[100px] rounded-full shadow-md cursor-pointer border-4 border-white">
+                <img src={studentPreviewUrl || `https://api.dicebear.com/7.x/initials/svg?seed=S`} className="w-full h-full rounded-full object-cover" alt="Preview" />
                 <input type="file" id="studentPhotoInput" accept="image/*" hidden onChange={handleStudentImageSelect} />
               </div>
-              <p className="text-xs mt-2 font-medium" style={{ color: 'var(--text-light)' }}>Upload Photo (Optional)</p>
             </div>
-
             <div className="flex flex-col gap-4 mb-8">
-              <div className="form-group">
-                 <label className="text-[13px] font-semibold mb-1 block text-slate-500">First Name <span className="text-red-500">*</span></label>
-                 <input type="text" name="firstName" value={studentData.firstName} onChange={handleStudentChange} className="form-input-modal" placeholder="e.g. Arvin" required />
-              </div>
-              <div className="flex gap-3">
-                <div className="form-group flex-[2]">
-                   <label className="text-[13px] font-semibold mb-1 block text-slate-500">Last Name <span className="text-red-500">*</span></label>
-                   <input type="text" name="lastName" value={studentData.lastName} onChange={handleStudentChange} className="form-input-modal" placeholder="e.g. Dela Rosa" required />
-                </div>
-                <div className="form-group flex-1">
-                   <label className="text-[13px] font-semibold mb-1 block text-slate-500">Suffix</label>
-                   <input type="text" name="suffix" value={studentData.suffix} onChange={handleStudentChange} className="form-input-modal" placeholder="e.g. Jr" />
-                </div>
-              </div>
-              <div className="flex gap-3">
-                 <div className="form-group flex-[1.5]">
-                   <label className="text-[13px] font-semibold mb-1 block text-slate-500">Birthdate <span className="text-red-500">*</span></label>
-                   <input type="date" name="birthdate" value={studentData.birthdate} onChange={handleStudentChange} className="form-input-modal" required />
-                </div>
-                <div className="form-group flex-1">
-                   <label className="text-[13px] font-semibold mb-1 block text-slate-500">Gender <span className="text-red-500">*</span></label>
-                   <div className="relative">
-                     <select name="gender" value={studentData.gender} onChange={handleStudentChange} className="form-input-modal appearance-none w-full bg-white cursor-pointer" required>
-                       <option value="" disabled>Select</option>
-                       <option value="Male">Male</option>
-                       <option value="Female">Female</option>
-                     </select>
-                     <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">expand_more</span>
-                   </div>
-                </div>
-              </div>
+              <input type="text" name="firstName" value={studentData.firstName} onChange={handleStudentChange} className="form-input-modal" placeholder="First Name" />
+              <input type="text" name="lastName" value={studentData.lastName} onChange={handleStudentChange} className="form-input-modal" placeholder="Last Name" />
+              <div className="flex gap-3"><input type="date" name="birthdate" value={studentData.birthdate} onChange={handleStudentChange} className="form-input-modal flex-1" /><select name="gender" value={studentData.gender} onChange={handleStudentChange} className="form-input-modal flex-1"><option value="">Gender</option><option value="Male">Male</option><option value="Female">Female</option></select></div>
             </div>
-
-            <div className="flex gap-3">
-              <button type="button" className="btn btn-outline flex-1 h-[55px] rounded-xl text-[16px]" onClick={() => setStep(1)}>Back</button>
-              <button type="button" className="btn btn-primary flex-1 h-[55px] rounded-xl text-[16px] font-bold" disabled={!isStudentComplete} style={{ opacity: isStudentComplete ? 1 : 0.5 }} onClick={() => setStep(3)}>Continue</button>
-            </div>
+            <div className="flex gap-3"><button className="btn btn-outline flex-1" onClick={() => setStep(1)}>Back</button><button className="btn btn-primary flex-1 font-bold" disabled={!isStudentComplete} onClick={() => setStep(3)}>Continue</button></div>
           </div>
         )}
 
-        {/* ==========================================
-            STEP 3: PARENT DETAILS
-            ========================================== */}
         {step === 3 && (
           <div className="animate-enter text-left">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-extrabold mb-1" style={{ color: 'var(--text-dark)' }}>Parent / Guardian Info</h1>
-              <p className="text-[14px]" style={{ color: 'var(--text-light)' }}>Who should we contact?</p>
-            </div>
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-3">
-               <span className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
-               <p className="text-[13px] text-blue-800 leading-relaxed">Ensure contact info is <strong className="font-bold">active</strong> for gate pass alerts.</p>
-            </div>
+            <h1 className="text-center text-2xl font-extrabold mb-6">Parent Info</h1>
             <div className="flex flex-col gap-4 mb-8">
-              <div className="flex gap-3">
-                <div className="form-group flex-1">
-                   <label className="text-[13px] font-semibold mb-1 block text-slate-500">First Name <span className="text-red-500">*</span></label>
-                   <input type="text" name="firstName" value={parentData.firstName} onChange={handleParentChange} className="form-input-modal" required />
-                </div>
-                <div className="form-group flex-1">
-                   <label className="text-[13px] font-semibold mb-1 block text-slate-500">Last Name <span className="text-red-500">*</span></label>
-                   <input type="text" name="lastName" value={parentData.lastName} onChange={handleParentChange} className="form-input-modal" required />
-                </div>
-              </div>
-              <div className="form-group">
-                 <label className="text-[13px] font-semibold mb-1 block text-slate-500">Contact Number <span className="text-red-500">*</span></label>
-                 <div className="relative">
-                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">call</span>
-                   <input type="text" name="phone" value={parentData.phone} onChange={handlePhoneChange} className="form-input-modal" style={{ paddingLeft: '42px' }} required />
-                 </div>
-              </div>
-              <div className="form-group">
-                 <label className="text-[13px] font-semibold mb-1 block text-slate-500">Email <span className="text-red-500">*</span></label>
-                 <div className="relative">
-                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
-                   <input type="email" name="email" value={parentData.email} onChange={handleParentChange} className="form-input-modal" style={{ paddingLeft: '42px' }} required />
-                 </div>
-              </div>
+              <div className="flex gap-3"><input type="text" name="firstName" value={parentData.firstName} onChange={handleParentChange} className="form-input-modal" placeholder="First Name" /><input type="text" name="lastName" value={parentData.lastName} onChange={handleParentChange} className="form-input-modal" placeholder="Last Name" /></div>
+              <input type="text" value={parentData.phone} onChange={handlePhoneChange} className="form-input-modal" placeholder="Contact Number" />
+              <input type="email" name="email" value={parentData.email} onChange={handleParentChange} className="form-input-modal" placeholder="Email" />
             </div>
-            <div className="flex gap-3">
-              <button type="button" className="btn btn-outline flex-1 h-[55px] rounded-xl text-[16px]" onClick={() => setStep(2)}>Back</button>
-              <button type="button" className="btn btn-primary flex-1 h-[55px] rounded-xl text-[16px] font-bold" disabled={!isParentComplete} style={{ opacity: isParentComplete ? 1 : 0.5 }} onClick={() => setStep(4)}>Review</button>
-            </div>
+            <div className="flex gap-3"><button className="btn btn-outline flex-1" onClick={() => setStep(2)}>Back</button><button className="btn btn-primary flex-1 font-bold" disabled={!isParentComplete} onClick={() => setStep(4)}>Review</button></div>
           </div>
         )}
 
-        {/* ==========================================
-            STEP 4: REVIEW
-            ========================================== */}
         {step === 4 && (
           <div className="animate-enter text-left">
-            <div className="text-center mb-6">
-              <h1 className="text-2xl font-extrabold mb-1" style={{ color: 'var(--text-dark)' }}>Review Details</h1>
-              <p className="text-[14px]" style={{ color: 'var(--text-light)' }}>Almost done! Please double-check your data.</p>
+            <h1 className="text-center text-2xl font-extrabold mb-6">Review</h1>
+            <div className="bg-slate-50 rounded-xl border p-5 mb-8">
+               <div className="flex justify-between mb-4 border-b pb-2"><span className="text-sm">Section</span><span className="font-bold text-blue-500">{verifiedClass?.section_name}</span></div>
+               <p className="font-bold text-sm mb-2">Student: {studentData.firstName} {studentData.lastName}</p>
+               <p className="text-sm">Parent: {parentData.firstName} {parentData.lastName}</p>
             </div>
-
-            <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 mb-8">
-               <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200">
-                 <span className="text-[13px] font-semibold text-slate-500">Section Code</span>
-                 <span className="font-bold text-[#39a8ed] tracking-widest text-[16px]">{code.join('')}</span>
-               </div>
-               <div className="mb-4 pb-4 border-b border-slate-200">
-                 <h4 className="text-[14px] font-bold text-slate-700 mb-3 flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">school</span> Student</h4>
-                 <div className="flex items-center gap-4">
-                   <img src={studentPreviewUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${studentData.firstName}`} alt="Student" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
-                   <div>
-                     <p className="font-bold text-slate-800 text-[15px]">{studentData.firstName} {studentData.lastName} {studentData.suffix}</p>
-                     <p className="text-[12px] text-slate-500 font-medium">{studentData.gender} • {studentData.birthdate}</p>
-                   </div>
-                 </div>
-               </div>
-               <div>
-                 <h4 className="text-[14px] font-bold text-slate-700 mb-3 flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">family_restroom</span> Guardian</h4>
-                 <div className="grid grid-cols-[80px_1fr] gap-y-2 text-[13px]">
-                   <span className="text-slate-500 font-medium">Name:</span><span className="font-semibold text-slate-800 text-right">{parentData.firstName} {parentData.lastName}</span>
-                   <span className="text-slate-500 font-medium">Contact:</span><span className="font-semibold text-slate-800 text-right">{parentData.phone}</span>
-                   <span className="text-slate-500 font-medium">Email:</span><span className="font-semibold text-slate-800 text-right break-all">{parentData.email}</span>
-                 </div>
-               </div>
-            </div>
-            <div className="flex gap-3">
-              <button type="button" className="btn btn-outline flex-1 h-[55px] rounded-xl text-[16px]" onClick={() => setStep(3)}>Back</button>
-              <button 
-                type="button" 
-                className="btn btn-save flex-1 h-[55px] rounded-xl text-[16px] font-bold" 
-                onClick={handleFinalSubmit}
-                disabled={isSubmitting}
-                style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'wait' : 'pointer' }}
-              >
-                {isSubmitting ? 'Sending...' : 'Submit Application'}
-              </button>
-            </div>
+            <div className="flex gap-3"><button className="btn btn-outline flex-1" onClick={() => setStep(3)}>Back</button><button className="btn btn-save flex-1 font-bold" onClick={handleFinalSubmit} disabled={isSubmitting}>{isSubmitting ? 'Sending...' : 'Submit'}</button></div>
           </div>
         )}
-
       </div>
     </div>
   );

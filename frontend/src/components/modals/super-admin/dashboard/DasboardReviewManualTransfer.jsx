@@ -4,6 +4,8 @@ import axios from 'axios';
 import FormInputRegistration from '../../../FormInputRegistration';
 import AdminConfirmModal from '../../super-admin/SuperadminConfirmationModal'; 
 
+// Added the dynamic backend URL
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }) {
   const [confirmConfig, setConfirmConfig] = useState({
@@ -33,6 +35,7 @@ export function DashboardReviewOverrideModal({ onView, isClose, ovr, onSuccess }
 
   const handleApproveAction = async () => {
     try {
+      // Updated to use BACKEND_URL
       const { data } = await axios.patch(
         `${BACKEND_URL}/api/transfer/override/${ovr._id}/approve`, 
         {}, 

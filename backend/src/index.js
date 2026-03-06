@@ -10,16 +10,20 @@ import passport from "passport";
 import MongoStore from "connect-mongo";
 import router from "./routes/index.js";
 import "./config/passport.js";
-import path from "path"; // <-- ADDED PATH IMPORT
+import path from "path";
 
 const PORT = process.env.PORT || 3000;
 const app = express();
 const httpServer = createServer(app);
 
+// 1. DYNAMIC FRONTEND URL (Defaults to localhost for your local testing)
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+// 2. UPDATED SOCKET.IO CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "PATCH", "PUT"],
+    origin: [FRONTEND_URL, "http://localhost:5173"], 
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true
   }
 });
@@ -31,24 +35,31 @@ mongoose
   .then(() => console.log("Connected to Database"))
   .catch((err) => console.log(`Error ${err}`));
 
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  }),
-);
+// 3. UPDATED EXPRESS CORS
+app.use(cors({
+    origin: [FRONTEND_URL, "http://localhost:5173"], 
+    credentials: true 
+}));
+
 app.use(express.json());
 
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(cookieParser(process.env.COOKIE_SECRET));
+
+// 4. PRODUCTION-READY COOKIES
+// If we are in production, cookies need secure:true to work across domains
+const isProduction = process.env.NODE_ENV === "production";
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
     saveUninitialized: false,
     resave: false,
     cookie: {
-      maxAge: 60000 * 60,
+      maxAge: 60000 * 60, // 1 hour
+      secure: isProduction, // TRUE in production (requires HTTPS)
+      sameSite: isProduction ? "none" : "lax", // REQUIRED for cross-domain cookies
     },
     store: MongoStore.create({
       mongoUrl: process.env.MONGO_URI,
@@ -56,12 +67,13 @@ app.use(
     }),
   }),
 );
+
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(router);
 
 app.get("/", (req, res) => {
-  res.send("Server is running!");
+  res.send("LuMINI Backend Server is running successfully!");
 });
 
 httpServer.listen(PORT, () => {

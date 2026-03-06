@@ -6,6 +6,9 @@ import "../../../../../styles/user/parent/manage-guardian.css";
 import "../../../../../index.css";
 import SuccessModal from "../../../../SuccessModal";
 
+// Added dynamic backend URL support
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   const [confirmText, setConfirmText] = useState("");
@@ -22,7 +25,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
     firstName: "",
     lastName: "",
     email: "",
-    phone: "09", // <-- DEFAULT TO "09"
+    phone: "09",
     role: "",
     username: "",
     password: "",
@@ -31,13 +34,13 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
 
   useEffect(() => {
     if (isOpen) {
-      axios.get('http://localhost:3000/api/parent/children', { withCredentials: true })
+      // Updated to use BACKEND_URL
+      axios.get(`${BACKEND_URL}/api/parent/children`, { withCredentials: true })
         .then(response => {
           if (response.data.success || response.data.children) {
             const fetchedChildren = response.data.children || [];
             setChildrenList(fetchedChildren);
             
-            // Auto-check all children by default for convenience
             if (fetchedChildren.length > 0) {
               setFormData(prev => ({ 
                 ...prev, 
@@ -62,7 +65,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       firstName: "",
       lastName: "",
       email: "",
-      phone: "09", // <-- RESET BACK TO "09"
+      phone: "09",
       role: "",
       username: "",
       password: "",
@@ -86,19 +89,13 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
     const { name, value } = e.target;
     let newFormData = { ...formData };
 
-    // --- NEW: STRICT PHONE NUMBER LOGIC ---
     if (name === "phone") {
-      // 1. Remove anything that isn't a number
       let numericVal = value.replace(/\D/g, '');
-      
-      // 2. Force it to always start with 09
       if (numericVal.length < 2) {
         numericVal = "09"; 
       } else if (!numericVal.startsWith("09")) {
         numericVal = "09" + numericVal.substring(2);
       }
-      
-      // 3. Cap at 11 digits max
       newFormData.phone = numericVal.slice(0, 11);
     } else {
       newFormData[name] = value;
@@ -138,7 +135,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       formData.student_ids.length > 0 && 
       formData.firstName.trim() !== "" &&
       formData.lastName.trim() !== "" &&
-      formData.phone.length === 11 && // <-- MUST BE EXACTLY 11 DIGITS NOW
+      formData.phone.length === 11 &&
       formData.role.trim() !== "" &&
       formData.password.length >= 8
     );
@@ -157,8 +154,9 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       dataToSend.append("password", formData.password);
       dataToSend.append("idFile", formData.idFile); 
 
+      // Updated to use BACKEND_URL
       await axios.post(
-        "http://localhost:3000/api/parent/guardian-request",
+        `${BACKEND_URL}/api/parent/guardian-request`,
         dataToSend,
         {
           headers: { "Content-Type": "multipart/form-data" },
@@ -208,7 +206,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       case 2:
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            
             <div className="form-group p-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl">
               <label className="modal-label" style={{ marginBottom: "12px" }}>Assign Guardian To Student(s):</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -251,7 +248,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
                   placeholder="09123456789" 
                   value={formData.phone} 
                   onChange={handleInputChange} 
-                  maxLength={11} // <-- EXTRA HTML CONSTRAINT
+                  maxLength={11}
                 />
               </div>
               <div>

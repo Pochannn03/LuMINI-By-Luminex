@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
@@ -11,6 +11,7 @@ import NavBar from "../../components/navigation/NavBar";
 import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
 
+// DYNAMIC BACKEND URL
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function SuperAdminDashboard() {
@@ -29,14 +30,12 @@ export default function SuperAdminDashboard() {
     loading: true
   });
 
-  // STATE FOR ANNOUNCEMENT
   const [announcementData, setAnnouncementData] = useState({
     content: '',
     category: 'notifications_active'
   });
   const [posting, setPosting] = useState(false);
 
-  // --- NEW: SUCCESS MODAL STATE ---
   const [successModalConfig, setSuccessModalConfig] = useState({
     isOpen: false,
     message: ""
@@ -46,6 +45,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
+        // Updated to use BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/users/cards`, { 
           withCredentials: true 
         });
@@ -74,6 +74,7 @@ export default function SuperAdminDashboard() {
     const fetchPendingOverrides = async () => {
         setLoadingOverrides(true);
         try {
+            // Updated to use BACKEND_URL
             const response = await axios.get(`${BACKEND_URL}/api/transfer/override`, { 
                 withCredentials: true 
             });
@@ -94,6 +95,7 @@ export default function SuperAdminDashboard() {
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
+        // Updated to use BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/feedback`, { 
           withCredentials: true 
         });
@@ -110,7 +112,8 @@ export default function SuperAdminDashboard() {
   }, []);
   
   useEffect(() => {
-    const socket = io(`${BACKEND_URL}`, { withCredentials: true });
+    // Updated to use BACKEND_URL
+    const socket = io(BACKEND_URL, { withCredentials: true });
 
     socket.on('teacher_processed', (data) => {
       setPendingTeachers(prev => prev.filter(tch => tch._id !== data.id));
@@ -154,7 +157,8 @@ export default function SuperAdminDashboard() {
 
     try {
       setPosting(true);
-      const response = await axios.post("${BACKEND_URL}/api/announcements", 
+      // Updated to use BACKEND_URL
+      const response = await axios.post(`${BACKEND_URL}/api/announcements`, 
         { 
           announcement: announcementData.content,
           category: announcementData.category
@@ -190,7 +194,6 @@ export default function SuperAdminDashboard() {
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
 
-      {/* --- NEW: RENDER THE SUCCESS MODAL --- */}
       <SuccessModal 
         isOpen={successModalConfig.isOpen}
         onClose={() => setSuccessModalConfig({ isOpen: false, message: "" })}
@@ -223,9 +226,7 @@ export default function SuperAdminDashboard() {
 
               <div className="card stat-card">
                 <div className="stat-icon purple-bg">
-                  <span className="material-symbols-outlined"
-                    >cast_for_education</span
-                  >
+                  <span className="material-symbols-outlined">cast_for_education</span>
                 </div>
                 <div className="stat-info">
                   <h3 id="statTotalTeachers">{stats.loading ? "--" : stats.totalTeachers}</h3> 
@@ -255,12 +256,10 @@ export default function SuperAdminDashboard() {
                 <p className="text-cgray p-[15px]">Loading Pending Teachers...</p>
               )}
 
-              {/* 2. Empty State */}
               {!loadingTeachers && pendingTeachers.length === 0 && (
                 <p className="text-cgray p-[15px] text-sm">No Pending Account Found.</p>
               )}
 
-              {/* 3. Render Cards */}
               {!loadingTeachers && pendingTeachers.map((tch) => (
                 <DashboardPendingAccCard 
                   key={tch._id || tch.user_id} 
@@ -285,12 +284,10 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="flex flex-col gap-4">
-              {/* Use loadingOverrides instead of loadingTeachers */}
               {loadingOverrides && (
                 <p className="text-cgray p-[15px]">Loading Manual Transfers...</p>
               )}
 
-              {/* Use pendingOverrides state */}
               {!loadingOverrides && pendingOverrides.length === 0 && (
                 <p className="text-cgray p-[15px] text-sm">No Pending Manual Transfer Found.</p>
               )}
@@ -301,7 +298,6 @@ export default function SuperAdminDashboard() {
                   ovr={ovr}
                   onSuccess={(msg) => {
                     setSuccessModalConfig({ isOpen: true, message: msg });
-                    // Optional: Remove the item from local state so it disappears immediately
                     setPendingOverrides(prev => prev.filter(item => item._id !== ovr._id));
                   }}
                 />
@@ -315,60 +311,36 @@ export default function SuperAdminDashboard() {
           <div className="card p-6">
             <div className="mb-6">
               <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined orange-icon text-[24px]">
-                  settings_suggest
-                </span>
+                <span className="material-symbols-outlined orange-icon text-[24px]">settings_suggest</span>
                 <h2 className="text-cdark text-[18px] font-bold">Quick Management</h2>
               </div>
-              <p className="text-cgray text-[13px]! leading-normal!">
-                Access key administrative areas.
-              </p>
+              <p className="text-cgray text-[13px]! leading-normal!">Access administrative areas.</p>
             </div>
 
             <div className="flex flex-col gap-3">
               <Link to="/superadmin/manage-class" className="quick-link-item">
-                <div className="link-icon-box icon-blue">
-                    <span className="material-symbols-outlined">manage_accounts</span>
-                </div>
+                <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">manage_accounts</span></div>
                 <div className="flex flex-col flex-1 gap-0.5">
                   <h3 className="text-cdark text-[15px]! font-semibold! m-0">Manage Classes & Students</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Add, edit, or remove classes and student profiles.</p>
+                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Add, edit, or remove profiles.</p>
                 </div>
-                <div>
-                  <span className="material-symbols-outlined arrow-icon">
-                    chevron_right
-                  </span>
-                </div>
+                <span className="material-symbols-outlined arrow-icon">chevron_right</span>
               </Link>
-              
               <Link to="/superadmin/accounts" className="quick-link-item">
-                <div className="link-icon-box icon-blue">
-                    <span className="material-symbols-outlined">group</span>
-                </div>
+                <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">group</span></div>
                 <div className="flex flex-col flex-1 gap-0.5">
                   <h3 className="text-cdark text-[15px]! font-semibold! m-0">Accounts</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Manage user accounts and deactivate access.</p>
+                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Manage user access.</p>
                 </div>
-                <div>
-                  <span className="material-symbols-outlined arrow-icon">
-                    chevron_right
-                  </span>
-                </div>
+                <span className="material-symbols-outlined arrow-icon">chevron_right</span>
               </Link>
-
               <Link to="/superadmin/qr-gate" className="quick-link-item">
-                <div className="link-icon-box icon-blue">
-                    <span className="material-symbols-outlined">qr_code</span>
-                </div>
+                <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">qr_code</span></div>
                 <div className="flex flex-col flex-1 gap-0.5">
                   <h3 className="text-cdark text-[15px]! font-semibold! m-0">Qr Gate</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Qr for Parent or Guardian to scan on gate</p>
+                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Scanning entry point.</p>
                 </div>
-                <div>
-                  <span className="material-symbols-outlined arrow-icon">
-                    chevron_right
-                  </span>
-                </div>
+                <span className="material-symbols-outlined arrow-icon">chevron_right</span>
               </Link>
             </div>
           </div>
@@ -376,28 +348,19 @@ export default function SuperAdminDashboard() {
           <div className="card p-6">
             <div className="mb-6">
               <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined yellow-icon text-[24px]">
-                  feedback
-                </span>
+                <span className="material-symbols-outlined yellow-icon text-[24px]">feedback</span>
                 <h2 className="text-cdark text-[18px] font-bold">Feedbacks</h2>
               </div>
             </div>
             
-            {/* Content Below is for Quick System Notification */}
             <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {feedbacks && feedbacks.length > 0 ? (
                 feedbacks.map((fb) => (
-                  <DashboardFeedbackCard 
-                    key={fb._id} 
-                    item={fb} 
-                    onClick={handleOpenFeedback} 
-                  />
+                  <DashboardFeedbackCard key={fb._id} item={fb} onClick={handleOpenFeedback} />
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <span className="material-symbols-outlined text-slate-300 text-[32px] mb-2">
-                    chat_bubble_outline
-                  </span>
+                  <span className="material-symbols-outlined text-slate-300 text-[32px] mb-2">chat_bubble_outline</span>
                   <span className="text-cgray text-[13px] font-medium">No feedback yet</span>
                 </div>
               )}
@@ -407,27 +370,14 @@ export default function SuperAdminDashboard() {
           <div className="card action-card flex flex-col p-6 mb-6">
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${
-                  announcementData.category === 'campaign' ? 'bg-red-50' : 
-                  announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'
-                }`}>
-                  <span className={`material-symbols-outlined text-[22px] ${
-                    announcementData.category === 'campaign' ? 'text-red-600' : 
-                    announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'
-                  }`}>
-                    {announcementData.category}
-                  </span>
+                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${announcementData.category === 'campaign' ? 'bg-red-50' : announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'}`}>
+                  <span className={`material-symbols-outlined text-[22px] ${announcementData.category === 'campaign' ? 'text-red-600' : announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'}`}>{announcementData.category}</span>
                 </div>
                 <h2 className="text-cdark font-bold text-[18px]! -m-2">System Announcement</h2>
               </div>
-              <p className="text-cgray leading-normal text-[14px]! mb-3">Broadcast a message to all users in the system.</p>
+              <p className="text-cgray leading-normal text-[14px]! mb-3">Broadcast a message to all users.</p>
 
-              <select 
-                name="category"
-                value={announcementData.category}
-                onChange={handleAnnChange}
-                className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer transition-all focus:border-slate-400"
-              >
+              <select name="category" value={announcementData.category} onChange={handleAnnChange} className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer focus:border-slate-400">
                 <option value="notifications_active">General Announcement</option>
                 <option value="campaign">Emergency Alert</option>
                 <option value="calendar_month">System Maintenance / Event</option>
@@ -435,43 +385,21 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div className="announcement-box mt-1">
-              <textarea 
-                name="content"
-                className="text-cdark w-full h-24 border border-slate-100 p-3 rounded-xl bg-slate-50/50 resize-none text-[14px] outline-none focus:bg-white focus:border-blue-200 transition-all" 
-                placeholder="Type your system-wide message here..."
-                value={announcementData.content}
-                onChange={handleAnnChange}
-                disabled={posting}
-              />
+              <textarea name="content" className="text-cdark w-full h-24 border border-slate-100 p-3 rounded-xl bg-slate-50/50 resize-none text-[14px] outline-none focus:bg-white focus:border-blue-200 transition-all" placeholder="Type your system-wide message here..." value={announcementData.content} onChange={handleAnnChange} disabled={posting} />
               <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
-                <div className="text-[12px] text-cgray">
-                  {announcementData.content.length} characters
-                </div>
-                <button 
-                  className={`btn-post ${posting || !announcementData.content.trim() ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded-lg font-bold transition-all`}
-                  onClick={handlePostAnnouncement}
-                  disabled={posting || !announcementData.content.trim()}
-                >
+                <div className="text-[12px] text-cgray">{announcementData.content.length} characters</div>
+                <button className={`btn-post ${posting || !announcementData.content.trim() ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded-lg font-bold transition-all`} onClick={handlePostAnnouncement} disabled={posting || !announcementData.content.trim()}>
                   {posting ? 'Sending...' : 'Post to All'}
                 </button>
               </div>
             </div>
           </div>
         </div>
-
       </div>
     </main>
 
-    <RejectedTransferHistoryModal 
-      isOpen={showRejectedModal} 
-      onClose={() => setShowRejectedModal(false)} 
-    />
-
-    <DashboardFeedbackModal 
-      isOpen={isFeedbackModalOpen} 
-      onClose={() => setIsFeedbackModalOpen(false)} 
-      feedback={selectedFeedback} 
-    />
+    <RejectedTransferHistoryModal isOpen={showRejectedModal} onClose={() => setShowRejectedModal(false)} />
+    <DashboardFeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} feedback={selectedFeedback} />
 
     </div>
   );

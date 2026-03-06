@@ -3,6 +3,8 @@ import axios from 'axios';
 import { createPortal } from "react-dom";
 import WarningModal from '../../../WarningModal'; // <-- Replaced alert() with your WarningModal
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+
 export default function ClassManageDeleteClassModal({ isOpen, onClose, classData, onSuccess }) {
   const [confirmationInput, setConfirmationInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +38,7 @@ export default function ClassManageDeleteClassModal({ isOpen, onClose, classData
 
     setLoading(true);
     try {
-      const response = await axios.put(`http://localhost:3000/api/sections/archive/${classData._id}`, {}, {
+      const response = await axios.put(`${BACKEND_URL}/api/sections/archive/${classData._id}`, {}, {
         withCredentials: true
       });
 
