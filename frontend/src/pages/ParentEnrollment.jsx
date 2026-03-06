@@ -249,16 +249,44 @@ export default function ParentEnrollment() {
 
         {step === 0 && (
           <div className="animate-enter">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 bg-blue-50 text-blue-500"><span className="material-symbols-outlined text-[32px]">vpn_key</span></div>
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 bg-blue-50 text-blue-500">
+              <span className="material-symbols-outlined text-[32px]">vpn_key</span>
+            </div>
             <h1 className="text-2xl font-extrabold mb-2">Student Pre-Enrollment</h1>
             <p className="mb-8 text-sm">Enter the 6-digit code from your teacher.</p>
+            
             <form onSubmit={handleVerifyCode} className="flex flex-col gap-6">
               <div className="flex justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
                 {code.map((digit, index) => (
-                  <input key={index} ref={(el) => (inputRefs.current[index] = el)} type="text" maxLength={1} value={digit} onChange={(e) => handleCodeChange(e, index)} onKeyDown={(e) => handleCodeKeyDown(e, index)} className="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 outline-none focus:border-blue-500" />
+                  <input 
+                    key={index} 
+                    ref={(el) => (inputRefs.current[index] = el)} 
+                    type="text" 
+                    maxLength={1} 
+                    value={digit} 
+                    onChange={(e) => handleCodeChange(e, index)} 
+                    onKeyDown={(e) => handleCodeKeyDown(e, index)} 
+                    className="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 outline-none focus:border-blue-500" 
+                  />
                 ))}
               </div>
-              <button type="submit" className="btn btn-primary w-full h-[55px] rounded-xl font-bold" disabled={!isCodeComplete || isVerifying}>{isVerifying ? "Verifying..." : "Verify Code"}</button>
+              
+              <button 
+                type="submit" 
+                className="btn btn-primary w-full h-[55px] rounded-xl font-bold" 
+                disabled={!isCodeComplete || isVerifying}
+              >
+                {isVerifying ? "Verifying..." : "Verify Code"}
+              </button>
+
+              {/* BACK TO LANDING LINK */}
+              <Link 
+                to="/" 
+                className="text-sm font-medium text-slate-500 hover:text-blue-500 transition-colors flex items-center justify-center gap-1 mt-2"
+              >
+                <span className="material-symbols-outlined text-sm">arrow_back</span>
+                Back to Home
+              </Link>
             </form>
           </div>
         )}

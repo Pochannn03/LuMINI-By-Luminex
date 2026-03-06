@@ -303,68 +303,64 @@ export default function AdminAttendance() {
                     </button>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-2 w-full">
-                    <div className="filter-wrapper relative flex-1 min-w-0 max-w-40 sm:max-w-none" ref={filterRef}>
+                  {/* RIGHT SIDE: Filter & Calendar Wrapper */}
+                  <div className="flex flex-col md:flex-row items-center gap-2 w-full xl:w-auto xl:ml-auto">
+                    
+                    {/* CUSTOM SECTION FILTER (Compact Size) */}
+                    <div className="relative w-full md:w-44" ref={filterRef}>
                       <button 
-                        className={`btn-filter flex w-full items-center justify-center gap-1.5 px-2 sm:px-4 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all font-bold text-slate-700 ${isFilterOpen ? "active ring-2 ring-blue-100" : ""}`} 
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
-                        style={{ height: '38px', textTransform: 'uppercase' }}
+                        className={`flex items-center justify-between w-full h-[38px] px-3 rounded-xl border bg-slate-50 transition-all duration-200 cursor-pointer ${
+                          isFilterOpen ? "border-(--brand-blue) ring-2 ring-blue-500/10 bg-white" : "border-slate-200"
+                        }`}
                       >
-                        <span className="material-symbols-outlined text-[16px] sm:text-[18px] shrink-0">filter_list</span> 
-                        <span className="text-[11px] sm:text-[12px] whitespace-nowrap truncate">
-                          {selectedSection === "all" ? "All Sections" : selectedSection}
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="material-symbols-outlined text-slate-400 text-[18px] mr-0.5 shrink-0">
+                            {selectedSection === "all" ? "groups" : "inbox"}
+                          </span>
+                          <span className="text-[12px] font-semibold text-slate-700 uppercase truncate">
+                            {selectedSection === "all" ? "Sections" : selectedSection}
+                          </span>
+                        </div>
+                        <span className={`material-symbols-outlined text-slate-400 text-[18px] transition-transform duration-300 ${isFilterOpen ? "rotate-180" : ""}`}>
+                          expand_more
                         </span>
                       </button>
-                      
+
                       {isFilterOpen && (
-                        <div className="filter-dropdown-menu absolute bg-white shadow-lg border border-slate-100 rounded-xl mt-2 w-48 z-50 overflow-hidden" style={{ top: '100%', left: 0 }}>
+                        <div className="absolute top-[42px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 animate-[fadeIn_0.2s_ease-out]">
                           <button 
-                            className="filter-option w-full text-left px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors border-b border-slate-50" 
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-(--brand-blue) transition-colors"
                             onClick={() => { setSelectedSection("all"); setIsFilterOpen(false); }}
                           >
-                            <span className="material-symbols-outlined text-[16px]">groups</span> All Sections
+                            <span className="material-symbols-outlined text-[18px]">groups</span> All
                           </button>
-                          
-                          {teacherSections.map(section => (
+                          {teacherSections.map((section) => (
                             <button 
-                              key={section._id} 
-                              className="filter-option w-full text-left px-4 py-2.5 text-[13px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors border-b border-slate-50 last:border-0" 
+                              key={section._id}
+                              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-(--brand-blue) transition-colors"
                               onClick={() => { setSelectedSection(section.section_name); setIsFilterOpen(false); }}
                             >
-                              <span className="material-symbols-outlined text-[16px]">inbox</span> {section.section_name}
+                              <span className="material-symbols-outlined text-[18px]">inbox</span> {section.section_name}
                             </button>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                    {/* ACTION BUTTONS (Compact Height) */}
+                    <div className="flex items-center gap-1.5 w-full md:w-auto">
                       {isEditMode ? (
                         <>
-                          <button
-                            onClick={() => { setIsEditMode(false); setPendingChanges({}); }}
-                            className="text-slate-500 hover:text-slate-800 font-extrabold px-2 sm:px-3 text-[11px] sm:text-[12px] uppercase cursor-pointer h-[38px] flex items-center tracking-wider transition-colors shrink-0"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSubmitChanges}
-                            disabled={isSubmitting}
-                            className="bg-[#2563eb] hover:bg-blue-700 text-white rounded-xl font-bold px-3 sm:px-5 flex items-center gap-1.5 text-[12px] sm:text-[13px] transition-all shadow-sm cursor-pointer disabled:opacity-50 h-[38px] shrink-0 whitespace-nowrap"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">
-                              {isSubmitting ? 'hourglass_empty' : 'check_circle'}
-                            </span>
-                            {isSubmitting ? 'Save' : 'Submit'}
+                          <button onClick={() => { setIsEditMode(false); setPendingChanges({}); }} className="px-3 text-[11px] font-black uppercase text-slate-500 hover:text-slate-800 transition-colors h-[38px]">Cancel</button>
+                          <button onClick={handleSubmitChanges} disabled={isSubmitting} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-4 flex items-center justify-center gap-1.5 text-[12px] h-[38px] transition-all shadow-sm cursor-pointer disabled:opacity-50">
+                            <span className="material-symbols-outlined text-[16px]">{isSubmitting ? 'hourglass_empty' : 'check_circle'}</span>
+                            {isSubmitting ? 'Saving' : 'Submit'}
                           </button>
                         </>
                       ) : (
-                        <button
-                          onClick={() => setIsEditMode(true)}
-                          className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold px-4 flex items-center gap-2 text-[12px] sm:text-[13px] transition-all shadow-sm cursor-pointer h-[38px] w-full sm:w-auto justify-center shrink-0 whitespace-nowrap"
-                        >
-                          <span className="material-symbols-outlined text-[16px]">edit</span>
-                          Edit
+                        <button onClick={() => setIsEditMode(true)} className="w-full md:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold px-4 flex items-center justify-center gap-1.5 text-[12px] h-[38px] transition-all shadow-sm cursor-pointer">
+                          <span className="material-symbols-outlined text-[16px]">edit</span> Edit
                         </button>
                       )}
                     </div>
