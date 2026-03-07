@@ -27,6 +27,7 @@ const seedSuperAdmin = async () => {
       email: "admin@lumini.edu.ph",
       first_name: "Super",
       last_name: "Admin",
+      profile_picture: "uploads\\superadminLogo.png",
       phone_number: "09123456789",
       address: "Rizal Technological University",
       relationship: "SuperAdmin",
