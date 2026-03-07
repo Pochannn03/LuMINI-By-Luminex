@@ -3,11 +3,10 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 import { isAuthenticated } from '../middleware/authMiddleware.js';
-import { EnrollmentRequest } from "../models/EnrollmentRequest.js"; 
+import { EnrollmentRequest } from "../models/enrollmentRequest.js"; 
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js";
-import { Audit } from "../models/audits.js"; // <-- Ensure Audit is imported
-
+import { Audit } from "../models/audits.js";
 import { sendInvitationEmail, sendBulkSectionInvite, sendEnrollmentRejectedEmail } from '../utils/emailService.js';
 
 const router = Router();
