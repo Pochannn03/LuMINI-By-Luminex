@@ -461,7 +461,7 @@ export default function ManageApprovals() {
                   Submitted by <strong className="text-slate-700">{selectedRequest.parent ? `${selectedRequest.parent.first_name} ${selectedRequest.parent.last_name}` : "Unknown Parent"}</strong>
                 </p>
               </div>
-              <button className="text-slate-400 hover:text-red-500 transition-colors bg-transparent border-none cursor-pointer" onClick={() => setSelectedRequest(null)}>
+              <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setSelectedRequest(null)}>
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>

@@ -173,7 +173,7 @@ export default function SuperAdminClassManagement() {
                   </div>
                   <p className="text-cgray text-[14px]! leading-normal">Current classes in session.</p>
                 </div>
-                <div className="flex flex-row">
+                <div className="flex flex-row gap-3">
                   <button onClick={() => setIsSettingsModalOpen(true)} className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#f1f5f9] hover:bg-[#e2e8f0] text-[#1e293b] rounded-lg border-none cursor-pointer font-bold text-[12.5px] shadow-sm shrink-0">
                     <span className="material-symbols-outlined text-[18px]">settings</span>
                     <span className="hidden sm:inline">Settings</span>

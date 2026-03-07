@@ -87,7 +87,7 @@ export default function ClassManageArchivedClassesModal({ isOpen, onClose }) {
               <span className="material-symbols-outlined text-cgray">history</span>
               <h2 className="text-cdark text-[18px] font-bold">Class Archives</h2>
             </div>
-            <button onClick={onClose} className="text-cgray hover:text-cdark border-none bg-transparent cursor-pointer">
+            <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50">
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
