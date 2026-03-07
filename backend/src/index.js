@@ -37,7 +37,11 @@ mongoose
 
 // 3. UPDATED EXPRESS CORS
 app.use(cors({
-    origin: [FRONTEND_URL, "http://localhost:5173"], 
+    origin: [
+        process.env.FRONTEND_URL,           // https://lumini-luminex.com
+        "https://www.lumini-luminex.com",   // Explicitly allow the www version
+        "http://localhost:5173"             // Local development
+    ], 
     credentials: true 
 }));
 
