@@ -42,15 +42,10 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
 app.use(cookieParser(process.env.COOKIE_SECRET));
-
-// 4. PRODUCTION-READY COOKIES
-// If we are in production, cookies need secure:true to work across domains
 const isProduction = process.env.NODE_ENV === "production";
-
+app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
