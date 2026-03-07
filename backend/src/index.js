@@ -22,14 +22,17 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 // 2. UPDATED SOCKET.IO CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: [FRONTEND_URL, "http://localhost:5173"], 
+    origin: [
+      process.env.FRONTEND_URL,          // https://lumini-luminex.com
+      "https://www.lumini-luminex.com",  // Explicitly allow the www version
+      "http://localhost:5173"            // Local development
+    ], 
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true
   }
 });
 
 app.set('socketio', io);
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to Database"))
