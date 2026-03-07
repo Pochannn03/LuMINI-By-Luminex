@@ -471,7 +471,12 @@ export default function TeacherProfile() {
     return `${BACKEND_URL}/${cleanPath}`;
   };
 
-  if (loading) return <div className="profile-container" style={{ marginTop: "100px" }}>Loading Profile...</div>;
+  if (loading)
+    return (
+      <div className="profile-container flex justify-center items-center h-screen">
+        <h2 className="text-slate-500 font-semibold animate-pulse">Loading Profile...</h2>
+      </div>
+    );
   if (error) return <div className="profile-container" style={{ marginTop: "100px", color: "red" }}>{error}</div>;
 
   return (
@@ -571,7 +576,7 @@ export default function TeacherProfile() {
       {isLightboxOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }} onClick={() => setIsLightboxOpen(false)}>
           <img src={previewImage || getImageUrl(formData.profile_picture)} alt="Fullscreen Profile" style={{ width: '400px', height: '400px', objectFit: 'cover', borderRadius: '50%', border: '6px solid white' }} />
-          <button style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setIsLightboxOpen(false)}><span className="material-symbols-outlined">close</span></button>
+          <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setIsLightboxOpen(false)}><span className="material-symbols-outlined">close</span></button>
         </div>
       )}
 

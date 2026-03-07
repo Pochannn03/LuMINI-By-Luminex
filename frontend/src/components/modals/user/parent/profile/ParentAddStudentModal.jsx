@@ -77,7 +77,7 @@ export default function ParentAddStudentModal({ isOpen, onClose, onSuccess, onEr
         <div className="relative flex w-[90%] max-w-[480px] flex-col items-center bg-white p-10 pb-8 rounded-[40px] shadow-2xl">
             <button 
                 onClick={onClose}
-                className="absolute top-6 right-8 text-gray-400 hover:text-gray-600 transition-colors"
+                className="absolute top-6 right-6 text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50"
             >
                 <span className="material-symbols-outlined text-[28px]">close</span>
             </button>

@@ -52,7 +52,7 @@ export default function ClassManageViewClassModal({ isOpen, onClose, classData }
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-[#f1f5f9] hover:bg-[#e2e8f0] text-slate-500 transition-colors shrink-0 mt-1"
+            className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50"
           >
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>

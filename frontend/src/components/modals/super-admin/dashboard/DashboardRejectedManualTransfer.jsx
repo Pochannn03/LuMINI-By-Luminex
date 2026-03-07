@@ -47,7 +47,7 @@ export function RejectedTransferHistoryModal({ isOpen, onClose }) {
             <span className="material-symbols-outlined text-red-500">history_toggle_off</span>
             <h2 className="text-[18px] font-bold">Rejected Manual Transfers</h2>
           </div>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={onClose}>
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
