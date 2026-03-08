@@ -368,7 +368,7 @@ export default function AdminAttendance() {
                 </div>
               </div>
 
-              <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
+              <div className="w-full xl:overflow-visible overflow-x-auto pb-4 custom-scrollbar">
                 <table className="w-full min-w-[750px] text-left border-separate border-spacing-0">
                   <thead>
                     <tr className="border-b border-gray-100">
@@ -468,10 +468,15 @@ export default function AdminAttendance() {
                                 >
                                   info
                                 </button>
+
                                 <div 
                                   className={`
-                                    absolute z-[9999] bottom-[130%] left-1/2 -translate-x-1/2 mb-2
-                                    w-[260px] h-auto transition-all duration-200 ease-out origin-bottom
+                                    absolute z-[9999] 
+                                    top-[130%] sm:top-auto sm:bottom-[130%] 
+                                    right-0 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 
+                                    mt-2 sm:mt-0 sm:mb-2
+                                    w-[240px] sm:w-[260px] h-auto transition-all duration-200 ease-out 
+                                    origin-top-right sm:origin-bottom
                                     ${activeRemarkId === record._id 
                                       ? 'visible opacity-100 scale-100' 
                                       : 'invisible opacity-0 scale-95 lg:group-hover:visible lg:group-hover:opacity-100 lg:group-hover:scale-100'}
@@ -493,7 +498,10 @@ export default function AdminAttendance() {
                                         "{record.details}"
                                       </p>
                                     </div>
-                                    <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-[#39A8ED]"></div>
+                                    
+                                    <div className="sm:hidden absolute bottom-full right-[10px] w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-[#39A8ED]"></div>
+                                    
+                                    <div className="hidden sm:block absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-t-[10px] border-t-[#39A8ED]"></div>
                                   </div>
                                 </div>
                               </div>
