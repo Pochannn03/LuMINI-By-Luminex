@@ -87,7 +87,7 @@ export default function ParentAddStudentModal({ isOpen, onClose, onSuccess, onEr
                     Enter Invitation Code
                 </h1>
                 <p className="text-[#64748b] text-[16px] leading-relaxed font-medium">
-                    Enter the invitation code provided by your child's teacher to create your account.
+                    Enter the invitation code provided by your child's teacher to link your child to your account.
                 </p>
             </div>
 
