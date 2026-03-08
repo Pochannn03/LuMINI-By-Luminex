@@ -875,7 +875,7 @@ export default function GuardianProfile() {
             
             <div className="modal-header">
               <h3>View Student Details</h3>
-              <button className="close-modal-btn" onClick={() => setSelectedStudent(null)}>
+              <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setSelectedStudent(null)}>
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>

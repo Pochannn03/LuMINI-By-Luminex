@@ -160,7 +160,7 @@ export default function SuperAdminGuardianRegistration() {
           <div className="bg-white rounded-3xl w-full max-w-[500px] overflow-hidden shadow-2xl flex flex-col transform scale-100 transition-transform" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div><h2 className="text-[20px] font-extrabold text-slate-800">Registration Review</h2><p className="text-[13px] font-medium text-slate-500 mt-1 flex items-center gap-1"><span className="material-symbols-outlined text-[14px] text-green-600">check_circle</span>Verified by Teacher {selectedRequest.teacher?.first_name} {selectedRequest.teacher?.last_name}</p></div>
-              <button className="w-8 h-8 rounded-full bg-slate-200/50 text-slate-500 hover:bg-slate-200 flex items-center justify-center transition-colors shrink-0 disabled:opacity-50" onClick={() => setSelectedRequest(null)} disabled={isProcessing}><span className="material-symbols-outlined text-[20px]">close</span></button>
+              <button className="w-8 h-8 text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setSelectedRequest(null)} disabled={isProcessing}><span className="material-symbols-outlined text-[20px]">close</span></button>
             </div>
             <div className="p-6 flex flex-col gap-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
               <div className="flex gap-4 items-center">

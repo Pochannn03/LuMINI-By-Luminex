@@ -22,14 +22,17 @@ const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 // 2. UPDATED SOCKET.IO CORS
 const io = new Server(httpServer, {
   cors: {
-    origin: [FRONTEND_URL, "http://localhost:5173"], 
+    origin: [
+      process.env.FRONTEND_URL,          // https://lumini-luminex.com
+      "https://www.lumini-luminex.com",  // Explicitly allow the www version
+      "http://localhost:5173"            // Local development
+    ], 
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
     credentials: true
   }
 });
 
 app.set('socketio', io);
-
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to Database"))
@@ -37,20 +40,19 @@ mongoose
 
 // 3. UPDATED EXPRESS CORS
 app.use(cors({
-    origin: [FRONTEND_URL, "http://localhost:5173"], 
+    origin: [
+        process.env.FRONTEND_URL,           // https://lumini-luminex.com
+        "https://www.lumini-luminex.com",   // Explicitly allow the www version
+        "http://localhost:5173"             // Local development
+    ], 
     credentials: true 
 }));
 
 app.use(express.json());
-
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
-
 app.use(cookieParser(process.env.COOKIE_SECRET));
-
-// 4. PRODUCTION-READY COOKIES
-// If we are in production, cookies need secure:true to work across domains
 const isProduction = process.env.NODE_ENV === "production";
-
+app.set("trust proxy", 1);
 app.use(
   session({
     secret: process.env.SESSION_SECRET,

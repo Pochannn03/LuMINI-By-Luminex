@@ -93,7 +93,7 @@ export default function ClassManageViewStudentModal({ isOpen, onClose, onSuccess
           
           {/* 1. PREMIUM HEADER WITH LARGE AVATAR */}
           <div className="relative pt-12 pb-6 px-6 sm:px-8 border-b border-slate-100 flex flex-col items-center shrink-0">
-            <button onClick={onClose} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-[#f1f5f9] hover:bg-[#e2e8f0] text-slate-500 transition-colors">
+            <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50">
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
 

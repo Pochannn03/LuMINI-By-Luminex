@@ -103,7 +103,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
             onClick={(e) => e.stopPropagation()} 
           />
           <button 
-            className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors cursor-pointer"
+            className="absolute top-6 right-6 text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50"
             onClick={() => setViewImage(null)}
           >
             <span className="material-symbols-outlined text-[28px]">close</span>

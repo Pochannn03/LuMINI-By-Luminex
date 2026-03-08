@@ -105,7 +105,6 @@ export default function EnrollmentApproval() {
     return new Date(dateString).toLocaleDateString('en-US', options);
   };
 
-  // Polished to handle leading slashes and prevent double-slashes
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
@@ -352,22 +351,38 @@ export default function EnrollmentApproval() {
       />
 
       {showRejectModal && (
-        <div className="modal-overlay active" style={{ zIndex: 9999 }}>
-          <div className="modal-card" style={{ maxWidth: '400px', padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', color: '#ef4444' }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>warning</span>
-              <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 700 }}>Reject Application?</h2>
+        <div className="modal-overlay active z-[9999]">
+          <div className="modal-card max-w-[400px] p-6">
+            <div className="flex items-center gap-3 mb-4 text-red-500">
+              <span className="material-symbols-outlined text-[28px]">warning</span>
+              <h2 className="text-lg m-0 font-bold">Reject Application?</h2>
             </div>
-            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+            <p className="text-[14px]! text-slate-600 mb-5 leading-relaxed">
               You are about to reject the pre-enrollment for <strong>{rejectActionData?.studentName}</strong>. Please provide a reason to help the parent understand what needs to be fixed.
             </p>
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#64748b', marginBottom: '8px' }}>Reason for Rejection <span style={{color: '#ef4444'}}>*</span></label>
-              <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="e.g., Child is not on my masterlist..." style={{ width: '100%', padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', fontSize: '14px', outline: 'none', minHeight: '80px', resize: 'vertical' }} />
+            <div className="mb-6">
+              <label className="block text-xs font-semibold text-slate-500 mb-2">Reason for Rejection <span className="text-red-500">*</span></label>
+              <textarea 
+                value={rejectReason} 
+                onChange={(e) => setRejectReason(e.target.value)} 
+                placeholder="e.g., Child is not on my masterlist..." 
+                className="w-full p-3 border border-slate-300 rounded-lg text-sm outline-none min-h-[80px] resize-y" 
+              />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => setShowRejectModal(false)} style={{ background: 'white', color: '#475569', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-              <button disabled={!rejectReason.trim()} onClick={executeRejectAction} style={{ background: rejectReason.trim() ? '#ef4444' : '#fca5a5', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: 600, cursor: rejectReason.trim() ? 'pointer' : 'not-allowed' }}>Reject & Notify Parent</button>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setShowRejectModal(false)} 
+                className="bg-white text-slate-600 border border-slate-300 px-4 py-2 rounded-lg font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                disabled={!rejectReason.trim()} 
+                onClick={executeRejectAction} 
+                className={`text-white border-none px-4 py-2 rounded-lg font-semibold ${rejectReason.trim() ? 'bg-red-500 cursor-pointer' : 'bg-red-300 cursor-not-allowed'}`}
+              >
+                Reject & Notify Parent
+              </button>
             </div>
           </div>
         </div>
@@ -383,7 +398,7 @@ export default function EnrollmentApproval() {
           <div className="header-banner flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-0">
             <div className="header-title">
               <h1>Student Registrations</h1>
-              <p>Review new pre-enrollments and register students directly to your class.</p>
+              <p className="text-[14px]!">Review new pre-enrollments and register students directly to your class.</p>
             </div>
             <button onClick={() => setShowCodesModal(true)} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 sm:px-5 py-3 rounded-xl backdrop-blur-sm transition-all font-semibold border border-white/30 shadow-sm w-full md:w-auto justify-center">
               <span className="material-symbols-outlined text-[20px]">key</span>
@@ -424,7 +439,7 @@ export default function EnrollmentApproval() {
                         <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200 shrink-0">{req.parent_name.charAt(0)}</div>
                         <div className="name-stack overflow-hidden">
                           <span className="info-value truncate" title={req.parent_name}>{req.parent_name}</span>
-                          <span className="role-tag" style={{ background: '#f1f5f9', color: '#475569' }}>{req.parent_phone}</span>
+                          <span className="role-tag bg-slate-100 text-slate-600">{req.parent_phone}</span>
                         </div>
                       </div>
                     </div>
@@ -480,7 +495,7 @@ export default function EnrollmentApproval() {
 
       {showCodesModal && (
         <div className="approval-modal-overlay" onClick={closeCodesModal}>
-          <div className="approval-modal-card transition-all duration-300 relative overflow-hidden" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: inviteStep === 1 ? '500px' : '650px', minHeight: '300px' }}>
+          <div className={`approval-modal-card transition-all duration-300 relative overflow-hidden w-[90%] min-h-[300px] ${inviteStep === 1 ? 'max-w-[500px]' : 'max-w-[650px]'}`} onClick={e => e.stopPropagation()}>
             {isSendingInvites && (
               <div className="absolute inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl">
                 <span className="material-symbols-outlined animate-spin text-blue-600 text-[48px] mb-4">autorenew</span>
@@ -491,7 +506,7 @@ export default function EnrollmentApproval() {
             <div className="pt-10">
               {inviteStep === 1 && (
                 <div className="animate-[fadeIn_0.3s_ease-out]">
-                  <div className="mb-6 pr-12"><h2 className="text-xl font-bold text-slate-800 mb-2">Your Classrooms</h2><p className="text-sm text-slate-500">Share codes with parents or invite via email.</p></div>
+                  <div className="mb-6 pr-12"><h2 className="text-xl font-bold text-slate-800 mb-2">Your Classrooms</h2><p className="text-[14px]! text-slate-500">Share codes with parents or invite via email.</p></div>
                   <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2">
                     {sections.map((sec, index) => (
                       <div key={sec._id || sec.id || index} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-4">
@@ -529,9 +544,15 @@ export default function EnrollmentApproval() {
 
       {selectedApplication && (
         <div className="approval-modal-overlay" onClick={() => setSelectedApplication(null)}>
-          <div className="approval-modal-card" onClick={e => e.stopPropagation()} style={{ width: '90%', maxWidth: '500px' }}>
-            <button className="close-modal-icon" onClick={() => setSelectedApplication(null)}><span className="material-symbols-outlined">close</span></button>
-            <h2 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4 text-center">Enrollment Application Review</h2>
+          <div className="approval-modal-card w-[90%] max-w-[500px]" onClick={e => e.stopPropagation()}>
+            {/* UPDATED HEADER SECTION */}
+            <div className="flex flex-row justify-between items-center mb-6 border-b border-slate-100 pb-4">
+              <h2 className="text-xl font-bold text-slate-800 text-left m-0">Enrollment Application Review</h2>
+              <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setSelectedApplication(null)}>
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+            
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center">
                 <img src={getImageUrl(selectedApplication.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedApplication.student_first_name}`} alt="Student" className="w-24 h-24 rounded-full border-4 border-white shadow-md object-cover bg-slate-100 cursor-zoom-in" onClick={() => setViewImage(getImageUrl(selectedApplication.student_photo) || `https://api.dicebear.com/7.x/initials/svg?seed=${selectedApplication.student_first_name}`)} />

@@ -346,8 +346,8 @@ export default function ManageGuardians() {
                     <h2 style={{fontSize: '20px', color: '#1e293b', marginBottom: '4px', marginTop: 0}}>Guardian Details</h2>
                     <p style={{color: '#64748b', fontSize: '13px', margin: 0}}>Reviewing approved guardian details.</p>
                   </div>
-                  <button className="close-modal-btn" onClick={() => setSelectedRequest(null)} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '20px', color: '#64748b' }}>close</span>
+                  <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setSelectedRequest(null)}>
+                    <span className="material-symbols-outlined">close</span>
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '24px' }}>
@@ -387,7 +387,7 @@ export default function ManageGuardians() {
         {expandedImage && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', cursor: 'zoom-out' }} onClick={() => setExpandedImage(null)}>
             <img src={expandedImage} alt="Expanded ID" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }} />
-            <button style={{ position: 'absolute', top: '24px', right: '24px', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setExpandedImage(null)}>
+            <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setExpandedImage(null)}>
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>

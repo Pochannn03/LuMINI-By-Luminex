@@ -538,7 +538,12 @@ export default function ParentProfile() {
     return `${BACKEND_URL}/${cleanPath}`;
   };
 
-  if (loading) return (<div className="profile-container mt-[100px]">Loading...</div>);
+    if (loading)
+    return (
+      <div className="profile-container flex justify-center items-center h-screen">
+        <h2 className="text-slate-500 font-semibold animate-pulse">Loading Profile...</h2>
+      </div>
+    );
 
   return (
     <div className="dashboard-wrapper hero-bg">
@@ -937,7 +942,7 @@ export default function ParentProfile() {
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Edit Student Details</h3>
-              <button className="close-modal-btn" onClick={() => setSelectedStudent(null)}><span className="material-symbols-outlined">close</span></button>
+              <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={() => setSelectedStudent(null)}><span className="material-symbols-outlined">close</span></button>
             </div>
             
             <div className="modal-body flex flex-col gap-3">

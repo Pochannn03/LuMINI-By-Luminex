@@ -50,7 +50,7 @@ export default function AccountsAddModal({ isOpen, onClose, onSuccess }) {
         {/* Header */}
         <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h3 className="font-bold text-lg text-gray-800">Create New Account</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50">
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>

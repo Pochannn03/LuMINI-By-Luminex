@@ -41,7 +41,7 @@ export default function ClassManageViewTeacherModal({ isOpen, onClose, teacherDa
         {/* --- CLOSE BUTTON (Top Right) --- */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-50 hover:bg-slate-200 text-slate-500 transition-colors z-10"
+          className="absolute top-6 right-6 text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50"
         >
           <span className="material-symbols-outlined text-[20px]">close</span>
         </button>
@@ -91,7 +91,7 @@ export default function ClassManageViewTeacherModal({ isOpen, onClose, teacherDa
                   ))}
                 </div>
               ) : (
-                <p className="text-[13px] font-medium text-slate-500 italic">No classes assigned yet.</p>
+                <p className="text-[13px]! font-medium text-slate-500 italic">No classes assigned yet.</p>
               )}
             </div>
 
@@ -119,7 +119,7 @@ export default function ClassManageViewTeacherModal({ isOpen, onClose, teacherDa
                 <span className="material-symbols-outlined text-[16px]">location_on</span> 
                 Home Address
               </h4>
-              <p className="text-[13px] font-bold text-slate-800 leading-relaxed">
+              <p className="text-[13px]! font-bold text-slate-800 leading-relaxed">
                 {formatAddress()}
               </p>
             </div>

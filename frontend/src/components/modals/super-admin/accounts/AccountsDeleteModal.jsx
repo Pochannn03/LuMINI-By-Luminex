@@ -53,7 +53,7 @@ export default function AccountsDeleteModal({ isOpen, onClose, account, onSucces
             
             <div>
               <h3 className="text-cdark font-bold text-[16px]">Are you sure?</h3>
-              <p className="text-cgray text-[14px] mt-1">
+              <p className="text-cgray text-[14px]! mt-1">
                 You are about to Archive <strong>@{account.username}</strong>. 
               </p>
             </div>
