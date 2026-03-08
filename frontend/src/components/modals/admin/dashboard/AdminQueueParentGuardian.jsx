@@ -4,7 +4,7 @@ import AdminConfirmModal from '../TeacherConfirmationModal';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
-export default function AdminQueueParentGuardian ({ item, setQueue }) {
+export default function AdminQueueParentGuardian({ item, setQueue }) {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const parent = item.user_details || {};
@@ -16,7 +16,6 @@ export default function AdminQueueParentGuardian ({ item, setQueue }) {
   });
 
   const handleRemove = async () => {
-    // Close the modal immediately to show responsiveness
     setIsConfirmOpen(false);
     try {
       const response = await axios.patch(`${BACKEND_URL}/api/queue/remove/${item.user_id}`, 
@@ -43,45 +42,54 @@ export default function AdminQueueParentGuardian ({ item, setQueue }) {
 
   return (
     <>
-      {/* 1. The Visible Card in the Queue List */}
-      <div className="group flex items-start p-4 bg-white rounded-xl shadow-sm border border-slate-100 gap-4 animate-[fadeIn_0.3s_ease-out] hover:border-slate-200 transition-all">
+      {/* Updated Mobile-Friendly Card */}
+      <div className="group flex items-start p-3 sm:p-4 bg-white rounded-xl shadow-sm border border-slate-100 gap-3 sm:gap-4 animate-[fadeIn_0.3s_ease-out] hover:border-slate-200 transition-all w-full overflow-hidden">
         
         {/* Parent Avatar */}
         <div className="bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 w-10 h-10 rounded-lg">
           <span className="material-symbols-outlined">person</span>
         </div>
         
-        <div className="flex flex-col flex-1">
-          <div className="flex justify-between items-start">
-            <div className="flex flex-col">
-              <span className="text-cdark text-[15px] font-bold">
+        {/* Main Content Area - min-w-0 prevents flexbox blowout on mobile */}
+        <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex justify-between items-start gap-2">
+            
+            {/* Left Column: Text Content */}
+            <div className="flex flex-col min-w-0 flex-1">
+              {/* Added <p> tag with !important classes via Tailwind's '!' prefix */}
+              <p className="text-cdark !text-[15px] !font-bold truncate !m-0 !p-0">
                 {parentName}
-              </span>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${getStatusColor(item.status)}`}>
+              </p>
+              
+              {/* Used flex-wrap so the status and text stack nicely on tiny screens */}
+              <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider whitespace-nowrap ${getStatusColor(item.status)}`}>
                   {item.status}
                 </span>
-                <span className="text-cgray text-[12px]">
+                
+                {/* Added <p> tag with !important classes */}
+                <p className="text-cgray !text-[12px] !m-0 !p-0 break-words line-clamp-2">
                   is arriving for <b className="text-cdark">{item.purpose}</b>
-                </span>
+                </p>
               </div>
             </div>
 
-            {/* Right Column: Time and Button */}
-            <div className="flex flex-col items-center gap-1.5">
-              <span className="text-[11px] text-slate-400 -mt-1">
+            {/* Right Column: Time and Button (shrink-0 ensures they stay visible) */}
+            <div className="flex flex-col items-end shrink-0 gap-2">
+              <span className="text-[11px] text-slate-400 mt-0.5 whitespace-nowrap">
                 {arrivalTime}
               </span>
               
               <button 
                 type="button"
-                onClick={() => setIsConfirmOpen(true)} // Change: Open modal instead of deleting
-                className="cursor-pointer opacity-80 group-hover:opacity-100 transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600"
+                onClick={() => setIsConfirmOpen(true)}
+                className="cursor-pointer opacity-100 sm:opacity-80 group-hover:opacity-100 transition-all duration-200 w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-400 hover:bg-red-100 hover:text-red-600 shrink-0"
                 title="Dismiss"
               >
                 <span className="material-symbols-outlined text-[18px] font-bold">close</span>
               </button>
             </div>
+            
           </div>
         </div>
       </div>

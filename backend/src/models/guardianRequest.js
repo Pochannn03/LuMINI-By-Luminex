@@ -28,7 +28,7 @@ const GuardianRequestSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ['pending', 'teacher_approved', 'approved', 'rejected', 'revoked'], // <-- ADDED 'teacher_approved'
+    enum: ['pending', 'teacher_approved', 'approved', 'rejected', 'revoked'], 
     default: 'pending' 
   }
 }, { timestamps: true },

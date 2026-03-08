@@ -9,6 +9,7 @@ import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
 import { Override } from '../models/manualTransfers.js';
 import { Notification } from '../models/notification.js';
+import cron from 'node-cron'; 
 import multer from 'multer';
 import path from 'path';
 import fs from "fs";
@@ -206,7 +207,10 @@ router.post('/api/transfer',
           purpose: purpose,
           date: todayDate,
           time: new Date().toLocaleTimeString('en-US', { 
-              hour: 'numeric', minute: '2-digit', hour12: true 
+            timeZone: 'Asia/Manila',
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true 
           }),
       });
 
@@ -219,7 +223,6 @@ router.post('/api/transfer',
             ? studentDoc.user_id 
             : [studentDoc.user_id];
 
-        // Map through and save notifications
         const notificationPromises = recipientIds.map(async (id) => {
             const notification = new Notification({
               recipient_id: Number(id), 
@@ -586,6 +589,58 @@ router.patch('/api/transfer/override/:id/reject',
     }
   }
 );
+
+cron.schedule('0 0 * * *', async () => {
+    try {
+      const now = new Date();
+      const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+
+      const strandedStudents = await Student.find({ status: 'Learning', is_archive: false });
+
+      if (strandedStudents.length > 0) {
+          console.log(`🧹 Nightly Sweep: Found ${strandedStudents.length} active students not picked up.`);
+          
+          for (const student of strandedStudents) {
+              const missedTransfer = new Transfer({
+                  student_id: student.student_id,
+                  student_name: student.first_name ? `${student.first_name} ${student.last_name}` : 'Unknown Student',
+                  section_id: student.section_id || '---',
+                  section_name: student.section_name || 'Unassigned',
+                  user_id: 0, 
+                  user_name: 'Unattended',
+                  purpose: 'Pick up',
+                  date: yesterdayStr,
+                  time: '---', 
+              });
+              
+              await missedTransfer.save();
+
+              const auditLog = new Audit({
+                user_id: 0,
+                full_name: "System",
+                role: "Automated Task",
+                action: "Midnight Status Reset",
+                target: `Student: ${student.first_name} ${student.last_name} (Auto-Dismissed)`
+              });
+              await auditLog.save();
+
+              student.status = 'On the way';
+              student.last_reset_date = todayStr;
+              await student.save();
+          }
+          console.log('✅ Nightly reset complete.');
+      }
+  } catch (error) {
+      console.error('❌ Auto-Reset Cron Error:', error);
+  }
+}, {
+    scheduled: true,
+    timezone: "Asia/Manila"
+});
 
 
 export default router;
