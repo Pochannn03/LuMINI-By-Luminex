@@ -101,7 +101,7 @@ export default function AdminDropAndPickHistory() {
 
       <main className="flex-1 p-6 animate-[fadeIn_0.4s_ease-out_forwards] overflow-y-auto">
         <div className="admin-banner max-w-[1200px] mx-auto mb-6">
-          <h1 className="text-[white]!">Transfer History</h1>
+          <h1 className="text-[white]!">History</h1>
           <p className="text-[white]! opacity-90 m-0">
             View historical records of student drop-offs and pick-ups.
           </p>
@@ -230,7 +230,7 @@ export default function AdminDropAndPickHistory() {
                               alt="student"
                             />
                             <div>
-                              <p className="text-cdark text-[13px] font-bold leading-tight">{record.student_name}</p>
+                              <p className="text-cdark text-[13px]! font-bold leading-tight">{record.student_name}</p>
                               <div className="flex flex-col">
                                 <span className="text-gray-400 text-[10px] font-medium uppercase tracking-wide">ID: {record.student_id}</span>
                                 <span className="text-blue-400 text-[10px] font-semibold italic">{record.section_name}</span>

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import QRCode from "react-qr-code";
 import axios from "axios";
+import blingSound from '../../../assets/Bling.mp3.m4a';
+import blingBeepSound from '../../../assets/BlipBleep.mp3.m4a';
 
 // Added dynamic backend URL support
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
@@ -23,64 +25,70 @@ export default function PassModal({ isOpen, onClose, studentId }) {
 
       // A. CHECK LOCAL STORAGE FIRST
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        try {
-          const { token, expiry } = JSON.parse(saved);
-          const now = Date.now();
-          const secondsRemaining = Math.floor((expiry - now) / 1000);
+        if (saved) {
+          try {
+            const { token, expiry } = JSON.parse(saved);
+            const now = Date.now();
+            const secondsRemaining = Math.floor((expiry - now) / 1000);
 
-          if (secondsRemaining > 0) {
-            setPassData(token);
-            setTimeLeft(secondsRemaining);
-            setLoading(false);
-            return;
-          } else {
+            if (secondsRemaining > 0) {
+              new Audio(blingSound).play().catch(e => console.error(e));
+              
+              setPassData(token);
+              setTimeLeft(secondsRemaining);
+              setLoading(false);
+              return;
+            } else {
+              localStorage.removeItem(STORAGE_KEY);
+            }
+          } catch (err) {
             localStorage.removeItem(STORAGE_KEY);
           }
-        } catch (err) {
-          localStorage.removeItem(STORAGE_KEY);
         }
-      }
 
       // B. GENERATE NEW PASS
-      try {
-        // Updated to use BACKEND_URL
-        const res = await axios.post(
-          `${BACKEND_URL}/api/pass/generate`,
-          { student_id: studentId },
-          { withCredentials: true }
-        );
+        try {
+          const res = await axios.post(
+            `${BACKEND_URL}/api/pass/generate`,
+            { student_id: studentId },
+            { withCredentials: true }
+          );
 
-        if (res.data.success) {
-          const { token, createdAt } = res.data;
-          const createdTime = new Date(createdAt).getTime();
-          const expiryTime = createdTime + (600 * 1000); // 10 mins
-          const now = Date.now();
-          const secondsLeft = Math.floor((expiryTime - now) / 1000);
+          if (res.data.success) {
+            const { token, createdAt } = res.data;
+            const createdTime = new Date(createdAt).getTime();
+            const expiryTime = createdTime + (600 * 1000); // 10 mins
+            const now = Date.now();
+            const secondsLeft = Math.floor((expiryTime - now) / 1000);
 
-          if (secondsLeft <= 0) {
-             setError("Pass expired. Please try again.");
-             return;
+            if (secondsLeft <= 0) {
+              throw new Error("Pass expired immediately");
+            }
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+              token: token,
+              expiry: expiryTime
+            }));
+
+            // SUCCESS: New pass generated
+            new Audio(blingSound).play().catch(e => console.error(e));
+
+            setPassData(token);
+            setTimeLeft(secondsLeft);
           }
-
-          localStorage.setItem(STORAGE_KEY, JSON.stringify({
-            token: token,
-            expiry: expiryTime
-          }));
-
-          setPassData(token);
-          setTimeLeft(secondsLeft);
+        } catch (err) {
+          // ERROR: Failed to generate or expired
+          new Audio(blingBeepSound).play().catch(e => console.error(e));
+          
+          console.error("Pass Gen Error:", err);
+          setError("Could not generate pass. Please try again.");
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error("Pass Gen Error:", err);
-        setError("Could not generate pass. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    initPass();
-  }, [isOpen, studentId]);
+      initPass();
+    }, [isOpen, studentId]);
 
   useEffect(() => {
     if (!isOpen || timeLeft <= 0) return;

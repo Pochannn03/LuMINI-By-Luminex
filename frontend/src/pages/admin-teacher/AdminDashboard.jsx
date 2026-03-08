@@ -12,6 +12,8 @@ import AdminActionFeedbackModal from '../../components/modals/admin/TeacherActio
 import AdminEmergencyOverrideModal from "../../components/modals/admin/dashboard/AdminEmergencyOverride";
 import AdminEmergencyBroadcastModal from "../../components/modals/admin/dashboard/AdminEmergencyBroadcastModal"; 
 import WarningModal from "../../components/WarningModal";
+import blingSound from '../../assets/Bling.mp3.m4a';
+import blingBeepSound from '../../assets/BlipBleep.mp3.m4a';
 import "../../styles/admin-teacher/admin-dashboard.css"
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
@@ -357,6 +359,7 @@ export default function AdminDashboard() {
         });
 
         if (response.data.valid) {
+          new Audio(blingSound).play(); // Success Sound
           setScannedData({ ...response.data, token: rawValue });
           setIsAuthModalOpen(true);
         }
@@ -370,6 +373,7 @@ export default function AdminDashboard() {
           { withCredentials: true }
         );
 
+        new Audio(blingSound).play(); // Success Sound
         setScannedStudentData({
           studentName: response.data.student.full_name,
           studentId: response.data.student.student_id,
@@ -380,6 +384,9 @@ export default function AdminDashboard() {
         setIsAttendanceModalOpen(true);
       }
     } catch (error) {
+      // === ERROR SOUND TRIGGERED HERE ===
+      new Audio(blingBeepSound).play().catch(e => console.error("Audio failed:", e));
+
       const finalMessage = error.response?.data?.msg || error.response?.data?.error || error.message || "An unexpected error occurred.";
       setErrorTitle("Scan Error");
       setErrorMainMsg("Could not process QR");
@@ -667,7 +674,7 @@ export default function AdminDashboard() {
       )}
 
       <main className="overflow-y-auto p-6 animate-[fadeIn_0.4s_ease-out_forwards]">
-        <section className="admin-banner">
+        <section className="admin-banner w-full max-w-[1200px] mx-auto mb-6 rounded-2xl">
           <div>
             <h1 className="text-[28px]! font-bold text-[white]! mb-2 tracking-[-0.5px]">Welcome Back!</h1>
             <p className="text-[white]! opacity-80 text-[15px]! m-0">Ready for your next class?</p>
