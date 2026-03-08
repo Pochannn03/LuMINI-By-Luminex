@@ -678,9 +678,18 @@ export default function TeacherProfile() {
                   )}
                   <div style={{ marginTop: '24px' }}>
                     {!isEditingCredentials ? (
-                      <button type="button" className="btn btn-primary profile-action-btn" style={{ width: '100%', height: '44px', borderRadius: '10px' }} onClick={handleEditCredentialsClick}><span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>edit</span>Change Password</button>
+                      <button type="button" className="btn btn-primary profile-action-btn" style={{ width: '100%', height: '44px', borderRadius: '10px' }} onClick={handleEditCredentialsClick}>
+                        <span className="material-symbols-outlined" style={{ marginRight: '8px', fontSize: '18px' }}>edit</span>Change Password
+                      </button>
                     ) : (
-                      <div className="flex flex-col sm:flex-row gap-3 w-full"><button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleSaveCredentials}><span className="material-symbols-outlined" style={{ marginRight: '6px', fontSize: '18px' }}>check</span>Update</button><button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleCancelCredentials}>Cancel</button></div>
+                      <div className="flex gap-3 w-full">
+                        <button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleCancelCredentials}>
+                          Cancel
+                        </button>
+                        <button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleSaveCredentials}>
+                          <span className="material-symbols-outlined" style={{ marginRight: '6px', fontSize: '18px' }}>check</span>Update
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

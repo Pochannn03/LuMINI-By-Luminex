@@ -921,11 +921,17 @@ export default function ParentProfile() {
 
                   <div className="mt-6">
                     {!isEditingCredentials ? (
-                      <button type="button" className="btn btn-primary profile-action-btn w-full h-[44px] rounded-[10px]" onClick={handleEditCredentialsClick}><span className="material-symbols-outlined mr-2 text-[18px]">edit</span> Change Password</button>
+                      <button type="button" className="btn btn-primary profile-action-btn w-full h-[44px] rounded-[10px]" onClick={handleEditCredentialsClick}>
+                        <span className="material-symbols-outlined mr-2 text-[18px]">edit</span> Change Password
+                      </button>
                     ) : (
-                      <div className="action-buttons-wrapper">
-                        <button type="button" className="btn btn-save profile-action-btn flex-1 h-[44px] rounded-[10px]" onClick={handleSaveCredentials}><span className="material-symbols-outlined mr-2 text-[18px]">check</span> Update</button>
-                        <button type="button" className="btn btn-cancel profile-action-btn flex-1 h-[44px] rounded-[10px]" onClick={handleCancelCredentials}>Cancel</button>
+                      <div className="flex gap-3 w-full">
+                        <button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleCancelCredentials}>
+                          Cancel
+                        </button>
+                        <button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleSaveCredentials}>
+                          <span className="material-symbols-outlined mr-2 text-[18px]">check</span> Update
+                        </button>
                       </div>
                     )}
                   </div>
