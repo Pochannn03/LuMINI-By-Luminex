@@ -58,7 +58,8 @@ export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }
                 onScan={handleScan}
                 onError={handleError}
                 formats={['qr_code']}
-                components={{ audio: false, finder: false }}
+                sound={false}
+                components={{ finder: false }}
                 styles={{
                   container: { width: "100%", height: "100%" },
                   video: { width: "100%", height: "100%", objectFit: "cover" }

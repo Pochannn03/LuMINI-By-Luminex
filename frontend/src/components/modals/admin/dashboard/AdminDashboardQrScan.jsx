@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Scanner } from "@yudiel/react-qr-scanner";
+// import blingSound from '../../../../assets/Bling.mp3.m4a';
 
 export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode }) {
   // USESTATES
@@ -32,11 +33,11 @@ export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode
       const rawValue = detectedCodes[0].rawValue;
       
       if (rawValue) {
-        console.log(`Scanned (${scanMode}):`, rawValue);
+        // new Audio(blingSound).play();
         setIsScanning(false);
         
         if (onScan) {
-            onScan(rawValue);
+          onScan(rawValue);
         }
       }
     }
@@ -70,8 +71,8 @@ export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode
                 onScan={handleScan}
                 onError={handleError}
                 formats={['qr_code']}
+                sound={false}
                 components={{
-                  audio: false,
                   finder: false, 
                 }}
                 styles={{

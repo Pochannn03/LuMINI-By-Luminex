@@ -58,7 +58,7 @@ const NAV_ITEMS = [
     allowedRoles: ["admin"],
   },
   {
-    label: "Dismissal History",
+    label: "History",
     path: "/admin/history",
     icon: "archive",
     allowedRoles: ["admin"],
@@ -90,7 +90,7 @@ const NAV_ITEMS = [
     allowedTypes: ["Parent"],
   },  
   {
-    label: "Pickup History",
+    label: "History",
     path: "/parent/history",
     icon: "history",
     allowedRoles: ["user"],
