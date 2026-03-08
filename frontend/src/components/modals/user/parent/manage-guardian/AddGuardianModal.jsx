@@ -1,12 +1,11 @@
 // frontend/src/components/modals/user/parent/manage-guardian/AddGuardianModal.jsx
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios"; 
 import "../../../../../styles/user/parent/manage-guardian.css";
 import "../../../../../index.css";
 import SuccessModal from "../../../../SuccessModal";
 
-// Added dynamic backend URL support
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
@@ -14,11 +13,13 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
   const [confirmText, setConfirmText] = useState("");
   const [previewUrl, setPreviewUrl] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false); 
-
   const [childrenList, setChildrenList] = useState([]);
+
+  // --- CUSTOM DROPDOWN STATE ---
+  const [isRoleOpen, setIsRoleOpen] = useState(false);
+  const roleRef = useRef(null);
 
   const [formData, setFormData] = useState({
     student_ids: [], 
@@ -32,15 +33,22 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
     idFile: null,
   });
 
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (roleRef.current && !roleRef.current.contains(event.target)) setIsRoleOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (isOpen) {
-      // Updated to use BACKEND_URL
       axios.get(`${BACKEND_URL}/api/parent/children`, { withCredentials: true })
         .then(response => {
           if (response.data.success || response.data.children) {
             const fetchedChildren = response.data.children || [];
             setChildrenList(fetchedChildren);
-            
             if (fetchedChildren.length > 0) {
               setFormData(prev => ({ 
                 ...prev, 
@@ -60,6 +68,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
     setConfirmText("");
     setShowPassword(false);
     setPreviewUrl(null);
+    setIsRoleOpen(false);
     setFormData({
       student_ids: [], 
       firstName: "",
@@ -91,11 +100,8 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
 
     if (name === "phone") {
       let numericVal = value.replace(/\D/g, '');
-      if (numericVal.length < 2) {
-        numericVal = "09"; 
-      } else if (!numericVal.startsWith("09")) {
-        numericVal = "09" + numericVal.substring(2);
-      }
+      if (numericVal.length < 2) numericVal = "09"; 
+      else if (!numericVal.startsWith("09")) numericVal = "09" + numericVal.substring(2);
       newFormData.phone = numericVal.slice(0, 11);
     } else {
       newFormData[name] = value;
@@ -154,19 +160,14 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       dataToSend.append("password", formData.password);
       dataToSend.append("idFile", formData.idFile); 
 
-      // Updated to use BACKEND_URL
       await axios.post(
         `${BACKEND_URL}/api/parent/guardian-request`,
         dataToSend,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-          withCredentials: true,
-        }
+        { headers: { "Content-Type": "multipart/form-data" }, withCredentials: true }
       );
 
       setShowSuccessModal(true); 
       if (onSuccess) onSuccess(); 
-
     } catch (error) {
       console.error("Error submitting request:", error);
       alert(error.response?.data?.message || "An error occurred while submitting.");
@@ -174,6 +175,16 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       setIsSubmitting(false); 
     }
   };
+
+  const roleOptions = [
+    { value: "Grandparent", label: "Grandparent", icon: "elderly" },
+    { value: "Aunt/Uncle", label: "Aunt / Uncle", icon: "people" },
+    { value: "Sibling", label: "Older Sibling", icon: "supervisor_account" },
+    { value: "Driver", label: "Driver / Nanny", icon: "directions_car" },
+    { value: "Other", label: "Other", icon: "person" },
+  ];
+
+  const getRoleLabel = (value) => roleOptions.find(r => r.value === value)?.label || 'Select role...';
 
   const renderStepContent = () => {
     switch (step) {
@@ -206,25 +217,64 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
       case 2:
         return (
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <div className="form-group p-4 bg-[#f8fafc] border border-[#e2e8f0] rounded-xl">
-              <label className="modal-label" style={{ marginBottom: "12px" }}>Assign Guardian To Student(s):</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {childrenList.map(child => (
-                   <label key={child.student_id} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-                     <input 
-                       type="checkbox"
-                       checked={formData.student_ids.includes(child.student_id)}
-                       onChange={() => handleCheckboxChange(child.student_id)}
-                       style={{ width: '18px', height: '18px', accentColor: '#39a8ed', cursor: 'pointer' }}
-                     />
-                     <span style={{ fontSize: '15px', color: '#1e293b', fontWeight: '500' }}>
-                       {child.first_name} {child.last_name}
-                     </span>
-                   </label>
-                ))}
+
+            {/* --- REVAMPED STUDENT SELECTION --- */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[12px] font-bold text-slate-500 uppercase tracking-wider">
+                Assign Guardian To Student(s)
+              </label>
+
+              <div className="flex flex-col gap-2">
+                {childrenList.map(child => {
+                  const isSelected = formData.student_ids.includes(child.student_id);
+                  return (
+                    <button
+                      key={child.student_id}
+                      type="button"
+                      onClick={() => handleCheckboxChange(child.student_id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 text-left focus:outline-none cursor-pointer ${
+                        isSelected
+                          ? 'border-[#39a8ed] bg-blue-50 shadow-sm shadow-blue-100'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      {/* Avatar */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-[15px] font-black transition-colors ${
+                        isSelected ? 'bg-[#39a8ed] text-white' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        {child.first_name?.[0]}{child.last_name?.[0]}
+                      </div>
+
+                      {/* Name */}
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className={`text-[14px] font-bold leading-tight truncate transition-colors ${
+                          isSelected ? 'text-[#1a7cb8]' : 'text-slate-700'
+                        }`}>
+                          {child.first_name} {child.last_name}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-medium">ID: {child.student_id}</span>
+                      </div>
+
+                      {/* Custom checkbox indicator */}
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-[#39a8ed] border-[#39a8ed]'
+                          : 'border-slate-300 bg-white'
+                      }`}>
+                        {isSelected && (
+                          <span className="material-symbols-outlined text-white text-[14px] font-bold">check</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
+
               {formData.student_ids.length === 0 && (
-                <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '8px' }}>* Please select at least one student.</p>
+                <p className="text-red-500! text-[12px]! mt-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">error</span>
+                  Please select at least one student.
+                </p>
               )}
             </div>
 
@@ -242,25 +292,49 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
             <div className="form-grid-2">
               <div>
                 <label className="modal-label">Phone Number</label>
-                <input 
-                  name="phone" 
-                  className="modal-input" 
-                  placeholder="09123456789" 
-                  value={formData.phone} 
-                  onChange={handleInputChange} 
-                  maxLength={11}
-                />
+                <input name="phone" className="modal-input" placeholder="09123456789" value={formData.phone} onChange={handleInputChange} maxLength={11} />
               </div>
+
+              {/* RELATIONSHIP CUSTOM DROPDOWN */}
               <div>
                 <label className="modal-label">Relationship to Child</label>
-                <select name="role" className="modal-input" value={formData.role} onChange={handleInputChange} style={{ backgroundColor: 'white' }}>
-                  <option value="" disabled>Select role...</option>
-                  <option value="Grandparent">Grandparent</option>
-                  <option value="Aunt/Uncle">Aunt / Uncle</option>
-                  <option value="Sibling">Older Sibling</option>
-                  <option value="Driver">Driver / Nanny</option>
-                  <option value="Other">Other</option>
-                </select>
+                <div className="relative" ref={roleRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsRoleOpen(!isRoleOpen)}
+                    className={`flex items-center justify-between w-full h-[42px] px-3 rounded-xl border bg-white text-[13px] font-medium transition-all focus:outline-none ${
+                      isRoleOpen
+                        ? 'border-[#39a8ed] ring-2 ring-blue-500/10'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={formData.role ? 'text-slate-800' : 'text-slate-400'}>
+                      {getRoleLabel(formData.role)}
+                    </span>
+                    <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isRoleOpen ? 'rotate-180 text-[#39a8ed]' : ''}`}>
+                      expand_more
+                    </span>
+                  </button>
+
+                  {isRoleOpen && (
+                    <div className="absolute top-[46px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 animate-[fadeIn_0.2s_ease-out]">
+                      {roleOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className="w-full flex items-center gap-2.5 text-left px-3 py-2.5 rounded-lg text-[13px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#39a8ed] transition-colors"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, role: opt.value }));
+                            setIsRoleOpen(false);
+                          }}
+                        >
+                          <span className="material-symbols-outlined text-[16px] text-slate-400">{opt.icon}</span>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -341,7 +415,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
                 <span className="sum-label">Username</span>
                 <span className="sum-value">{formData.username}</span>
               </div>
-
               <div className="summary-row">
                 <span className="sum-label">Temp Password</span>
                 <div className="sum-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -351,10 +424,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{ 
-                      background: 'none', border: 'none', cursor: 'pointer', 
-                      color: '#94a3b8', display: 'flex', padding: '2px' 
-                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', padding: '2px' }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>
                       {showPassword ? "visibility_off" : "visibility"}
@@ -362,7 +432,6 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
                   </button>
                 </div>
               </div>
-
               <div className="summary-row" style={{ borderBottom: 'none' }}>
                 <span className="sum-label">Relationship</span>
                 <span className="sum-value">{formData.role || "Not specified"}</span>
@@ -385,7 +454,11 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
             {step === 3 && "Verification"}
             {step === 4 && "Confirmation"}
           </h3>
-          <button className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50" onClick={handleClose} disabled={isSubmitting}>
+          <button
+            className="text-slate-400 hover:text-red-500 transition-all duration-300 hover:rotate-90 bg-transparent border-none cursor-pointer flex items-center justify-center p-2 z-50"
+            onClick={handleClose}
+            disabled={isSubmitting}
+          >
             <span className="material-symbols-outlined">close</span>
           </button>
         </div>
@@ -419,10 +492,7 @@ export default function AddGuardianModal({ isOpen, onClose, onSuccess }) {
 
       <SuccessModal 
         isOpen={showSuccessModal} 
-        onClose={() => {
-          setShowSuccessModal(false); 
-          handleClose();              
-        }}
+        onClose={() => { setShowSuccessModal(false); handleClose(); }}
         message="Your submission was successful! However, it still needs to be verified by your child's teacher(s)."
       />  
     </div>

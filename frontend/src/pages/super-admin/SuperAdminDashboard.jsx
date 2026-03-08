@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from 'react-router-dom';
 import { io } from "socket.io-client";
 import { DashboardPendingAccCard } from "../../components/modals/super-admin/dashboard/DashboardPendingAccCard";
@@ -11,7 +11,6 @@ import NavBar from "../../components/navigation/NavBar";
 import SuccessModal from "../../components/SuccessModal";
 import '../../styles/super-admin/super-admin-dashboard.css';
 
-// DYNAMIC BACKEND URL
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 export default function SuperAdminDashboard() {
@@ -40,16 +39,24 @@ export default function SuperAdminDashboard() {
     isOpen: false,
     message: ""
   });
-  
+
+  // --- CUSTOM DROPDOWN STATE ---
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const categoryRef = useRef(null);
+
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (categoryRef.current && !categoryRef.current.contains(event.target)) setIsCategoryOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const fetchDashboardStats = async () => {
       try {
-        // Updated to use BACKEND_URL
-        const response = await axios.get(`${BACKEND_URL}/api/users/cards`, { 
-          withCredentials: true 
-        });
-
+        const response = await axios.get(`${BACKEND_URL}/api/users/cards`, { withCredentials: true });
         if (response.data.success) {
           setStats({
             totalStudents: response.data.students.length,
@@ -66,63 +73,45 @@ export default function SuperAdminDashboard() {
         setLoadingTeachers(false);
       }
     };
-
     fetchDashboardStats();
   }, []);
 
   useEffect(() => {
     const fetchPendingOverrides = async () => {
-        setLoadingOverrides(true);
-        try {
-            // Updated to use BACKEND_URL
-            const response = await axios.get(`${BACKEND_URL}/api/transfer/override`, { 
-                withCredentials: true 
-            });
-
-            if (response.data.success) {
-                setPendingOverrides(response.data.overrides || []);
-                setLoadingOverrides(false);
-            }
-        } catch (error) {
-            console.error("Error fetching pending overrides:", error);
-            setLoadingOverrides(false);
+      setLoadingOverrides(true);
+      try {
+        const response = await axios.get(`${BACKEND_URL}/api/transfer/override`, { withCredentials: true });
+        if (response.data.success) {
+          setPendingOverrides(response.data.overrides || []);
+          setLoadingOverrides(false);
         }
+      } catch (error) {
+        console.error("Error fetching pending overrides:", error);
+        setLoadingOverrides(false);
+      }
     };
-
     fetchPendingOverrides();
   }, []);
 
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
-        // Updated to use BACKEND_URL
-        const response = await axios.get(`${BACKEND_URL}/api/feedback`, { 
-          withCredentials: true 
-        });
-
-        if (response.data.success) {
-          setFeedbacks(response.data.feedbacks);
-        }
+        const response = await axios.get(`${BACKEND_URL}/api/feedback`, { withCredentials: true });
+        if (response.data.success) setFeedbacks(response.data.feedbacks);
       } catch (error) {
         console.error("❌ Failed to fetch feedbacks:", error);
       }
     };
-
     fetchFeedbacks();
   }, []);
   
   useEffect(() => {
-    // Updated to use BACKEND_URL
     const socket = io(BACKEND_URL, { withCredentials: true });
 
     socket.on('teacher_processed', (data) => {
       setPendingTeachers(prev => prev.filter(tch => tch._id !== data.id));
-
       if (data.action === 'approved') {
-        setStats(prev => ({
-          ...prev,
-          totalTeachers: prev.totalTeachers + 1
-        }));
+        setStats(prev => ({ ...prev, totalTeachers: prev.totalTeachers + 1 }));
       }
     });
 
@@ -154,24 +143,15 @@ export default function SuperAdminDashboard() {
 
   const handlePostAnnouncement = async () => {
     if (!announcementData.content.trim()) return;
-
     try {
       setPosting(true);
-      // Updated to use BACKEND_URL
       const response = await axios.post(`${BACKEND_URL}/api/announcements`, 
-        { 
-          announcement: announcementData.content,
-          category: announcementData.category
-        },
+        { announcement: announcementData.content, category: announcementData.category },
         { withCredentials: true }
       );
-
       if (response.data.success) {
         setAnnouncementData({ content: '', category: 'notifications_active' });
-        setSuccessModalConfig({ 
-          isOpen: true, 
-          message: "Announcement posted and sent to all!" 
-        });
+        setSuccessModalConfig({ isOpen: true, message: "Announcement posted and sent to all!" });
       }
     } catch (err) {
       console.error("Post Failed:", err);
@@ -190,6 +170,14 @@ export default function SuperAdminDashboard() {
     const { name, value } = e.target;
     setAnnouncementData(prev => ({ ...prev, [name]: value }));
   };
+
+  const categoryOptions = [
+    { value: 'notifications_active', label: 'General Announcement' },
+    { value: 'campaign', label: 'Emergency Alert' },
+    { value: 'calendar_month', label: 'System Maintenance / Event' },
+  ];
+
+  const getCategoryLabel = (value) => categoryOptions.find(c => c.value === value)?.label || 'Select Category';
 
   return (
     <div className="dashboard-wrapper flex flex-col h-full transition-[padding-left] duration-300 ease-in-out lg:pl-20 pt-20">
@@ -210,27 +198,26 @@ export default function SuperAdminDashboard() {
           </div>
         </section>
 
-
-      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
-            <div className="card stat-card">
-              <div className="stat-icon blue-bg">
-                <span className="material-symbols-outlined">groups</span>
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+              <div className="card stat-card">
+                <div className="stat-icon blue-bg">
+                  <span className="material-symbols-outlined">groups</span>
+                </div>
+                <div className="stat-info">
+                  <h3 id="statTotalStudents">{stats.loading ? "--" : stats.totalStudents}</h3>
+                  <p className="text-[13px]!">Total Students</p>
+                </div>
               </div>
-              <div className="stat-info">
-                <h3 id="statTotalStudents">{stats.loading ? "--" : stats.totalStudents}</h3>
-                <p>Total Students</p>
-              </div>
-            </div>
 
               <div className="card stat-card">
                 <div className="stat-icon purple-bg">
                   <span className="material-symbols-outlined">cast_for_education</span>
                 </div>
                 <div className="stat-info">
-                  <h3 id="statTotalTeachers">{stats.loading ? "--" : stats.totalTeachers}</h3> 
-                  <p>Active Teachers</p>
+                  <h3 id="statTotalTeachers">{stats.loading ? "--" : stats.totalTeachers}</h3>
+                  <p className="text-[13px]!">Active Teachers</p>
                 </div>
               </div>
 
@@ -240,167 +227,198 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div className="stat-info">
                   <h3 id="statTotalParents">{stats.loading ? "--" : stats.totalParents}</h3>
-                  <p>Parents and Guardians Registered</p>
+                  <p className="text-[13px]!">Parents and Guardians Registered</p>
                 </div>
-            </div>
-            
-          </div>
-
-          <div className="card queue-card">
-            <div className="mb-6">
-              <h2 className="text-cdark text-[18px]! font-bold!">Pending Account Approvals</h2>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {loadingTeachers && (
-                <p className="text-cgray p-[15px]">Loading Pending Teachers...</p>
-              )}
-
-              {!loadingTeachers && pendingTeachers.length === 0 && (
-                <p className="text-cgray p-[15px] text-sm">No Pending Account Found.</p>
-              )}
-
-              {!loadingTeachers && pendingTeachers.map((tch) => (
-                <DashboardPendingAccCard 
-                  key={tch._id || tch.user_id} 
-                  tch={tch}
-                  onSuccess={(msg) => setSuccessModalConfig({ isOpen: true, message: msg })}
-                />
-              ))}
-            </div>
-
-          </div>
-
-          <div className="card queue-card">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-cdark text-[18px]! font-bold!">Pending Manual Transfer</h2>
-              <button 
-                onClick={() => setShowRejectedModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[12px] font-bold transition-all cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">history</span>
-                Show Rejected
-              </button>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              {loadingOverrides && (
-                <p className="text-cgray p-[15px]">Loading Manual Transfers...</p>
-              )}
-
-              {!loadingOverrides && pendingOverrides.length === 0 && (
-                <p className="text-cgray p-[15px] text-sm">No Pending Manual Transfer Found.</p>
-              )}
-
-              {!loadingOverrides && pendingOverrides.map((ovr) => (
-                <DashboardPendingOverrideCard 
-                  key={ovr._id} 
-                  ovr={ovr}
-                  onSuccess={(msg) => {
-                    setSuccessModalConfig({ isOpen: true, message: msg });
-                    setPendingOverrides(prev => prev.filter(item => item._id !== ovr._id));
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-        <div className="flex flex-col gap-6">
-          <div className="card p-6">
-            <div className="mb-6">
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined orange-icon text-[24px]">settings_suggest</span>
-                <h2 className="text-cdark text-[18px] font-bold">Quick Management</h2>
-              </div>
-              <p className="text-cgray text-[13px]! leading-normal!">Access administrative areas.</p>
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <Link to="/superadmin/manage-class" className="quick-link-item">
-                <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">manage_accounts</span></div>
-                <div className="flex flex-col flex-1 gap-0.5">
-                  <h3 className="text-cdark text-[15px]! font-semibold! m-0">Manage Classes & Students</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Add, edit, or remove profiles.</p>
-                </div>
-                <span className="material-symbols-outlined arrow-icon">chevron_right</span>
-              </Link>
-              <Link to="/superadmin/accounts" className="quick-link-item">
-                <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">group</span></div>
-                <div className="flex flex-col flex-1 gap-0.5">
-                  <h3 className="text-cdark text-[15px]! font-semibold! m-0">Accounts</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Manage user access.</p>
-                </div>
-                <span className="material-symbols-outlined arrow-icon">chevron_right</span>
-              </Link>
-              <Link to="/superadmin/qr-gate" className="quick-link-item">
-                <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">qr_code</span></div>
-                <div className="flex flex-col flex-1 gap-0.5">
-                  <h3 className="text-cdark text-[15px]! font-semibold! m-0">Qr Gate</h3>
-                  <p className="text-cgray text-[12px]! !leading-[1.4]!">Scanning entry point.</p>
-                </div>
-                <span className="material-symbols-outlined arrow-icon">chevron_right</span>
-              </Link>
-            </div>
-          </div>
-
-          <div className="card p-6">
-            <div className="mb-6">
-              <div className="flex items-center gap-2.5 mb-2">
-                <span className="material-symbols-outlined yellow-icon text-[24px]">feedback</span>
-                <h2 className="text-cdark text-[18px] font-bold">Feedbacks</h2>
               </div>
             </div>
-            
-            <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-              {feedbacks && feedbacks.length > 0 ? (
-                feedbacks.map((fb) => (
-                  <DashboardFeedbackCard key={fb._id} item={fb} onClick={handleOpenFeedback} />
-                ))
-              ) : (
-                <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                  <span className="material-symbols-outlined text-slate-300 text-[32px] mb-2">chat_bubble_outline</span>
-                  <span className="text-cgray text-[13px] font-medium">No feedback yet</span>
-                </div>
-              )}
-            </div>
-          </div>
 
-          <div className="card action-card flex flex-col p-6 mb-6">
-            <div className="mb-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${announcementData.category === 'campaign' ? 'bg-red-50' : announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'}`}>
-                  <span className={`material-symbols-outlined text-[22px] ${announcementData.category === 'campaign' ? 'text-red-600' : announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'}`}>{announcementData.category}</span>
-                </div>
-                <h2 className="text-cdark font-bold text-[18px]! -m-2">System Announcement</h2>
+            <div className="card queue-card">
+              <div className="mb-6">
+                <h2 className="text-cdark text-[18px]! font-bold!">Pending Account Approvals</h2>
               </div>
-              <p className="text-cgray leading-normal text-[14px]! mb-3">Broadcast a message to all users.</p>
-
-              <select name="category" value={announcementData.category} onChange={handleAnnChange} className="w-full p-2.5 border border-slate-200 rounded-xl text-[14px] outline-none bg-white cursor-pointer focus:border-slate-400">
-                <option value="notifications_active">General Announcement</option>
-                <option value="campaign">Emergency Alert</option>
-                <option value="calendar_month">System Maintenance / Event</option>
-              </select>
+              <div className="flex flex-col gap-4">
+                {loadingTeachers && (
+                  <p className="text-cgray! text-[14px]! p-[15px]">Loading Pending Teachers...</p>
+                )}
+                {!loadingTeachers && pendingTeachers.length === 0 && (
+                  <p className="text-cgray! text-[14px]! p-[15px]">No Pending Account Found.</p>
+                )}
+                {!loadingTeachers && pendingTeachers.map((tch) => (
+                  <DashboardPendingAccCard 
+                    key={tch._id || tch.user_id} 
+                    tch={tch}
+                    onSuccess={(msg) => setSuccessModalConfig({ isOpen: true, message: msg })}
+                  />
+                ))}
+              </div>
             </div>
 
-            <div className="announcement-box mt-1">
-              <textarea name="content" className="text-cdark w-full h-24 border border-slate-100 p-3 rounded-xl bg-slate-50/50 resize-none text-[14px] outline-none focus:bg-white focus:border-blue-200 transition-all" placeholder="Type your system-wide message here..." value={announcementData.content} onChange={handleAnnChange} disabled={posting} />
-              <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
-                <div className="text-[12px] text-cgray">{announcementData.content.length} characters</div>
-                <button className={`btn-post ${posting || !announcementData.content.trim() ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded-lg font-bold transition-all`} onClick={handlePostAnnouncement} disabled={posting || !announcementData.content.trim()}>
-                  {posting ? 'Sending...' : 'Post to All'}
+            <div className="card queue-card">
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-cdark text-[18px]! font-bold!">Pending Manual Transfer</h2>
+                <button 
+                  onClick={() => setShowRejectedModal(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-[12px] font-bold transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">history</span>
+                  Show Rejected
                 </button>
               </div>
+              <div className="flex flex-col gap-4">
+                {loadingOverrides && (
+                  <p className="text-cgray! text-[14px]! p-[15px]">Loading Manual Transfers...</p>
+                )}
+                {!loadingOverrides && pendingOverrides.length === 0 && (
+                  <p className="text-cgray! text-[14px]! p-[15px]">No Pending Manual Transfer Found.</p>
+                )}
+                {!loadingOverrides && pendingOverrides.map((ovr) => (
+                  <DashboardPendingOverrideCard 
+                    key={ovr._id} 
+                    ovr={ovr}
+                    onSuccess={(msg) => {
+                      setSuccessModalConfig({ isOpen: true, message: msg });
+                      setPendingOverrides(prev => prev.filter(item => item._id !== ovr._id));
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <div className="card p-6">
+              <div className="mb-6">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span className="material-symbols-outlined orange-icon text-[24px]">settings_suggest</span>
+                  <h2 className="text-cdark text-[18px] font-bold">Quick Management</h2>
+                </div>
+                <p className="text-cgray text-[13px]! leading-normal!">Access administrative areas.</p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <Link to="/superadmin/manage-class" className="quick-link-item">
+                  <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">manage_accounts</span></div>
+                  <div className="flex flex-col flex-1 gap-0.5">
+                    <h3 className="text-cdark text-[15px]! font-semibold! m-0">Manage Classes & Students</h3>
+                    <p className="text-cgray text-[12px]! leading-[1.4]!">Add, edit, or remove profiles.</p>
+                  </div>
+                  <span className="material-symbols-outlined arrow-icon">chevron_right</span>
+                </Link>
+                <Link to="/superadmin/accounts" className="quick-link-item">
+                  <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">group</span></div>
+                  <div className="flex flex-col flex-1 gap-0.5">
+                    <h3 className="text-cdark text-[15px]! font-semibold! m-0">Accounts</h3>
+                    <p className="text-cgray text-[12px]! leading-[1.4]!">Manage user access.</p>
+                  </div>
+                  <span className="material-symbols-outlined arrow-icon">chevron_right</span>
+                </Link>
+                <Link to="/superadmin/qr-gate" className="quick-link-item">
+                  <div className="link-icon-box icon-blue"><span className="material-symbols-outlined">qr_code</span></div>
+                  <div className="flex flex-col flex-1 gap-0.5">
+                    <h3 className="text-cdark text-[15px]! font-semibold! m-0">Qr Gate</h3>
+                    <p className="text-cgray text-[12px]! leading-[1.4]!">Scanning entry point.</p>
+                  </div>
+                  <span className="material-symbols-outlined arrow-icon">chevron_right</span>
+                </Link>
+              </div>
+            </div>
+
+            <div className="card p-6">
+              <div className="mb-6">
+                <div className="flex items-center gap-2.5 mb-2">
+                  <span className="material-symbols-outlined yellow-icon text-[24px]">feedback</span>
+                  <h2 className="text-cdark text-[18px] font-bold">Feedbacks</h2>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {feedbacks && feedbacks.length > 0 ? (
+                  feedbacks.map((fb) => (
+                    <DashboardFeedbackCard key={fb._id} item={fb} onClick={handleOpenFeedback} />
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <span className="material-symbols-outlined text-slate-300 text-[32px] mb-2">chat_bubble_outline</span>
+                    <p className="text-cgray! text-[13px]! font-medium">No feedback yet</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="card action-card flex flex-col p-6 mb-6">
+              <div className="mb-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${announcementData.category === 'campaign' ? 'bg-red-50' : announcementData.category === 'calendar_month' ? 'bg-green-50' : 'bg-blue-50'}`}>
+                    <span className={`material-symbols-outlined text-[22px] ${announcementData.category === 'campaign' ? 'text-red-600' : announcementData.category === 'calendar_month' ? 'text-green-600' : 'text-blue-600'}`}>{announcementData.category}</span>
+                  </div>
+                  <h2 className="text-cdark font-bold text-[18px]! -m-2">System Announcement</h2>
+                </div>
+                <p className="text-cgray text-[14px]! leading-normal! mb-3">Broadcast a message to all users.</p>
+
+                {/* CATEGORY CUSTOM DROPDOWN */}
+                <div className="relative" ref={categoryRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+                    className={`flex items-center justify-between w-full h-[42px] px-4 rounded-xl border bg-slate-50 text-[13px] font-semibold text-slate-700 transition-all focus:outline-none ${
+                      isCategoryOpen
+                        ? 'border-[var(--brand-blue)] ring-2 ring-blue-500/10 bg-white'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{getCategoryLabel(announcementData.category)}</span>
+                    </div>
+                    <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isCategoryOpen ? 'rotate-180 text-[var(--brand-blue)]' : ''}`}>
+                      expand_more
+                    </span>
+                  </button>
+
+                  {isCategoryOpen && (
+                    <div className="absolute top-[46px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 animate-[fadeIn_0.2s_ease-out]">
+                      {categoryOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-[13px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[var(--brand-blue)] transition-colors"
+                          onClick={() => {
+                            handleAnnChange({ target: { name: 'category', value: opt.value } });
+                            setIsCategoryOpen(false);
+                          }}
+                        > 
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="announcement-box mt-1">
+                <textarea
+                  name="content"
+                  className="text-cdark w-full h-24 border border-slate-100 p-3 rounded-xl bg-slate-50/50 resize-none text-[14px] outline-none focus:bg-white focus:border-blue-200 transition-all"
+                  placeholder="Type your system-wide message here..."
+                  value={announcementData.content}
+                  onChange={handleAnnChange}
+                  disabled={posting}
+                />
+                <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
+                  <p className="text-cgray! text-[12px]!">{announcementData.content.length} characters</p>
+                  <button
+                    className={`btn-post ${posting || !announcementData.content.trim() ? 'opacity-50 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded-lg font-bold transition-all`}
+                    onClick={handlePostAnnouncement}
+                    disabled={posting || !announcementData.content.trim()}
+                  >
+                    {posting ? 'Sending...' : 'Post to All'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
-    <RejectedTransferHistoryModal isOpen={showRejectedModal} onClose={() => setShowRejectedModal(false)} />
-    <DashboardFeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} feedback={selectedFeedback} />
-
+      <RejectedTransferHistoryModal isOpen={showRejectedModal} onClose={() => setShowRejectedModal(false)} />
+      <DashboardFeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} feedback={selectedFeedback} />
     </div>
   );
 }

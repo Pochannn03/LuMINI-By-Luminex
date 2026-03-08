@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '../../../context/AuthProvider';
 import { io } from "socket.io-client";
@@ -35,11 +35,25 @@ export default function GuardianDashboard() {
   const [warningTitle, setWarningTitle] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
 
+  // --- CUSTOM DROPDOWN STATE ---
+  const [isChildSwitcherOpen, setIsChildSwitcherOpen] = useState(false);
+  const childSwitcherRef = useRef(null);
+
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (childSwitcherRef.current && !childSwitcherRef.current.contains(event.target)) {
+        setIsChildSwitcherOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const getImageUrl = (path) => {
     if (!path) return "https://via.placeholder.com/150";
     if (path.startsWith("http")) return path;
     const cleanPath = path.replace(/\\/g, "/").replace(/^\/+/, "");
-    // Updated to use BACKEND_URL
     return `${BACKEND_URL}/${cleanPath}`;
   };
 
@@ -48,7 +62,6 @@ export default function GuardianDashboard() {
     const fetchChild = async () => {
       try {
         setLoading(true);
-        // Updated to use BACKEND_URL
         const response = await axios.get(
           `${BACKEND_URL}/api/guardian/children`,
           { withCredentials: true }
@@ -66,11 +79,11 @@ export default function GuardianDashboard() {
           setRawStudentData(firstChild);
           
           setChildData({
-              firstName: firstChild.first_name,
-              lastName: firstChild.last_name,
-              profilePicture: firstChild.profile_picture,
-              sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
-              status: firstChild.status 
+            firstName: firstChild.first_name,
+            lastName: firstChild.last_name,
+            profilePicture: firstChild.profile_picture,
+            sectionName: firstChild.section_details ? firstChild.section_details.section_name : "Not Assigned",
+            status: firstChild.status 
           });
         }
       } catch (err) {
@@ -82,21 +95,17 @@ export default function GuardianDashboard() {
     fetchChild();
   }, []);
 
-  const handleChildSwitch = (e) => {
-    const selectedId = e.target.value;
-    const selectedChild = allChildren.find(c => c.student_id === selectedId);
-    
-    if (selectedChild) {
-      setRawStudentData(selectedChild);
-      setChildData({
-        firstName: selectedChild.first_name,
-        lastName: selectedChild.last_name,
-        profilePicture: selectedChild.profile_picture,
-        sectionName: selectedChild.section_details?.section_name || "Not Assigned",
-        status: selectedChild.status
-      });
-      setIsParentOnQueue(selectedChild.on_queue || false);
-    }
+  const handleChildSwitch = (child) => {
+    setRawStudentData(child);
+    setChildData({
+      firstName: child.first_name,
+      lastName: child.last_name,
+      profilePicture: child.profile_picture,
+      sectionName: child.section_details?.section_name || "Not Assigned",
+      status: child.status
+    });
+    setIsParentOnQueue(child.on_queue || false);
+    setIsChildSwitcherOpen(false);
   };
 
   // 2. CHECK IF GUARDIAN IS ALREADY IN QUEUE
@@ -104,7 +113,6 @@ export default function GuardianDashboard() {
     const checkQueueStatus = async () => {
       if (!rawStudentData?.student_id) return;
       try {
-        // Updated to use BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/queue/check?student_id=${rawStudentData.student_id}`, { 
           withCredentials: true 
         });
@@ -118,7 +126,6 @@ export default function GuardianDashboard() {
 
   // 3. SOCKET.IO LISTENERS
   useEffect(() => {
-    // Updated to use BACKEND_URL
     const socket = io(BACKEND_URL, { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
@@ -148,7 +155,6 @@ export default function GuardianDashboard() {
     try {
       setLoading(true);
       const transferType = (childData?.status === 'Learning') ? 'Pick up' : 'Drop off';
-      // Updated to use BACKEND_URL
       const response = await axios.post(`${BACKEND_URL}/api/queue`, {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
@@ -214,16 +220,58 @@ export default function GuardianDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
           <div className="flex flex-col gap-6">
             <div className="card flex flex-col items-center gap-7 py-10 px-6 bg-[#e1f5fe] border border-[#b3e5fc] rounded-[20px]">
+
+              {/* CUSTOM CHILD SWITCHER DROPDOWN */}
               {allChildren.length > 1 && (
-                <div className="w-full flex justify-start mb-[-15px]"> 
-                  <div className="relative inline-block">
-                    <select className="appearance-none bg-white border border-[#b3e5fc] text-cdark text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#39a8ed]" value={rawStudentData?.student_id || ""} onChange={handleChildSwitch}>
-                      {allChildren.map(child => (<option key={child.student_id} value={child.student_id}>{child.first_name} {child.last_name}</option>))}
-                    </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-cgray pointer-events-none">expand_more</span>
+                <div className="w-full flex justify-start mb-[-15px]">
+                  <div className="relative" ref={childSwitcherRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsChildSwitcherOpen(!isChildSwitcherOpen)}
+                      className={`flex items-center gap-2 h-[40px] pl-3 pr-3 rounded-xl border bg-white text-[13px] font-bold text-cdark transition-all focus:outline-none shadow-sm ${
+                        isChildSwitcherOpen
+                          ? 'border-[#39a8ed] ring-2 ring-blue-500/10'
+                          : 'border-[#b3e5fc] hover:border-[#39a8ed]'
+                      }`}
+                    >
+                      <span className="truncate max-w-[160px]">
+                        {rawStudentData ? `${rawStudentData.first_name} ${rawStudentData.last_name}` : 'Select Child'}
+                      </span>
+                      <span className={`material-symbols-outlined text-[#39a8ed] text-[20px] transition-transform duration-300 shrink-0 ${isChildSwitcherOpen ? 'rotate-180' : ''}`}>
+                        expand_more
+                      </span>
+                    </button>
+
+                    {isChildSwitcherOpen && (
+                      <div className="absolute top-[46px] left-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 min-w-[200px] animate-[fadeIn_0.2s_ease-out]">
+                        {allChildren.map(child => {
+                          const isActive = child.student_id === rawStudentData?.student_id;
+                          return (
+                            <button
+                              key={child.student_id}
+                              type="button"
+                              onClick={() => handleChildSwitch(child)}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors focus:outline-none ${
+                                isActive
+                                  ? 'bg-blue-50 text-[#39a8ed]'
+                                  : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <span className="text-[13px] font-semibold truncate flex-1">
+                                {child.first_name} {child.last_name}
+                              </span>
+                              {isActive && (
+                                <span className="material-symbols-outlined text-[16px] text-[#39a8ed] shrink-0">check</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+
               <div className="flex flex-col items-center gap-1.5 mt-2">
                 <div className="p-1 bg-white rounded-full shadow-sm mb-2"><img src={getImageUrl(childData?.profilePicture)} alt="Profile" className="w-[90px] h-[90px] rounded-full object-cover" /></div>
                 <h2 className="text-cdark text-[22px] font-bold">{childData ? `${childData.firstName} ${childData.lastName}` : "Loading..."}</h2>
@@ -239,10 +287,10 @@ export default function GuardianDashboard() {
 
               <div className={`status-badge-container ${childData?.status === 'On the way' ? 'badge-onway' : childData?.status === 'Learning' ? 'badge-learning' : childData?.status === 'Dismissed' ? 'badge-dismissed' : ''}`}>
                 <p className="status-badge-text">
-                    {childData?.status === 'On the way' && "Student is traveling to school"}
-                    {childData?.status === 'Learning' && "Learning At School"}
-                    {childData?.status === 'Dismissed' && "Student has been dismissed"}
-                    {!childData?.status && "Checking status..."}
+                  {childData?.status === 'On the way' && "Student is traveling to school"}
+                  {childData?.status === 'Learning' && "Learning At School"}
+                  {childData?.status === 'Dismissed' && "Student has been dismissed"}
+                  {!childData?.status && "Checking status..."}
                 </p>
               </div>
             </div>

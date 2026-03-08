@@ -26,11 +26,14 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     medical_history: 'None',
     studentId: 'Generating...', 
     invitationCode: '',
-    // --- NEW: Passive Parent Fields ---
     parentName: '',
     parentPhone: '',
     parentEmail: ''
-  })
+  });
+
+  // --- CUSTOM DROPDOWN STATE ---
+  const [isGenderOpen, setIsGenderOpen] = useState(false);
+  const genderRef = useRef(null);
 
   // --- CROPPER STATES ---
   const editorRef = useRef(null);
@@ -38,11 +41,17 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
   const [tempImage, setTempImage] = useState(null);
   const [zoom, setZoom] = useState(1);
 
-  // USE EFFECTS
+  // Click outside listener for gender dropdown
   useEffect(() => {
-    if (!isOpen) {
-      resetForm();
+    function handleClickOutside(event) {
+      if (genderRef.current && !genderRef.current.contains(event.target)) setIsGenderOpen(false);
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) resetForm();
   }, [isOpen]);
 
   useEffect(() => {
@@ -50,18 +59,13 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
       const fetchNextId = async () => {
         try {
           setFormData(prev => ({ ...prev, studentId: "Loading..." }));
-          
-          const response = await axios.get(`${BACKEND_URL}/api/students/id`, {
-            withCredentials: true
-          });
-
+          const response = await axios.get(`${BACKEND_URL}/api/students/id`, { withCredentials: true });
           setFormData(prev => ({ ...prev, studentId: response.data.student_id }));
         } catch (err) {
           console.error("Failed to fetch ID preview", err);
           setFormData(prev => ({ ...prev, studentId: "Error" }));
         }
       };
-
       fetchNextId();
     } else {
       setFormData(prev => ({ ...prev, studentId: "Generating..." }));
@@ -74,9 +78,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
       const m = today.getMonth() - birthDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
       setFormData((prev) => ({ ...prev, age: age >= 0 ? age : 0 }));
     }
   }, [formData.birthdate]);
@@ -84,13 +86,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
   const generateCode = async () => {
     setLoadingCode(true);
     try {
-      const response = await axios.get(`${BACKEND_URL}/api/students/invitation`, {
-        withCredentials: true
-      });
-      setFormData((prev) => ({ 
-        ...prev, 
-        invitationCode: response.data.code 
-      }));
+      const response = await axios.get(`${BACKEND_URL}/api/students/invitation`, { withCredentials: true });
+      setFormData((prev) => ({ ...prev, invitationCode: response.data.code }));
     } catch (error) {
       console.error("Error generating code:", error);
       alert("Failed to generate code. Please try again.");
@@ -105,34 +102,23 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const img = new Image();
-    
-    const qrSize = 500; 
-    const padding = 60;
-    const textSpace = 80;
-    
+    const qrSize = 500, padding = 60, textSpace = 80;
     canvas.width = qrSize + (padding * 2);
     canvas.height = qrSize + padding + textSpace;
-
     img.onload = () => {
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, padding, padding, qrSize, qrSize);
-      ctx.fillStyle = "#64748b"; 
-      ctx.font = "bold 24px monospace"; 
+      ctx.fillStyle = "#64748b";
+      ctx.font = "bold 24px monospace";
       ctx.textAlign = "center";
-      ctx.fillText(
-        formData.studentId, 
-        canvas.width / 2, 
-        qrSize + padding + (textSpace / 2)
-      );
-      
+      ctx.fillText(formData.studentId, canvas.width / 2, qrSize + padding + (textSpace / 2));
       const pngFile = canvas.toDataURL("image/png");
       const downloadLink = document.createElement("a");
       downloadLink.download = `QR_${formData.studentId}.png`;
       downloadLink.href = pngFile;
       downloadLink.click();
     };
-
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
@@ -140,13 +126,14 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     setFormData({
       firstName: '', lastName: '', birthdate: '', age: '', gender: '',
       allergies: 'None', medical_history: 'None', studentId: 'Generating...', invitationCode: '',
-      parentName: '', parentPhone: '', parentEmail: '' // Reset these too!
+      parentName: '', parentPhone: '', parentEmail: ''
     });
     setProfileImage(null);
     setPreviewUrl(null);
     setTempImage(null);
     setShowCropModal(false);
     setErrors({});
+    setIsGenderOpen(false);
   };
 
   const handleCloseModal = () => {
@@ -165,10 +152,10 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     if (file) {
       const imageUrl = URL.createObjectURL(file);
       setTempImage(imageUrl);
-      setShowCropModal(true); 
+      setShowCropModal(true);
       setZoom(1);
     }
-    e.target.value = null; 
+    e.target.value = null;
     if (errors.profileImage) setErrors(prev => ({ ...prev, profileImage: null }));
   };
 
@@ -193,17 +180,18 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
 
+  const handleDropdownSelect = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     if (!validateStep()) return;
-    if (!formData.invitationCode) {
-      alert("Please generate an invitation code.");
-      return;
-    }
+    if (!formData.invitationCode) { alert("Please generate an invitation code."); return; }
 
     setLoading(true);
     const data = new FormData();
-      
     data.append('first_name', formData.firstName);
     data.append('last_name', formData.lastName);
     data.append('birthday', formData.birthdate);
@@ -212,39 +200,25 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
     data.append('allergies', formData.allergies);
     data.append('medical_history', formData.medical_history);
     data.append('invitation_code', formData.invitationCode);
-    
-    // --- NEW: Append the parent data ---
     data.append('passive_parent_name', formData.parentName);
     data.append('passive_parent_phone', formData.parentPhone);
     data.append('passive_parent_email', formData.parentEmail);
-
-    if (profileImage) {
-      data.append('profile_photo', profileImage);
-    }
+    if (profileImage) data.append('profile_photo', profileImage);
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/students`, data, {
-        withCredentials: true
-      });
-
-      if(onSuccess) {
-        onSuccess("Student created successfully!");
-      }
+      await axios.post(`${BACKEND_URL}/api/students`, data, { withCredentials: true });
+      if (onSuccess) onSuccess("Student created successfully!");
       handleCloseModal();
-
     } catch (error) {
       console.error("Crash Details:", error);
       if (error.response) {
         const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create student";
-        if (error.response.data.errors) {
-          alert(`Validation Error: ${error.response.data.errors[0].msg}`);
-        } else {
-          alert(`Error: ${errorMsg}`);
-        }
+        if (error.response.data.errors) alert(`Validation Error: ${error.response.data.errors[0].msg}`);
+        else alert(`Error: ${errorMsg}`);
       } else if (error.request) {
         alert("Network Error. Is the backend running?");
       } else {
-        alert(`Code Error: ${error.message}`); 
+        alert(`Code Error: ${error.message}`);
       }
     } finally {
       setLoading(false);
@@ -252,6 +226,8 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
   };
 
   if (!isOpen) return null;
+
+  const genderOptions = ["Male", "Female"];
   
   return createPortal(
     <>
@@ -262,7 +238,6 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
             <h3 style={{ marginBottom: '16px', fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>
               Crop Student Photo
             </h3>
-            
             <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '12px' }}>
               <AvatarEditor
                 ref={editorRef}
@@ -276,45 +251,19 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
                 rotate={0}
               />
             </div>
-
             <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '12px', margin: '20px 0' }}>
               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_out</span>
-              <input 
-                type="range" 
-                min="1" max="3" step="0.01" 
-                value={zoom} 
+              <input
+                type="range" min="1" max="3" step="0.01"
+                value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
                 style={{ flex: 1, accentColor: '#39a8ed', cursor: 'pointer' }}
               />
               <span className="material-symbols-outlined" style={{ fontSize: '18px', color: '#64748b' }}>zoom_in</span>
             </div>
-
             <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
-              <button 
-                type="button"
-                className="btn-cancel" 
-                style={{ flex: 1 }} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowCropModal(false);
-                  setTempImage(null);
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                type="button"
-                className="btn-save" 
-                style={{ flex: 1 }} 
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleCropSave();
-                }}
-              >
-                Apply Crop
-              </button>
+              <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowCropModal(false); setTempImage(null); }}>Cancel</button>
+              <button type="button" className="btn-save" style={{ flex: 1 }} onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleCropSave(); }}>Apply Crop</button>
             </div>
           </div>
         </div>
@@ -322,11 +271,7 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
 
       {/* --- MAIN REGISTRATION MODAL --- */}
       <div className="modal-overlay active" id="addStudentModal" onClick={handleCloseModal}>
-        <form 
-          className="modal-container" 
-          onClick={(e) => e.stopPropagation()} 
-          onSubmit={handleSubmit}
-        >
+        <form className="modal-container" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmit}>
           <div className="modal-header">
             <div className="flex items-center gap-2.5 mb-2">
               <span className="material-symbols-outlined blue-icon text-[24px]">person_add</span>
@@ -335,18 +280,12 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
           </div>
 
           <div className="modal-body custom-scrollbar pr-2 overflow-y-auto max-h-[65vh]">
+            {/* Photo Upload */}
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Student Photo</label>
-              <input 
-                type="file" 
-                id="addStudentPhoto" 
-                accept="image/*" 
-                hidden 
-                onChange={handleImageChange}
-              />
-
-              <div 
-                className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`} 
+              <input type="file" id="addStudentPhoto" accept="image/*" hidden onChange={handleImageChange} />
+              <div
+                className={`custom-file-upload cursor-pointer ${errors.profileImage ? 'border-red-500! bg-red-50' : ''}`}
                 onClick={() => document.getElementById('addStudentPhoto').click()}
               >
                 {!previewUrl ? (
@@ -369,219 +308,136 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
                   </div>
                 )}
               </div>
-
-              {errors.profileImage && (
-                <span className="text-red-500 text-[11px] ml-1 mt-1 font-medium">
-                  {errors.profileImage}
-                </span>
-              )}
+              {errors.profileImage && <span className="text-red-500 text-[11px] ml-1 mt-1 font-medium">{errors.profileImage}</span>}
             </div>
 
+            {/* Student ID */}
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Student ID (Auto-generated)</label>
-              <input 
-                type="text" 
-                value={formData.studentId}
-                className="form-input-modal text-cgray cursor-not-allowed! focus:outline-none" 
-                readOnly 
-                placeholder="Generating..." 
-              />
+              <input type="text" value={formData.studentId} className="form-input-modal text-cgray cursor-not-allowed! focus:outline-none" readOnly placeholder="Generating..." />
             </div>
 
+            {/* Full Name + Gender */}
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Full Name</label>
               <div className="flex gap-2.5">
-                <FormInputRegistration 
-                  name="firstName" 
-                  value={formData.firstName}
-                  onChange={handleChange} 
-                  placeholder="First Name" 
-                  error={errors.firstName} 
-                  className="form-input-modal"
-                />
-                <FormInputRegistration 
-                  name="lastName" 
-                  value={formData.lastName}
-                  onChange={handleChange} 
-                  placeholder="Last Name" 
-                  error={errors.lastName} 
-                  className="form-input-modal"
-                />
+                <FormInputRegistration name="firstName" value={formData.firstName} onChange={handleChange} placeholder="First Name" error={errors.firstName} className="form-input-modal" />
+                <FormInputRegistration name="lastName" value={formData.lastName} onChange={handleChange} placeholder="Last Name" error={errors.lastName} className="form-input-modal" />
               </div>
+
+              {/* GENDER CUSTOM DROPDOWN */}
               <div className="flex flex-col gap-2">
                 <label className="text-cgray text-[13px] font-medium">Gender</label>
-                <div className="relative w-full">
-                  <select 
-                    name="gender" 
-                    value={formData.gender}
-                    onChange={handleChange} 
-                    className={`form-input-modal w-full bg-white h-[42px] appearance-none pr-10 ${
-                      errors.gender ? 'border-red-500! bg-red-50' : ''
+                <div className="relative w-full" ref={genderRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsGenderOpen(!isGenderOpen)}
+                    className={`flex items-center justify-between w-full h-[42px] px-3 rounded-xl border bg-slate-50 text-[13px] font-medium transition-all focus:outline-none ${
+                      errors.gender
+                        ? 'border-red-500 bg-red-50'
+                        : isGenderOpen
+                        ? 'border-[#39a8ed] ring-2 ring-blue-500/10 bg-white'
+                        : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
-                    <option value="" disabled>Select Gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                    expand_more
-                  </span>
-                </div>
+                    <span className={formData.gender ? 'text-slate-800' : 'text-slate-400'}>
+                      {formData.gender || 'Select Gender'}
+                    </span>
+                    <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isGenderOpen ? 'rotate-180 text-[#39a8ed]' : ''}`}>
+                      expand_more
+                    </span>
+                  </button>
 
-                {errors.gender && (
-                  <span className="text-red-500 text-[11px] ml-1">{errors.gender}</span>
-                )}
+                  {isGenderOpen && (
+                    <div className="absolute top-[46px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 animate-[fadeIn_0.2s_ease-out]">
+                      {genderOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          className="w-full text-left px-3 py-2.5 rounded-lg text-[13px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#39a8ed] transition-colors"
+                          onClick={() => { handleDropdownSelect('gender', opt); setIsGenderOpen(false); }}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {errors.gender && <span className="text-red-500 text-[11px] ml-1">{errors.gender}</span>}
               </div>
             </div>
-            
+
+            {/* Birthdate & Age */}
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium">Birthdate & Age</label>
               <div className="flex gap-2.5">
                 <div className="flex flex-col flex-1">
-                  <input 
-                    type="date"
-                    name="birthdate"
-                    value={formData.birthdate}
-                    onChange={handleChange} 
-                    className={`form-input-modal w-full ${errors.birthdate ? 'border-red-500! bg-red-50' : ''}`} 
-                  />
-                  {errors.birthdate && (
-                    <span className="text-red-500 text-[11px] ml-1 mt-1">{errors.birthdate}</span>
-                  )}
+                  <input type="date" name="birthdate" value={formData.birthdate} onChange={handleChange} className={`form-input-modal w-full ${errors.birthdate ? 'border-red-500! bg-red-50' : ''}`} />
+                  {errors.birthdate && <span className="text-red-500 text-[11px] ml-1 mt-1">{errors.birthdate}</span>}
                 </div>
-                <input 
-                  type="text"
-                  name="age"
-                  value={formData.age}
-                  className="form-input-modal flex flex-1 text-center cursor-not-allowed! focus:outline-none" 
-                  placeholder={formData.age}
-                  readOnly 
-                />
+                <input type="text" name="age" value={formData.age} className="form-input-modal flex flex-1 text-center cursor-not-allowed! focus:outline-none" placeholder={formData.age} readOnly />
               </div>
             </div>
 
+            {/* Allergies */}
             <div className="flex flex-col gap-2">
-              <FormInputRegistration
-                label="Allergies"
-                name="allergies" 
-                value={formData.allergies}
-                onChange={handleChange} 
-                placeholder="Allergies" 
-                error={errors.allergies} 
-                className="form-input-modal"
-              />
+              <FormInputRegistration label="Allergies" name="allergies" value={formData.allergies} onChange={handleChange} placeholder="Allergies" error={errors.allergies} className="form-input-modal" />
             </div>
 
+            {/* Medical History */}
             <div className="flex flex-col gap-2">
-              <FormInputRegistration
-                label="Medical History"
-                name="medical_history"
-                type="textarea"
-                value={formData.medical_history}
-                onChange={handleChange}
-                placeholder="List any medical history..."
-                rows={3} 
-                error={errors.medical_history}
-                className="form-input-modal"
-              />
+              <FormInputRegistration label="Medical History" name="medical_history" type="textarea" value={formData.medical_history} onChange={handleChange} placeholder="List any medical history..." rows={3} error={errors.medical_history} className="form-input-modal" />
             </div>
 
-            {/* --- NEW: PARENT DETAILS SECTION --- */}
+            {/* Parent Details */}
             <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
               <span className="material-symbols-outlined orange-icon">family_restroom</span>
               <h3 className="text-cdark text-[16px] font-bold">Parent / Guardian Details</h3>
             </div>
             <p className="text-slate-400 text-[12px] mb-2 leading-tight">Optional: Enter parent details to create a temporary link before they register their app account.</p>
-            
             <div className="flex flex-col gap-3">
-              <FormInputRegistration 
-                label="Parent's Full Name"
-                name="parentName" 
-                value={formData.parentName}
-                onChange={handleChange} 
-                placeholder="e.g. Maria Clara" 
-                className="form-input-modal"
-              />
+              <FormInputRegistration label="Parent's Full Name" name="parentName" value={formData.parentName} onChange={handleChange} placeholder="e.g. Maria Clara" className="form-input-modal" />
               <div className="flex gap-2.5">
-                <FormInputRegistration 
-                  label="Contact Number"
-                  name="parentPhone" 
-                  value={formData.parentPhone}
-                  onChange={handleChange} 
-                  placeholder="e.g. 09123456789" 
-                  className="form-input-modal flex-1"
-                />
-                <FormInputRegistration 
-                  label="Email Address"
-                  name="parentEmail" 
-                  value={formData.parentEmail}
-                  onChange={handleChange} 
-                  placeholder="e.g. maria@email.com" 
-                  className="form-input-modal flex-1"
-                />
+                <FormInputRegistration label="Contact Number" name="parentPhone" value={formData.parentPhone} onChange={handleChange} placeholder="e.g. 09123456789" className="form-input-modal flex-1" />
+                <FormInputRegistration label="Email Address" name="parentEmail" value={formData.parentEmail} onChange={handleChange} placeholder="e.g. maria@email.com" className="form-input-modal flex-1" />
               </div>
             </div>
 
-            {/* --- INVITATION CODE SECTION --- */}
+            {/* Invitation Code */}
             <div className="flex items-center gap-2 mt-4 pb-2 border-b border-[#f0f0f0]">
               <span className="material-symbols-outlined blue-icon">vpn_key</span>
               <h3 className="text-cdark text-[16px] font-bold">Parent Access</h3>
             </div>
-
             <div className="flex flex-col gap-2 mt-2">
               <div className="flex justify-between items-center mb-1">
                 <label className="text-cgray text-[13px] font-medium mb-0">Invitation Code</label>
-                <button 
-                  type="button" 
-                  onClick={generateCode} 
-                  className="text-cprimary-blue bg-none flex items-center border-none cursor-pointer gap-1 text-[12px] font-semibold"
-                >
+                <button type="button" onClick={generateCode} className="text-cprimary-blue bg-none flex items-center border-none cursor-pointer gap-1 text-[12px] font-semibold">
                   <span className="material-symbols-outlined text-[16px]">{loadingCode ? 'progress_activity' : 'refresh'}</span>
                   {loadingCode ? 'Loading...' : 'Generate New'}
                 </button>
               </div>
-              <input 
-                type="text" 
-                name="invitationCode"
-                value={formData.invitationCode} 
-                className="form-input-modal bg-[#f1f5f9] text-cdark tracking-[3px] font-bold text-center text-base cursor-not-allowed! focus:outline-none" 
-                readOnly 
-              />
-              <p className="text-[11px]! text-slate-400 mt-1">
-                Share this code with the parent to link accounts.
-              </p>
+              <input type="text" name="invitationCode" value={formData.invitationCode} className="form-input-modal bg-[#f1f5f9] text-cdark tracking-[3px] font-bold text-center text-base cursor-not-allowed! focus:outline-none" readOnly />
+              <p className="text-[11px]! text-slate-400 mt-1">Share this code with the parent to link accounts.</p>
             </div>
-            
+
+            {/* QR Code */}
             <div className="flex flex-col gap-2">
               <label className="text-cgray text-[13px] font-medium mb-0">Qr ID</label>
               <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-lg border border-dashed border-slate-200 mb-4">
                 <div className="flex justify-between items-center w-full mb-3">
                   <label className="text-cgray text-[12px] font-bold uppercase tracking-wider">Registration QR Preview</label>
-                  
                   {formData.studentId && !["Loading...", "Generating..."].includes(formData.studentId) && (
-                    <button 
-                      type="button"
-                      onClick={downloadQRCode}
-                      className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline cursor-pointer"
-                    >
+                    <button type="button" onClick={downloadQRCode} className="text-cprimary-blue flex items-center gap-1 text-[11px] font-bold hover:underline cursor-pointer">
                       <span className="material-symbols-outlined text-[16px]">download</span>
                       Download PNG
                     </button>
                   )}
                 </div>
-
                 <div className="bg-white p-4 rounded-lg shadow-sm flex flex-col items-center" ref={qrRef}>
                   {formData.studentId && !["Loading...", "Generating..."].includes(formData.studentId) ? (
                     <>
-                      <QRCode
-                        size={120}
-                        value={formData.studentId}
-                        viewBox={`0 0 256 256`}
-                        style={{ height: "auto", maxWidth: "100%", width: "100%" }}
-                      />
-                      <p className="text-[10px] font-mono mt-2 text-slate-500 tracking-widest uppercase">
-                        {formData.studentId}
-                      </p>
+                      <QRCode size={120} value={formData.studentId} viewBox={`0 0 256 256`} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                      <p className="text-[10px] font-mono mt-2 text-slate-500 tracking-widest uppercase">{formData.studentId}</p>
                     </>
                   ) : (
                     <div className="w-[120px] h-[120px] flex items-center justify-center bg-slate-100 text-slate-400">
@@ -591,14 +447,11 @@ export default function ClassManageAddStudentModal({ isOpen, onClose, onSuccess 
                 </div>
               </div>
             </div>
-            
           </div>
 
           <div className="modal-footer">
             <button className="btn-cancel" type="button" onClick={handleCloseModal}>Cancel</button>
-            <button className="btn-save" type="submit" disabled={loading}>
-              {loading ? "Saving..." : "Register Student"}
-            </button>
+            <button className="btn-save" type="submit" disabled={loading}>{loading ? "Saving..." : "Register Student"}</button>
           </div>
         </form>
       </div>

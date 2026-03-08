@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthProvider';
 import { io } from "socket.io-client";
@@ -16,7 +16,6 @@ import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal";
 import UserConfirmModal from "../../../components/modals/user/UserConfirmationModal";
 
-// DYNAMIC BACKEND URL
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
 const getImageUrl = (path) => {
@@ -53,27 +52,34 @@ export default function Dashboard() {
   const [warningMessage, setWarningMessage] = useState("");
   const [isEarlyPickupConfirmOpen, setIsEarlyPickupConfirmOpen] = useState(false);
 
+  // --- CUSTOM DROPDOWN STATE ---
+  const [isChildSwitcherOpen, setIsChildSwitcherOpen] = useState(false);
+  const childSwitcherRef = useRef(null);
+
+  // Click outside listener
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (childSwitcherRef.current && !childSwitcherRef.current.contains(event.target)) {
+        setIsChildSwitcherOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   useEffect(() => {
     const fetchChild = async () => {
       try {
         setLoading(true); 
-        // Updated to BACKEND_URL
-        const response = await axios.get(
-          `${BACKEND_URL}/api/parent/children`,
-          { withCredentials: true }
-        );
-
+        const response = await axios.get(`${BACKEND_URL}/api/parent/children`, { withCredentials: true });
         const { success, children } = response.data; 
 
-        if (success === true) {
-          setShowNewDayModal(true); 
-        }
+        if (success === true) setShowNewDayModal(true); 
 
         if (Array.isArray(children) && children.length > 0) {
           setAllChildren(children);
           const firstChild = children[0];
           setRawStudentData(firstChild);
-
           setChildData({
             firstName: firstChild.first_name,
             lastName: firstChild.last_name,
@@ -96,10 +102,7 @@ export default function Dashboard() {
     const checkQueueStatus = async () => {
       if (!rawStudentData?.student_id) return; 
       try {
-        // Updated to BACKEND_URL
-        const response = await axios.get(`${BACKEND_URL}/api/queue/check?student_id=${rawStudentData.student_id}`, { 
-          withCredentials: true 
-        });
+        const response = await axios.get(`${BACKEND_URL}/api/queue/check?student_id=${rawStudentData.student_id}`, { withCredentials: true });
         setIsParentOnQueue(response.data.onQueue);
       } catch (error) {
         console.error("Failed to fetch queue status:", error);
@@ -111,13 +114,8 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        // Updated to BACKEND_URL
-        const response = await axios.get(`${BACKEND_URL}/api/announcement`, {
-          withCredentials: true
-        });
-        if (response.data.success) {
-          setAnnouncements(response.data.announcements);
-        }
+        const response = await axios.get(`${BACKEND_URL}/api/announcement`, { withCredentials: true });
+        if (response.data.success) setAnnouncements(response.data.announcements);
       } catch (err) {
         console.error("Failed to fetch announcements:", err);
       } finally {
@@ -133,14 +131,8 @@ export default function Dashboard() {
       if (idsToFetch && idsToFetch.length > 0) {
         try {
           setLoadingPickers(true);
-          // Updated to BACKEND_URL
-          const response = await axios.post(`${BACKEND_URL}/api/users/profiles`, {
-            userIds: idsToFetch
-          }, { withCredentials: true });
-
-          if (response.data.success) {
-            setAuthorizedPickers(response.data.users);
-          }
+          const response = await axios.post(`${BACKEND_URL}/api/users/profiles`, { userIds: idsToFetch }, { withCredentials: true });
+          if (response.data.success) setAuthorizedPickers(response.data.users);
         } catch (err) {
           console.error("Failed to fetch authorized pickers:", err);
         } finally {
@@ -150,10 +142,8 @@ export default function Dashboard() {
     };
     fetchPickers();
   }, [rawStudentData]);
-  
 
   useEffect(() => {
-    // Updated to BACKEND_URL
     const socket = io(BACKEND_URL, { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
@@ -167,10 +157,8 @@ export default function Dashboard() {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
         setIsParentOnQueue(false);
         setShowPassModal(false);
-        if (data.purpose === 'Pick up') {
-            setIsFeedbackModalOpen(true);
-        }
-    }
+        if (data.purpose === 'Pick up') setIsFeedbackModalOpen(true);
+      }
     });
 
     socket.on('new_announcement', (newAnn) => {
@@ -179,9 +167,7 @@ export default function Dashboard() {
         if (exists) return prev;
         const isGlobal = !newAnn.section_id;
         const matchesSection = rawStudentData && Number(newAnn.section_id) === Number(rawStudentData.section_id);
-        if (isGlobal || matchesSection) {
-          return [newAnn, ...prev];
-        }
+        if (isGlobal || matchesSection) return [newAnn, ...prev];
         return prev;
       });
     });
@@ -193,21 +179,18 @@ export default function Dashboard() {
     };
   }, [rawStudentData, user]);
 
-  const handleChildSwitch = (e) => {
-    const selectedId = e.target.value;
-    const selectedChild = allChildren.find(c => c.student_id === selectedId);
-    if (selectedChild) {
-      setRawStudentData(selectedChild);
-      setChildData({
-        firstName: selectedChild.first_name,
-        lastName: selectedChild.last_name,
-        profilePicture: selectedChild.profile_picture,
-        sectionName: selectedChild.section_details?.section_name || "Not Assigned",
-        status: selectedChild.status,
-        onQueue: selectedChild.on_queue
-      });
-      setIsParentOnQueue(selectedChild.on_queue || false);
-    }
+  const handleChildSwitch = (child) => {
+    setRawStudentData(child);
+    setChildData({
+      firstName: child.first_name,
+      lastName: child.last_name,
+      profilePicture: child.profile_picture,
+      sectionName: child.section_details?.section_name || "Not Assigned",
+      status: child.status,
+      onQueue: child.on_queue
+    });
+    setIsParentOnQueue(child.on_queue || false);
+    setIsChildSwitcherOpen(false);
   };
 
   const handleStatusUpdate = async (statusLabel, isEarlyPickup = false, authorizedPickerId = null) => {
@@ -223,8 +206,6 @@ export default function Dashboard() {
     try {
       setLoading(true);
       const transferType = isEarlyPickup ? 'Pick up' : (childData?.status === 'Learning' ? 'Pick up' : 'Drop off');
-
-      // Updated to BACKEND_URL
       const response = await axios.post(`${BACKEND_URL}/api/queue`, {
         student_id: rawStudentData.student_id, 
         section_id: rawStudentData.section_id, 
@@ -237,7 +218,6 @@ export default function Dashboard() {
       setIsParentOnQueue(true);
       setSuccessMessage(response.data.msg || `Status updated: ${statusLabel}`);
       setIsSuccessModalOpen(true);
-
     } catch (err) {
       if (err.response?.status === 403) {
         const msg = err.response.data.msg;
@@ -299,7 +279,7 @@ export default function Dashboard() {
   const isScanDisabled = !childData || childData.status === 'Dismissed' || !isParentOnQueue || loading;
   const actionType = childData?.status === 'Learning' ? 'Pick up' : 'Drop off';
 
-  const getImageUrl = (path) => {
+  const getImageUrlLocal = (path) => {
     if (!path) return "../../../assets/placeholder_image.jpg"; 
     if (path.startsWith("http")) return path;
     return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
@@ -324,20 +304,61 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6 w-full max-w-[1200px] mx-auto items-start">
             <div className="flex flex-col gap-6"> 
               <div className="card flex flex-col items-center gap-7 py-10 px-6 bg-[#e1f5fe] border border-[#b3e5fc] rounded-[20px]">
+
+                {/* CUSTOM CHILD SWITCHER DROPDOWN */}
                 {allChildren.length > 1 && (
-                  <div className="w-full flex justify-start mb-[-15px]"> 
-                    <div className="relative inline-block">
-                      <select className="appearance-none bg-white border border-[#b3e5fc] text-cdark text-[13px] font-bold py-2.5 pl-4 pr-10 rounded-xl cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-[#39a8ed] transition-all" value={rawStudentData?.student_id || ""} onChange={handleChildSwitch}>
-                        {allChildren.map(child => (<option key={child.student_id} value={child.student_id}>{child.first_name} {child.last_name}</option>))}
-                      </select>
-                      <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-cgray pointer-events-none">expand_more</span>
+                  <div className="w-full flex justify-start mb-[-15px]">
+                    <div className="relative" ref={childSwitcherRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsChildSwitcherOpen(!isChildSwitcherOpen)}
+                        className={`flex items-center gap-2 h-[40px] pl-3 pr-3 rounded-xl border bg-white text-[13px] font-bold text-cdark transition-all focus:outline-none shadow-sm ${
+                          isChildSwitcherOpen
+                            ? 'border-[#39a8ed] ring-2 ring-blue-500/10'
+                            : 'border-[#b3e5fc] hover:border-[#39a8ed]'
+                        }`}
+                      >
+                        <span className="truncate max-w-[140px]">
+                          {rawStudentData ? `${rawStudentData.first_name} ${rawStudentData.last_name}` : 'Select Child'}
+                        </span>
+                        <span className={`material-symbols-outlined text-[#39a8ed] text-[20px] transition-transform duration-300 shrink-0 ${isChildSwitcherOpen ? 'rotate-180' : ''}`}>
+                          expand_more
+                        </span>
+                      </button>
+
+                      {isChildSwitcherOpen && (
+                        <div className="absolute top-[46px] left-0 bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 min-w-[200px] animate-[fadeIn_0.2s_ease-out]">
+                          {allChildren.map(child => {
+                            const isActive = child.student_id === rawStudentData?.student_id;
+                            return (
+                              <button
+                                key={child.student_id}
+                                type="button"
+                                onClick={() => handleChildSwitch(child)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left transition-colors focus:outline-none ${
+                                  isActive
+                                    ? 'bg-blue-50 text-[#39a8ed]'
+                                    : 'text-slate-700 hover:bg-slate-50'
+                                }`}
+                              >
+                                <span className="text-[13px] font-semibold truncate">
+                                  {child.first_name} {child.last_name}
+                                </span>
+                                {isActive && (
+                                  <span className="material-symbols-outlined text-[16px] text-[#39a8ed] ml-auto shrink-0">check</span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
                 <div className="flex flex-col items-center gap-1.5 mt-2">
                   <div className="p-1 bg-white rounded-full shadow-[0_4px_12px_rgba(57,168,237,0.2)] mb-2">
-                    <img src={getImageUrl(childData?.profilePicture)} alt="Child" className="w-[90px] h-[90px] rounded-full object-cover block" />
+                    <img src={getImageUrlLocal(childData?.profilePicture)} alt="Child" className="w-[90px] h-[90px] rounded-full object-cover block" />
                   </div>
                   <h2 className="text-cdark text-[22px] font-bold">{childData ? `${childData.firstName} ${childData.lastName}` : "Loading..."}</h2>
                   <span className={`text-[14px] font-medium ${childData?.sectionName === "Not Assigned" ? "text-red-500" : "text-cgray"}`}>
@@ -363,7 +384,13 @@ export default function Dashboard() {
               </div>
 
               <div className="card action-card">
-                <div className="mb-6"><div className="flex items-center gap-2.5 mb-2"><span className="material-symbols-outlined blue-icon text-[24px]">tune</span><h2 className="text-cdark text-[18px] font-bold">Quick Actions</h2></div><p className="text-cgray text-[14px]!">Access tasks instantly.</p></div>
+                <div className="mb-6">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="material-symbols-outlined blue-icon text-[24px]">tune</span>
+                    <h2 className="text-cdark text-[18px] font-bold">Quick Actions</h2>
+                  </div>
+                  <p className="text-cgray text-[14px]!">Access tasks instantly.</p>
+                </div>
                 <div className="quick-actions-list">
                   <button className="quick-action-item" onClick={() => navigate('/parent/guardians')}><div className="flex flex-row items-center"><div className="qa-icon"><span className="material-symbols-outlined mt-1">group</span></div><div className="flex flex-col text-left"><span className="qa-title">Guardians</span><span className="qa-desc">Manage authorized persons</span></div></div><span className="material-symbols-outlined arrow">chevron_right</span></button>
                   <button className="quick-action-item" onClick={() => navigate('/parent/history')}><div className="flex flex-row items-center"><div className="qa-icon"><span className="material-symbols-outlined mt-1">history</span></div><div className="flex flex-col text-left"><span className="qa-title">Pickup History</span><span className="qa-desc">View past transfers</span></div></div><span className="material-symbols-outlined arrow">chevron_right</span></button>
@@ -376,7 +403,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-6">
               <div className="card py-8 px-6 flex flex-col items-center text-center">
                 <h2 className="text-cdark text-[20px] font-bold mb-2">Initiate {actionType}</h2>
-                <p className="text-cgray text-[14px] m-auto">Scan QR code at the gate.</p>
+                <p className="text-cgray text-[14px]! m-auto">Scan QR code at the gate.</p>
                 <div className="flex justify-center my-6"><img src={ScanHandAsset} alt="Scan QR" className="max-w-[180px]" /></div>
                 <button className={`btn btn-primary h-[50px] font-semibold w-full rounded-xl transition-all ${isScanDisabled ? 'opacity-50 grayscale' : ''}`} onClick={handleScanButtonClick} disabled={isScanDisabled}>
                   {childData?.status === 'Dismissed' ? 'Student Dismissed' : !isParentOnQueue ? 'Update Status to Start' : `Scan for ${actionType}`}
@@ -384,7 +411,13 @@ export default function Dashboard() {
               </div>
 
               <div className="card action-card">
-                <div className="mb-6"><div className="flex items-center gap-2.5 mb-2"><span className="material-symbols-outlined yellow-icon text-[24px]">update</span><h2 className="text-cdark text-[18px] font-bold">Update Status</h2></div><p className="text-cgray text-[14px]!">Keep school informed.</p></div>
+                <div className="mb-6">
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <span className="material-symbols-outlined yellow-icon text-[24px]">update</span>
+                    <h2 className="text-cdark text-[18px] font-bold">Update Status</h2>
+                  </div>
+                  <p className="text-cgray text-[14px]!">Keep school informed.</p>
+                </div>
                 <div className="status-options-container">
                   <button className="status-option-btn status-blue" onClick={() => handleStatusUpdate('On the Way')}><span>On the Way</span><span className="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span></button>
                   <button className="status-option-btn status-green" onClick={() => handleStatusUpdate('At School')}><span>At School</span><span className="material-symbols-outlined arrow-icon">keyboard_double_arrow_right</span></button>
@@ -393,13 +426,37 @@ export default function Dashboard() {
               </div>
 
               <div className="card queue-card">
-                <div className="mb-6"><div className="flex center gap-2.5 mb-2"><span className="material-symbols-outlined purple-icon text-[24px]">notifications_active</span><h2 className="text-cdark text-[18px] font-bold">Recent Updates</h2></div></div>
+                <div className="mb-6">
+                  <div className="flex center gap-2.5 mb-2">
+                    <span className="material-symbols-outlined purple-icon text-[24px]">notifications_active</span>
+                    <h2 className="text-cdark text-[18px] font-bold">Recent Updates</h2>
+                  </div>
+                </div>
                 <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar"> 
-                  {loadingAnnouncements ? (<p className="text-center py-4">Loading...</p>) : announcements.length === 0 ? (<div className="text-center py-6 opacity-60"><p className="text-cgray text-[14px]">No announcements yet.</p></div>) : (announcements.map((ann) => (
-                    <div key={ann._id} className="bg-[white] flex items-start p-4 rounded-xl border border-[#f1f5f9] gap-4 hover:bg-[#fafafa] transition-colors shrink-0">
-                      <div className={`flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px] ${ann.category === 'campaign' ? 'bg-[#fff1f2] text-[#f43f5e]' : ann.category === 'calendar_month' ? 'bg-[#f0fdf4] text-[#22c55e]' : 'bg-[#eff6ff] text-[#3b82f6]'}`}><span className="material-symbols-outlined">{ann.category || 'campaign'}</span></div>
-                      <div className="flex flex-col gap-0.5"><span className="text-cdark text-[15px] font-bold">{ann.category === 'campaign' ? 'Alert' : ann.category === 'calendar_month' ? 'Event' : 'General'}</span><span className="text-cgray text-[13px] leading-relaxed">{ann.announcement}</span><div className="flex items-center gap-2 mt-1"><span className="text-[#94a3b8] text-[11px] font-medium">{ann.role === 'superadmin' ? ann.full_name : `By Teacher ${ann.full_name}`}</span><span className="text-[#cbd5e1]">•</span><span className="text-[#94a3b8] text-[11px] font-medium">{new Date(ann.created_at).toLocaleDateString()}</span></div></div>
-                    </div>)))}
+                  {loadingAnnouncements ? (
+                    <p className="text-center! text-[14px]! py-4">Loading...</p>
+                  ) : announcements.length === 0 ? (
+                    <div className="text-center py-6 opacity-60">
+                      <p className="text-cgray! text-[14px]!">No announcements yet.</p>
+                    </div>
+                  ) : (
+                    announcements.map((ann) => (
+                      <div key={ann._id} className="bg-[white] flex items-start p-4 rounded-xl border border-[#f1f5f9] gap-4 hover:bg-[#fafafa] transition-colors shrink-0">
+                        <div className={`flex items-center justify-center shrink-0 w-10 h-10 rounded-[10px] ${ann.category === 'campaign' ? 'bg-[#fff1f2] text-[#f43f5e]' : ann.category === 'calendar_month' ? 'bg-[#f0fdf4] text-[#22c55e]' : 'bg-[#eff6ff] text-[#3b82f6]'}`}>
+                          <span className="material-symbols-outlined">{ann.category || 'campaign'}</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-cdark text-[15px] font-bold">{ann.category === 'campaign' ? 'Alert' : ann.category === 'calendar_month' ? 'Event' : 'General'}</span>
+                          <span className="text-cgray text-[13px] leading-relaxed">{ann.announcement}</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[#94a3b8] text-[11px] font-medium">{ann.role === 'superadmin' ? ann.full_name : `By Teacher ${ann.full_name}`}</span>
+                            <span className="text-[#cbd5e1]">•</span>
+                            <span className="text-[#94a3b8] text-[11px] font-medium">{new Date(ann.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -409,7 +466,9 @@ export default function Dashboard() {
         {isUnassigned && (
           <div style={{ position: 'absolute', inset: 0, zIndex: 50, background: 'rgba(255, 255, 255, 0.2)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: '120px', paddingLeft: '20px', paddingRight: '20px', paddingBottom: '20px' }}>
             <div style={{ background: 'white', padding: '32px', borderRadius: '24px', maxWidth: '450px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', border: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fee2e2', width: '80px', height: '80px', borderRadius: '50%', marginBottom: '20px' }}><span className="material-symbols-outlined" style={{ fontSize: '42px', color: '#ef4444' }}>warning</span></div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#fee2e2', width: '80px', height: '80px', borderRadius: '50%', marginBottom: '20px' }}>
+                <span className="material-symbols-outlined" style={{ fontSize: '42px', color: '#ef4444' }}>warning</span>
+              </div>
               <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', marginBottom: '12px' }}>Action Required</h2>
               <p style={{ fontSize: '15px', color: '#64748b', lineHeight: '1.6', margin: 0 }}>Your child is not enrolled in any sections. Contact the adviser to unlock dashboard features.</p>
             </div>
