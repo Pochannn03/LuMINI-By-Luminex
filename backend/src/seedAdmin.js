@@ -24,7 +24,7 @@ const seedSuperAdmin = async () => {
       user_id: 1,
       username: "superadmin",
       password: hashedPassword,
-      email: "admin@lumini.edu.ph",
+      email: "luminex.techgroup@gmail.com",
       first_name: "Super",
       last_name: "Admin",
       profile_picture: "uploads\\superadminLogo.png",
