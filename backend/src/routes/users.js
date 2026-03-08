@@ -5,7 +5,7 @@ import { Audit } from "../models/audits.js";
 import { editUserValidationSchema } from "../validation/editAccountsValidation.js";
 import { validationResult, body, matchedData, checkSchema} from "express-validator";
 import { isAuthenticated, hasRole } from '../middleware/authMiddleware.js';
-import { hashPassword } from '../utils/passwordUtils.js';
+import { hashPassword, comparePassword } from '../utils/passwordUtils.js';
 
 // --- ADDED EMAIL SERVICE AND CRYPTO HERE ---
 import { sendPasswordUpdateOTP, sendUnauthorizedAccessEmail } from '../utils/emailService.js'; // <-- NEW: Added sendUnauthorizedAccessEmail
@@ -437,6 +437,165 @@ router.post('/api/users/profiles',
   } catch (err) {
     console.error("Profile Fetch Error:", err);
     res.status(500).json({ success: false, msg: "Failed to fetch profiles" });
+  }
+});
+
+// =========================================================
+// NEW: SUPER ADMIN 2FA SECURITY GATE
+// =========================================================
+
+// STEP 1: Verify Password and Send OTP
+router.post('/api/superadmin/request-settings-otp', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+  try {
+    const { currentPassword } = req.body;
+    const user = await User.findById(req.user._id);
+
+    // Verify Password
+    const isMatch = await comparePassword(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Incorrect current password." });
+    }
+
+    // NEW: Check if the admin actually has an email set up
+    if (!user.email) {
+      return res.status(400).json({ success: false, message: "No email registered to this account. Contact system support." });
+    }
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    user.reset_otp = otp;
+    user.reset_otp_expires = Date.now() + 5 * 60 * 1000; // 5 mins expiration
+    await user.save();
+
+    // NEW: Send to the user's actual registered email
+    const emailSent = await sendPasswordUpdateOTP(user.email, otp, user.first_name || "Super Admin");
+
+    if (emailSent) {
+      const auditLog = new Audit({
+        user_id: user.user_id,
+        full_name: `${user.first_name} ${user.last_name}`,
+        role: user.role,
+        action: "Settings 2FA Request",
+        target: `OTP sent to registered admin email`
+      });
+      await auditLog.save().catch(e => console.error(e));
+
+      // NEW: Create a masked version of the email for the frontend (e.g., ad***@gmail.com)
+      const maskedEmail = user.email.replace(/(.{2})(.*)(?=@)/, (match, p1, p2) => p1 + '*'.repeat(p2.length));
+
+      return res.status(200).json({ 
+        success: true, 
+        message: "OTP sent to your registered email.",
+        maskedEmail: maskedEmail // Send this to display in the UI securely
+      });
+    } else {
+      return res.status(500).json({ success: false, message: "Failed to send OTP email." });
+    }
+  } catch (error) {
+    console.error("2FA OTP Request Error:", error);
+    return res.status(500).json({ success: false, message: "Server error generating OTP." });
+  }
+});
+
+// STEP 2: Verify the OTP (REMAINS THE SAME)
+router.post('/api/superadmin/verify-settings-otp', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+  try {
+    const { otp } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user.reset_otp || !user.reset_otp_expires || Date.now() > user.reset_otp_expires) {
+      return res.status(400).json({ success: false, message: "OTP expired or invalid. Please try again." });
+    }
+
+    if (user.reset_otp !== otp) {
+      return res.status(400).json({ success: false, message: "Incorrect Verification Code." });
+    }
+
+    user.reset_otp = null;
+    user.reset_otp_expires = null;
+    await user.save();
+
+    return res.status(200).json({ success: true, message: "OTP verified. Access granted." });
+  } catch (error) {
+    console.error("2FA OTP Verify Error:", error);
+    return res.status(500).json({ success: false, message: "Server error verifying OTP." });
+  }
+});
+
+// =========================================================
+// NEW: SUPER ADMIN CREDENTIAL SETTINGS (FINAL SAVE)
+// =========================================================
+
+router.put('/api/superadmin/credentials', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+  try {
+    // NEW: Destructure newEmail
+    const { currentPassword, newUsername, newPassword, newEmail } = req.body;
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ success: false, message: "User not found." });
+
+    const isMatch = await comparePassword(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Incorrect current password." });
+    }
+
+    let credentialsChanged = false;
+    let passwordChanged = false;
+
+    // Username Update
+    if (newUsername && newUsername.trim() !== "") {
+      const existingUser = await User.findOne({ username: newUsername, _id: { $ne: user._id } });
+      if (existingUser) return res.status(400).json({ success: false, message: "Username is already taken." });
+      user.username = newUsername;
+      credentialsChanged = true;
+    }
+
+    // NEW: Email Update
+    if (newEmail && newEmail.trim() !== "") {
+      const existingEmail = await User.findOne({ email: newEmail, _id: { $ne: user._id } });
+      if (existingEmail) return res.status(400).json({ success: false, message: "Email is already in use by another account." });
+      user.email = newEmail;
+      credentialsChanged = true;
+    }
+
+    // Password Update
+    if (newPassword && newPassword.trim() !== "") {
+      if (newPassword.length < 8) return res.status(400).json({ success: false, message: "New password must be at least 8 characters long." });
+      user.password = await hashPassword(newPassword);
+      credentialsChanged = true;
+      passwordChanged = true;
+    }
+
+    if (!credentialsChanged) {
+       return res.status(400).json({ success: false, message: "No new credentials provided to update." });
+    }
+
+    await user.save();
+
+    const successAudit = new Audit({
+      user_id: user.user_id,
+      full_name: `${user.first_name} ${user.last_name}`,
+      role: user.role,
+      action: "Credentials Updated",
+      target: "Super Admin updated their master credentials."
+    });
+    await successAudit.save().catch(e => console.error(e));
+
+    if (passwordChanged) {
+      user.current_session_id = null;
+      await user.save();
+      req.logout((err) => {
+        req.session.destroy();
+        res.clearCookie("connect.sid");
+        return res.status(200).json({ success: true, message: "Credentials updated successfully. Please log in again.", requireRelogin: true });
+      });
+    } else {
+      return res.status(200).json({ success: true, message: "Settings updated successfully.", requireRelogin: false });
+    }
+
+  } catch (error) {
+    console.error("Super Admin Credential Update Error:", error);
+    return res.status(500).json({ success: false, message: "Server error updating credentials." });
   }
 });
 
