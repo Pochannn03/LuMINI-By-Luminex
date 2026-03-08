@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { validateClassRegistrationStep } from '../../../../utils/class-manage-modal/classModalValidation';
 import FormInputRegistration from '../../../FormInputRegistration';
@@ -26,12 +26,28 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
     assignedTeacher: '',
   });
 
+  // --- CUSTOM DROPDOWN STATES ---
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  const [isTeacherOpen, setIsTeacherOpen] = useState(false);
+  const scheduleRef = useRef(null);
+  const teacherRef = useRef(null);
+
   // --- WARNING MODAL STATE ---
   const [warningConfig, setWarningConfig] = useState({
     isOpen: false,
     title: "",
     message: ""
   });
+
+  // Click outside listener for custom dropdowns
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (scheduleRef.current && !scheduleRef.current.contains(event.target)) setIsScheduleOpen(false);
+      if (teacherRef.current && !teacherRef.current.contains(event.target)) setIsTeacherOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if(isOpen){
@@ -40,7 +56,6 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
           const response = await axios.get(`${BACKEND_URL}/api/teachers`, {
             withCredentials: true
           });
-
           if (response.data.success) {
             setTeachersList(response.data.teachers); 
           } else {
@@ -66,6 +81,8 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
     setErrors({});
     setSelectedStudentIds([]);
     setStep(1); 
+    setIsScheduleOpen(false);
+    setIsTeacherOpen(false);
   };
 
   const handleCloseModal = () => {
@@ -77,17 +94,13 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
   const handleNextStep = () => {
     const allErrors = validateClassRegistrationStep(formData);
     const step1Errors = {};
-    
-    // Only check fields relevant to Step 1
     ['sectionName', 'classSchedule', 'maxCapacity'].forEach(field => {
       if (allErrors[field]) step1Errors[field] = allErrors[field];
     });
-
     if (Object.keys(step1Errors).length > 0) {
       setErrors(step1Errors);
       return;
     }
-    
     setErrors({});
     setStep(2); 
   };
@@ -103,7 +116,13 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
 
+  const handleDropdownSelect = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
@@ -116,10 +135,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!validateFullForm()) {
-      return;
-    }
+    if (!validateFullForm()) return;
 
     setLoading(true);
     const payload = {
@@ -132,55 +148,30 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
     };
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/sections`, payload, {
-        withCredentials: true
-      });
-
-      if (onSuccess) {
-        onSuccess("Class created successfully!"); 
-      }
+      await axios.post(`${BACKEND_URL}/api/sections`, payload, { withCredentials: true });
+      if (onSuccess) onSuccess("Class created successfully!"); 
       handleCloseModal();
-
     } catch (error) {
       console.error("Crash Details:", error);
-      
-      // --- THE FIX: GENERIC "OOPS" TITLE FOR ALL CONFLICTS ---
       if (error.response && error.response.status === 409) {
         const backendMsg = error.response.data.msg || "A conflict occurred.";
-        
-        setWarningConfig({
-          isOpen: true,
-          title: "Oops...", 
-          message: backendMsg
-        });
-      } 
-      // --------------------------------------------------
-      else if (error.response) {
+        setWarningConfig({ isOpen: true, title: "Oops...", message: backendMsg });
+      } else if (error.response) {
         const errorMsg = error.response.data.msg || error.response.data.error || "Failed to create class";
         const detailedError = error.response.data.errors ? error.response.data.errors[0].msg : errorMsg;
-        
-        setWarningConfig({
-          isOpen: true,
-          title: "Registration Failed",
-          message: detailedError
-        });
+        setWarningConfig({ isOpen: true, title: "Registration Failed", message: detailedError });
       } else if (error.request) {
-        setWarningConfig({
-          isOpen: true,
-          title: "Network Error",
-          message: "Could not connect to the server. Is the backend running?"
-        });
+        setWarningConfig({ isOpen: true, title: "Network Error", message: "Could not connect to the server. Is the backend running?" });
       } else {
-        setWarningConfig({
-          isOpen: true,
-          title: "System Error",
-          message: error.message
-        });
+        setWarningConfig({ isOpen: true, title: "System Error", message: error.message });
       }
     } finally {
       setLoading(false);
     }
   };
+
+  const scheduleOptions = ["Morning", "Afternoon"];
+  const selectedTeacher = teachersList.find(t => String(t.user_id) === String(formData.assignedTeacher));
 
   if (!isOpen) return null;
   
@@ -201,24 +192,12 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
         >
           <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar pr-4">
             
-            {/* --- MODERN SLIM SCROLLBAR STYLES --- */}
-            <style>
-              {`
-                .custom-scrollbar::-webkit-scrollbar {
-                  width: 5px; 
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                  background: transparent; 
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                  background-color: #cbd5e1; 
-                  border-radius: 10px; 
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                  background-color: #94a3b8; 
-                }
-              `}
-            </style>
+            <style>{`
+              .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+              .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+              .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+              .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+            `}</style>
 
             {/* --- HEADER --- */}
             <div className="flex items-start justify-between mb-8">
@@ -227,7 +206,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
                   <span className="material-symbols-outlined text-[#2563eb] text-[26px]">add_circle</span>
                   <h2 className="text-[20px] font-extrabold text-[#1e293b]">Create New Class</h2>
                 </div>
-                <p className="text-[12px] text-[#64748b] font-medium mt-1 ml-[34px]">
+                <p className="text-[12px]! text-[#64748b] font-medium mt-1 ml-[34px]">
                   Step {step} of 2: {step === 1 ? 'Class Information' : 'Assignments'}
                 </p>
               </div>
@@ -263,22 +242,49 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
                     />
 
                     <div className="flex gap-4">
+                      {/* CLASS SCHEDULE CUSTOM DROPDOWN */}
                       <div className="flex flex-col gap-1 w-1/2">
-                        <label className="text-[13px] font-semibold text-[#64748b] tracking-wide">Class Schedule <span className="text-[#39a8ed]">*</span></label>
-                        <div className="relative">
-                          <select 
-                            className={`form-input-modal w-full appearance-none ${errors.classSchedule ? 'border-red-500 bg-red-50' : ''}`} 
-                            name="classSchedule" 
-                            onChange={handleChange} 
-                            value={formData.classSchedule}
+                        <label className="text-[13px] font-semibold text-[#64748b] tracking-wide">
+                          Class Schedule <span className="text-[#39a8ed]">*</span>
+                        </label>
+                        <div className="relative" ref={scheduleRef}>
+                          <button
+                            type="button"
+                            onClick={() => setIsScheduleOpen(!isScheduleOpen)}
+                            className={`flex items-center justify-between w-full h-[42px] px-3 rounded-xl border bg-slate-50 text-[13px] font-medium transition-all focus:outline-none ${
+                              errors.classSchedule
+                                ? 'border-red-500 bg-red-50'
+                                : isScheduleOpen
+                                ? 'border-[#2563eb] ring-2 ring-blue-500/10 bg-white'
+                                : 'border-slate-200 hover:border-slate-300'
+                            }`}
                           >
-                            <option value="" disabled>Select Schedule</option>
-                            <option value="Morning">Morning</option>
-                            <option value="Afternoon">Afternoon</option>
-                          </select>
-                          <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                            <span className={formData.classSchedule ? 'text-slate-800' : 'text-slate-400'}>
+                              {formData.classSchedule || 'Select Schedule'}
+                            </span>
+                            <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isScheduleOpen ? 'rotate-180 text-[#2563eb]' : ''}`}>
+                              expand_more
+                            </span>
+                          </button>
+
+                          {isScheduleOpen && (
+                            <div className="absolute top-[46px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 animate-[fadeIn_0.2s_ease-out]">
+                              {scheduleOptions.map((opt) => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  className="w-full text-left px-3 py-2.5 rounded-lg text-[13px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
+                                  onClick={() => { handleDropdownSelect('classSchedule', opt); setIsScheduleOpen(false); }}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                        {errors.classSchedule && <span className="text-red-500 text-[11px]">{errors.classSchedule}</span>}
+                        {errors.classSchedule && (
+                          <span className="text-red-500 text-[11px]">{errors.classSchedule}</span>
+                        )}
                       </div>
 
                       <div className="w-1/2">
@@ -322,29 +328,55 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
                   </h4>
                   
                   <div className="flex flex-col gap-5">
+                    {/* ASSIGN TEACHER CUSTOM DROPDOWN */}
                     <div className="flex flex-col gap-1">
-                      <label className="text-[13px] font-semibold text-[#64748b] tracking-wide">Assign Teacher <span className="text-[#39a8ed]">*</span></label>
-                      <div className="relative">
-                        <select 
-                          className={`form-input-modal w-full appearance-none ${errors.assignedTeacher ? 'border-red-500 bg-red-50' : ''}`} 
-                          name="assignedTeacher"
-                          value={formData.assignedTeacher} 
-                          onChange={handleChange}
-                        > 
-                          <option value="" disabled>Select a Teacher</option>
-                          {teachersList.length > 0 ? (
-                            teachersList.map((teacher) => (
-                              <option key={teacher.user_id} value={teacher.user_id}>
-                                {teacher.last_name}, {teacher.first_name}
-                              </option>
-                            ))
-                          ) : (
-                            <option disabled>Loading teachers...</option>
-                          )}
-                        </select>
-                        <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                      <label className="text-[13px] font-semibold text-[#64748b] tracking-wide">
+                        Assign Teacher <span className="text-[#39a8ed]">*</span>
+                      </label>
+                      <div className="relative" ref={teacherRef}>
+                        <button
+                          type="button"
+                          onClick={() => setIsTeacherOpen(!isTeacherOpen)}
+                          className={`flex items-center justify-between w-full h-[42px] px-3 rounded-xl border bg-slate-50 text-[13px] font-medium transition-all focus:outline-none ${
+                            errors.assignedTeacher
+                              ? 'border-red-500 bg-red-50'
+                              : isTeacherOpen
+                              ? 'border-[#2563eb] ring-2 ring-blue-500/10 bg-white'
+                              : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className={selectedTeacher ? 'text-slate-800' : 'text-slate-400'}>
+                            {selectedTeacher
+                              ? `${selectedTeacher.last_name}, ${selectedTeacher.first_name}`
+                              : 'Select a Teacher'}
+                          </span>
+                          <span className={`material-symbols-outlined text-slate-400 text-[20px] transition-transform duration-300 ${isTeacherOpen ? 'rotate-180 text-[#2563eb]' : ''}`}>
+                            expand_more
+                          </span>
+                        </button>
+
+                        {isTeacherOpen && (
+                          <div className="absolute top-[46px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 flex flex-col gap-0.5 max-h-[200px] overflow-y-auto animate-[fadeIn_0.2s_ease-out]">
+                            {teachersList.length > 0 ? (
+                              teachersList.map((teacher) => (
+                                <button
+                                  key={teacher.user_id}
+                                  type="button"
+                                  className="w-full text-left px-3 py-2.5 rounded-lg text-[13px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#2563eb] transition-colors"
+                                  onClick={() => { handleDropdownSelect('assignedTeacher', String(teacher.user_id)); setIsTeacherOpen(false); }}
+                                >
+                                  {teacher.last_name}, {teacher.first_name}
+                                </button>
+                              ))
+                            ) : (
+                              <div className="px-3 py-2.5 text-[13px] text-slate-400">Loading teachers...</div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {errors.assignedTeacher && <span className="text-red-500 text-[11px]">{errors.assignedTeacher}</span>}
+                      {errors.assignedTeacher && (
+                        <span className="text-red-500 text-[11px]">{errors.assignedTeacher}</span>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-1">
@@ -359,7 +391,6 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
                             <span className="text-[#64748b] text-[11px] font-medium mt-0.5">Capacity Limit applies</span>
                           </div>
                         </div>
-
                         <button
                           type="button"
                           className="bg-white border border-[#cbd5e1] text-[#475569] hover:bg-[#f1f5f9] hover:text-[#1e293b] font-bold px-4 py-2 rounded-lg transition-colors text-[12px] shadow-sm active:scale-95"
@@ -374,7 +405,7 @@ export default function ClassManageAddClassModal({ isOpen, onClose, onSuccess })
               </div>
             )}
 
-            {/* --- PERFECTLY BALANCED EDGE-TO-EDGE BUTTONS --- */}
+            {/* --- FOOTER BUTTONS --- */}
             <div className="mt-8 pt-4 border-t border-slate-100 flex gap-4 w-full">
               {step === 1 ? (
                 <>

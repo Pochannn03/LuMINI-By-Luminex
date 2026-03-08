@@ -283,7 +283,7 @@ export default function ClassManageAddTeacherModal({ isOpen, onClose, onSuccess 
               <span className="material-symbols-outlined blue-icon text-[24px]">person_add</span>
               <div>
                 <h2 className="text-cdark text-[18px] font-bold leading-tight">Add New Teacher</h2>
-                <p className="text-[12px] text-cgray font-medium mt-0.5">
+                <p className="text-[12px]! text-cgray font-medium mt-0.5">
                   Step {step} of 2: {step === 1 ? 'Personal Information' : 'Account Credentials'}
                 </p>
               </div>
