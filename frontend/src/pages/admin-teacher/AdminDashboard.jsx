@@ -572,13 +572,23 @@ export default function AdminDashboard() {
     });
 
     socket.on('new_notification', (notif) => {
-      if (notif.type === 'Transfer' && !isAuthModalOpenRef.current) { 
-        setWarningTitle(notif.title); setWarningMessage(notif.message); setIsWarningModalOpen(true);
+      if (
+        notif.type === 'Transfer' && 
+        !isAuthModalOpenRef.current &&
+        Number(notif.recipient_id) !== Number(user?.user_id)
+      ) { 
+        setWarningTitle(notif.title); 
+        setWarningMessage(notif.message); 
+        setIsWarningModalOpen(true);
       }
     });
 
     return () => socket.disconnect();
   }, [user]);
+
+  useEffect(() => {
+    isAuthModalOpenRef.current = isAuthModalOpen;
+  }, [isAuthModalOpen]);
 
   const handleCloseScanner = () => setActiveScanMode(null);
   const handleAnnChange = (e) => {

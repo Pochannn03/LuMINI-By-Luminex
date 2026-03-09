@@ -12,17 +12,12 @@ router.get('/api/audit',
   hasRole('superadmin'), 
   async (req, res) => {
     try {
-      const { role, action, search, page = 1, limit = 10 } = req.query;
+      const { role, action, search, page = 1, limit = 10, startDate, endDate } = req.query;
       let query = {};
       const skipValue = (parseInt(page) - 1) * parseInt(limit);
 
-      if (role && role !== 'All') {
-        query.role = role;
-      }
-
-      if (action && action !== 'All') {
-        query.action = action;
-      }
+      if (role && role !== 'All') query.role = role;
+      if (action && action !== 'All') query.action = action;
 
       if (search) {
         query.$or = [
@@ -30,6 +25,16 @@ router.get('/api/audit',
           { target: { $regex: search, $options: 'i' } },
           { action: { $regex: search, $options: 'i' } }
         ];
+      }
+
+      if (startDate || endDate) {
+        query.created_at = {};
+        if (startDate) query.created_at.$gte = new Date(startDate);
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          query.created_at.$lte = end;
+        }
       }
       
       const totalLogs = await Audit.countDocuments(query);
