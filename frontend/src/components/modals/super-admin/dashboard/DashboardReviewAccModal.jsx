@@ -89,8 +89,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
   };
 
   return createPortal(
-    <>
-      {/* IMAGE LIGHTBOX OVERLAY */}
+    <>  
       {viewImage && (
         <div 
           className="fixed inset-0 z-999999 bg-slate-900/90 backdrop-blur-sm flex justify-center items-center p-6 cursor-zoom-out transition-all"
@@ -120,7 +119,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
             </div>
           </div>
 
-          <div className="p-6 overflow-y-auto text-center max-h-[70vh] custom-scrollbar">
+          <div className="p-4 sm:p-6 overflow-y-auto text-center max-h-[70vh] custom-scrollbar">
             <img 
               src={photoUrl} 
               alt="Profile" 
@@ -138,7 +137,8 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
                 value={tch.email || ""}
                 readOnly={true}
               />
-              <div className="flex gap-3 mt-4">
+              {/* STACK on mobile, side by side on sm+ */}
+              <div className="flex flex-col sm:flex-row gap-3 mt-4">
                 <FormInputRegistration 
                   label="Phone Number"
                   name="phone"
@@ -167,17 +167,19 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
               />
             </div>
 
-            {/* VERIFICATION DOCUMENTS DISPLAY */}
+            {/* VERIFICATION DOCUMENTS - grid on mobile instead of flex row */}
             <div className="text-left mb-2">
               <h4 className="text-cprimary-blue text-[12px] mb-3 font-bold uppercase tracking-wider">Verification Documents</h4>
-              <div className="flex gap-4">
+              
+              {/* 3 columns on sm+, 1 column on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 
                 {/* School ID Box */}
-                <div className="flex-1 flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5">
                   <span className="text-[11px] font-semibold text-slate-500">School ID</span>
                   {schoolIdUrl ? (
                     <div 
-                      className="w-full h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
+                      className="w-full h-36 sm:h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
                       onClick={() => setViewImage(schoolIdUrl)}
                     >
                       <img src={schoolIdUrl} alt="School ID" className="w-full h-full object-cover" />
@@ -186,7 +188,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
+                    <div className="w-full h-36 sm:h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
                       <span className="material-symbols-outlined mb-1 text-slate-300 text-[24px]">image_not_supported</span>
                       No ID Provided
                     </div>
@@ -194,11 +196,11 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
                 </div>
 
                 {/* Valid ID Box */}
-                <div className="flex-1 flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5">
                   <span className="text-[11px] font-semibold text-slate-500">Valid ID</span>
                   {validIdUrl ? (
                     <div 
-                      className="w-full h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
+                      className="w-full h-36 sm:h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
                       onClick={() => setViewImage(validIdUrl)}
                     >
                       <img src={validIdUrl} alt="Valid ID" className="w-full h-full object-cover" />
@@ -207,19 +209,19 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
+                    <div className="w-full h-36 sm:h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
                       <span className="material-symbols-outlined mb-1 text-slate-300 text-[24px]">image_not_supported</span>
                       No ID Provided
                     </div>
                   )}
                 </div>
 
-                {/* --- NEW: Biometric Capture Box --- */}
-                <div className="flex-1 flex flex-col gap-1.5">
+                {/* Biometric Capture Box */}
+                <div className="flex flex-col gap-1.5">
                   <span className="text-[11px] font-semibold text-slate-500">Biometric Scan</span>
                   {facialCaptureUrl ? (
                     <div 
-                      className="w-full h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
+                      className="w-full h-36 sm:h-28 rounded-xl border border-slate-200 overflow-hidden cursor-zoom-in relative group bg-slate-50"
                       onClick={() => setViewImage(facialCaptureUrl)}
                     >
                       <img src={facialCaptureUrl} alt="Biometric Capture" className="w-full h-full object-cover" />
@@ -228,7 +230,7 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
                       </div>
                     </div>
                   ) : (
-                    <div className="w-full h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
+                    <div className="w-full h-36 sm:h-28 bg-slate-50 rounded-xl flex flex-col items-center justify-center text-[11px] text-slate-400 border border-slate-200 border-dashed">
                       <span className="material-symbols-outlined mb-1 text-slate-300 text-[24px]">face_retouching_natural</span>
                       No Scan Provided
                     </div>
@@ -237,25 +239,25 @@ export function DashboardReviewAccModal({ onView, isClose, tch, onSuccess }) {
 
               </div>
             </div>
-
           </div>
             
-          <div className="modal-footer">
-            <button className="btn-modal close" onClick={isClose}>Close</button>
-            <div className="flex-1"></div>
-            <button className="btn-modal reject" onClick={triggerReject}>
-              <span className="material-symbols-outlined text-[18px]">close</span>
-              Reject
-            </button>
-            <button className="btn-modal approve" onClick={triggerApprove}>
-              <span className="material-symbols-outlined text-[18px]">check</span>
-              Approve
-            </button>
-          </div>
+          {/* FOOTER - wrap on mobile */}
+          <div className="modal-footer flex! flex-row! justify-between! items-center! flex-nowrap!">
+              <button className="btn-modal close px-3! sm:px-5!" onClick={isClose}>Close</button>
+              <div className="flex flex-row gap-2">
+                <button className="btn-modal reject px-3! sm:px-5!" onClick={triggerReject}>
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                  Reject
+                </button>
+                <button className="btn-modal approve px-3! sm:px-5!" onClick={triggerApprove}>
+                  <span className="material-symbols-outlined text-[18px]">check</span>
+                  Approve
+                </button>
+              </div>
+            </div>
         </div>
       </div>
 
-      {/* Reusable Confirmation Step */}
       <AdminConfirmModal 
         isOpen={confirmConfig.isOpen}
         onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}

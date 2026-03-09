@@ -241,18 +241,6 @@ router.post('/api/transfer',
         });
 
         await Promise.all(notificationPromises);
-        const io = req.app.get('socketio');
-
-        recipientIds.forEach(id => {
-            io.emit('new_notification', {
-              recipient_id: Number(id),
-              type: 'Transfer',
-              title: `Student ${purpose} Successful`,
-              message: `${studentName} has been ${purpose === 'Drop off' ? 'dropped off' : 'picked up'}`,
-              is_read: false,
-              created_at: new Date()
-            });
-        });
     }
 
       await AccessPass.findOneAndUpdate(
