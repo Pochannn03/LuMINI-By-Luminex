@@ -93,52 +93,52 @@ export function DashboardPendingAccCard({ tch, onSuccess }) {
   return (
     <>
       <div className={`flex flex-col rounded-xl bg-(--white) border border-(--border-color) transition-all duration-200 hover:bg-[#f8fafc] hover:border-(--primary-blue) hover:-translate-y-0.5 hover:shadow-(--shadow-sm) ${loading ? 'opacity-50 pointer-events-none' : ''}`}>
-        
-        <div className="flex items-center p-4 gap-4">
+  
+        <div className="flex items-center p-4 gap-3">
           <img 
             src={photoUrl} 
             className="w-[45px] h-[45px] rounded-[10px] object-cover shrink-0" 
             alt="Avatar"
           />
 
-          <div className="flex-1 flex flex-col gap-0.5">
-              <span className="text-cdark text-[15px] font-bold">
-                {tch.first_name} {tch.last_name}
-              </span>
-              <span className="text-cgray text-[12px] font-medium">
-                Role: {tch.relationship} • @{tch.username}
-              </span>
-              <span className="text-slate-400 text-[11px]">
-                Joined: {dateString}
-              </span>
+          {/* ADD min-w-0 so text can truncate instead of pushing buttons out */}
+          <div className="flex-1 flex flex-col gap-0.5 min-w-0">
+            <span className="text-cdark text-[15px] font-bold truncate">
+              {tch.first_name} {tch.last_name}
+            </span>
+            <span className="text-cgray text-[12px] font-medium truncate">
+              Role: {tch.relationship} • @{tch.username}
+            </span>
+            <span className="text-slate-400 text-[11px]">
+              Joined: {dateString}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
-              <button 
-                className="btn-icon-tool h-12! w-12!" 
-                title="Review Details"
-                onClick={() => setViewPendingAccModal(true)}
-              >
-                  <span className="material-symbols-outlined text-[24px]!">visibility</span>
-              </button>
-              
-              <button 
-                className="btn-icon-tool h-12! w-12! group hover:bg-green-200!" 
-                title="Approve"
-                onClick={triggerApprove}
-              >
-                  <span className="material-symbols-outlined text-[24px]! group-hover:text-green-700">check</span>
-              </button>
-              
-              <button 
-                className="btn-icon-tool h-12! w-12! group hover:bg-red-200!" 
-                title="Reject"
-                onClick={triggerReject}
-              >
-                <span className="material-symbols-outlined text-[24px]! group-hover:text-red-700!">
-                    close
-                </span>
-              </button>
+          {/* SHRINK-0 so buttons never get squished */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button 
+              className="btn-icon-tool h-9! w-9! sm:h-12! sm:w-12!" 
+              title="Review Details"
+              onClick={() => setViewPendingAccModal(true)}
+            >
+              <span className="material-symbols-outlined text-[20px]! sm:text-[24px]!">visibility</span>
+            </button>
+            
+            <button 
+              className="btn-icon-tool h-9! w-9! sm:h-12! sm:w-12! group hover:bg-green-200!" 
+              title="Approve"
+              onClick={triggerApprove}
+            >
+              <span className="material-symbols-outlined text-[20px]! sm:text-[24px]! group-hover:text-green-700">check</span>
+            </button>
+            
+            <button 
+              className="btn-icon-tool h-9! w-9! sm:h-12! sm:w-12! group hover:bg-red-200!" 
+              title="Reject"
+              onClick={triggerReject}
+            >
+              <span className="material-symbols-outlined text-[20px]! sm:text-[24px]! group-hover:text-red-700!">close</span>
+            </button>
           </div>
         </div>
 

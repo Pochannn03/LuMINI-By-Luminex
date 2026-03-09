@@ -18,6 +18,8 @@ export default function SuperAdminAnalytics() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const logsPerPage = 10;
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // DEMOGRAPHIC STATE
   const [userStats, setUserStats] = useState({
@@ -54,7 +56,9 @@ export default function SuperAdminAnalytics() {
               role: filterRole === "All" ? "" : filterRole, 
               search: searchQuery,
               page: currentPage,
-              limit: logsPerPage
+              limit: logsPerPage,
+              startDate: startDate || undefined,
+              endDate: endDate || undefined
             }, 
             withCredentials: true
           });
@@ -74,7 +78,7 @@ export default function SuperAdminAnalytics() {
     }, 500); 
 
     return () => clearTimeout(delayDebounceFn);
-  }, [filterRole, searchQuery, currentPage]);
+  }, [filterRole, searchQuery, currentPage, startDate, endDate]); 
 
   useEffect(() => {
     const fetchDemographics = async () => {
@@ -166,12 +170,13 @@ export default function SuperAdminAnalytics() {
     }
 
     try {
-      // 1. Silently fetch ALL matching logs from the backend
       const { data } = await axios.get(`${BACKEND_URL}/api/audit`, {
         params: { 
           role: filterRole === "All" ? "" : filterRole, 
           search: searchQuery,
-          limit: 100000 // Extremely high limit to grab all filtered records
+          startDate: startDate || undefined,  // ← ADD THIS
+          endDate: endDate || undefined,       // ← ADD THIS
+          limit: 100000
         }, 
         withCredentials: true
       });
@@ -199,7 +204,7 @@ export default function SuperAdminAnalytics() {
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
-      doc.text(`Filter Applied: ${filterRole} | Search Query: ${searchQuery || 'None'}`, 14, 36);
+      doc.text(`Filter Applied: ${filterRole} | Search: ${searchQuery || 'None'} | Date: ${startDate || 'Any'} → ${endDate || 'Any'}`, 14, 36);
       doc.text(`Pages Exported: ${exportStartPage} to ${exportEndPage} | Total Records: ${exportData.length}`, 14, 42);
 
       // Define Table Columns and Map Data
@@ -493,45 +498,77 @@ export default function SuperAdminAnalytics() {
 
             </div>
 
-            {/* Filter Bar */}
+            {/* Filter Bar */}  
             <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
 
               <div className="relative w-full md:w-[350px]">
-                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
-                      search
-                  </span>
-                  <input 
-                      type="text" 
-                      placeholder="Search action, user, or target..." 
-                      className="w-full h-[45px] bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold pl-12 pr-4 rounded-xl outline-none focus:border-[var(--brand-blue)] focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all"
-                      value={searchQuery}
-                      onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          setCurrentPage(1);
-                      }}
-                  />
+                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+                  search
+                </span>
+                <input 
+                  type="text" 
+                  placeholder="Search action, user, or target..." 
+                  className="w-full h-[45px] bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold pl-12 pr-4 rounded-xl outline-none focus:border-[var(--brand-blue)] focus:bg-white focus:ring-4 focus:ring-blue-500/5 transition-all"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                />
               </div>
 
-              <div className="relative shrink-0 w-full md:w-auto">
-                  <select 
-                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-10 rounded-xl cursor-pointer w-full md:w-auto outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/5 transition-all"
-                      value={filterRole}
-                      onChange={(e) => {
-                          setFilterRole(e.target.value);
-                          setCurrentPage(1);
-                      }}
+              {/* RIGHT SIDE FILTERS */}
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+                
+                {/* Date Range */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative">
+                    <input 
+                      type="date" 
+                      value={startDate}
+                      onChange={(e) => { setStartDate(e.target.value); setCurrentPage(1); }}
+                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-4 rounded-xl cursor-pointer w-full outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/5 transition-all"
+                    />
+                  </div>
+                  <span className="text-slate-400 text-sm font-bold shrink-0">TO</span>
+                  <div className="relative">
+                    <input 
+                      type="date" 
+                      value={endDate}
+                      min={startDate}
+                      onChange={(e) => { setEndDate(e.target.value); setCurrentPage(1); }}
+                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-4 rounded-xl cursor-pointer w-full outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/5 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Clear Date Button - only shows when dates are set */}
+                {(startDate || endDate) && (
+                  <button
+                    onClick={() => { setStartDate(""); setEndDate(""); setCurrentPage(1); }}
+                    className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 h-[45px] rounded-xl transition-colors shrink-0"
                   >
-                      <option value="All">All Roles</option>
-                      <option value="superadmin">Super Admin</option>
-                      <option value="admin">Teacher</option>
-                      <option value="user">Users</option>
+                    <span className="material-symbols-outlined text-[16px]">close</span>
+                    Clear
+                  </button>
+                )}
+
+                {/* Role Filter */}
+                <div className="relative shrink-0 w-full sm:w-auto">
+                  <select 
+                    className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-10 rounded-xl cursor-pointer w-full outline-none focus:border-[var(--brand-blue)] focus:ring-4 focus:ring-blue-500/5 transition-all"
+                    value={filterRole}
+                    onChange={(e) => { setFilterRole(e.target.value); setCurrentPage(1); }}
+                  >
+                    <option value="All">All Roles</option>
+                    <option value="superadmin">Super Admin</option>
+                    <option value="admin">Teacher</option>
+                    <option value="user">Users</option>
                   </select>
                   <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
-                      filter_list
+                    filter_list
                   </span>
-              </div>
+                </div>
 
-          </div>
+              </div>
+            </div>
 
             {/* Audit Table */}
             <div className="audit-table-container">
