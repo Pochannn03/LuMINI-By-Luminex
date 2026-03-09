@@ -14,22 +14,16 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 // ANTI-SPOOFING MATH HELPERS
 // ==========================================
 
-// NEW: Mouth Aspect Ratio for Open/Close detection
 const calculateMAR = (mouth) => {
-  // face-api.js returns 20 points for the mouth. 
-  // Indices 12-19 represent the inner lip track.
   const MathSqrt = Math.sqrt;
   const MathPow = Math.pow;
   const euclideanDistance = (point1, point2) => {
     return MathSqrt(MathPow(point1.x - point2.x, 2) + MathPow(point1.y - point2.y, 2));
   };
   
-  // Vertical distances across the inner mouth
   const v1 = euclideanDistance(mouth[13], mouth[19]);
   const v2 = euclideanDistance(mouth[14], mouth[18]);
   const v3 = euclideanDistance(mouth[15], mouth[17]);
-  
-  // Horizontal width of the inner mouth
   const h = euclideanDistance(mouth[12], mouth[16]);
   
   if (h === 0) return 0;
@@ -47,18 +41,50 @@ const calculateYawRatio = (landmarks) => {
   return distLeft / distRight;
 };
 
+// ==========================================
+// NEW: PASSWORD STRENGTH EVALUATOR
+// ==========================================
+const evaluatePassword = (password) => {
+  let score = 0;
+  let hints = [];
+
+  if (!password) return { score: 0, label: '', color: 'bg-slate-200', textColor: 'text-slate-500', hint: '' };
+
+  if (password.length >= 8) score += 1; else hints.push('make it at least 8 characters');
+  if (/[A-Z]/.test(password)) score += 1; else hints.push('add an uppercase letter');
+  if (/[0-9]/.test(password)) score += 1; else hints.push('add a number');
+  if (/[^A-Za-z0-9]/.test(password)) score += 1; else hints.push('add a special symbol');
+
+  let label = 'Weak';
+  let color = 'bg-red-500';
+  let textColor = 'text-red-500';
+
+  if (score === 3) {
+    label = 'Fair';
+    color = 'bg-yellow-500';
+    textColor = 'text-yellow-500';
+  } else if (score === 4) {
+    label = 'Strong';
+    color = 'bg-green-500';
+    textColor = 'text-green-500';
+  }
+
+  const hintText = hints.length > 0 ? `Tip: ${hints[0]}` : 'Ready to go!';
+
+  return { score, label, color, textColor, hint: hintText };
+};
+
 export default function TeacherRegistration() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
-  
   const [errors, setErrors] = useState({});
   
-  // Profile Image State //
+  // Profile Image State
   const [profileImage, setProfileImage] = useState(null); 
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
 
-  // Verification IDs State //
+  // Verification IDs State
   const [schoolIdFile, setSchoolIdFile] = useState(null);
   const [schoolIdPreview, setSchoolIdPreview] = useState(null);
   
@@ -67,18 +93,20 @@ export default function TeacherRegistration() {
   
   const [viewImage, setViewImage] = useState(null); 
 
-  // User Agreement State //
+  // User Agreement State
   const [hasAgreed, setHasAgreed] = useState(false);
 
-  // Password Visibility States //
+  // Password States
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // NEW: Store Password Strength
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: 'bg-slate-200', textColor: 'text-slate-500', hint: '' });
 
-  // Success Modal State //
+  // Success Modal State
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Cropper States //
+  // Cropper States
   const editorRef = useRef(null);
   const [showCropModal, setShowCropModal] = useState(false);
   const [tempImage, setTempImage] = useState(null);
@@ -104,7 +132,7 @@ export default function TeacherRegistration() {
   const streamRef = useRef(null);
   const stopDetectionRef = useRef(null); 
 
-  // Form Inputs Placeholder //
+  // Form Inputs Placeholder
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -204,11 +232,9 @@ export default function TeacherRegistration() {
     let phase = 0; let framesHeld = 0; 
     let countdownSecs = 3; let countdownFrames = 0; let lostFaceFrames = 0; 
     
-    // NEW: Mouth State Tracking
     let mouthPhase = 0; 
     let mouthHoldFrames = 0;
 
-    // ARRAY TO STORE MULTIPLE FRAMES FOR AVERAGING
     let collectedDescriptors = []; 
 
     stopDetectionRef.current = () => { isDetecting = false; };
@@ -259,7 +285,6 @@ export default function TeacherRegistration() {
           if (framesHeld > 10) { phase = 2; framesHeld = 0; }
         } 
         else if (phase === 2) {
-          // --- NEW: THE 2-CYCLE MOUTH LIVENESS TEST ---
           const mouth = detection.landmarks.getMouth();
           const mar = calculateMAR(mouth);
           
@@ -275,7 +300,7 @@ export default function TeacherRegistration() {
           } else if (mouthPhase === 2) {
             setScanStatus("Loading...");
             mouthHoldFrames++;
-            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } // Wait ~1.5 secs
+            if (mouthHoldFrames > 15) { mouthPhase = 3; mouthHoldFrames = 0; } 
           } else if (mouthPhase === 3) {
             setScanStatus("Task 1: Please OPEN your mouth again.");
             if (mar > OPEN_THRESHOLD) { mouthPhase = 4; mouthHoldFrames = 0; }
@@ -286,7 +311,7 @@ export default function TeacherRegistration() {
             setScanStatus("Loading...");
             mouthHoldFrames++;
             if (mouthHoldFrames > 15) {
-              phase = 3; // Liveness passed, move to Head Turns
+              phase = 3; 
               setScanStatus("✅ Liveness verified! Please hold...");
             }
           }
@@ -323,7 +348,6 @@ export default function TeacherRegistration() {
             }
           }
         } else if (phase === 9) {
-          // --- THE MULTI-FRAME AVERAGING PROTOCOL ---
           collectedDescriptors.push(Array.from(detection.descriptor));
           
           if (collectedDescriptors.length >= 5) { 
@@ -425,6 +449,7 @@ export default function TeacherRegistration() {
     setViewImage(null); 
   };
 
+  // --- UPDATED HANDLER TO CHECK PASSWORD STRENGTH ---
   const handleChange = (e) => {
     const { name, value } = e.target;
     let finalValue = value;
@@ -440,6 +465,11 @@ export default function TeacherRegistration() {
       ...prev,
       [name]: finalValue
     }));
+
+    // Trigger password evaluation if typing in password field
+    if (name === 'password') {
+      setPasswordStrength(evaluatePassword(finalValue));
+    }
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
@@ -632,14 +662,36 @@ export default function TeacherRegistration() {
           {currentStep === 0 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Account Setup</p>
+              
               <div className='flex flex-col w-full mb-5'>
                 <FormInputRegistration label="Username" name="username" type='text' placeholder="e.g. Teacher_Juan" className="form-input-modal" value={formData.username} onChange={handleChange} error={errors.username} required={true} />
               </div>
-              <div className='flex flex-col w-full mb-5 relative'>
+              
+              <div className='flex flex-col w-full mb-2 relative'>
                 <FormInputRegistration label="Password" name="password" type={showPassword ? 'text' : 'password'} placeholder="Type your password here" className="form-input-modal pr-12" value={formData.password} onChange={handleChange} error={errors.password} required={true} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none" title={showPassword ? "Hide Password" : "Show Password"}><span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span></button>
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none" title={showPassword ? "Hide Password" : "Show Password"}>
+                  <span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                </button>
               </div>
-              <div className='flex flex-col w-full mb-5 relative'>
+
+              {/* --- NEW: PASSWORD STRENGTH UI --- */}
+              {formData.password && (
+                <div className="flex flex-col mb-4 pl-1 pr-1 animate-[fadeIn_0.3s_ease-out]">
+                  <div className="flex gap-1 h-1.5 w-full mb-1.5 rounded-full overflow-hidden bg-slate-100">
+                    <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 1 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                    <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 2 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                    <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 3 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                    <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 4 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                  </div>
+                  <div className="flex justify-between items-center text-[11px] font-bold">
+                    <span className={`${passwordStrength.textColor}`}>{passwordStrength.label}</span>
+                    <span className="text-slate-400">{passwordStrength.hint}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Added top margin if the strength indicator isn't showing to keep spacing consistent */}
+              <div className={`flex flex-col w-full mb-5 relative ${!formData.password ? 'mt-3' : ''}`}>
                 <FormInputRegistration label="Confirm Password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="Re-type your password here" className="form-input-modal pr-12" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required={true} />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none" title={showConfirmPassword ? "Hide Password" : "Show Password"}><span className="material-symbols-outlined text-[20px]">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span></button>
               </div>
