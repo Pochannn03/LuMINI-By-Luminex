@@ -12,6 +12,7 @@ import SuperAdminClassManagement from "./pages/super-admin/SuperAdminClassManage
 import SuperAdminAccounts from "./pages/super-admin/SuperAdminAccounts";
 import SuperAdminAnalytics from "./pages/super-admin/SuperAdminAnalytics"; 
 import SuperAdminGuardianRegistration from "./pages/super-admin/SuperAdminGuardianRegistration";
+import SuperAdminSettings from "./pages/super-admin/SuperAdminSettings";
 import AdminDashboard from "./pages/admin-teacher/AdminDashboard";
 import AdminAttendance from "./pages/admin-teacher/AdminAttendance";
 import AdminDropAndPickHistory from "./pages/admin-teacher/AdminDropAndPickHistory";
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/superadmin/guardian-registration" element={<SuperAdminGuardianRegistration />} />
           <Route path="/superadmin/qr-gate" element={<SuperAdminQrCodeGate />} />
           <Route path="/superadmin/analytics" element={<SuperAdminAnalytics />} />
+          <Route path="/superadmin/settings" element={<SuperAdminSettings />} />
         </Route>
 
         {/* Admin (Teacher) Pages */}

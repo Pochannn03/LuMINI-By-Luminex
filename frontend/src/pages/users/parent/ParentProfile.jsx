@@ -699,27 +699,6 @@ export default function ParentProfile() {
         </div>
       )}
 
-      {/* --- STUDENT CROPPER MODAL --- */}
-      {showStudentCropModal && (
-        <div className="modal-overlay active z-[9999999]">
-          <div className="modal-card p-6 items-center max-w-[350px]">
-            <h3 className="mb-4 text-lg text-slate-800 font-bold">Adjust Student Picture</h3>
-            <div className="bg-slate-50 p-2.5 rounded-xl">
-              <AvatarEditor ref={studentEditorRef} image={tempStudentImage} width={220} height={220} border={20} borderRadius={110} color={[15, 23, 42, 0.6]} scale={studentZoom} rotate={0} />
-            </div>
-            <div className="flex items-center w-full gap-3 my-5">
-              <span className="material-symbols-outlined text-lg text-slate-500">zoom_out</span>
-              <input type="range" min="1" max="3" step="0.01" value={studentZoom} onChange={(e) => setStudentZoom(parseFloat(e.target.value))} className="flex-1 accent-[#39a8ed] cursor-pointer" />
-              <span className="material-symbols-outlined text-lg text-slate-500">zoom_in</span>
-            </div>
-            <div className="flex gap-3 w-full">
-              <button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] cursor-pointer" onClick={(e) => { e.preventDefault(); setShowStudentCropModal(false); setTempStudentImage(null); }}>Cancel</button>
-              <button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center cursor-pointer" onClick={(e) => { e.preventDefault(); handleStudentCropSave(); }}>Apply Crop</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <main className="main-content">
         <div className="profile-container">
           <div className="profile-header-card">
@@ -921,11 +900,17 @@ export default function ParentProfile() {
 
                   <div className="mt-6">
                     {!isEditingCredentials ? (
-                      <button type="button" className="btn btn-primary profile-action-btn w-full h-[44px] rounded-[10px]" onClick={handleEditCredentialsClick}><span className="material-symbols-outlined mr-2 text-[18px]">edit</span> Change Password</button>
+                      <button type="button" className="btn btn-primary profile-action-btn w-full h-[44px] rounded-[10px]" onClick={handleEditCredentialsClick}>
+                        <span className="material-symbols-outlined mr-2 text-[18px]">edit</span> Change Password
+                      </button>
                     ) : (
-                      <div className="action-buttons-wrapper">
-                        <button type="button" className="btn btn-save profile-action-btn flex-1 h-[44px] rounded-[10px]" onClick={handleSaveCredentials}><span className="material-symbols-outlined mr-2 text-[18px]">check</span> Update</button>
-                        <button type="button" className="btn btn-cancel profile-action-btn flex-1 h-[44px] rounded-[10px]" onClick={handleCancelCredentials}>Cancel</button>
+                      <div className="flex gap-3 w-full">
+                        <button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleCancelCredentials}>
+                          Cancel
+                        </button>
+                        <button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center font-bold" onClick={handleSaveCredentials}>
+                          <span className="material-symbols-outlined mr-2 text-[18px]">check</span> Update
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1049,6 +1034,27 @@ export default function ParentProfile() {
         onSuccess={handleStudentLinked}
         onError={handleStudentLinkError}
       />
+
+      {/* --- STUDENT CROPPER MODAL (MOVED TO BOTTOM FOR HIGHEST LAYER) --- */}
+      {showStudentCropModal && (
+        <div className="modal-overlay active" style={{ zIndex: 9999999 }}>
+          <div className="modal-card p-6 items-center max-w-[350px]">
+            <h3 className="mb-4 text-lg text-slate-800 font-bold">Adjust Student Picture</h3>
+            <div className="bg-slate-50 p-2.5 rounded-xl">
+              <AvatarEditor ref={studentEditorRef} image={tempStudentImage} width={220} height={220} border={20} borderRadius={110} color={[15, 23, 42, 0.6]} scale={studentZoom} rotate={0} />
+            </div>
+            <div className="flex items-center w-full gap-3 my-5">
+              <span className="material-symbols-outlined text-lg text-slate-500">zoom_out</span>
+              <input type="range" min="1" max="3" step="0.01" value={studentZoom} onChange={(e) => setStudentZoom(parseFloat(e.target.value))} className="flex-1 accent-[#39a8ed] cursor-pointer" />
+              <span className="material-symbols-outlined text-lg text-slate-500">zoom_in</span>
+            </div>
+            <div className="flex gap-3 w-full">
+              <button type="button" className="btn btn-cancel flex-1 h-[44px] rounded-[10px] cursor-pointer" onClick={(e) => { e.preventDefault(); setShowStudentCropModal(false); setTempStudentImage(null); }}>Cancel</button>
+              <button type="button" className="btn btn-save flex-1 h-[44px] rounded-[10px] flex items-center justify-center cursor-pointer" onClick={(e) => { e.preventDefault(); handleStudentCropSave(); }}>Apply Crop</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <WarningModal 
         isOpen={showWarningModal} 
