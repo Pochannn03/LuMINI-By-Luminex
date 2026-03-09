@@ -41,6 +41,39 @@ const calculateYawRatio = (landmarks) => {
   return distLeft / distRight;
 };
 
+// ==========================================
+// NEW: PASSWORD STRENGTH EVALUATOR
+// ==========================================
+const evaluatePassword = (password) => {
+  let score = 0;
+  let hints = [];
+
+  if (!password) return { score: 0, label: '', color: 'bg-slate-200', textColor: 'text-slate-500', hint: '' };
+
+  if (password.length >= 8) score += 1; else hints.push('make it at least 8 characters');
+  if (/[A-Z]/.test(password)) score += 1; else hints.push('add an uppercase letter');
+  if (/[0-9]/.test(password)) score += 1; else hints.push('add a number');
+  if (/[^A-Za-z0-9]/.test(password)) score += 1; else hints.push('add a special symbol');
+
+  let label = 'Weak';
+  let color = 'bg-red-500';
+  let textColor = 'text-red-500';
+
+  if (score === 3) {
+    label = 'Fair';
+    color = 'bg-yellow-500';
+    textColor = 'text-yellow-500';
+  } else if (score === 4) {
+    label = 'Strong';
+    color = 'bg-green-500';
+    textColor = 'text-green-500';
+  }
+
+  const hintText = hints.length > 0 ? `Tip: ${hints[0]}` : 'Ready to go!';
+
+  return { score, label, color, textColor, hint: hintText };
+};
+
 
 export default function ParentRegistration() {
   const navigate = useNavigate();
@@ -69,6 +102,8 @@ export default function ParentRegistration() {
   // Password Visibility States //
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // NEW: Store Password Strength
+  const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: 'bg-slate-200', textColor: 'text-slate-500', hint: '' });
 
   // Success Modal State //
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
@@ -389,6 +424,12 @@ export default function ParentRegistration() {
     }
 
     setFormData(prev => ({ ...prev, [name]: finalValue }));
+
+    // NEW: Trigger password evaluation if typing in password field
+    if (name === 'password') {
+      setPasswordStrength(evaluatePassword(finalValue));
+    }
+
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
   };
   
@@ -621,12 +662,28 @@ export default function ParentRegistration() {
                   <FormInputRegistration label="Username" name="username" type='text' className="form-input-modal" placeholder="e.g Parent_Juan" value={formData.username} onChange={handleChange} error={errors.username} required={true} />
                 </div>
 
-                <div className='flex flex-col w-full mb-5 relative'>
+                <div className='flex flex-col w-full mb-2 relative'>
                   <FormInputRegistration label="Password" name="password" type={showPassword ? 'text' : 'password'} className="form-input-modal pr-12" placeholder="Type your password here" value={formData.password} onChange={handleChange} error={errors.password} required={true} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none"><span className="material-symbols-outlined text-[20px]">{showPassword ? 'visibility_off' : 'visibility'}</span></button>
                 </div>
 
-                <div className='flex flex-col w-full mb-5 relative'>
+                {/* --- NEW: PASSWORD STRENGTH UI --- */}
+                {formData.password && (
+                  <div className="flex flex-col mb-4 pl-1 pr-1 animate-[fadeIn_0.3s_ease-out]">
+                    <div className="flex gap-1 h-1.5 w-full mb-1.5 rounded-full overflow-hidden bg-slate-100">
+                      <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 1 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                      <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 2 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                      <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 3 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                      <div className={`h-full transition-all duration-300 ${passwordStrength.score >= 4 ? passwordStrength.color : 'bg-transparent'}`} style={{ width: '25%' }}></div>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px] font-bold">
+                      <span className={`${passwordStrength.textColor}`}>{passwordStrength.label}</span>
+                      <span className="text-slate-400">{passwordStrength.hint}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className={`flex flex-col w-full mb-5 relative ${!formData.password ? 'mt-3' : ''}`}>
                   <FormInputRegistration label="Confirm Password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} className="form-input-modal pr-12" placeholder="Re-type your password here" value={formData.confirmPassword} onChange={handleChange} error={errors.confirmPassword} required={true} />
                   <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-[40px] text-slate-400 hover:text-blue-500 transition-colors focus:outline-none"><span className="material-symbols-outlined text-[20px]">{showConfirmPassword ? 'visibility_off' : 'visibility'}</span></button>
                 </div>
