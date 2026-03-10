@@ -45,4 +45,4 @@ GuardianRequestSchema.virtual('parent_details', {
   justOne: true
 });
 
-export default mongoose.model('GuardianRequest', GuardianRequestSchema, 'grq.guardian_request');
+export default mongoose.model('GuardianRequest', GuardianRequestSchema, ' ');
