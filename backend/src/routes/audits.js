@@ -29,10 +29,12 @@ router.get('/api/audit',
 
       if (startDate || endDate) {
         query.created_at = {};
-        if (startDate) query.created_at.$gte = new Date(startDate);
+        if (startDate) {
+          const start = new Date(`${startDate}T00:00:00`);
+          query.created_at.$gte = start;
+        }
         if (endDate) {
-          const end = new Date(endDate);
-          end.setHours(23, 59, 59, 999);
+          const end = new Date(`${endDate}T23:59:59.999`);
           query.created_at.$lte = end;
         }
       }
