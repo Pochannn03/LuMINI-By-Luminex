@@ -9,6 +9,7 @@
 
   export default function SuperAdminAnalytics() {
     // AUDIT STATE
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
     const [auditLogs, setAuditLogs] = useState([]);
     const [filterRole, setFilterRole] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
@@ -45,6 +46,12 @@
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [exportStartPage, setExportStartPage] = useState(1);
     const [exportEndPage, setExportEndPage] = useState(1);
+
+    useEffect(() => {
+      const handleResize = () => setIsMobile(window.innerWidth < 640);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
       const delayDebounceFn = setTimeout(() => {
@@ -256,7 +263,7 @@
     const donutGradient = `conic-gradient(${gradientParts.join(", ")})`;
 
     const getPageNumbers = () => {
-      const maxVisible = 5;
+      const maxVisible = isMobile ? 3 : 5;
       let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
       let end = Math.min(totalPages, start + maxVisible - 1);
 
@@ -641,15 +648,15 @@
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+              <div className="flex items-center justify-between gap-2 mt-4 pt-4 border-t border-gray-100">
                 <p className="text-xs! text-cgray">
                   Showing page <b>{currentPage}</b> of <b>{totalPages}</b>
                 </p>
                 
-                <div className="flex gap-1">
+                <div className="flex gap-0.5 sm:gap-1">
                   {/* Previous Button */}
                   <button 
-                    className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50" 
+                    className="btn btn-outline h-7 w-7 sm:h-8 sm:w-8 p-0! disabled:opacity-50" 
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage(prev => prev - 1)}
                   >
@@ -659,7 +666,7 @@
                   {/* First Page Quick Link */}
                   {getPageNumbers()[0] > 1 && (
                     <>
-                      <button className="btn btn-outline h-8 w-8 p-0!" onClick={() => setCurrentPage(1)}>1</button>
+                      <button className="btn btn-outline h-7 w-7 sm:h-8 sm:w-8 p-0!" onClick={() => setCurrentPage(1)}>1</button>
                       <span className="px-1 self-center text-gray-400 text-xs">...</span>
                     </>
                   )}
@@ -668,7 +675,7 @@
                   {getPageNumbers().map(pageNum => (
                     <button 
                       key={pageNum}
-                      className={`btn btn-outline h-8 w-8 p-0! transition-colors flex items-center justify-center font-medium ${ currentPage === pageNum  
+                      className={`btn btn-outline h-7 w-7 sm:h-8 sm:w-8 p-0! transition-colors flex items-center justify-center font-medium ${ currentPage === pageNum  
                           ? 'bg-[#3ab0f9]! text-white! border-[#3ab0f9]! shadow-sm' 
                           : 'hover:bg-blue-50 text-gray-600 border-gray-200'
                       }`}
@@ -682,13 +689,13 @@
                   {getPageNumbers().slice(-1)[0] < totalPages && (
                     <>
                       <span className="px-1 self-center text-gray-400 text-xs">...</span>
-                      <button className="btn btn-outline h-8 w-8 p-0!" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
+                      <button className="btn btn-outline h-7 w-7 sm:h-8 sm:w-8 p-0!" onClick={() => setCurrentPage(totalPages)}>{totalPages}</button>
                     </>
                   )}
 
                   {/* Next Button */}
                   <button 
-                    className="btn btn-outline h-8 w-8 p-0! disabled:opacity-50"
+                    className="btn btn-outline h-7 w-7 sm:h-8 sm:w-8 p-0! disabled:opacity-50"
                     disabled={currentPage === totalPages || totalPages === 0}
                     onClick={() => setCurrentPage(prev => prev + 1)}
                   >
