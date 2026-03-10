@@ -60,10 +60,6 @@ const StudentSchema = new mongoose.Schema({
     required: false, 
     default: ""
   },
-  qr_code: {
-    type: String,
-    required: false, 
-  },
   status: {
     type: String,
     enum: ['On the way', 'Learning', 'Dismissed'],
