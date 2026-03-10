@@ -115,14 +115,13 @@ export default function Landing() {
               </p>
               <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
                 
-                {/* --- THE FIX: Pointed "Get Started" to /enroll instead of /login --- */}
                 <Link to="/enroll" className="btn btn-primary h-14 px-8 rounded-full text-lg font-medium shadow-lg hover:shadow-xl">
                   Get Started
                 </Link>
                 
-                <a href="#about" className="btn btn-outline h-14 px-8 rounded-full bg-white/50 text-lg font-medium">
-                  Learn More
-                </a>
+                <Link to="/login" className="btn btn-outline h-14 px-8 rounded-full bg-white/50 text-lg font-medium">
+                  Sign In
+                </Link>
               </div>
             </div>
 

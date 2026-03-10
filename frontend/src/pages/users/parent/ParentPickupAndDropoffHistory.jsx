@@ -197,7 +197,7 @@ export default function AdminDropAndPickHistory() {
                           <div className="flex items-center gap-3">
                             <img src={getImageUrl(record.student_details?.profile_picture, record.student_name)} className="w-9 h-9 rounded-full object-cover border border-slate-200" alt="student" />
                             <div>
-                              <p className="text-cdark text-[13px] font-bold leading-tight">{record.student_name}</p>
+                              <p className="text-cdark text-[13px]! font-bold leading-tight">{record.student_name}</p>
                               <div className="flex flex-col">
                                 <span className="text-gray-400 text-[10px] font-medium uppercase tracking-wide">ID: {record.student_id}</span>
                                 <span className="text-blue-400 text-[10px] font-semibold italic">{record.section_name}</span>
