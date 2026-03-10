@@ -170,10 +170,10 @@ export default function GuardianPickupAndDropOffHistory() {
                            <span className="inline-block px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-md text-gray-500 font-bold text-[10px] tracking-tight">{record.transfer_id}</span>
                         </td>
                         <td className="py-5 px-2">
-                          <div className="flex items-center gap-3">
-                            <img src={getImageUrl(record.student_details?.profile_picture, record.student_name)} className="w-10 h-10 rounded-full object-cover border border-slate-200" alt="student" />
-                            <div>
-                              <p className="text-cdark text-[13px]! font-bold leading-tight">{record.student_name}</p>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <img src={getImageUrl(record.student_details?.profile_picture, record.student_name)} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" alt="student" />
+                            <div className="min-w-0">
+                              <p className="text-cdark text-[13px]! font-bold leading-tight truncate">{record.student_name}</p>
                               <div className="flex flex-col">
                                 <span className="text-gray-400 text-[10px] font-medium uppercase tracking-wide">ID: {record.student_id}</span>
                                 <span className="text-blue-400 text-[10px] font-semibold italic">{record.section_name}</span>
@@ -182,10 +182,10 @@ export default function GuardianPickupAndDropOffHistory() {
                           </div>
                         </td>
                         <td className="py-5 px-2">
-                            <div className="flex items-center gap-2.5">
-                              <img src={getImageUrl(record.user_details?.profile_picture, record.user_name)} className="w-10 h-10 rounded-full object-cover border border-slate-200" alt="guardian" />
-                              <div>
-                                 <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img src={getImageUrl(record.user_details?.profile_picture, record.user_name)} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" alt="guardian" />
+                              <div className="min-w-0">
+                                 <p className="text-cdark text-[13px]! font-semibold leading-tight truncate">{record.user_name}</p>
                                  <span className="text-gray-400 text-[10px] uppercase tracking-wider">{record.user_details?.relationship || "Guardian"}</span>
                               </div>
                             </div>
