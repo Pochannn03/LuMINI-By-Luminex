@@ -9,6 +9,7 @@ import ScanHandAsset from '../../../assets/scan_hand.png';
 import PassModal from '../../../components/modals/user/PassModal';
 import ParentDashboardQrScan from "../../../components/modals/user/parent/dashboard/ParentDashboardQrScan";
 import ParentNewDayModal from ".././../../components/modals/user/parent/dashboard/ParentNewDayModal"
+import ParentFeedbackModal from ".././../../components/modals/user/parent/dashboard/ParentFeedback";
 import SuccessModal from "../../../components/SuccessModal";
 import WarningModal from "../../../components/WarningModal";
 
@@ -28,6 +29,7 @@ export default function GuardianDashboard() {
   const [allChildren, setAllChildren] = useState([]);
   const [rawStudentData, setRawStudentData] = useState(null); 
   const [showNewDayModal, setShowNewDayModal] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -139,6 +141,15 @@ export default function GuardianDashboard() {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
         setIsParentOnQueue(false); 
         setShowPassModal(false); 
+      }
+    });
+
+    socket.on('student_status_updated', (data) => {
+      if (data.student_id === rawStudentData?.student_id) {
+        setChildData(prev => ({ ...prev, status: data.newStatus }));
+        setIsParentOnQueue(false);
+        setShowPassModal(false);
+        if (data.purpose === 'Pick up') setIsFeedbackModalOpen(true); // 👈 added
       }
     });
 
@@ -333,6 +344,11 @@ export default function GuardianDashboard() {
       <ParentDashboardQrScan isOpen={showScanner} onClose={() => setShowScanner(false)} onScanSuccess={handleGateScanSuccess} />
       <PassModal isOpen={showPassModal} onClose={() => setShowPassModal(false)} studentId={rawStudentData?.student_id} />
       <ParentNewDayModal isOpen={showNewDayModal} onClose={() => setShowNewDayModal(false)} />
+      <ParentFeedbackModal
+        isOpen={isFeedbackModalOpen}
+        onClose={() => setIsFeedbackModalOpen(false)}
+        onSuccess={(msg) => { setSuccessMessage(msg); setIsSuccessModalOpen(true); }}
+      />
     </div>
   );
 }
