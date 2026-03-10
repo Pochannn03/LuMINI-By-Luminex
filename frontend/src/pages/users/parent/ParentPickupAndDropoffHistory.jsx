@@ -91,7 +91,7 @@ export default function AdminDropAndPickHistory() {
 
       <main className="flex-1 p-6 animate-[fadeIn_0.4s_ease-out_forwards] overflow-y-auto">
         <div className="admin-banner max-w-[1200px] mx-auto mb-6">
-          <h1 className="text-[white]!">Transfer History</h1>
+          <h1 className="text-[white]!">History</h1>
           <p className="text-[white]! opacity-90 m-0">
             View historical records of student drop-offs and pick-ups.
           </p>
