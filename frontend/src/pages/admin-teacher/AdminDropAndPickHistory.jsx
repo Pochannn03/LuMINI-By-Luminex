@@ -203,9 +203,9 @@ export default function AdminDropAndPickHistory() {
 
             {/* CONTENT */}
             {loading ? (
-              <div className="py-10 text-center text-gray-400 italic">Loading records...</div>
+              <div className="py-16 text-center text-gray-400 italic">Loading records...</div>
             ) : filteredData.length === 0 ? (
-              <div className="py-10 text-center text-gray-400 italic">
+              <div className="py-16 text-center text-gray-400 italic">
                 <div className="flex flex-col items-center gap-1">
                   <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
                   No transfers recorded for {monthDay}.
@@ -218,26 +218,26 @@ export default function AdminDropAndPickHistory() {
                   <table className="w-full text-left border-collapse" style={{ minWidth: '600px' }}>
                     <thead>
                       <tr className="border-b border-gray-100">
-                        <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[12%]">TRX ID</th>
-                        <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[28%]">Student</th>
-                        <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[25%]">Parent/Guardian</th>
-                        <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[15%] text-center">Time</th>
-                        <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[20%] text-center">Status</th>
+                        <th className="py-4 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[12%]">TRX ID</th>
+                        <th className="py-4 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[28%]">Student</th>
+                        <th className="py-4 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[25%]">Parent/Guardian</th>
+                        <th className="py-4 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[15%] text-center">Time</th>
+                        <th className="py-4 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[20%] text-center">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {filteredData.map((record) => (
                         <tr key={record._id} className="group hover:bg-slate-50 transition-colors">
-                          <td className="py-4 px-2">
+                          <td className="py-5 px-2">
                             <span className="inline-block px-2.5 py-1 bg-gray-100 border border-gray-200 rounded-md text-gray-500 font-bold text-[10px] tracking-tight">
                               {record.transfer_id}
                             </span>
                           </td>
-                          <td className="py-4 px-2">
-                            <div className="flex items-center gap-3">
+                          <td className="py-5 px-2">
+                            <div className="flex items-center gap-3.5">
                               <img
                                 src={getImageUrl(record.student_details?.profile_picture, record.student_name)}
-                                className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
                                 alt="student"
                               />
                               <div className="min-w-0">
@@ -247,11 +247,11 @@ export default function AdminDropAndPickHistory() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-2">
+                          <td className="py-5 px-2">
                             <div className="flex items-center gap-2.5">
                               <img
                                 src={getImageUrl(record.user_details?.profile_picture, record.user_name)}
-                                className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+                                className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
                                 alt="guardian"
                               />
                               <div className="min-w-0">
@@ -260,10 +260,10 @@ export default function AdminDropAndPickHistory() {
                               </div>
                             </div>
                           </td>
-                          <td className="py-4 px-2 text-center">
+                          <td className="py-5 px-2 text-center">
                             <p className="text-cdark text-[13px]! font-medium">{record.time}</p>
                           </td>
-                          <td className="py-4 px-2 text-center">
+                          <td className="py-5 px-2 text-center">
                             <span className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                               record.purpose === "Drop off"
                                 ? "bg-blue-50 text-blue-600 border border-blue-100"
