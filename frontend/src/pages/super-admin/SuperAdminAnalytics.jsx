@@ -667,7 +667,7 @@
                   {getPageNumbers()[0] > 1 && (
                     <>
                       <button className="btn btn-outline h-7 w-7 sm:h-8 sm:w-8 p-0!" onClick={() => setCurrentPage(1)}>1</button>
-                      <span className="px-1 self-center text-gray-400 text-xs">...</span>
+                      <span className="px-0.5 sm:px-1 self-center text-gray-400 text-[10px] sm:text-xs">...</span>
                     </>
                   )}
 
