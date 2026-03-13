@@ -257,8 +257,8 @@ router.post('/api/auth/forgot-password/verify-face', async (req, res) => {
         // Calculate distance with strict parsing
         const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
 
-        // STRICT REJECTION: Reject if over 0.55 OR if the calculation failed (NaN)
-        if (isNaN(distance) || distance > 0.55) {
+        // STRICT REJECTION: Reject if over 0.40 OR if the calculation failed (NaN)
+        if (isNaN(distance) || distance > 0.40) {
             
             const failReason = isNaN(distance) ? "Corrupted Data (NaN)" : `Distance: ${distance.toFixed(4)}`;
 
