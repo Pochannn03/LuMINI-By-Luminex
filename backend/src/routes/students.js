@@ -59,7 +59,6 @@ router.put('/api/student/:id/profile-picture',
         const oldImagePath = path.join(process.cwd(), student.profile_picture);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
-          console.log(`fwb_log: Old student profile picture deleted: ${oldImagePath}`);
         }
       }
 
@@ -168,7 +167,6 @@ router.put('/api/students/:id',
     const result = validationResult(req);
 
     if (!result.isEmpty()) {
-      console.log("Validation Errors:", result.array());
       return res.status(400).send({ errors: result.array() });
     }
     
@@ -320,7 +318,6 @@ router.post('/api/students',
     }
 
     const data = matchedData(req);
-    console.log("Received Valid Data:", data);
     data.created_by = "superadmin";
     data.updated_by = "superadmin";
 

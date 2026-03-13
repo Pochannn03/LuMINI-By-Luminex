@@ -78,8 +78,6 @@ router.post('/api/guardian-register',
     }
 
     const data = matchedData(req);
-    console.log("Received Valid Text Data:", data);
-
     const hashedPassword = await hashPassword(data.password);
     const newUser = new User({
         ...data,
@@ -107,7 +105,6 @@ router.post('/api/guardian-register',
         const savedUser = await newUser.save();
         return res.status(201).send({ msg: "Guardian registered successfully!", user: savedUser });
     } catch (err) {
-        console.log("Database Error:", err);
         return res.sendStatus(400);
     }
   }
@@ -183,16 +180,12 @@ router.post(
         let primaryTeacherId = null;
         let primaryTeacherCustomId = null;
 
-        console.log("🔍 --- STARTING TEACHER SEARCH ---");
         
         for (const student of linkedStudents) {
-            console.log(`Checking student: ${student.first_name}, Section ID: ${student.section_id}`);
-            
             if (student.section_id && !primaryTeacherId) {
                 const section = await Section.findOne({ section_id: Number(student.section_id) }); 
                 
                 if (section) {
-                    console.log(`Found Section: ${section.section_name}, Teacher User ID: ${section.user_id}`);
                     
                     if (section.user_id) {
                         const teacher = await User.findOne({ user_id: Number(section.user_id) });
@@ -200,24 +193,11 @@ router.post(
                         if (teacher) {
                             primaryTeacherId = teacher._id;
                             primaryTeacherCustomId = teacher.user_id;
-                            console.log(`✅ Teacher Found! ID: ${primaryTeacherCustomId}`);
-                        } else {
-                            console.log("❌ Teacher user_id exists in section, but no User found in DB.");
                         }
-                    } else {
-                        console.log("❌ Section found, but no user_id (teacher) is assigned to it.");
                     }
-                } else {
-                    console.log("❌ Section ID exists on student, but Section not found in DB.");
                 }
-            } else if (!student.section_id) {
-                console.log("❌ This student has no section_id assigned.");
             }
         }
-        
-        console.log("🔍 --- END TEACHER SEARCH ---");
-        console.log("Final primaryTeacherCustomId:", primaryTeacherCustomId);
-
         const newRequest = new GuardianRequest({
             parent: parentObjectId, 
             students: studentObjectIds, 

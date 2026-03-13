@@ -79,22 +79,17 @@ app.get("/", (req, res) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Server and WebSockets running on port ${PORT}`);
 });
 
 io.on("connection", (socket) => {
-  console.log(`⚡ User connected: ${socket.id}`);
 
   socket.on("join", (userId) => {
     if (!userId) return;
 
     const roomName = `user_${userId}`;
     socket.join(roomName);
-
-    console.log(`User ${userId} joined room ${roomName}`);
   });
 
   socket.on("disconnect", () => {
-    console.log(`❌ User disconnected: ${socket.id}`);
   });
 });

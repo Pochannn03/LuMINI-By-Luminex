@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { validateOverrideForm } from '../../../../utils/override-modal/overrideModalValidation';
+import WarningModal from "../../../WarningModal";
 import axios from 'axios';
 import AvatarEditor from "react-avatar-editor";
 
@@ -16,6 +17,7 @@ export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess
     // --- CUSTOM DROPDOWN STATES ---
     const [isStudentOpen, setIsStudentOpen] = useState(false);
     const [isGuardianOpen, setIsGuardianOpen] = useState(false);
+    const [warningModal, setWarningModal] = useState({ isOpen: false, title: "", message: "" });
     const studentRef = useRef(null);
     const guardianRef = useRef(null);
 
@@ -148,14 +150,15 @@ export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess
             onSuccess(res.data.msg || "Emergency transfer completed.");
             onClose();
         } catch (err) {
-            console.error("Full Error Object:", err);
             const errorMessage = err.response?.data?.error
                 || err.response?.data?.message
                 || err.message
                 || "An unexpected error occurred";
-            alert(errorMessage);
+            
+            setWarningModal({ isOpen: true, title: "Transfer Not Allowed", message: errorMessage }); // ✅
+            
             if (err.response?.data?.errors) setErrors(err.response.data.errors);
-        } finally {
+            } finally {
             setLoading(false);
         }
     };
@@ -477,6 +480,14 @@ export default function AdminEmergencyOverrideModal({ isOpen, onClose, onSuccess
                     </div>
                 </div>
             </div>
+
+            <WarningModal
+                isOpen={warningModal.isOpen}
+                onClose={() => setWarningModal({ isOpen: false, title: "", message: "" })}
+                title={warningModal.title}
+                message={warningModal.message}
+            />
+
         </>,
         document.body
     );

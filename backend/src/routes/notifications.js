@@ -17,8 +17,6 @@ router.get('/api/notifications',
     
   try {
     const currentUserId = Number(req.user.user_id);
-    console.log(`Fetching notifications for ID: ${currentUserId}`);
-
     // 3. Query the data
     const notifications = await Notification.find({ recipient_id: currentUserId })
       .sort({ created_at: -1 })
