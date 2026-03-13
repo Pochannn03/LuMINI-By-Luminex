@@ -92,7 +92,6 @@ router.post("/api/auth", (req, res, next) => {
       if (user.current_session_id && user.current_session_id !== newSessionId) {
         req.sessionStore.destroy(user.current_session_id, (storeErr) => {
           if (storeErr) console.error("Error destroying old session:", storeErr);
-          else console.log(`Destroyed old session for user ${user.username}`);
         });
       }
 
@@ -257,14 +256,11 @@ router.post('/api/auth/forgot-password/verify-face', async (req, res) => {
 
         // Calculate distance with strict parsing
         const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
-        
-        console.log(`[SECURITY] Forgot Password Face Match Distance: ${distance}`); // Helpful for debugging
 
         // STRICT REJECTION: Reject if over 0.55 OR if the calculation failed (NaN)
         if (isNaN(distance) || distance > 0.55) {
             
             const failReason = isNaN(distance) ? "Corrupted Data (NaN)" : `Distance: ${distance.toFixed(4)}`;
-            console.log(`[SECURITY] REJECTED: ${failReason}`);
 
             const failedAudit = new Audit({
                 user_id: user.user_id,

@@ -85,7 +85,6 @@ router.get('/api/transfer/parent',
       }
 
       const studentIdStrings = children.map(child => child.student_id);
-      console.log("Step 3: Searching transfers for Student IDs:", studentIdStrings);
 
       let query = { 
         student_id: { $in: studentIdStrings }
@@ -104,8 +103,6 @@ router.get('/api/transfer/parent',
         .populate('user_details')
         .populate('section_details')
         .sort({ created_at: -1 });
-
-      console.log(`Step 4: Success! Found ${history.length} transfer records.`);
 
       res.json({ success: true, data: history });
 
@@ -307,6 +304,31 @@ router.post('/api/transfer/override',
       const requestedBy = req.user.user_id;
 
       const studentDetails = await Student.findOne({ student_id: studentId });
+
+      if (!studentDetails) {
+        return res.status(404).json({ error: "Student not found." });
+      }
+
+      // ✅ Validate student status against purpose
+      const purposeNormalized = purpose?.trim().toLowerCase();
+      const statusNormalized = studentDetails.status?.trim().toLowerCase();
+
+      if (purposeNormalized === 'pick up' && statusNormalized === 'dismissed') {
+        return res.status(400).json({ error: "Student is already dismissed." });
+      }
+
+      if (purposeNormalized === 'pick up' && statusNormalized !== 'learning') {
+        return res.status(400).json({ error: "Student has not been dropped off yet." });
+      }
+
+      if (purposeNormalized === 'drop off' && statusNormalized === 'learning') {
+        return res.status(400).json({ error: "Student is already in school." });
+      }
+
+      if (purposeNormalized === 'drop off' && statusNormalized === 'dismissed') {
+        return res.status(400).json({ error: "Student is already dismissed." });
+      }
+
       const studentName = `${studentDetails.first_name} ${studentDetails.last_name}`
 
       let overrideData = {
@@ -474,6 +496,17 @@ router.patch('/api/transfer/override/:id/approve',
 
       if (!ovr) return res.status(404).json({ error: "Record not found." });
       if (ovr.is_approved) return res.status(400).json({ error: "Already approved." });
+      const student = await Student.findOne({ student_id: ovr.student_id });
+
+      if (!student) return res.status(404).json({ error: "Student not found." });
+
+      if (ovr.purpose === 'Pick up' && student.status === 'Dismissed') {
+        return res.status(400).json({ error: "Student is already dismissed." });
+      }
+
+      if (ovr.purpose === 'Drop off' && student.status === 'Learning') {
+        return res.status(400).json({ error: "Student is already in school." });
+      }
 
       const requestDate = new Date(ovr.created_at);
       
@@ -503,6 +536,27 @@ router.patch('/api/transfer/override/:id/approve',
 
       await newTransfer.save();
       ovr.is_approved = true;
+
+      if (ovr.purpose === 'Pick up' && ovr.student_id) {
+        await Student.findOneAndUpdate(
+          { student_id: ovr.student_id },
+          { 
+            status: 'Dismissed',
+            updated_at: new Date(),
+            updated_by: `${req.user.first_name} ${req.user.last_name}`
+          }
+        );  // ✅ semicolon inside the block
+      } else if (ovr.purpose === 'Drop off' && ovr.student_id) {
+        await Student.findOneAndUpdate(
+          { student_id: ovr.student_id },
+          { 
+            status: 'Learning',
+            updated_at: new Date(),
+            updated_by: `${req.user.first_name} ${req.user.last_name}`
+          }
+        );  
+      }
+
       await ovr.save();
 
       const io = req.app.get('socketio');
@@ -590,37 +644,34 @@ cron.schedule('0 0 * * *', async () => {
       const strandedStudents = await Student.find({ status: 'Learning', is_archive: false });
 
       if (strandedStudents.length > 0) {
-          console.log(`🧹 Nightly Sweep: Found ${strandedStudents.length} active students not picked up.`);
-          
-          for (const student of strandedStudents) {
-              const missedTransfer = new Transfer({
-                  student_id: student.student_id,
-                  student_name: student.first_name ? `${student.first_name} ${student.last_name}` : 'Unknown Student',
-                  section_id: student.section_id || '---',
-                  section_name: student.section_name || 'Unassigned',
-                  user_id: 0, 
-                  user_name: 'Unattended',
-                  purpose: 'Pick up',
-                  date: yesterdayStr,
-                  time: '---', 
-              });
-              
-              await missedTransfer.save();
+        for (const student of strandedStudents) {
+            const missedTransfer = new Transfer({
+                student_id: student.student_id,
+                student_name: student.first_name ? `${student.first_name} ${student.last_name}` : 'Unknown Student',
+                section_id: student.section_id || '---',
+                section_name: student.section_name || 'Unassigned',
+                user_id: 0, 
+                user_name: 'Unattended',
+                purpose: 'Pick up',
+                date: yesterdayStr,
+                time: '---', 
+            });
+            
+            await missedTransfer.save();
 
-              const auditLog = new Audit({
-                user_id: 0,
-                full_name: "System",
-                role: "Automated Task",
-                action: "Midnight Status Reset",
-                target: `Student: ${student.first_name} ${student.last_name} (Auto-Dismissed)`
-              });
-              await auditLog.save();
+            const auditLog = new Audit({
+              user_id: 0,
+              full_name: "System",
+              role: "Automated Task",
+              action: "Midnight Status Reset",
+              target: `Student: ${student.first_name} ${student.last_name} (Auto-Dismissed)`
+            });
+            await auditLog.save();
 
-              student.status = 'On the way';
-              student.last_reset_date = todayStr;
-              await student.save();
-          }
-          console.log('✅ Nightly reset complete.');
+            student.status = 'On the way';
+            student.last_reset_date = todayStr;
+            await student.save();
+        }
       }
   } catch (error) {
       console.error('❌ Auto-Reset Cron Error:', error);

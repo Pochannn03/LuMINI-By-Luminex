@@ -170,10 +170,6 @@ router.get("/api/user-checking", async (req, res) => {
       studentWithParent.user_details &&
       studentWithParent.user_details.length > 0
     ) {
-      console.log(
-        "Parent Username:",
-        studentWithParent.user_details[0].username,
-      );
       return res.status(200).send(studentWithParent);
     } else {
       return res.status(200).send({
