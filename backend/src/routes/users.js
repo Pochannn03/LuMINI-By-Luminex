@@ -291,7 +291,7 @@ router.post('/api/user/verify-face-match', isAuthenticated, async (req, res) => 
         const distance = euclideanDistance(user.facial_descriptor, facialDescriptor);
 
         // 0.55 is the standard strict threshold for Face-API
-        if (distance > 0.55) {
+        if (isNaN(distance) || distance > 0.40) {
             const failedAudit = new Audit({
                 user_id: user.user_id,
                 full_name: `${user.first_name} ${user.last_name}`,
