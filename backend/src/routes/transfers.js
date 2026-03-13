@@ -503,6 +503,27 @@ router.patch('/api/transfer/override/:id/approve',
 
       await newTransfer.save();
       ovr.is_approved = true;
+
+      if (ovr.purpose === 'Pick up' && ovr.student_id) {
+        await Student.findOneAndUpdate(
+          { student_id: ovr.student_id },
+          { 
+            status: 'Dismissed',
+            updated_at: new Date(),
+            updated_by: `${req.user.first_name} ${req.user.last_name}`
+          }
+        );
+      } else if (ovr.purpose === 'Drop off' && ovr.student_id) {
+        await Student.findOneAndUpdate(
+          { student_id: ovr.student_id },
+          { 
+            status: 'Learning',
+            updated_at: new Date(),
+            updated_by: `${req.user.first_name} ${req.user.last_name}`
+          }
+        )
+      };
+      
       await ovr.save();
 
       const io = req.app.get('socketio');
