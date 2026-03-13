@@ -18,7 +18,7 @@ import {
   sendGuardianVerifiedEmail, 
   sendGuardianFinalizedEmail, 
   sendGuardianSetupCompleteEmail,
-  sendGuardianRejectedEmail // <-- NEW: Import the rejected email function
+  sendGuardianRejectedEmail
 } from '../utils/emailService.js';
 
 const router = Router();
@@ -189,14 +189,12 @@ router.post(
             console.log(`Checking student: ${student.first_name}, Section ID: ${student.section_id}`);
             
             if (student.section_id && !primaryTeacherId) {
-                // ADDED Number() to prevent type mismatch
                 const section = await Section.findOne({ section_id: Number(student.section_id) }); 
                 
                 if (section) {
                     console.log(`Found Section: ${section.section_name}, Teacher User ID: ${section.user_id}`);
                     
                     if (section.user_id) {
-                        // ADDED Number() to prevent type mismatch
                         const teacher = await User.findOne({ user_id: Number(section.user_id) });
                         
                         if (teacher) {
@@ -279,6 +277,12 @@ router.post(
     } catch (error) {
         console.error("Submit Request Error:", error);
         if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        
+        // Handle duplicate username explicitly if it slips through here
+        if (error.code === 11000 && error.keyPattern && error.keyPattern.username) {
+            return res.status(400).json({ message: "This username is already taken. Please choose a different one." });
+        }
+
         return res.status(500).json({ message: "Server error during submission." });
     }
 });
@@ -317,7 +321,6 @@ router.put('/api/teacher/guardian-requests/:id/approve',
         const currentUserId = Number(req.user.user_id);
         const teacherName = `${req.user.first_name} ${req.user.last_name}`;
 
-        // Populate students array so we can grab their names for the email
         const requestDoc = await GuardianRequest.findById(requestId).populate('parent').populate('students');
         if (!requestDoc || requestDoc.status !== 'pending') {
             return res.status(404).json({ message: "Request not found or already processed." });
@@ -426,7 +429,6 @@ router.put('/api/teacher/guardian-requests/:id/reject',
 
         // Notify Parent (In-App + Email)
         if (requestDoc.parent) {
-            // --- THE FIX: ADDED REASON TO IN-APP NOTIFICATION ---
             const notification = new Notification({
                 recipient_id: Number(requestDoc.parent.user_id), 
                 sender_id: currentUserId,
@@ -645,7 +647,7 @@ router.put(
       }
 
       user.is_first_login = false;
-      await user.save();
+      await user.save(); // <--- ERROR WAS TRIGGERED HERE
 
       // Find the original request so we can email the parent
       const originalRequest = await GuardianRequest.findOne({ 'guardianDetails.createdUserId': userId }).populate('parent');
@@ -674,6 +676,17 @@ router.put(
 
     } catch (error) {
       console.error("Guardian Setup Error:", error);
+      
+      // --- THE FIX: CATCH MONGODB DUPLICATE KEY ERRORS ---
+      if (error.code === 11000) {
+        if (error.keyPattern && error.keyPattern.username) {
+            return res.status(400).json({ message: "This username is already taken. Please choose a different one." });
+        }
+        if (error.keyPattern && error.keyPattern.email) {
+            return res.status(400).json({ message: "This email is already registered to another account." });
+        }
+      }
+
       return res.status(500).json({ message: "Server error during setup." });
     }
 });
