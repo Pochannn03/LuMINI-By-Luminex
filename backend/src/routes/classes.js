@@ -237,7 +237,6 @@ router.post('/api/sections',
         user: savedClass 
       });
     } catch (err) {
-      console.log(err);
       return res.status(400).send({ msg: "Registration failed", error: err.message });
     }
 })

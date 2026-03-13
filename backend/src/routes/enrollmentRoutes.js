@@ -32,7 +32,6 @@ const upload = multer({ storage: storage });
 // ==================================================
 router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req, res) => {
   try {
-    console.log("📥 --- INCOMING ENROLLMENT REQUEST ---");
 
     const {
       studentFirstName, studentLastName, studentSuffix, studentBirthdate, studentGender,
@@ -72,8 +71,6 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
       const statusMsg = existingApplication.status === 'Pending'
         ? "An enrollment application for this specific student is already pending review by the teacher."
         : "This student is already officially registered in this section.";
-
-      console.log(`🚫 Blocked duplicate submission for ${studentFirstName} ${studentLastName}`);
       
       return res.status(409).json({ 
         success: false, 
