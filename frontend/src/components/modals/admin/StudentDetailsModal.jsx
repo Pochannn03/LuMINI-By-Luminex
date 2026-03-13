@@ -24,6 +24,10 @@ export default function StudentDetailsModal({ isOpen, onClose, student }) {
 
   const studentId = student.id || student.student_id;
 
+  // --- NEW: Filter out archived guardians ---
+  // This ensures we only map over guardians who are active
+  const activeGuardians = student.guardians?.filter(guardian => guardian.is_archive !== true) || [];
+
   // --- QR DOWNLOAD LOGIC ---
   const downloadQRCode = () => {
     if (!qrRef.current || !studentId) return;
@@ -153,10 +157,11 @@ export default function StudentDetailsModal({ isOpen, onClose, student }) {
           <div className="student-info-section">
             <h4>Guardians</h4>
             <div className="guardian-list">
-              {!student.guardians || student.guardians.length === 0 ? (
-                <p style={{ fontSize: '13px', color: '#64748b' }}>No guardians linked.</p>
+              {/* UPDATED: Mapping over activeGuardians instead of student.guardians */}
+              {activeGuardians.length === 0 ? (
+                <p style={{ fontSize: '13px', color: '#64748b' }}>No active guardians linked.</p>
               ) : (
-                student.guardians.map((guardian, index) => {
+                activeGuardians.map((guardian, index) => {
                   const guardianName = `${guardian.first_name} ${guardian.last_name}`;
                   return (
                     <div key={index} className="guardian-card" style={{ alignItems: 'flex-start' }}>

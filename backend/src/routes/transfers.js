@@ -14,6 +14,9 @@ import multer from 'multer';
 import path from 'path';
 import fs from "fs";
 
+// --- Import SMS Utility ---
+import { sendIprogBulkSMS } from "../utils/smsProvider.js"; // ADJUST THIS PATH TO WHEREVER YOUR UTILITY IS LOCATED!
+
 const router = Router();
 
 const uploadDir = 'uploads/override';
@@ -122,7 +125,6 @@ router.get('/api/transfers/today-count',
       const manilaDate = new Date().toLocaleDateString('en-CA', {
         timeZone: 'Asia/Manila'
       }); 
-      // 'en-CA' is a trick to get YYYY-MM-DD format easily
 
       const count = await Transfer.countDocuments({ date: manilaDate });
 
@@ -181,6 +183,12 @@ router.post('/api/transfer',
       }
 
       const todayDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
+      const currentTime = new Date().toLocaleTimeString('en-US', { 
+            timeZone: 'Asia/Manila',
+            hour: 'numeric', 
+            minute: '2-digit', 
+            hour12: true 
+          });
 
       const duplicateCheck = await Transfer.findOne({
           student_id: studentId,
@@ -203,41 +211,66 @@ router.post('/api/transfer',
           user_name: guardianName,
           purpose: purpose,
           date: todayDate,
-          time: new Date().toLocaleTimeString('en-US', { 
-            timeZone: 'Asia/Manila',
-            hour: 'numeric', 
-            minute: '2-digit', 
-            hour12: true 
-          }),
+          time: currentTime,
       });
 
       await newTransfer.save();
 
       const studentDoc = await Student.findOne({ student_id: studentId });
       
+      // ==========================================
+      // IN-APP NOTIFICATION & SMS LOGIC
+      // ==========================================
       if (studentDoc && studentDoc.user_id) {
         const recipientIds = Array.isArray(studentDoc.user_id) 
             ? studentDoc.user_id 
             : [studentDoc.user_id];
 
+        // 1. Send In-App Notifications
         const notificationPromises = recipientIds.map(async (id) => {
             const notification = new Notification({
               recipient_id: Number(id), 
               sender_id: currentUserId,
               type: 'Transfer',
               title: `Student ${purpose} Successful`,
-              message: `${studentName} has been ${purpose === 'Drop off' ? 'dropped off' : 'picked up'}`,
+              message: `${studentName} has been ${purpose === 'Drop off' ? 'dropped off' : 'picked up'} by ${guardianName}.`,
               is_read: false
             });
             
             const savedNotif = await notification.save();
-
             req.app.get('socketio').to(`user_${id}`).emit('new_notification', savedNotif);
-            
             return savedNotif;
         });
 
         await Promise.all(notificationPromises);
+
+        // 2. Check if the person scanning is a Guardian, and send SMS to Parent(s)
+        try {
+            const scanActor = await User.findOne({ user_id: guardianId });
+            
+            // ---> THE FIX: Check relationship instead of role! <---
+            if (scanActor && scanActor.relationship?.toLowerCase() === 'guardian') {
+                // Fetch the actual Parent Users to get their phone numbers
+                const parents = await User.find({ user_id: { $in: recipientIds } });
+                
+                const phoneNumbers = parents
+                    .map(p => p.phone_number)
+                    .filter(phone => phone && phone.startsWith("09") && phone.length === 11) // Basic validation
+                    .join(",");
+
+                if (phoneNumbers.length > 0) {
+                    const smsMessage = `LuMINI Alert: ${studentName} has been successfully ${purpose === 'Drop off' ? 'dropped off' : 'picked up'} by ${guardianName} at ${currentTime}.`;
+                    
+                    // Dispatch the SMS silently in the background
+                    sendIprogBulkSMS(phoneNumbers, smsMessage)
+                        .then(() => console.log(`✅ SMS Alert sent to Parents for ${studentName}'s transfer.`))
+                        .catch(err => console.error("❌ SMS Dispatch Failed:", err.message));
+                }
+            }
+        } catch (smsError) {
+            console.error("❌ Failed to process SMS logic:", smsError);
+            // We don't want an SMS failure to stop the whole transfer process, so we just log it.
+        }
     }
 
       await AccessPass.findOneAndUpdate(
@@ -247,14 +280,16 @@ router.post('/api/transfer',
 
       const newStatus = purpose === 'Drop off' ? 'Learning' : 'Dismissed';
 
+      // ---> THE FIX: Correct Mongoose findOneAndUpdate syntax! <---
       await Student.findOneAndUpdate(
           { student_id: studentId },
           { 
-            status: newStatus,
-            last_reset_date: todayDate 
+            $set: {
+                status: newStatus,
+                last_reset_date: todayDate 
+            }
           },
-          { status: newStatus },
-          { new: true }
+          { returnDocument: 'after' } // Clears the deprecation warning
       );
 
       await Queue.findOneAndUpdate(
@@ -452,7 +487,6 @@ router.get('/api/transfer/override/rejected',
 
         if (role && role !== "All") {
           // If role is provided, we filter the user_details link
-          // Note: This requires a join/lookup if filtering strictly by User model role
         }
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -573,6 +607,35 @@ router.patch('/api/transfer/override/:id/approve',
       });
       await auditLog.save();
 
+      // ==========================================
+      // SMS LOGIC FOR OVERRIDE APPROVALS
+      // ==========================================
+      try {
+        if (ovr.student_details && ovr.student_details.user_id) {
+          const recipientIds = Array.isArray(ovr.student_details.user_id) 
+              ? ovr.student_details.user_id 
+              : [ovr.student_details.user_id];
+          
+          const parents = await User.find({ user_id: { $in: recipientIds } });
+          const phoneNumbers = parents
+              .map(p => p.phone_number)
+              .filter(phone => phone && phone.startsWith("09") && phone.length === 11)
+              .join(",");
+
+          if (phoneNumbers.length > 0) {
+              const guardianLabel = ovr.is_registered_guardian ? ovr.user_name : `Guest: ${ovr.user_name}`;
+              const smsMessage = `LuMINI Alert: Manual Override Approved. ${ovr.student_details.first_name} has been ${ovr.purpose === 'Drop off' ? 'dropped off' : 'picked up'} by ${guardianLabel}.`;
+              
+              sendIprogBulkSMS(phoneNumbers, smsMessage)
+                  .then(() => console.log(`✅ SMS Alert sent for Override Approval.`))
+                  .catch(err => console.error("❌ SMS Dispatch Failed (Override):", err.message));
+          }
+        }
+      } catch (smsError) {
+          console.error("❌ Failed to process SMS logic for override:", smsError);
+      }
+
+
       return res.status(200).json({ 
         success: true, 
         msg: `Transfer recorded for ${formattedDate} ${formattedTime}` 
@@ -680,6 +743,5 @@ cron.schedule('0 0 * * *', async () => {
     scheduled: true,
     timezone: "Asia/Manila"
 });
-
 
 export default router;

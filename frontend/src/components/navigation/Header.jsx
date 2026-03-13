@@ -77,17 +77,14 @@ export default function Header({ onToggle }) {
 
     // 2. WAIT FOR CONNECTION before joining
     socket.on("connect", () => {
-      console.log("🟢 Socket Connected! ID:", socket.id);
       
       if (user?.user_id) {
         socket.emit("join", user.user_id); 
-        console.log(`🚪 Requested to join room for user: ${user.user_id}`);
       }
     });
 
     // 3. Listen for incoming notifications
     socket.on('new_notification', (newNotif) => {
-      console.log("🚨 Received new notification!", newNotif);
       
       const notifRecipient = String(newNotif.recipient_id);
       const currentUser = String(user?.user_id);
