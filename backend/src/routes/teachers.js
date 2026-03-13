@@ -378,33 +378,20 @@ router.patch('/api/teacher/approval/:id', isAuthenticated, hasRole('superadmin')
     }
 });
 
-router.delete('/api/teacher/rejection/:id', isAuthenticated, hasRole('superadmin'), async (req, res) => {
-    try {
-      const teacherId = req.params.id;
-      const deletedTeacher = await User.findByIdAndDelete(teacherId);
-      if (!deletedTeacher) { return res.status(404).json({ success: false, msg: "Teacher not found" }); }
-      const auditLog = new Audit({
-        user_id: req.user.user_id,
-        full_name: `${req.user.first_name} ${req.user.last_name}`,
-        role: req.user.role,
-        action: "Reject Teacher Registration",
-        target: `Rejected and Deleted ${deletedTeacher.first_name} ${deletedTeacher.last_name}`
-      });
-      await auditLog.save();
-      const io = req.app.get('socketio');
-      io.emit('teacher_processed', { id: teacherId, action: 'rejected' });
-      return res.status(200).json({ success: true, msg: "Registration request rejected and account deleted." });
-    } catch (err) {
-      return res.status(500).json({ success: false, msg: "Rejection failed", error: err.message });
-    }
-});
-
 router.get('/api/teacher/students', isAuthenticated, hasRole('admin'), async (req, res) => {
     try {
       const sections = await Section.find({ user_id: req.user.user_id });
       if (!sections || sections.length === 0) { return res.status(200).json({ success: true, students: [], msg: "No assigned sections found for this teacher." }); }
+      
       const sectionIds = sections.map(sec => sec.section_id);
-      const students = await Student.find({ section_id: { $in: sectionIds }, is_archive: false }).populate('user_details');
+      
+      // --- THE FIX: FILTER OUT ARCHIVED USER_DETAILS ---
+      const students = await Student.find({ section_id: { $in: sectionIds }, is_archive: false })
+        .populate({
+          path: 'user_details',
+          match: { is_archive: false } // Ensures only non-archived parents/guardians are returned
+        });
+        
       res.status(200).json({ success: true, count: students.length, students });
     } catch (error) {
       res.status(500).json({ success: false, msg: "Server Error" });
