@@ -19,12 +19,8 @@ export default function ParentDashboardQrScan({ isOpen, onClose, onScanSuccess }
 
       if (scannedValue === GATE_KEY) {
          setScanResult(scannedValue);
-         console.log("Gate Verified!");
          onScanSuccess(); 
          onClose();
-
-      } else {
-         console.log("Ignored irrelevant QR:", scannedValue);
       }
     }
   };
