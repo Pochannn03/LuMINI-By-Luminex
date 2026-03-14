@@ -40,6 +40,12 @@ export default function GuardianDashboard() {
   // --- CUSTOM DROPDOWN STATE ---
   const [isChildSwitcherOpen, setIsChildSwitcherOpen] = useState(false);
   const childSwitcherRef = useRef(null);
+  const rawStudentDataRef = useRef(rawStudentData);
+
+  useEffect(() => {
+    rawStudentDataRef.current = rawStudentData;
+  }, [rawStudentData]);
+
 
   // Click outside listener
   useEffect(() => {
@@ -131,25 +137,27 @@ export default function GuardianDashboard() {
     const socket = io(BACKEND_URL, { withCredentials: true });
 
     socket.on('new_queue_entry', (entry) => {
-      if (entry.user_id === user?.user_id && entry.student_id === rawStudentData?.student_id) {
+      if (entry.user_id === user?.user_id && entry.student_id === rawStudentDataRef.current?.student_id) {
         setIsParentOnQueue(true);
       }
     });
 
     socket.on('student_status_updated', (data) => {
-      if (data.student_id === rawStudentData?.student_id) {
-        setChildData(prev => ({ ...prev, status: data.newStatus }));
-        setIsParentOnQueue(false); 
-        setShowPassModal(false); 
-      }
-    });
-
-    socket.on('student_status_updated', (data) => {
-      if (data.student_id === rawStudentData?.student_id) {
+      const currentStudent = rawStudentDataRef.current;
+      if (String(data.student_id) === String(currentStudent?.student_id)) {
         setChildData(prev => ({ ...prev, status: data.newStatus }));
         setIsParentOnQueue(false);
         setShowPassModal(false);
-        if (data.purpose === 'Pick up') setIsFeedbackModalOpen(true); // 👈 added
+
+        // ✅ Clear pass from localStorage
+        const STORAGE_KEY = `lumini_pickup_pass_${currentStudent?.student_id}`;
+        localStorage.removeItem(STORAGE_KEY);
+
+        // ✅ Show success modal
+        setSuccessMessage(`${data.purpose} confirmed! ${currentStudent?.first_name} has been successfully ${data.purpose === 'Drop off' ? 'dropped off' : 'picked up'}.`);
+        setIsSuccessModalOpen(true);
+
+        if (data.purpose === 'Pick up') setIsFeedbackModalOpen(true);
       }
     });
 
@@ -158,7 +166,7 @@ export default function GuardianDashboard() {
       socket.off('student_status_updated');
       socket.disconnect();
     };
-  }, [rawStudentData, user]);
+  }, [user]);
 
   // 4. STATUS UPDATE HANDLER
   const handleStatusUpdate = async (statusLabel) => {
