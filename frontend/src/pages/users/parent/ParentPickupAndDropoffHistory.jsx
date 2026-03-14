@@ -210,7 +210,7 @@ export default function AdminDropAndPickHistory() {
                             <img src={getImageUrl(record.user_details?.profile_picture, record.user_name)} className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0" alt="guardian" />
                             <div className="min-w-0">
                                 <p className="text-cdark text-[13px]! font-semibold leading-tight truncate">{record.user_name}</p>
-                                <span className="text-gray-400 text-[10px] uppercase tracking-wider truncate">{record.user_details?.relationship || "Authorized User"}</span>
+                                <span className="text-gray-400 text-[10px] uppercase tracking-wider truncate">{record.user_details?.relationship || "Not Authorized"}</span>
                             </div>
                           </div>
                         </td>

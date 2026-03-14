@@ -9,6 +9,7 @@ import { Queue } from "../models/queues.js";
 import { AccessPass } from "../models/accessPass.js"
 import { Override } from '../models/manualTransfers.js';
 import { Notification } from '../models/notification.js';
+import { io } from '../index.js';
 import cron from 'node-cron'; 
 import multer from 'multer';
 import path from 'path';
@@ -704,7 +705,11 @@ cron.schedule('0 0 * * *', async () => {
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
 
-      const strandedStudents = await Student.find({ status: 'Learning', is_archive: false });
+      const strandedStudents = await Student.find({ status: 'Learning', is_archive: false })
+                                            .populate({
+                                              path: 'section_details',
+                                              options: { strictPopulate: false }
+                                            });
 
       if (strandedStudents.length > 0) {
         for (const student of strandedStudents) {
@@ -712,20 +717,46 @@ cron.schedule('0 0 * * *', async () => {
                 student_id: student.student_id,
                 student_name: student.first_name ? `${student.first_name} ${student.last_name}` : 'Unknown Student',
                 section_id: student.section_id || '---',
-                section_name: student.section_name || 'Unassigned',
+                section_name: student.section_details?.section_name || 'Unassigned',
                 user_id: 0, 
                 user_name: 'Unattended',
                 purpose: 'Pick up',
-                date: yesterdayStr,
+                date: todayStr,
                 time: '---', 
             });
             
             await missedTransfer.save();
+            const studentWithUsers = await Student.findOne({ student_id: student.student_id });
+
+            if (studentWithUsers?.user_id?.length > 0) {
+              const recipientIds = Array.isArray(studentWithUsers.user_id)
+                ? studentWithUsers.user_id
+                : [studentWithUsers.user_id];
+
+              const notificationPromises = recipientIds.map(async (id) => {
+                const notification = new Notification({
+                  recipient_id: Number(id),
+                  sender_id: 0,
+                  type: 'Transfer',
+                  title: 'Missed Pick Up',
+                  message: `${student.first_name} ${student.last_name} was not picked up or properly picked up yesterday and has been auto-dismissed by the system.`,
+                  is_read: false
+                });
+
+                const savedNotif = await notification.save();
+
+                io.to(`user_${id}`).emit('new_notification', savedNotif);
+
+                return savedNotif;
+              });
+
+              await Promise.all(notificationPromises);
+            }
 
             const auditLog = new Audit({
               user_id: 0,
               full_name: "System",
-              role: "Automated Task",
+              role: "superadmin",
               action: "Midnight Status Reset",
               target: `Student: ${student.first_name} ${student.last_name} (Auto-Dismissed)`
             });
