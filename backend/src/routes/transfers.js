@@ -720,7 +720,7 @@ cron.schedule('0 0 * * *', async () => {
                 section_name: student.section_details?.section_name || 'Unassigned',
                 user_id: 0, 
                 user_name: 'Unattended',
-                purpose: 'Pick up',
+                purpose: '---',
                 date: todayStr,
                 time: '---', 
             });

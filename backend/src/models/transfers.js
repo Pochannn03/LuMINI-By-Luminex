@@ -35,7 +35,7 @@ const TransferSchema = new mongoose.Schema({
   },
   purpose: {
     type: String,
-    enum: ['Drop off', 'Pick up'],
+    enum: ['Drop off', 'Pick up', '---'],
     required: true,
   },
   time: {
