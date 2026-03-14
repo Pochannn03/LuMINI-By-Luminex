@@ -83,6 +83,8 @@ export default function TeacherProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState("Profile information updated successfully!");
@@ -153,7 +155,11 @@ export default function TeacherProfile() {
         if (response.data.user?.profile_picture) {
            updateUser({ profile_picture: response.data.user.profile_picture });
         }
-        setFormData(response.data.user || response.data);
+        const userData = response.data.user || response.data;
+        setFormData({
+          ...userData,
+          _originalEmail: userData.email
+        });
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError("Failed to load profile. Please log in again.");
@@ -377,6 +383,30 @@ export default function TeacherProfile() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleEmailBlur = async () => {
+    const email = formData.email;
+
+    // Skip if email hasn't changed from the originally loaded value
+    if (!email.includes('@') || email === formData._originalEmail) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setAddressParts((prev) => ({ ...prev, [name]: value }));
@@ -462,6 +492,11 @@ export default function TeacherProfile() {
       const mergedAddress = [
         addressParts.houseUnit, addressParts.street, addressParts.barangay, addressParts.city, addressParts.zipCode,
       ].filter(Boolean).join(", ");
+      
+      if (formData.email !== formData._originalEmail) {
+        const isAvailable = await handleEmailBlur();
+        if (!isAvailable) return;
+      }
 
       let payload;
       if (selectedImageFile) {
@@ -672,7 +707,34 @@ export default function TeacherProfile() {
                   <div className="form-group"><label>First Name</label><div className="input-wrapper"><span className="material-symbols-outlined icon">person</span><input type="text" name="first_name" value={formData.first_name} readOnly style={{ opacity: 0.7, backgroundColor: "#f1f5f9" }} /></div></div>
                   <div className="form-group"><label>Last Name</label><div className="input-wrapper"><span className="material-symbols-outlined icon">person</span><input type="text" name="last_name" value={formData.last_name} readOnly style={{ opacity: 0.7, backgroundColor: "#f1f5f9" }} /></div></div>
                 </div>
-                <div className="form-group"><label>Email Address</label><div className="input-wrapper"><span className="material-symbols-outlined icon">mail</span><input type="email" name="email" value={formData.email} onChange={handleChange} readOnly={!isEditing} /></div></div>
+                <div className="form-group">
+                  <label>Email Address</label>
+                    <div className="input-wrapper" style={{ position: 'relative' }}>
+                      <span className="material-symbols-outlined icon">mail</span>
+                      <input 
+                        type="email" 
+                        name="email" 
+                        value={formData.email} 
+                        onChange={(e) => {
+                          handleChange(e);
+                          setEmailError(""); // clear on retype
+                        }}
+                        onBlur={isEditing ? handleEmailBlur : undefined}
+                        readOnly={!isEditing} 
+                      />
+                      {isCheckingEmail && (
+                        <span style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>
+                          Checking...
+                        </span>
+                      )}
+                    </div>
+                    {emailError && (
+                      <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                        <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                        {emailError}
+                      </p>
+                    )}
+                </div>
                 <div className="form-group"><label>Phone Number</label><div className="input-wrapper"><span className="material-symbols-outlined icon">call</span><input type="text" name="phone_number" value={formData.phone_number} onChange={handleChange} readOnly={!isEditing} /></div></div>
                 <div className="address-container">
                   {!isEditing ? (

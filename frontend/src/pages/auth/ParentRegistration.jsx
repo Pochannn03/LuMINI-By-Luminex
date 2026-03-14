@@ -125,6 +125,8 @@ export default function ParentRegistration() {
   const [scanStatus, setScanStatus] = useState("Initializing camera...");
   const [ovalClass, setOvalClass] = useState("border-white/50 shadow-[0_0_0_9999px_rgba(15,23,42,0.6)] border-2");
   const [countdownValue, setCountdownValue] = useState(null);
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   
   const [faceDescriptor, setFaceDescriptor] = useState(null); 
   const [capturedImage, setCapturedImage] = useState(null); 
@@ -463,6 +465,28 @@ export default function ParentRegistration() {
     if (inputRefs.current[focusIndex]) inputRefs.current[focusIndex].focus();
   };
 
+  const handleEmailBlur = async () => {
+    const email = formData.email;
+    if (!email.includes('@')) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const handleSubmitCode = async () => {
   const invitationCode = code.join("");
     if (invitationCode.length === 6) {
@@ -533,7 +557,13 @@ export default function ParentRegistration() {
     navigate('/login'); 
   };
   
-  const handleNext = () => {
+  const handleNext = async () => {
+    // --- EMAIL DUPLICATE GATE FOR STEP 1 ---
+    if (currentStep === 1) {
+      const isAvailable = await handleEmailBlur();
+      if (!isAvailable) return; // block if email is taken
+    }
+
     const isValid = validateStep(currentStep);
 
     if (isValid) {
@@ -713,7 +743,35 @@ export default function ParentRegistration() {
                   <div className='flex flex-col w-full mb-1'><FormInputRegistration label="Last Name" name="lastName" type='text' placeholder="Doe" className="form-input-modal" value={formData.lastName} onChange={handleChange} error={errors.lastName} required={true} /></div>
                 </div>
 
-                <div className='flex flex-col w-full mb-2'><FormInputRegistration label="Email Address" name="email" type='text' className="form-input-modal" placeholder="Johndoe@gmail.com" value={formData.email} onChange={handleChange} error={errors.email} required={true} /></div>
+                <div className='flex flex-col w-full mb-2'>
+                  <FormInputRegistration 
+                    label="Email Address" 
+                    name="email" 
+                    type='text' 
+                    className="form-input-modal" 
+                    placeholder="Johndoe@gmail.com" 
+                    value={formData.email} 
+                    onChange={(e) => {
+                      handleChange(e);
+                      setEmailError("");  // clear on retype
+                    }}
+                    onBlur={handleEmailBlur}   // <-- wire up
+                    error={errors.email}       // validation errors (format etc.)
+                    required={true}
+                    rightSlot={
+                      isCheckingEmail 
+                        ? <span className="text-slate-400 text-[12px] font-medium">Checking...</span> 
+                        : null
+                    }
+                  />
+                  {/* Duplicate email error sits below the component */}
+                  {emailError && (
+                    <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                      <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                      {emailError}
+                    </p>
+                  )}
+                </div>
                 <div className='flex flex-col w-full mb-2'><FormInputRegistration label="Phone Number" name="phoneNumber" type='text' className="form-input-modal" placeholder="09*********" value={formData.phoneNumber} onChange={handleChange} error={errors.phoneNumber} required={true} /></div>
               </div>
             )}

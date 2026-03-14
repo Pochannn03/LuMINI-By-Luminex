@@ -5,13 +5,15 @@ export default function FormInputRegistration({
   name, 
   type = 'text', 
   value, 
-  onChange, 
+  onChange,
+  onBlur,        // <-- ADD THIS
   placeholder, 
   error, 
   required = false,
   readOnly = false,
   rows = 3,
-  className = ''
+  className = '',
+  rightSlot       // <-- ADD THIS (for the "Checking..." indicator)
 }) {
 
   const inputClassName = `${className} ${ 
@@ -20,8 +22,6 @@ export default function FormInputRegistration({
   
   return (
     <div className='flex flex-col w-full mb-1'>
-    
-      {/* The Label */}
       {label && (
         <label htmlFor={name} className='text-cgray text-[13px] font-semibold mb-2'>
           {label}
@@ -30,32 +30,40 @@ export default function FormInputRegistration({
         </label>
       )}
 
-      {/* Conditional Rendering: Textarea vs Input */}
-      {type === 'textarea' ? (
-        <textarea
-          name={name}
-          id={name}
-          className={`${inputClassName} py-2 h-auto resize-none`}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          readOnly={readOnly}
-          rows={rows}
-        />
-      ) : (
-        <input
-          type={type}
-          name={name}
-          id={name}
-          className={inputClassName}
-          placeholder={placeholder}
-          value={value}
-          onChange={onChange}
-          readOnly={readOnly}
-        />
-      )}
+      <div className="relative w-full">  {/* <-- WRAP IN RELATIVE DIV */}
+        {type === 'textarea' ? (
+          <textarea
+            name={name}
+            id={name}
+            className={`${inputClassName} py-2 h-auto resize-none`}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            onBlur={onBlur}        // <-- ADD
+            readOnly={readOnly}
+            rows={rows}
+          />
+        ) : (
+          <input
+            type={type}
+            name={name}
+            id={name}
+            className={inputClassName}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            onBlur={onBlur}        // <-- ADD
+            readOnly={readOnly}
+          />
+        )}
+        {/* Slot for inline indicators like "Checking..." */}
+        {rightSlot && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            {rightSlot}
+          </div>
+        )}
+      </div>
 
-      {/* The Error Message */}
       {error && (
         <span className="text-red-500 text-[11px] mt-1 ml-1 text-left w-full block">
           {error}

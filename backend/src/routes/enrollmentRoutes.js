@@ -7,6 +7,7 @@ import { EnrollmentRequest } from "../models/enrollmentRequest.js";
 import { Section } from "../models/sections.js"; 
 import { Student } from "../models/students.js";
 import { Audit } from "../models/audits.js";
+import { User } from "../models/users.js";
 import { sendInvitationEmail, sendBulkSectionInvite, sendEnrollmentRejectedEmail } from '../utils/emailService.js';
 
 const router = Router();
@@ -50,10 +51,6 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
       return res.status(404).json({ success: false, msg: "Target section not found." });
     }
 
-    // =================================================================
-    // 🛡️ THE FIX: STRICT COMPOSITE ANTI-SPAM / DUPLICATE CHECK
-    // Matches Name + DOB + Parent Email + Section to prevent blocking twins
-    // =================================================================
     const existingApplication = await EnrollmentRequest.findOne({
       student_first_name: studentFirstName,
       student_last_name: studentLastName,
@@ -114,6 +111,36 @@ router.post('/api/enrollments/submit', upload.single('studentPhoto'), async (req
       fs.unlinkSync(req.file.path);
     }
     res.status(500).json({ success: false, msg: "Failed to submit application.", errorDetails: error.message });
+  }
+});
+
+router.get('/api/users/check-email', async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, msg: "A valid email is required." });
+    }
+
+    const existing = await User.findOne({ 
+      email: email.toLowerCase().trim() 
+    });
+
+    if (existing) {
+      return res.status(409).json({ 
+        success: false, 
+        msg: "Email already registered." 
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true, 
+      msg: "Email is available." 
+    });
+
+  } catch (error) {
+    console.error("❌ Email Check Error:", error);
+    return res.status(500).json({ success: false, msg: "Server error during email check." });
   }
 });
 
@@ -310,5 +337,7 @@ router.post('/api/teacher/bulk-invite-section', isAuthenticated, async (req, res
     res.status(500).json({ success: false, msg: "Failed to send invitations." });
   }
 });
+
+
 
 export default router;
