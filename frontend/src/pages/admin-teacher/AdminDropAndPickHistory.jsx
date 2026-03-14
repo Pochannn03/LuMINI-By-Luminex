@@ -269,11 +269,13 @@ export default function AdminDropAndPickHistory() {
                           </td>
                           <td className="py-5 px-2 text-center">
                             <span className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                              record.purpose === "Drop off"
-                                ? "bg-blue-50 text-blue-600 border border-blue-100"
+                              !record.purpose || record.purpose === "---"
+                                ? "bg-gray-100 text-gray-400 border border-gray-200"
+                                : record.purpose === "Drop off" 
+                                ? "bg-blue-50 text-blue-600 border border-blue-100" 
                                 : "bg-green-50 text-green-600 border border-green-100"
                             }`}>
-                              {record.purpose}
+                              {record.purpose || "---"}
                             </span>
                           </td>
                         </tr>
