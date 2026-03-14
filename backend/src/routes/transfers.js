@@ -608,6 +608,41 @@ router.patch('/api/transfer/override/:id/approve',
       });
       await auditLog.save();
 
+      try {
+        if (ovr.student_details?.user_id) {
+          const recipientIds = Array.isArray(ovr.student_details.user_id)
+            ? ovr.student_details.user_id
+            : [ovr.student_details.user_id];
+
+          const studentName = `${ovr.student_details.first_name} ${ovr.student_details.last_name}`;
+          const guardianLabel = ovr.is_registered_guardian ? ovr.user_name : `Guest: ${ovr.user_name}`;
+          const actionLabel = ovr.purpose === 'Drop off' ? 'dropped off' : 'picked up';
+
+          const notificationPromises = recipientIds.map(async (id) => {
+            const notification = new Notification({
+              recipient_id: Number(id),
+              sender_id: req.user.user_id,
+              type: 'Transfer',
+              title: `Manual Override Approved — ${ovr.purpose}`,
+              message: `${studentName} has been ${actionLabel} by ${guardianLabel}. This transfer was manually approved by an administrator.`,
+              is_read: false
+            });
+
+            const savedNotif = await notification.save();
+
+            if (io) {
+              io.to(`user_${id}`).emit('new_notification', savedNotif);
+            }
+
+            return savedNotif;
+          });
+
+          await Promise.all(notificationPromises);
+        }
+      } catch (notifError) {
+        console.error("❌ Failed to process notification logic for override:", notifError);
+      }
+
       // ==========================================
       // SMS LOGIC FOR OVERRIDE APPROVALS
       // ==========================================
