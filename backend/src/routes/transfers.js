@@ -696,7 +696,7 @@ router.patch('/api/transfer/override/:id/reject',
   }
 );
 
-cron.schedule('* * * * *', async () => {
+cron.schedule('59 23 * * *', async () => {
     try {
       const now = new Date();
       const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' });
