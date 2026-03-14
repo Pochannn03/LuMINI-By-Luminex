@@ -561,12 +561,13 @@ router.patch('/api/transfer/override/:id/approve',
         student_name: `${ovr.student_details?.first_name || 'Unknown'} ${ovr.student_details?.last_name || 'Student'}`,
         section_id: ovr.student_details?.section_id || 0,
         section_name: ovr.student_details?.section_name || ovr.student_details?.section_details?.section_name || "N/A",
-        user_id: ovr.user_id || 1000,
+        user_id: ovr.is_registered_guardian ? ovr.user_id : 0,
         user_name: ovr.user_name,
         purpose: ovr.purpose,
         time: formattedTime, 
         date: formattedDate, 
         transfer_id: `TRX-${Math.floor(1000 + Math.random() * 9000)}`,
+        is_registered_guardian: ovr.is_registered_guardian
       });
 
       await newTransfer.save();

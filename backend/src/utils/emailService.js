@@ -83,7 +83,7 @@ export const sendInvitationEmail = async (toEmail, invitationCode, parentName, s
             
             <h3 style="color: #1e293b; font-size: 16px; margin-bottom: 12px;">Next Steps:</h3>
             <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-top: 0; line-height: 1.7;">
-              <li>Visit the LuMINI Portal through this link: </li>
+              <li>Visit the LuMINI Portal through this link: https://www.lumini-luminex.com/register/parent</li>
               <li>Click "Create Account" and register as a parent. If you already have an account, go to your profile, click "Add Student," and use the code.</li>
               <li>Use the code above to process your registration.</li>
             </ol>
@@ -244,7 +244,7 @@ export const sendBulkSectionInvite = async (toEmail, parentName, sectionName, se
             
             <h3 style="color: #1e293b; font-size: 16px; margin-bottom: 12px;">How to enroll:</h3>
             <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-top: 0; line-height: 1.7;">
-              <li>Go to the <a href="#" style="color: #2563eb; text-decoration: none; font-weight: bold;">LuMINI Portal</a>.</li>
+              <li>Go to the https://www.lumini-luminex.com/enroll</li>
               <li>Navigate to the Pre-Enrollment / Registration page.</li>
               <li>Enter the Section Code above to link your child directly to this class!</li>
             </ol>
