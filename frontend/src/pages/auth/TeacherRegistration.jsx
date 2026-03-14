@@ -102,6 +102,9 @@ export default function TeacherRegistration() {
   // NEW: Store Password Strength
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: '', color: 'bg-slate-200', textColor: 'text-slate-500', hint: '' });
 
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
   // Success Modal State
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -412,6 +415,28 @@ export default function TeacherRegistration() {
     }
   };
 
+  const handleEmailBlur = async () => {
+    const email = formData.email;
+    if (!email.includes('@')) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const removeImage = (e) => {
     e.stopPropagation(); 
     setProfileImage(null);
@@ -527,7 +552,12 @@ export default function TeacherRegistration() {
     navigate('/login'); 
   };
   
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentStep === 1) {
+      const isAvailable = await handleEmailBlur();
+      if (!isAvailable) return;
+    }
+
     const isValid = validateStep(currentStep);
 
     if (isValid) {
@@ -542,14 +572,14 @@ export default function TeacherRegistration() {
           setErrors(prev => ({ ...prev, ...stepErrors }));
           return; 
         }
-        setCurrentStep((prev) => prev + 1); 
+        setCurrentStep((prev) => prev + 1);
 
       } else if (currentStep === 4) {
         if (!faceDescriptor) {
           alert("Please complete the facial scan before proceeding.");
           return;
         }
-        setCurrentStep((prev) => prev + 1); 
+        setCurrentStep((prev) => prev + 1);
 
       } else if (currentStep === 5) {
         if (!hasAgreed) {
@@ -719,7 +749,34 @@ export default function TeacherRegistration() {
                 <div className='flex flex-col w-full mb-1'><FormInputRegistration label="First Name" name="firstName" type='text' placeholder="John" className="form-input-modal" value={formData.firstName} onChange={handleChange} error={errors.firstName} required={true} /></div>
                 <div className='flex flex-col w-full mb-1'><FormInputRegistration label="Last Name" name="lastName" type='text' placeholder="Doe" className="form-input-modal" value={formData.lastName} onChange={handleChange} error={errors.lastName} required={true} /></div>
               </div>
-              <div className='flex flex-col w-full mb-2'><FormInputRegistration label="Email Address" name="email" type='text' placeholder="Johndoe@gmail.com" className='registration-input' value={formData.email} onChange={handleChange} error={errors.email} required={true} /></div>
+              <div className='flex flex-col w-full mb-2'>
+                <FormInputRegistration 
+                  label="Email Address" 
+                  name="email" 
+                  type='text' 
+                  placeholder="Johndoe@gmail.com" 
+                  className='registration-input' 
+                  value={formData.email} 
+                  onChange={(e) => {
+                    handleChange(e);
+                    setEmailError("");
+                  }}
+                  onBlur={handleEmailBlur}
+                  error={errors.email}
+                  required={true}
+                  rightSlot={
+                    isCheckingEmail 
+                      ? <span className="text-slate-400 text-[12px] font-medium">Checking...</span> 
+                      : null
+                  }
+                />
+                {emailError && (
+                  <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                    <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                    {emailError}
+                  </p>
+                )}
+              </div>
               <div className='flex flex-col w-full mb-2'><FormInputRegistration label="Phone Number" name="phoneNumber" type='text' placeholder="09*********" className='registration-input' value={formData.phoneNumber} onChange={handleChange} error={errors.phoneNumber} required={true} /></div>
             </div>
           )}

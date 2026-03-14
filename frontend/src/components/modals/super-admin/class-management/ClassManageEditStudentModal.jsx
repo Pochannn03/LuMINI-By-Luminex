@@ -19,6 +19,8 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [parentEmailError, setParentEmailError] = useState("");
+  const [isCheckingParentEmail, setIsCheckingParentEmail] = useState(false);
 
   // --- WARNING MODAL STATE ---
   const [warningConfig, setWarningConfig] = useState({
@@ -74,7 +76,7 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
       setProfileImage(null);
       setErrors({});
       setShowCropModal(false);
-      
+      setParentEmailError("");
       setIsPersonalInfoOpen(true);
       setIsMedicalInfoOpen(false);
       setIsParentInfoOpen(false);
@@ -126,6 +128,31 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
     }
   };
 
+  const handleParentEmailBlur = async () => {
+    const email = formData.parentEmail;
+
+    // Skip if email hasn't changed from original
+    if (!email.includes('@') || email === studentData?.passive_parent?.email) return true;
+
+    setIsCheckingParentEmail(true);
+    setParentEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setParentEmailError("This email is already registered. Please use a different one.");
+        setIsParentInfoOpen(true); // auto-expand accordion so error is visible
+      }
+      return false;
+    } finally {
+      setIsCheckingParentEmail(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = validateStudentRegistrationStep(formData, profileImage);
@@ -133,6 +160,11 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
     // Scrub errors for fields we skip in Edit
     if (!profileImage) delete newErrors.profileImage; 
     setErrors(newErrors);
+
+    if (formData.parentEmail !== studentData?.passive_parent?.email) {
+      const isAvailable = await handleParentEmailBlur();
+      if (!isAvailable) return;
+    }
 
     if (Object.keys(newErrors).length > 0) {
       if (newErrors.firstName || newErrors.lastName || newErrors.gender || newErrors.birthdate) setIsPersonalInfoOpen(true);
@@ -354,7 +386,29 @@ export default function ClassManageEditStudentModal({ isOpen, onClose, studentDa
                     <FormInputRegistration label="Parent's Full Name" name="parentName" value={formData.parentName} onChange={handleChange} placeholder="e.g. Maria Clara" className="form-input-modal" />
                     <div className="flex gap-3">
                       <FormInputRegistration label="Phone Number" name="parentPhone" value={formData.parentPhone} onChange={handleChange} placeholder="09XXXXXXXXX" className="form-input-modal flex-1" />
-                      <FormInputRegistration label="Email Address" name="parentEmail" value={formData.parentEmail} onChange={handleChange} placeholder="parent@email.com" className="form-input-modal flex-1" />
+                      <FormInputRegistration 
+                        label="Email Address" 
+                        name="parentEmail" 
+                        value={formData.parentEmail} 
+                        onChange={(e) => {
+                          handleChange(e);
+                          setParentEmailError(""); // clear on retype
+                        }}
+                        onBlur={handleParentEmailBlur}
+                        placeholder="parent@email.com" 
+                        className="form-input-modal flex-1"
+                        rightSlot={
+                          isCheckingParentEmail 
+                            ? <span className="text-slate-400 text-[12px] font-medium">Checking...</span> 
+                            : null
+                        }
+                      />
+                      {parentEmailError && (
+                        <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                          <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                          {parentEmailError}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

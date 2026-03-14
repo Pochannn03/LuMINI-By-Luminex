@@ -27,6 +27,10 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
   const [isPersonalInfoOpen, setIsPersonalInfoOpen] = useState(false);
   const [isLoginInfoOpen, setIsLoginInfoOpen] = useState(false);
 
+  // EMAIL VALIDATOR
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -79,6 +83,7 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
       });
       
       setPreviewUrl(getImageUrl(teacherData.profile_picture, teacherData.first_name));
+      setEmailError("");
       setProfileImage(null);
       setTempImage(null);
       setShowCropModal(false);
@@ -98,6 +103,31 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const handleEmailBlur = async () => {
+    const email = formData.email;
+
+    // Skip if email hasn't changed from original
+    if (!email.includes('@') || email === teacherData?.email) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+        setIsPersonalInfoOpen(true); // auto-expand accordion so error is visible
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
     }
   };
 
@@ -154,6 +184,10 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
     // --- BUG FIX: Scrub errors for fields we intentionally skip in the Edit Modal ---
     if (!formData.password) delete newErrors.password; 
     if (!profileImage) delete newErrors.profileImage; 
+    if (formData.email !== teacherData?.email) {
+      const isAvailable = await handleEmailBlur();
+      if (!isAvailable) return;
+    }
     
     // The Edit Modal no longer uses these address inputs, so we must ignore their errors!
     ['houseUnit', 'street', 'barangay', 'city', 'zipCode', 'address'].forEach(key => delete newErrors[key]);
@@ -400,12 +434,26 @@ export default function ClassManageEditTeacherModal({ isOpen, onClose, teacherDa
                       name="email"
                       type="email"
                       value={formData.email}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        setEmailError(""); // clear on retype
+                      }}
+                      onBlur={handleEmailBlur}
                       placeholder="Email Address" 
                       error={errors.email}
                       className="form-input-modal"
+                      rightSlot={
+                        isCheckingEmail 
+                          ? <span className="text-slate-400 text-[12px] font-medium">Checking...</span> 
+                          : null
+                      }
                     />
-
+                    {emailError && (
+                      <p className="text-red-500! text-[13px]! flex items-center gap-1">
+                        <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                        {emailError}
+                      </p>
+                    )}
                     <FormInputRegistration 
                       label="Phone Number"
                       name="phoneNumber"

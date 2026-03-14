@@ -12,6 +12,8 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   
   // Image States
   const [profileImage, setProfileImage] = useState(null);
@@ -44,6 +46,29 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleEmailBlur = async () => {
+    const email = formData.email;
+    
+    if (!email.includes('@') || email === account?.email) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   useEffect(() => {
     if (account) {
       setFormData({
@@ -56,6 +81,7 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
         role: account.role || 'Student',
         is_active: !account.is_archive,
       });
+      setEmailError("");
       setProfileImage(null);
       setPreviewUrl(account.profile_picture ? `${BACKEND_URL}/${account.profile_picture}` : null); 
       setErrors({});
@@ -93,6 +119,11 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return; 
+    }
+
+    if (formData.email !== account?.email) {
+      const isAvailable = await handleEmailBlur();
+      if (!isAvailable) return;
     }
 
     setLoading(true);
@@ -276,7 +307,30 @@ export default function AccountsEditModal({ isOpen, onClose, account, onSuccess 
               </div>
 
               <div className="flex flex-col gap-2">
-                <FormInputRegistration label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} error={errors.email} className="form-input-modal" />
+                <FormInputRegistration 
+                  label="Email Address" 
+                  name="email" 
+                  type="email" 
+                  value={formData.email} 
+                  onChange={(e) => {
+                    handleChange(e);
+                    setEmailError("");  // clear on retype
+                  }}
+                  onBlur={handleEmailBlur}
+                  error={errors.email} 
+                  className="form-input-modal"
+                  rightSlot={
+                    isCheckingEmail 
+                      ? <span className="text-slate-400 text-[12px] font-medium">Checking...</span> 
+                      : null
+                  }
+                />
+                {emailError && (
+                  <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                    <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                    {emailError}
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-2">

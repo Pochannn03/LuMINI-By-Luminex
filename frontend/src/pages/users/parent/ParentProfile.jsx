@@ -82,6 +82,8 @@ export default function ParentProfile() {
   const { updateUser } = useAuth();
 
   const [loading, setLoading] = useState(true);
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // OTP States
   const [otpInput, setOtpInput] = useState("");
@@ -167,7 +169,7 @@ export default function ParentProfile() {
       try {
         const profileRes = await axios.get(`${BACKEND_URL}/api/user/profile`, { withCredentials: true });
         const userData = profileRes.data.user || profileRes.data;
-        setFormData(userData || {});
+        setFormData({ ...(userData || {}), _originalEmail: userData?.email });
 
         const childrenRes = await axios.get(`${BACKEND_URL}/api/parent/children`, { withCredentials: true });
         const childrenArray = childrenRes.data.children || childrenRes.data.students || childrenRes.data;
@@ -392,6 +394,29 @@ export default function ParentProfile() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleEmailBlur = async () => {
+    const email = formData.email;
+
+    if (!email.includes('@') || email === formData._originalEmail) return true;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      return true;
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+      }
+      return false;
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
     setAddressParts((prev) => ({ ...prev, [name]: value }));
@@ -537,6 +562,11 @@ export default function ParentProfile() {
 
       let payload;
       let axiosConfig = { withCredentials: true };
+
+      if (formData.email !== formData._originalEmail) {
+        const isAvailable = await handleEmailBlur();
+        if (!isAvailable) return;
+      }
 
       if (selectedImageFile) {
         payload = new FormData();
@@ -797,10 +827,25 @@ export default function ParentProfile() {
                   name="email" 
                   type="email" 
                   value={formData.email || ""} 
-                  onChange={handleChange} 
+                  onChange={(e) => {
+                    handleChange(e);
+                    setEmailError("");
+                  }}
+                  onBlur={isEditing ? handleEmailBlur : undefined}
                   readOnly={!isEditing} 
-                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-700 outline-none transition-colors ${!isEditing ? "border-slate-200" : "border-[#39a8ed]"}`} 
+                  className={`w-full px-3 py-2 border rounded-lg text-sm text-slate-700 outline-none transition-colors ${!isEditing ? "border-slate-200" : "border-[#39a8ed]"}`}
+                  rightSlot={
+                    isCheckingEmail 
+                      ? <span className="text-slate-400 text-[12px] font-medium">Checking...</span> 
+                      : null
+                  }
                 />
+                {emailError && (
+                  <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                    <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                    {emailError}
+                  </p>
+                )}
                 <FormInputRegistration 
                   label="Phone" 
                   name="phone_number" 

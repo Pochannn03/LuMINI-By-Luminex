@@ -1,5 +1,3 @@
-// frontend/src/pages/ParentEnrollment.jsx
-
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import AvatarEditor from "react-avatar-editor";
@@ -52,6 +50,8 @@ export default function ParentEnrollment() {
     phone: '09',
     email: ''
   });
+  const [emailError, setEmailError] = useState("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   // --- MODAL STATES ---
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -178,6 +178,27 @@ export default function ParentEnrollment() {
     setParentData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleEmailBlur = async () => {
+    const email = parentData.email;
+    if (!email.includes('@')) return;
+
+    setIsCheckingEmail(true);
+    setEmailError("");
+
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/users/check-email`, {
+        params: { email }
+      });
+      // If no error thrown, email is available
+    } catch (error) {
+      if (error.response?.status === 409) {
+        setEmailError("This email is already registered. Please use a different one.");
+      }
+    } finally {
+      setIsCheckingEmail(false);
+    }
+  };
+
   const handlePhoneChange = (e) => {
     let val = e.target.value.replace(/\D/g, ''); 
     if (!val.startsWith('09')) val = '09' + val.replace(/^0+/, ''); 
@@ -188,7 +209,9 @@ export default function ParentEnrollment() {
   const isParentComplete = parentData.firstName.trim() !== '' &&
                            parentData.lastName.trim() !== '' &&
                            parentData.phone.length === 11 &&
-                           parentData.email.includes('@');
+                           parentData.email.includes('@') &&
+                           emailError === '' &&        // <-- ADD THIS
+                           !isCheckingEmail; 
 
   // ==========================================
   // FINAL SUBMISSION TO BACKEND
@@ -516,11 +539,36 @@ export default function ParentEnrollment() {
                  </div>
               </div>
               <div className="form-group">
-                 <label className="text-[13px] font-semibold mb-1 block text-slate-500">Email <span className="text-red-500">*</span></label>
-                 <div className="relative">
-                   <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
-                   <input type="email" name="email" value={parentData.email} onChange={handleParentChange} className="form-input-modal" style={{ paddingLeft: '42px' }} required />
-                 </div>
+                <label className="text-[13px] font-semibold mb-1 block text-slate-500">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">mail</span>
+                  <input
+                    type="email"
+                    name="email"
+                    value={parentData.email}
+                    onChange={(e) => {
+                      handleParentChange(e);
+                      setEmailError(""); // Clear error when user starts retyping
+                    }}
+                    onBlur={handleEmailBlur}       // <-- ADD THIS
+                    className={`form-input-modal ${emailError ? 'border-red-400 bg-red-50' : ''}`}
+                    style={{ paddingLeft: '42px' }}
+                    required
+                  />
+                  {isCheckingEmail && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[12px]">
+                      Checking...
+                    </span>
+                  )}
+                </div>
+                {emailError && (
+                  <p className="text-red-500! text-[13px]! flex items-center gap-1 mt-1">
+                    <span className="material-symbols-outlined text-red-500! text-[16px]">error</span>
+                    {emailError}
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex gap-3">
