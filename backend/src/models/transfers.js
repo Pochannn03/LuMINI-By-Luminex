@@ -38,6 +38,10 @@ const TransferSchema = new mongoose.Schema({
     enum: ['Drop off', 'Pick up', '---'],
     required: true,
   },
+  is_registered_guardian: {
+    type: Boolean,
+    default: true,
+  },
   time: {
     type: String,
     required: true,

@@ -260,7 +260,11 @@ export default function AdminDropAndPickHistory() {
                               />
                               <div className="min-w-0">
                                 <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
-                                <p className="text-gray-400 text-[10px]! uppercase tracking-wider">{record.user_details?.relationship || "Not Authorized"}</p>
+                                <span className="text-gray-400 text-[10px] uppercase tracking-wider truncate">
+                                  {record.is_registered_guardian === false
+                                    ? "Guest"
+                                    : record.user_details?.relationship || "Not Authorized"}
+                                </span>
                               </div>
                             </div>
                           </td>
