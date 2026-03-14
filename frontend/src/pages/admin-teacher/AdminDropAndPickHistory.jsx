@@ -18,7 +18,7 @@ const dateToInputString = (date) => {
 };
 
 const getImageUrl = (path, fallbackName) => {
-  if (!path) return `https://ui-avatars.com/api/?name=${fallbackName}&background=random`;
+  if (!path) return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(fallbackName || '?')}&backgroundColor=e2e8f0&textColor=94a3b8`;
   if (path.startsWith("http")) return path;
   return `${BACKEND_URL}/${path.replace(/\\/g, "/")}`;
 };
@@ -253,6 +253,10 @@ export default function AdminDropAndPickHistory() {
                                 src={getImageUrl(record.user_details?.profile_picture, record.user_name)}
                                 className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
                                 alt="guardian"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(record.user_name || '?')}&backgroundColor=e2e8f0&textColor=94a3b8`;
+                                }}
                               />
                               <div className="min-w-0">
                                 <p className="text-cdark text-[13px]! font-semibold leading-tight">{record.user_name}</p>
