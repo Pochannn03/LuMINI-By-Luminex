@@ -197,7 +197,7 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5 lg:space-y-8 flex-col justify-start">
+            <form onSubmit={handleSubmit} autoComplete="off" className="space-y-5 lg:space-y-8 flex-col justify-start">
               <div className="space-y-2 mt-12 lg:mt-2">
                 <label htmlFor="username" className="text-sm lg:text-base font-semibold text-gray-700 ml-1">Username</label>
                 <div className="relative group">
@@ -206,7 +206,9 @@ export default function Login() {
                   </div>
                   <input 
                     type="text" 
-                    id="username" 
+                    id="username"
+                    name="username" /* <-- GOOD PRACTICE TO ADD THIS */
+                    autoComplete="off"
                     className="w-full h-[50px] lg:h-16 pl-14 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-base lg:text-lg text-gray-700 placeholder-gray-400"
                     placeholder="Enter your username"
                     value={formData.username} 

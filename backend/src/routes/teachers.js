@@ -411,7 +411,7 @@ router.post('/api/teacher/emergency-broadcast', isAuthenticated, hasRole('admin'
         const targetStudents = await Student.find({ student_id: { $in: studentIds } });
         const parentIds = new Set();
         targetStudents.forEach(student => {
-            if (student.user_details && Array.isArray(student.user_details)) { student.user_details.forEach(id => parentIds.add(Number(id))); }
+            if (student.user_de && Array.isArray(student.user_details)) { student.user_details.forEach(id => parentIds.add(Number(id))); }
             else if (student.user_id && Array.isArray(student.user_id)) { student.user_id.forEach(id => parentIds.add(Number(id))); }
         });
         

@@ -58,15 +58,15 @@ export default function AdminAttendance() {
   const [loading, setLoading] = useState(true);
   const [teacherSections, setTeacherSections] = useState([]);
   const [selectedSection, setSelectedSection] = useState("all");
-  const [activeMode, setActiveMode] = useState("Standard Operation");
-  const [selectedAction, setSelectedAction] = useState("dropoff");
+  // const [activeMode, setActiveMode] = useState("Standard Operation");
+  // const [selectedAction, setSelectedAction] = useState("dropoff");
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef(null);
   const dateInputRef = useRef(null);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [pendingChanges, setPendingChanges] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [isEditMode, setIsEditMode] = useState(false);
+  // const [pendingChanges, setPendingChanges] = useState({});
+  // const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -127,63 +127,62 @@ export default function AdminAttendance() {
     return () => document.removeEventListener("click", handleTapOutside);
   }, []);
 
-  const handleLocalChange = (recordId, field, value) => {
-    setPendingChanges(prev => {
-      const existing = prev[recordId] || {};
-      return {
-        ...prev,
-        [recordId]: {
-          ...existing,
-          [field]: value
-        }
-      };
-    });
-  };
+  // const handleLocalChange = (recordId, field, value) => {
+  //   setPendingChanges(prev => {
+  //     const existing = prev[recordId] || {};
+  //     return {
+  //       ...prev,
+  //       [recordId]: {
+  //         ...existing,
+  //         [field]: value
+  //       }
+  //     };
+  //   });
+  // };
 
-  const handleSubmitChanges = async () => {
-    const updates = Object.keys(pendingChanges);
-    if (updates.length === 0) {
-      setIsEditMode(false);
-      return;
-    }
+  // const handleSubmitChanges = async () => {
+  //   const updates = Object.keys(pendingChanges);
+  //   if (updates.length === 0) {
+  //     setIsEditMode(false);
+  //     return;
+  //   }
 
-    setIsSubmitting(true);
-    try {
-      await Promise.all(
-        updates.map(id => {
-          const currentRecord = attendanceData.find(r => r._id === id);
-          const payload = {
-            status: pendingChanges[id].status || currentRecord.status,
-            time_in: pendingChanges[id].time_in !== undefined ? pendingChanges[id].time_in : currentRecord.time_in
-          };
-          // Updated to use BACKEND_URL
-          return axios.put(`${BACKEND_URL}/api/attendance/${id}`, payload, { withCredentials: true });
-        })
-      );
+  //   setIsSubmitting(true);
+  //   try {
+  //     await Promise.all(
+  //       updates.map(id => {
+  //         const currentRecord = attendanceData.find(r => r._id === id);
+  //         const payload = {
+  //           status: pendingChanges[id].status || currentRecord.status,
+  //           time_in: pendingChanges[id].time_in !== undefined ? pendingChanges[id].time_in : currentRecord.time_in
+  //         };
+  //         // Updated to use BACKEND_URL
+  //         return axios.put(`${BACKEND_URL}/api/attendance/${id}`, payload, { withCredentials: true });
+  //       })
+  //     );
 
-      setAttendanceData(prevData => 
-        prevData.map(record => {
-          const pending = pendingChanges[record._id];
-          if (pending) {
-            return {
-              ...record,
-              status: pending.status || record.status,
-              time_in: pending.time_in !== undefined ? pending.time_in : record.time_in
-            };
-          }
-          return record;
-        })
-      );
+  //     setAttendanceData(prevData => 
+  //       prevData.map(record => {
+  //         const pending = pendingChanges[record._id];
+  //         if (pending) {
+  //           return {
+  //             ...record,
+  //             status: pending.status || record.status,
+  //             time_in: pending.time_in !== undefined ? pending.time_in : record.time_in
+  //           };
+  //         }
+  //         return record;
+  //       })
+  //     );
 
-      setPendingChanges({});
-      setIsEditMode(false);
-    } catch (err) {
-      console.error("Failed to submit changes:", err);
-      alert("Failed to save changes. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  //     setPendingChanges({});
+  //   } catch (err) {
+  //     console.error("Failed to submit changes:", err);
+  //     alert("Failed to save changes. Please try again.");
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   const handleDateChange = (days) => {
     const newDate = new Date(currentDate);
@@ -347,23 +346,6 @@ export default function AdminAttendance() {
                         </div>
                       )}
                     </div>
-
-                    {/* ACTION BUTTONS (Compact Height) */}
-                    <div className="flex items-center gap-1.5 w-full md:w-auto">
-                      {isEditMode ? (
-                        <>
-                          <button onClick={() => { setIsEditMode(false); setPendingChanges({}); }} className="px-3 text-[11px] font-black uppercase text-slate-500 hover:text-slate-800 transition-colors h-[38px]">Cancel</button>
-                          <button onClick={handleSubmitChanges} disabled={isSubmitting} className="flex-1 md:flex-none bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold px-4 flex items-center justify-center gap-1.5 text-[12px] h-[38px] transition-all shadow-sm cursor-pointer disabled:opacity-50">
-                            <span className="material-symbols-outlined text-[16px]">{isSubmitting ? 'hourglass_empty' : 'check_circle'}</span>
-                            {isSubmitting ? 'Saving' : 'Submit'}
-                          </button>
-                        </>
-                      ) : (
-                        <button onClick={() => setIsEditMode(true)} className="w-full md:w-auto bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold px-4 flex items-center justify-center gap-1.5 text-[12px] h-[38px] transition-all shadow-sm cursor-pointer">
-                          <span className="material-symbols-outlined text-[16px]">edit</span> Edit
-                        </button>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -402,57 +384,18 @@ export default function AdminAttendance() {
                           </td>
 
                           <td className="py-4 px-2 text-center">
-                            {isEditMode ? (
-                              <div className="flex justify-center">
-                                <input
-                                  type="time"
-                                  className="bg-white border border-slate-200 text-slate-700 text-[12px] font-bold px-2 py-1.5 rounded-lg w-[110px] text-center shadow-inner focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-text"
-                                  value={convertTo24Hour(pendingChanges[record._id]?.time_in !== undefined ? pendingChanges[record._id].time_in : record.time_in)}
-                                  onChange={(e) => handleLocalChange(record._id, 'time_in', convertTo12Hour(e.target.value))}
-                                />
-                              </div>
-                            ) : (
-                              <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1 rounded-lg whitespace-nowrap">
-                                {record.time_in || "---"}
-                              </span>
-                            )}
+                            <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1 rounded-lg whitespace-nowrap">
+                              {record.time_in || "---"}
+                            </span>
                           </td>
 
                           <td className="py-4 px-2 text-center">
-                            {isEditMode ? (
-                              <div className="flex flex-nowrap whitespace-nowrap bg-[#f1f5f9] rounded-xl p-1 w-max mx-auto shadow-inner border border-slate-100 items-center">
-                                {['Present', 'Late', 'Absent'].map((statusOption) => {
-                                  const currentStatus = pendingChanges[record._id]?.status || record.status;
-                                  const isActive = currentStatus === statusOption;
-                                  let activeTextColor = 'text-slate-800';
-                                  if (isActive) {
-                                    if (statusOption === 'Present') activeTextColor = 'text-green-600'; 
-                                    if (statusOption === 'Late') activeTextColor = 'text-yellow-600';
-                                    if (statusOption === 'Absent') activeTextColor = 'text-red-600';
-                                  }
-                                  return (
-                                    <button
-                                      key={statusOption}
-                                      onClick={() => handleLocalChange(record._id, 'status', statusOption)}
-                                      className={`px-4 py-1.5 rounded-lg text-[13px] font-bold transition-all duration-200 cursor-pointer ${
-                                        isActive
-                                          ? `bg-white shadow-sm border border-slate-200/60 ${activeTextColor}`
-                                          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 border border-transparent'
-                                      }`}
-                                    >
-                                      {statusOption}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block ${
-                                record.status === 'Present' ? 'bg-green-50 text-green-600' : 
-                                record.status === 'Late' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
-                              }`}>
-                                {record.status}
-                              </span>
-                            )}
+                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider inline-block ${
+                              record.status === 'Present' ? 'bg-green-50 text-green-600' : 
+                              record.status === 'Late' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-600'
+                            }`}>
+                              {record.status}
+                            </span>
                           </td>
 
                           <td className="py-3 px-2 text-center relative overflow-visible">

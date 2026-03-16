@@ -426,57 +426,57 @@ router.post('/api/attendance/absence',
     }
 );
 
-router.put('/api/attendance/:id', 
-  isAuthenticated, 
-  hasRole('admin'), 
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      // ADDED: Destructure time_in from req.body
-      const { status, time_in } = req.body; 
-      const currentUserId = Number(req.user.user_id);
-      const fullName = `${req.user.first_name} ${req.user.last_name}`;
-      const userRoleSys = req.user.role;
+// router.put('/api/attendance/:id', 
+//   isAuthenticated, 
+//   hasRole('admin'), 
+//   async (req, res) => {
+//     try {
+//       const { id } = req.params;
+//       // ADDED: Destructure time_in from req.body
+//       const { status, time_in } = req.body; 
+//       const currentUserId = Number(req.user.user_id);
+//       const fullName = `${req.user.first_name} ${req.user.last_name}`;
+//       const userRoleSys = req.user.role;
 
-      if (!['Present', 'Late', 'Absent'].includes(status)) {
-        return res.status(400).json({ success: false, message: "Invalid status value" });
-      }
+//       if (!['Present', 'Late', 'Absent'].includes(status)) {
+//         return res.status(400).json({ success: false, message: "Invalid status value" });
+//       }
 
-      const updateData = { status };
-      if (time_in !== undefined) {
-        updateData.time_in = time_in;
-      }
+//       const updateData = { status };
+//       if (time_in !== undefined) {
+//         updateData.time_in = time_in;
+//       }
 
-      const updatedRecord = await Attendance.findByIdAndUpdate(
-        id,
-        updateData,
-        { new: true } 
-      );
+//       const updatedRecord = await Attendance.findByIdAndUpdate(
+//         id,
+//         updateData,
+//         { new: true } 
+//       );
 
-      if (!updatedRecord) {
-        return res.status(404).json({ success: false, message: "Attendance record not found" });
-      }
+//       if (!updatedRecord) {
+//         return res.status(404).json({ success: false, message: "Attendance record not found" });
+//       }
 
-      const auditLog = new Audit({
-        user_id: currentUserId,
-        full_name: fullName,
-        role: userRoleSys,
-        action: `Manual Override (${status} at ${time_in || 'N/A'})`,
-        target: `Student: ${updatedRecord.student_name} (ID: ${updatedRecord.student_id})`
-      });
-      await auditLog.save();
+//       const auditLog = new Audit({
+//         user_id: currentUserId,
+//         full_name: fullName,
+//         role: userRoleSys,
+//         action: `Manual Override (${status} at ${time_in || 'N/A'})`,
+//         target: `Student: ${updatedRecord.student_name} (ID: ${updatedRecord.student_id})`
+//       });
+//       await auditLog.save();
 
-      const socketIo = req.app.get('socketio');
-      if (socketIo) {
-        socketIo.emit('attendance_updated', updatedRecord);
-      }
+//       const socketIo = req.app.get('socketio');
+//       if (socketIo) {
+//         socketIo.emit('attendance_updated', updatedRecord);
+//       }
 
-      res.status(200).json({ success: true, message: "Updated successfully", data: updatedRecord });
+//       res.status(200).json({ success: true, message: "Updated successfully", data: updatedRecord });
 
-    } catch (error) {
-      console.error("Manual Override Error:", error);
-      res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-});
+//     } catch (error) {
+//       console.error("Manual Override Error:", error);
+//       res.status(500).json({ success: false, message: "Internal Server Error" });
+//     }
+// });
 
 export default router;
