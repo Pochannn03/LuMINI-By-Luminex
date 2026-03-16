@@ -687,14 +687,14 @@ export default function TeacherRegistration() {
           ))}
         </div>
 
-        <form className="flex flex-col w-full" id="mainRegistrationForm" action="#" method="POST">
+        <form className="flex flex-col w-full" autoComplete='off' id="mainRegistrationForm" action="#" method="POST">
           
           {currentStep === 0 && (
             <div className="animate-[fadeIn_0.3s_ease-out_forwards]">
               <p className='border-bottom-custom'>Account Setup</p>
               
               <div className='flex flex-col w-full mb-5'>
-                <FormInputRegistration label="Username" name="username" type='text' placeholder="e.g. Teacher_Juan" className="form-input-modal" value={formData.username} onChange={handleChange} error={errors.username} required={true} />
+                <FormInputRegistration label="Username" name="username" autoComplete='off' type='text' placeholder="e.g. Teacher_Juan" className="form-input-modal" value={formData.username} onChange={handleChange} error={errors.username} required={true} />
               </div>
               
               <div className='flex flex-col w-full mb-2 relative'>
@@ -753,7 +753,8 @@ export default function TeacherRegistration() {
                 <FormInputRegistration 
                   label="Email Address" 
                   name="email" 
-                  type='text' 
+                  type='text'
+                  autoComplete='off'
                   placeholder="Johndoe@gmail.com" 
                   className='registration-input' 
                   value={formData.email} 
