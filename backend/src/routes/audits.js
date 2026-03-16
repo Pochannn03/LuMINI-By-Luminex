@@ -12,7 +12,7 @@ router.get('/api/audit',
   hasRole('superadmin'), 
   async (req, res) => {
     try {
-      const { role, action, search, page = 1, limit = 10, startDate, endDate } = req.query;
+      const { role, action, search, page = 1, limit = 5, startDate, endDate } = req.query;
       let query = {};
       const skipValue = (parseInt(page) - 1) * parseInt(limit);
 

@@ -18,7 +18,7 @@
     // AUDIT PAGINATION STATE
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const logsPerPage = 10;
+    const logsPerPage = 5;
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
