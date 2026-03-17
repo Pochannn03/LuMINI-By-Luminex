@@ -245,8 +245,13 @@ export default function Landing() {
             <div className="flex flex-col md:flex-row justify-center items-center gap-8 mb-16">
               {/* Phone Number */}
               <div className="flex flex-col items-center">
-                <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Call Us</span>
-                <p className="text-xl font-semibold text-cdark">+63 9617481421</p>
+                <span className="text-xs font-bold uppercase tracking-widest text-cbrand-blue mb-1">Text or Call Us</span>
+                <a 
+                  href="sms:+639617481421" 
+                  className="text-md! text-cdark hover:text-cbrand-blue transition-colors"
+                >
+                  +63 9617481421
+                </a>
               </div>
 
               {/* Vertical Divider for desktop */}
