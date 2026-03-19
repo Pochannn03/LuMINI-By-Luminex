@@ -941,7 +941,19 @@ export default function AdminDashboard() {
       <AdminEmergencyBroadcastModal isOpen={isEmergencyBroadcastModalOpen} onClose={() => setIsEmergencyBroadcastModalOpen(false)} />
       <AdminDashboardQrScan isOpen={!!activeScanMode} onClose={handleCloseScanner} scanMode={activeScanMode} onScan={handleScanSuccess} />
       <AdminConfirmPickUpAuth isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} data={scannedData} onConfirm={handleConfirmPickup} />
-      <AdminActionFeedbackModal isOpen={isAttendanceModalOpen} onClose={() => setIsAttendanceModalOpen(false)} type={scannedStudentData?.status === 'Late' ? 'warning' : 'success'} title="Attendance Recorded" message={scannedStudentData?.displayMsg} details={[{ label: 'Student ID', value: scannedStudentData?.studentId }, { label: 'Student', value: scannedStudentData?.studentName}, { label: 'Time In', value: scannedStudentData?.timeIn }, { label: 'Status', value: scannedStudentData?.status }]} />
+      <AdminActionFeedbackModal isOpen={isAttendanceModalOpen} onClose={() => setIsAttendanceModalOpen(false)} type={scannedStudentData?.status === 'Late' ? 'warning' : 'success'} title="Attendance Recorded" message={scannedStudentData?.displayMsg} details={[
+        { label: 'Student ID', value: scannedStudentData?.studentId }, 
+        { label: 'Student', value: scannedStudentData?.studentName}, 
+        { label: 'Time In', value: scannedStudentData?.timeIn
+            ? new Date(scannedStudentData.timeIn).toLocaleString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: 'numeric', minute: '2-digit',
+                hour12: true, timeZone: 'Asia/Manila'
+              })
+            : "---"
+        }, 
+        { label: 'Status', value: scannedStudentData?.status }
+      ]} />
       <AdminActionFeedbackModal isOpen={!!transferSuccessData} onClose={() => setTransferSuccessData(null)} type={transferSuccessData?.type || 'success'} title={transferSuccessData?.title} message={transferSuccessData?.message} details={transferSuccessData?.details} buttonText={transferSuccessData?.type === 'error' ? 'Try Again' : 'Great'} />
       <AdminActionFeedbackModal isOpen={isErrorModalOpen} onClose={() => setIsErrorModalOpen(false)} type="error" title={errorTitle} message={errorMainMsg} details={[{ label: 'Reason', value: errorMessage }]} buttonText="Try Again" />
       {loadingScan && (<div className="fixed inset-0 bg-black/50 z-9999 flex items-center justify-center"><div className="bg-white p-4 rounded-lg flex items-center gap-3"><span className="material-symbols-outlined animate-spin text-blue-600">sync</span><span>Verifying Pass...</span></div></div>)}
