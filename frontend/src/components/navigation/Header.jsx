@@ -137,7 +137,7 @@ export default function Header({ onToggle }) {
                 <button 
                   onClick={handleClearAll}
                   className="text-[12px] text-blue-500 font-semibold hover:text-blue-700 transition-colors">
-                    Clear All
+                    Mark as Read
                   </button>
               </div>
 
