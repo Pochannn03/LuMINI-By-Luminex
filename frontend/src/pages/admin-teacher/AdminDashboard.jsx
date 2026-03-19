@@ -858,8 +858,16 @@ export default function AdminDashboard() {
               <textarea name="content" className="text-cdark w-full h-20 border-none bg-transparent resize-none text-[14px] outline-none" placeholder="Write an announcement..." value={announcementData.content} onChange={handleAnnChange} disabled={posting} />
               <div className="flex justify-between items-center mt-2.5 pt-2.5 border-t border-slate-100">
                 <div className="text-[12px] text-cgray">{announcementData.content.length} characters</div>
-                <button className={`btn-post ${posting ? 'opacity-50 cursor-not-allowed' : ''}`} onClick={handlePostAnnouncement} disabled={posting || !announcementData.content.trim() || (user?.role !== 'superadmin' && !selectedSection)}>
-                  {posting ? 'Posting...' : 'Post'}
+                <button
+                  className={`btn-post transition-all text-white px-6 py-2 rounded-lg font-bold ${
+                    posting || !announcementData.content.trim()
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+                  }`}
+                  onClick={handlePostAnnouncement}
+                  disabled={posting || !announcementData.content.trim()}
+                >
+                  {posting ? 'Sending...' : 'Post'}
                 </button>
               </div>
             </div>
