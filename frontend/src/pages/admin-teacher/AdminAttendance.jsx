@@ -67,6 +67,8 @@ export default function AdminAttendance() {
   // const [isEditMode, setIsEditMode] = useState(false);
   // const [pendingChanges, setPendingChanges] = useState({});
   // const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     const fetchAttendance = async () => {
@@ -74,15 +76,18 @@ export default function AdminAttendance() {
         setLoading(true);
         const dateString = dateToInputString(currentDate);
 
-        // Updated to use BACKEND_URL
         const response = await axios.get(`${BACKEND_URL}/api/attendance`, {
-          params: { date: dateString },
+          params: {
+            date: !startDate && !endDate ? dateString : undefined,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
+          },
           withCredentials: true
         });
 
         if (response.data.success) {
           setAttendanceData(response.data.data);
-          setTeacherSections(response.data.sections || []); 
+          setTeacherSections(response.data.sections || []);
         }
       } catch (err) {
         console.error("Fetch Error:", err);
@@ -92,7 +97,7 @@ export default function AdminAttendance() {
     };
 
     fetchAttendance();
-  }, [currentDate]);
+  }, [currentDate, startDate, endDate]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -106,12 +111,16 @@ export default function AdminAttendance() {
 
   const filteredRecords = React.useMemo(() => {
     return attendanceData.filter(record => {
+      const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
+
+      // If a date range is active, the backend already filtered by date — skip client-side date filter
+      if (startDate || endDate) return matchesSection;
+
       const selectedUIString = dateToInputString(currentDate);
       const matchesDate = record.date === selectedUIString;
-      const matchesSection = selectedSection === "all" || record.section_name === selectedSection;
       return matchesDate && matchesSection;
     });
-  }, [attendanceData, currentDate, selectedSection]);
+  }, [attendanceData, currentDate, selectedSection, startDate, endDate]);
 
   useEffect(() => {
     const present = filteredRecords.filter(s => s.status === 'Present').length;
@@ -126,6 +135,7 @@ export default function AdminAttendance() {
     document.addEventListener("click", handleTapOutside);
     return () => document.removeEventListener("click", handleTapOutside);
   }, []);
+  
 
   // const handleLocalChange = (recordId, field, value) => {
   //   setPendingChanges(prev => {
@@ -205,7 +215,12 @@ export default function AdminAttendance() {
     
     doc.setFontSize(11);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Date: ${monthDay}, ${currentDate.getFullYear()}`, 14, 32);
+    doc.text(
+      startDate || endDate
+        ? `Date Range: ${startDate || "..."} → ${endDate || "..."}`
+        : `Date: ${monthDay}, ${currentDate.getFullYear()}`,
+      14, 32
+    );
     doc.text(`Section: ${selectedSection === "all" ? "All Sections" : selectedSection}`, 14, 38);
     doc.text(`Summary: ${stats.present} Present | ${stats.late} Late | ${stats.absent} Absent`, 14, 44);
 
@@ -267,9 +282,9 @@ export default function AdminAttendance() {
 
                 <div className="flex flex-col gap-3 w-full xl:w-auto xl:ml-auto shrink-0 mt-4 xl:mt-0">
                   <div className="flex items-center bg-gray-50 rounded-xl p-1 border border-gray-200 shadow-sm w-full h-[38px]">
-                    <button onClick={() => handleDateChange(-1)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0">
-                      <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                    </button>
+                    <button onClick={() => handleDateChange(-1)} disabled={!!(startDate || endDate)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
+                    <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                  </button>
                     
                     <div className="relative h-full flex items-center flex-1">
                       <button 
@@ -297,17 +312,57 @@ export default function AdminAttendance() {
                       />
                     </div>
 
-                    <button onClick={() => handleDateChange(1)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0">
+                    <button onClick={() => handleDateChange(1)} disabled={!!(startDate || endDate)} className="w-8 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-blue-600 hover:bg-white transition-all cursor-pointer shrink-0 disabled:opacity-30 disabled:cursor-not-allowed">
                       <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                     </button>
                   </div>
 
                   {/* RIGHT SIDE: Filter & Calendar Wrapper */}
-                  <div className="flex flex-col md:flex-row items-center gap-2 w-full xl:w-auto xl:ml-auto">
-                    
-                    {/* CUSTOM SECTION FILTER (Compact Size) */}
-                    <div className="relative w-full md:w-44" ref={filterRef}>
-                      <button 
+                  <div className="flex flex-col gap-2 w-full xl:w-auto xl:ml-auto">
+
+                    {/* ROW 1: Date Range */}
+                    <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+                      <div className="relative w-full sm:w-auto">
+                        <label className="absolute -top-[10px] left-3 bg-white px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider z-10">
+                          From
+                        </label>
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                          className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-[12px] font-semibold h-[38px] pl-3 pr-3 rounded-xl cursor-pointer w-full outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                        />
+                      </div>
+
+                      <span className="hidden sm:block text-slate-400 text-sm font-bold shrink-0">→</span>
+
+                      <div className="relative w-full sm:w-auto">
+                        <label className="absolute -top-[10px] left-3 bg-white px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider z-10">
+                          To
+                        </label>
+                        <input
+                          type="date"
+                          value={endDate}
+                          min={startDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                          className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-[12px] font-semibold h-[38px] pl-3 pr-3 rounded-xl cursor-pointer w-full outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                        />
+                      </div>
+
+                      {(startDate || endDate) && (
+                        <button
+                          onClick={() => { setStartDate(""); setEndDate(""); }}
+                          className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 h-[38px] rounded-xl transition-colors shrink-0 w-full sm:w-auto justify-center"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    {/* ROW 2: Section Filter */}
+                    <div className="relative w-full" ref={filterRef}>
+                      <button
                         onClick={() => setIsFilterOpen(!isFilterOpen)}
                         className={`flex items-center justify-between w-full h-[38px] px-3 rounded-xl border bg-slate-50 transition-all duration-200 cursor-pointer ${
                           isFilterOpen ? "border-(--brand-blue) ring-2 ring-blue-500/10 bg-white" : "border-slate-200"
@@ -328,14 +383,14 @@ export default function AdminAttendance() {
 
                       {isFilterOpen && (
                         <div className="absolute top-[42px] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-[100] p-1 animate-[fadeIn_0.2s_ease-out]">
-                          <button 
+                          <button
                             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-(--brand-blue) transition-colors"
                             onClick={() => { setSelectedSection("all"); setIsFilterOpen(false); }}
                           >
                             <span className="material-symbols-outlined text-[18px]">groups</span> All
                           </button>
                           {teacherSections.map((section) => (
-                            <button 
+                            <button
                               key={section._id}
                               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-[12px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-(--brand-blue) transition-colors"
                               onClick={() => { setSelectedSection(section.section_name); setIsFilterOpen(false); }}
@@ -346,6 +401,7 @@ export default function AdminAttendance() {
                         </div>
                       )}
                     </div>
+
                   </div>
                 </div>
               </div>
@@ -355,7 +411,7 @@ export default function AdminAttendance() {
                   <thead>
                     <tr className="border-b border-gray-100">
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[40%]">Student</th>
-                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[20%] text-center">Time</th>
+                      <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[20%] text-center">Timestamp</th>
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[30%] text-center">Status</th>
                       <th className="py-3 px-2 text-xs font-bold text-gray-400 uppercase tracking-wider w-[10%] text-center">Remarks</th>
                     </tr>
@@ -385,7 +441,19 @@ export default function AdminAttendance() {
 
                           <td className="py-4 px-2 text-center">
                             <span className="inline-block bg-blue-50 text-blue-600 text-[11px] font-bold px-3 py-1 rounded-lg whitespace-nowrap">
-                              {record.time_in || "---"}
+                              {(() => {
+                                if (!record.time_in || record.time_in === "---" || record.time_in === null) return "---";
+                                const parsed = new Date(record.time_in);
+                                if (isNaN(parsed.getTime())) return record.time_in;
+                                const isRange = !!(startDate || endDate);
+                                return parsed.toLocaleString('en-US', {
+                                  ...(isRange && { month: 'short', day: 'numeric', year: 'numeric' }),
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true,
+                                  timeZone: 'Asia/Manila'
+                                });
+                              })()}
                             </span>
                           </td>
 
@@ -459,7 +527,10 @@ export default function AdminAttendance() {
                         <td colSpan="4" className="py-10 text-center italic text-gray-400">
                           <div className="flex flex-col gap-1 items-center justify-center">
                             <span className="material-symbols-outlined text-[40px] mb-2">inbox</span>
-                            No records found for {monthDay}.
+                            {startDate || endDate
+                              ? `No records found for ${startDate || "..."} → ${endDate || "..."}.`
+                              : `No records found for ${monthDay}.`
+                            }
                           </div>
                         </td>
                       </tr>

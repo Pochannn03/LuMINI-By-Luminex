@@ -12,13 +12,12 @@ import { Settings } from "../models/settings.js";
 const router = Router();
 
 // GET STUDENT ATTENDANCES
-router.get('/api/attendance', 
-  isAuthenticated, 
-  hasRole('admin'), 
+router.get('/api/attendance',
+  isAuthenticated,
+  hasRole('admin'),
   async (req, res) => {
     try {
-      const selectedDate = req.query.date;
-      const dateToUse = req.query.date || new Date().toLocaleDateString('en-CA');
+      const { date, startDate, endDate } = req.query;
       const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship;
 
@@ -29,21 +28,32 @@ router.get('/api/attendance',
         teacherSections = await Section.find({ user_id: currentUserId });
         if (teacherSections.length > 0) {
           const sectionIds = teacherSections.map(sec => sec.section_id);
-          query = { section_id: { $in: sectionIds } };
+          query.section_id = { $in: sectionIds };
         } else {
           return res.json({ success: true, data: [], sections: [] });
         }
       } else if (userRole === 'superadmin') {
-        teacherSections = await Section.find({}); 
+        teacherSections = await Section.find({});
       }
 
-      const todayDate = new Date().toISOString().split('T')[0];
-      
-      // --- FIX 2: ADDED POPULATE TO GET THE PROFILE PICTURE ---
-      const records = await Attendance.find({  ...query, date: dateToUse  })
-                                      .populate('student_details') 
-                                      .sort({ created_at: -1 });
-      
+      // --- DATE FILTER LOGIC ---
+      if (startDate || endDate) {
+        // Range mode: filter records whose date falls between startDate and endDate
+        query.date = {};
+        if (startDate) query.date.$gte = startDate; // "YYYY-MM-DD" string comparison works if dates are stored consistently
+        if (endDate)   query.date.$lte = endDate;
+      } else if (date) {
+        // Single day mode (default)
+        query.date = date;
+      } else {
+        // Fallback: today
+        query.date = new Date().toISOString().split('T')[0];
+      }
+
+      const records = await Attendance.find(query)
+        .populate('student_details')
+        .sort({ created_at: -1 });
+
       res.json({
         success: true,
         data: records,
@@ -186,12 +196,13 @@ router.post('/api/attendance',
             minute: '2-digit', 
             hour12: true 
         });
+        const currentTimestamp = phNow.toISOString();
 
         const updated = await Attendance.findOneAndUpdate(
             { student_id: studentId, date: todayDate },
             { 
                 status, 
-                time_in: currentTimeString,
+                time_in: currentTimestamp,
                 $setOnInsert: {
                     student_name: `${student.first_name} ${student.last_name}`,
                     section_id: student.section_id,
