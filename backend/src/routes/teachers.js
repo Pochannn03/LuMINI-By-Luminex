@@ -340,7 +340,10 @@ router.put('/api/teacher/archive/:id', isAuthenticated, hasRole('superadmin'), a
     }
 });
 
-router.patch('/api/teacher/approval/:id', isAuthenticated, hasRole('superadmin'), async (req, res) => {
+router.patch('/api/teacher/approval/:id', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
     try {
       const teacherId = req.params.id;
       const updatedTeacher = await User.findByIdAndUpdate(
@@ -375,6 +378,60 @@ router.patch('/api/teacher/approval/:id', isAuthenticated, hasRole('superadmin')
       return res.status(200).json({ success: true, msg: `${updatedTeacher.first_name} ${updatedTeacher.last_name} has been approved.` });
     } catch (err) {
       return res.status(500).json({ success: false, msg: "Approval failed", error: err.message });
+    }
+}); 
+
+router.delete('/api/teacher/rejection/:id', 
+  isAuthenticated, 
+  hasRole('superadmin'), 
+  async (req, res) => {
+    try {
+      const teacherId = req.params.id;
+
+      const teacher = await User.findById(teacherId);
+
+      if (!teacher) {
+        return res.status(404).json({ success: false, msg: "Teacher not found" });
+      }
+
+      if (teacher.is_approved) {
+        return res.status(400).json({ success: false, msg: "Cannot reject an already approved account." });
+      }
+
+      // Clean up uploaded files from disk
+      const filesToDelete = [
+        teacher.profile_picture,
+        teacher.school_id_photo,
+        teacher.valid_id_photo,
+        teacher.facial_capture_image
+      ];
+
+      filesToDelete.forEach(filePath => {
+        if (filePath) {
+          const fullPath = path.resolve(filePath);
+          fs.unlink(fullPath, (err) => {
+            if (err) console.warn(`Could not delete file: ${fullPath}`, err.message);
+          });
+        }
+      });
+
+      await User.findByIdAndDelete(teacherId);
+
+      const auditLog = new Audit({
+        user_id: req.user.user_id,
+        full_name: `${req.user.first_name} ${req.user.last_name}`,
+        role: req.user.role,
+        action: "Reject Teacher",
+        target: `Rejected and deleted registration request of ${teacher.first_name} ${teacher.last_name}`
+      });
+      await auditLog.save();
+
+      const io = req.app.get('socketio');
+      if (io) { io.emit('teacher_processed', { id: teacherId, action: 'rejected' }); }
+
+      return res.status(200).json({ success: true, msg: `${teacher.first_name} ${teacher.last_name}'s registration has been rejected.` });
+    } catch (err) {
+      return res.status(500).json({ success: false, msg: "Rejection failed", error: err.message });
     }
 });
 
