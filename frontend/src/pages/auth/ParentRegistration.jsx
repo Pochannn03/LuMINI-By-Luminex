@@ -739,11 +739,10 @@ export default function ParentRegistration() {
                 </div>
 
                 <div className='flex w-full h-auto gap-4'>
-                  <div className='flex flex-col w-full mb-1'>
+                  <div className='flex w-full mb-1 gap-1'>
                     <FormInputRegistration label="First Name" name="firstName" type='text' placeholder="John" className="form-input-modal" value={formData.firstName} onChange={handleChange} error={errors.firstName} required={true} />
                     <FormInputRegistration label="Last Name" name="lastName" type='text' placeholder="Doe" className="form-input-modal" value={formData.lastName} onChange={handleChange} error={errors.lastName} required={true} />
-                    </div>
-                  <div className='flex flex-col w-full mb-1'> </div>
+                  </div>
                 </div>
 
                 <div className='flex flex-col w-full mb-2'>
