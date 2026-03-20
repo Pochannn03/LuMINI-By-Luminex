@@ -22,7 +22,7 @@ export default function AdminDashboardQrScan({ isOpen, onClose, onScan, scanMode
     : "Scan Student QR Code";
     
   const instructions = isUser 
-    ? "Ask the parent to show their Pickup Pass." 
+    ? "Ask the parent to show their Pass." 
     : "Ask the student to show their ID QR Code.";
 
   const iconClass = isUser ? "orange-icon" : "blue-icon";
