@@ -7,7 +7,7 @@ import ConfirmModal from '../../../ConfirmModal';
 import SuccessModal from '../../../SuccessModal';
 import WarningModal from '../../../WarningModal';
 
-export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) {
+export default function AdminEmergencyBroadcastModal({ isOpen, onClose }) { 
   const [recipientMode, setRecipientMode] = useState('all'); // 'all' or 'specific'
   const [messageType, setMessageType] = useState('');
   const [customMessage, setCustomMessage] = useState('');
