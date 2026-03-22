@@ -119,7 +119,7 @@ const NAV_ITEMS = [
     allowedTypes: ["Guardian"],
   },
   {
-    label: "Pickup History",
+    label: "History",
     path: "/guardian/history",
     icon: "history",
     allowedRoles: ["user"],
