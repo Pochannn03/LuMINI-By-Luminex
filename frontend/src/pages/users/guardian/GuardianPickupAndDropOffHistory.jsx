@@ -28,6 +28,8 @@ const getImageUrl = (path, fallbackName) => {
 };
 
 export default function GuardianPickupAndDropOffHistory() {
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [transferData, setTransferData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -40,15 +42,15 @@ export default function GuardianPickupAndDropOffHistory() {
       try {
         setLoading(true);
         const dateString = dateToInputString(currentDate);
-        
         const response = await axios.get(`${BACKEND_URL}/api/transfer/parent`, { 
           params: {
-            date: dateString,
+            date: (!startDate && !endDate) ? dateString : undefined,
+            startDate: startDate || undefined,
+            endDate: endDate || undefined,
             purpose: filterType !== "all" ? filterType : undefined
           },
           withCredentials: true 
         });
-
         if (response.data.success) {
           setTransferData(response.data.data);
         }
@@ -59,9 +61,8 @@ export default function GuardianPickupAndDropOffHistory() {
         setLoading(false);
       }
     };
-
     fetchTransferHistory();
-  }, [currentDate, filterType]);
+  }, [currentDate, filterType, startDate, endDate]);
 
   const handleDateChange = (days) => {
     const newDate = new Date(currentDate);
@@ -77,12 +78,13 @@ export default function GuardianPickupAndDropOffHistory() {
   };
 
   const filteredData = transferData.filter(item => {
-    const selectedDateString = dateToInputString(currentDate); 
-    const matchesDate = item.date === selectedDateString;
+    if (!startDate && !endDate) {
+      const selectedDateString = dateToInputString(currentDate);
+      if (item.date !== selectedDateString) return false;
+    }
     const recordPurpose = item.purpose?.toLowerCase().replace(/\s/g, "") || "";
     const activeFilter = filterType.toLowerCase().replace(/\s/g, "");
-    const matchesType = filterType === "all" || recordPurpose.includes(activeFilter);
-    return matchesDate && matchesType;
+    return filterType === "all" || recordPurpose.includes(activeFilter);
   });
 
   return (
@@ -112,62 +114,102 @@ export default function GuardianPickupAndDropOffHistory() {
               </div>
 
               {/* RIGHT SIDE: Filters and Calendar */}
-              <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+              <div className="flex flex-col gap-3 w-full md:w-auto">
 
-                {/* TYPE FILTER */}
-                <div className="relative shrink-0 w-full md:w-auto">
-                  <select 
-                    className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-10 rounded-xl cursor-pointer w-full md:w-auto outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/5 transition-all"
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                  >
-                    <option value="all">All Records</option>
-                    <option value="drop off">Drop Offs</option>
-                    <option value="pick up">Pick Ups</option>
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
-                    filter_list
-                  </span>
-                </div>
+                {/* Row 1: Type Filter + Calendar */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
 
-                {/* CALENDAR CONTROLS */}
-                <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-200 h-[45px] w-full md:w-auto">
-                  <button 
-                    onClick={() => handleDateChange(-1)} 
-                    className="w-10 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-(--brand-blue) hover:bg-white transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                  </button>
-
-                  <div className="relative h-full flex items-center flex-1 md:flex-none">
-                    <button 
-                      onClick={() => dateInputRef.current.showPicker()} 
-                      className="flex items-center justify-between gap-3 px-3 h-full w-full rounded-lg hover:bg-white transition-all border border-transparent hover:border-gray-100 min-w-[180px] cursor-pointer"
+                  {/* Type Filter */}
+                  <div className="relative shrink-0 w-full sm:w-auto">
+                    <select 
+                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-10 rounded-xl cursor-pointer w-full outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/5 transition-all"
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[18px] text-(--brand-blue)">calendar_month</span>
-                        <span className="text-[13px] font-bold text-gray-700 uppercase tracking-tight">{monthDay}</span>
-                      </div>
-                      <div className="w-px h-4 bg-gray-300"></div>
-                      <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{weekday.slice(0, 3)}</span>
-                    </button>
-
-                    <input 
-                      type="date" 
-                      ref={dateInputRef} 
-                      onChange={handleCalendarChange} 
-                      value={dateToInputString(currentDate)} 
-                      className="absolute opacity-0 pointer-events-none" 
-                      style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} 
-                    />
+                      <option value="all">All Records</option>
+                      <option value="drop off">Drop Offs</option>
+                      <option value="pick up">Pick Ups</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px] pointer-events-none">
+                      filter_list
+                    </span>
                   </div>
 
-                  <button 
-                    onClick={() => handleDateChange(1)} 
-                    className="w-10 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-(--brand-blue) hover:bg-white transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-                  </button>
+                  {/* Calendar — hidden when date range is active */}
+                  {!startDate && !endDate && (
+                    <div className="flex items-center bg-slate-50 rounded-xl p-1 border border-slate-200 h-[45px] w-full sm:w-auto">
+                      <button 
+                        onClick={() => handleDateChange(-1)} 
+                        className="w-10 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-(--brand-blue) hover:bg-white transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                      </button>
+                      <div className="relative h-full flex items-center flex-1 sm:flex-none">
+                        <button 
+                          onClick={() => dateInputRef.current.showPicker()} 
+                          className="flex items-center justify-between gap-3 px-3 h-full w-full rounded-lg hover:bg-white transition-all border border-transparent hover:border-gray-100 min-w-[180px] cursor-pointer"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[18px] text-(--brand-blue)">calendar_month</span>
+                            <span className="text-[13px] font-bold text-gray-700 uppercase tracking-tight">{monthDay}</span>
+                          </div>
+                          <div className="w-px h-4 bg-gray-300"></div>
+                          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{weekday.slice(0, 3)}</span>
+                        </button>
+                        <input 
+                          type="date" 
+                          ref={dateInputRef} 
+                          onChange={handleCalendarChange} 
+                          value={dateToInputString(currentDate)} 
+                          className="absolute opacity-0 pointer-events-none" 
+                          style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} 
+                        />
+                      </div>
+                      <button 
+                        onClick={() => handleDateChange(1)} 
+                        className="w-10 h-full flex items-center justify-center rounded-lg text-gray-400 hover:text-(--brand-blue) hover:bg-white transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Row 2: Date Range — always below */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="relative w-full sm:w-auto">
+                    <label className="absolute -top-[10px] left-3 bg-white px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider z-10">
+                      From
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-4 rounded-xl cursor-pointer w-full outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/5 transition-all"
+                    />
+                  </div>
+                  <span className="hidden sm:block text-slate-400 text-sm font-bold shrink-0">→</span>
+                  <div className="relative w-full sm:w-auto">
+                    <label className="absolute -top-[10px] left-3 bg-white px-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider z-10">
+                      To
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      min={startDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="appearance-none bg-slate-50 border border-slate-200 text-gray-700 text-sm font-semibold h-[45px] pl-4 pr-4 rounded-xl cursor-pointer w-full outline-none focus:border-(--brand-blue) focus:ring-4 focus:ring-blue-500/5 transition-all"
+                    />
+                  </div>
+                  {(startDate || endDate) && (
+                    <button
+                      onClick={() => { setStartDate(""); setEndDate(""); }}
+                      className="flex items-center justify-center gap-1 text-xs font-semibold text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 h-[45px] rounded-xl transition-colors shrink-0"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">close</span>
+                      Clear
+                    </button>
+                  )}
                 </div>
 
               </div>
@@ -227,7 +269,15 @@ export default function GuardianPickupAndDropOffHistory() {
                             </div>
                         </td>
                         <td className="py-5 px-2 text-center">
-                          <span className="text-cdark text-[13px] font-medium">{record.time}</span>
+                          <span className="text-cdark text-[13px] font-medium">
+                            {(() => {
+                              if (!record.time) return "---";
+                              const d = new Date(`1970-01-01 ${record.time}`);
+                              return isNaN(d.getTime())
+                                ? "---"
+                                : d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+                            })()}
+                          </span>
                         </td>
                         <td className="py-5 px-2 text-center">
                           <span className={`inline-block px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
