@@ -444,13 +444,14 @@ export default function AdminAttendance() {
                               {(() => {
                                 if (!record.time_in || record.time_in === "---" || record.time_in === null) return "---";
                                 const parsed = new Date(record.time_in);
-                                if (isNaN(parsed.getTime())) return record.time_in;
+                                if (isNaN(parsed.getTime())) return "---";
                                 const isRange = !!(startDate || endDate);
-                                return parsed.toLocaleString('en-US', {
+                                return parsed.toLocaleString('en-PH', {
                                   ...(isRange && { month: 'short', day: 'numeric', year: 'numeric' }),
-                                  hour: 'numeric',
+                                  hour: '2-digit',
                                   minute: '2-digit',
-                                  hour12: true,
+                                  second: '2-digit',
+                                  hour12: false,
                                   timeZone: 'Asia/Manila'
                                 });
                               })()}

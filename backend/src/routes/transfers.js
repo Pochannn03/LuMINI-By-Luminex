@@ -44,13 +44,23 @@ router.get('/api/transfer',
   async (req, res) => {
 
     try {
-      const { date } = req.query;
+      const { date, startDate, endDate } = req.query; 
       const currentUserId = Number(req.user.user_id);
       const userRole = req.user.relationship?.toLowerCase();
       let query = {};
 
-      if (date) {
-        query.date = date;
+      if (startDate || endDate) {
+        query.created_at = {};
+        if (startDate) {
+          const start = new Date(`${startDate}T00:00:00+08:00`);
+          query.created_at.$gte = start;
+        }
+        if (endDate) {
+          const end = new Date(`${endDate}T23:59:59.999+08:00`);
+          query.created_at.$lte = end;
+        }
+      } else if (date) {
+        query.date = date; // ← fallback to old single-date behavior
       }
 
       if (userRole === 'teacher') {
@@ -80,7 +90,7 @@ router.get('/api/transfer/parent',
   hasRole('user'),
   async (req, res) => {
     try {
-      const { date, purpose } = req.query;
+      const { date, purpose, startDate, endDate } = req.query;
       const currentUserId = req.user.user_id; 
       const children = await Student.find({ user_id: currentUserId });
 
@@ -94,8 +104,22 @@ router.get('/api/transfer/parent',
         student_id: { $in: studentIdStrings }
       };
 
-      if (date) {
+      if (startDate || endDate) {
+        query.created_at = {};
+        if (startDate) {
+          const start = new Date(`${startDate}T00:00:00+08:00`);
+          query.created_at.$gte = start;
+        }
+        if (endDate) {
+          const end = new Date(`${endDate}T23:59:59.999+08:00`);
+          query.created_at.$lte = end;
+        }
+      } else if (date) {
         query.date = date;
+      }
+
+      if (purpose && purpose !== "all") {
+        query.purpose = { $regex: new RegExp(purpose, "i") };
       }
 
       if (purpose && purpose !== "all") {
